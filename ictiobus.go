@@ -20,10 +20,13 @@ package ictiobus
 import (
 	"fmt"
 	"io"
+	"reflect"
+	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/parse"
+	"github.com/dekarrin/ictiobus/translation"
 	"github.com/dekarrin/ictiobus/types"
 )
 
@@ -67,7 +70,6 @@ type Parser interface {
 	GetDFA() string
 }
 
-/*
 // SDD is a series of syntax-directed definitions bound to syntactic rules of
 // a grammar. It is used for evaluation of a parse tree into an intermediate
 // representation, or for direct execution.
@@ -126,7 +128,6 @@ type SDD interface {
 	// value dependency graph.
 	Evaluate(tree types.ParseTree, attributes ...translation.NodeAttrName) ([]translation.NodeAttrValue, error)
 }
-*/
 
 // NewLexer returns a lexer whose Lex method will immediately lex the entire
 // input source, finding errors and reporting them and stopping as soon as the
@@ -215,7 +216,6 @@ func NewCLRParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigW
 	return parse.GenerateCanonicalLR1Parser(g, allowAmbiguous)
 }
 
-/*
 // NewSDD returns a new Syntax-Directed Definition Scheme.
 func NewSDD() SDD {
 	return translation.NewSDD()
@@ -283,4 +283,3 @@ func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, err error) {
 
 	return ir, nil
 }
-*/

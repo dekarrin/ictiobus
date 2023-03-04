@@ -1,6 +1,7 @@
 package textfmt
 
 import (
+	"math"
 	"sort"
 	"strings"
 	"unicode"
@@ -84,4 +85,37 @@ func TruncateWith(s string, maxLen int, cont string) string {
 	}
 
 	return s[:maxLen] + cont
+}
+
+// OrdinalSuf returns the suffix for the ordinal version of the given number,
+// e.g. "rd" for 3, "st" for 51, etc.
+func OrdinalSuf(a int) string {
+	// first, if negative, just give the prefix for the positive
+	if a < 0 {
+		a *= -1
+	}
+
+	// special exception for the english language: 11th, 12th, and 13th break
+	// the "by 1's place" rule, and need to be allowed for explicitly
+	if a == 11 || a == 12 || a == 13 {
+		return "th"
+	}
+
+	finalDigit := a
+
+	if a > 9 {
+		// it all depends on the final digit
+		nextTen := int(math.Floor(float64(a)/10) * 10)
+		finalDigit = a - nextTen
+	}
+
+	if finalDigit == 1 {
+		return "st"
+	} else if finalDigit == 2 {
+		return "nd"
+	} else if finalDigit == 3 {
+		return "rd"
+	} else {
+		return "th"
+	}
 }
