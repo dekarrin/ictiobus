@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dekarrin/tunaq/internal/util"
+	"github.com/dekarrin/ictiobus/internal/util/box"
 )
 
 type LR0Item struct {
@@ -54,12 +54,12 @@ type LR1Item struct {
 	Lookahead string
 }
 
-func EqualCoreSets(s1, s2 util.VSet[string, LR1Item]) bool {
+func EqualCoreSets(s1, s2 box.VSet[string, LR1Item]) bool {
 	return CoreSet(s1).Equal(CoreSet(s2))
 }
 
-func CoreSet(s util.VSet[string, LR1Item]) util.SVSet[LR0Item] {
-	cores := util.NewSVSet[LR0Item]()
+func CoreSet(s box.VSet[string, LR1Item]) box.SVSet[LR0Item] {
+	cores := box.NewSVSet[LR0Item]()
 	for _, elem := range s.Elements() {
 		lr1 := s.Get(elem)
 		cores.Set(lr1.LR0Item.String(), lr1.LR0Item)

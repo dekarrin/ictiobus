@@ -6,7 +6,10 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/dekarrin/ictiobus/internal/util/box"
+	"github.com/dekarrin/ictiobus/internal/util/matrix"
 	"github.com/dekarrin/ictiobus/internal/util/slices"
+	"github.com/dekarrin/ictiobus/internal/util/textfmt"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/rosed"
 )
@@ -314,7 +317,7 @@ type Grammar struct {
 
 // Terminals returns an ordered list of the terminals in the grammar.
 func (g Grammar) Terminals() []string {
-	return util.OrderedKeys(g.terminals)
+	return textfmt.OrderedKeys(g.terminals)
 }
 
 // Augmented returns a new grammar that is a copy of this one but with the start
@@ -359,7 +362,7 @@ func (g Grammar) LR0Items() []LR0Item {
 // ValidLR1Items returns the sets of valid LR(1) items that would be in each
 // state of a CLR(1) automaton. Note that it is expected that this will be
 // called on an Augmented grammar.
-func (g Grammar) ValidLR1Items() util.SVSet[util.SVSet[LR1Item]] {
+func (g Grammar) ValidLR1Items() box.SVSet[box.SVSet[LR1Item]] {
 	// since it is assumed the grammar has been augmented, we can take the only
 	// rule for the start symbol.
 	startRule := g.Rule(g.StartSymbol())
@@ -377,10 +380,10 @@ func (g Grammar) ValidLR1Items() util.SVSet[util.SVSet[LR1Item]] {
 		},
 		Lookahead: "$",
 	}
-	startSet := util.NewSVSet[LR1Item]()
+	startSet := box.NewSVSet[LR1Item]()
 	startSet.Set(startItem.String(), startItem)
 
-	C := util.NewSVSet[util.SVSet[LR1Item]]()
+	C := box.NewSVSet[box.SVSet[LR1Item]]()
 	startSetClosure := g.LR1_CLOSURE(startSet)
 	C.Set(startSetClosure.StringOrdered(), startSetClosure)
 
@@ -407,7 +410,7 @@ func (g Grammar) ValidLR1Items() util.SVSet[util.SVSet[LR1Item]] {
 // without including the automaton (which may be invalid for non SLR(1)
 // grammars). Note that it is exepcted that this will be called on an Augmented
 // grammar.
-func (g Grammar) CanonicalLR0Items() util.SVSet[util.SVSet[LR0Item]] {
+func (g Grammar) CanonicalLR0Items() box.SVSet[box.SVSet[LR0Item]] {
 
 	// since it is assumed the grammar has been augmented, we can take the only
 	// rule for the start symbol.
@@ -422,10 +425,10 @@ func (g Grammar) CanonicalLR0Items() util.SVSet[util.SVSet[LR0Item]] {
 		NonTerminal: g.StartSymbol(),
 		Right:       startRule.Productions[0],
 	}
-	startSet := util.NewSVSet[LR0Item]()
+	startSet := box.NewSVSet[LR0Item]()
 	startSet.Set(startItem.String(), startItem)
 
-	C := util.NewSVSet[util.SVSet[LR0Item]]()
+	C := box.NewSVSet[box.SVSet[LR0Item]]()
 	startSetClosure := g.LR0_CLOSURE(startSet)
 	C.Set(startSetClosure.StringOrdered(), startSetClosure)
 
@@ -447,8 +450,8 @@ func (g Grammar) CanonicalLR0Items() util.SVSet[util.SVSet[LR0Item]] {
 	return C
 }
 
-func (g Grammar) LR0_CLOSURE(I util.SVSet[LR0Item]) util.SVSet[LR0Item] {
-	J := util.NewSVSet(I)
+func (g Grammar) LR0_CLOSURE(I box.SVSet[LR0Item]) box.SVSet[LR0Item] {
+	J := box.NewSVSet(I)
 
 	updated := true
 	for updated {
@@ -487,8 +490,8 @@ func (g Grammar) LR0_CLOSURE(I util.SVSet[LR0Item]) util.SVSet[LR0Item] {
 }
 
 // g must be an augmented grammar.
-func (g Grammar) LR0_GOTO(I util.SVSet[LR0Item], X string) util.SVSet[LR0Item] {
-	aXdBSet := util.NewSVSet[LR0Item]()
+func (g Grammar) LR0_GOTO(I box.SVSet[LR0Item], X string) box.SVSet[LR0Item] {
+	aXdBSet := box.NewSVSet[LR0Item]()
 	for _, itemName := range I.Elements() {
 		item := I.Get(itemName)
 		if len(item.Right) > 0 && item.Right[0] == X {
@@ -511,9 +514,9 @@ func (g Grammar) LR0_GOTO(I util.SVSet[LR0Item], X string) util.SVSet[LR0Item] {
 // Note: this actually takes the grammar for each production B -> gamma in G,
 // not G'. It's assumed this function is only called on a g.Augmented()
 // instance.
-func (g Grammar) LR1_CLOSURE(I util.SVSet[LR1Item]) util.SVSet[LR1Item] {
+func (g Grammar) LR1_CLOSURE(I box.SVSet[LR1Item]) box.SVSet[LR1Item] {
 	Iset := I.Copy()
-	I = Iset.(util.SVSet[LR1Item])
+	I = Iset.(box.SVSet[LR1Item])
 
 	updated := true
 	for updated {
@@ -556,8 +559,8 @@ func (g Grammar) LR1_CLOSURE(I util.SVSet[LR1Item]) util.SVSet[LR1Item] {
 // Note: this actually uses the grammar G, not G'. It's assumed this function is
 // only called on a g.Augmented() instance. This has a source in purple dragon
 // book 4.7.2.
-func (g Grammar) LR1_GOTO(I util.SVSet[LR1Item], X string) util.SVSet[LR1Item] {
-	J := util.NewSVSet[LR1Item]()
+func (g Grammar) LR1_GOTO(I box.SVSet[LR1Item], X string) box.SVSet[LR1Item] {
+	J := box.NewSVSet[LR1Item]()
 	for itemName, item := range I {
 		J.Set(itemName, item)
 	}
@@ -597,7 +600,7 @@ func (g Grammar) StartSymbol() string {
 }
 
 func (g Grammar) String() string {
-	return fmt.Sprintf("(%q, R=%q)", util.OrderedKeys(g.terminals), g.rules)
+	return fmt.Sprintf("(%q, R=%q)", textfmt.OrderedKeys(g.terminals), g.rules)
 }
 
 // Rule returns the grammar rule for the given nonterminal symbol.
@@ -679,7 +682,7 @@ func (g *Grammar) AddTerm(terminal string, class types.TokenClass) {
 // RemoveUnusedTerminals removes all terminals that are not currently used by
 // any rule.
 func (g *Grammar) RemoveUnusedTerminals() {
-	producedTerms := util.NewStringSet()
+	producedTerms := box.NewStringSet()
 	terms := g.Terminals()
 
 	for i := range g.rules {
@@ -802,7 +805,7 @@ func (g *Grammar) AddRule(nonterminal string, production []string) {
 // NonTerminals returns list of all the non-terminal symbols. All will be upper
 // case.
 func (g Grammar) NonTerminals() []string {
-	return util.OrderedKeys(g.rulesByName)
+	return textfmt.OrderedKeys(g.rulesByName)
 }
 
 // ReversePriorityNonTerminals returns list of all the non-terminal symbols in
@@ -1032,7 +1035,7 @@ func (g Grammar) RemoveEpsilons() Grammar {
 				// for each production of b
 				var newProds []Production
 				for _, bProd := range ruleB.Productions {
-					if util.InSlice(A, bProd) {
+					if slices.In(A, bProd) {
 						// gen all permutations of A being epsi for that
 						// production
 						// AsA -> AsA, sA, s, As
@@ -1248,7 +1251,7 @@ func (g Grammar) LeftFactor() Grammar {
 
 				for k := j + 1; k < len(AiRule.Productions); k++ {
 					againstAlt := AiRule.Productions[k]
-					longestPref := util.LongestCommonPrefix(checkingAlt, againstAlt)
+					longestPref := slices.LongestCommonPrefix(checkingAlt, againstAlt)
 
 					// in this case we will simply always take longest between two
 					// because anyfin else would require far more intense searching.
@@ -1277,7 +1280,7 @@ func (g Grammar) LeftFactor() Grammar {
 				betas := []Production{}
 
 				for _, alt := range AiRule.Productions {
-					if util.HasPrefix(alt, alpha) {
+					if slices.HasPrefix(alt, alpha) {
 						beta := alt[len(alpha):]
 						if len(beta) == 0 {
 							beta = Epsilon
@@ -1308,12 +1311,12 @@ func (g Grammar) LeftFactor() Grammar {
 }
 
 // recursiveFindFollowSet
-func (g Grammar) recursiveFindFollowSet(X string, prevFollowChecks util.ISet[string]) util.ISet[string] {
+func (g Grammar) recursiveFindFollowSet(X string, prevFollowChecks box.ISet[string]) box.ISet[string] {
 	if X == "" {
 		// there is no follow set. return empty set
-		return util.NewStringSet()
+		return box.NewStringSet()
 	}
-	followSet := util.NewStringSet()
+	followSet := box.NewStringSet()
 	if X == g.StartSymbol() {
 		followSet.Add("$")
 	}
@@ -1412,10 +1415,10 @@ func (g Grammar) recursiveFindFollowSet(X string, prevFollowChecks util.ISet[str
 	return followSet
 }
 
-type LL1Table util.Matrix2[string, string, Production]
+type LL1Table matrix.Matrix2[string, string, Production]
 
 func (M LL1Table) Set(A string, a string, alpha Production) {
-	util.Matrix2[string, string, Production](M).Set(A, a, alpha)
+	matrix.Matrix2[string, string, Production](M).Set(A, a, alpha)
 }
 
 func (M LL1Table) String() string {
@@ -1449,7 +1452,7 @@ func (M LL1Table) String() string {
 // Get returns an empty Production if it does not exist, or the one at the
 // given coords.
 func (M LL1Table) Get(A string, a string) Production {
-	v := util.Matrix2[string, string, Production](M).Get(A, a)
+	v := matrix.Matrix2[string, string, Production](M).Get(A, a)
 	if v == nil {
 		return Error
 	}
@@ -1459,7 +1462,7 @@ func (M LL1Table) Get(A string, a string) Production {
 // NonTerminals returns all non-terminals used as the X keys for values in this
 // table.
 func (M LL1Table) NonTerminals() []string {
-	return util.OrderedKeys(M)
+	return textfmt.OrderedKeys(M)
 }
 
 // Terminals returns all terminals used as the Y keys for values in this table.
@@ -1475,11 +1478,11 @@ func (M LL1Table) Terminals() []string {
 		}
 	}
 
-	return util.OrderedKeys(termSet)
+	return textfmt.OrderedKeys(termSet)
 }
 
 func NewLL1Table() LL1Table {
-	return LL1Table(util.NewMatrix2[string, string, Production]())
+	return LL1Table(matrix.NewMatrix2[string, string, Production]())
 }
 
 // LLParseTable builds and returns the LL parsing table for the grammar. If it's
@@ -1501,7 +1504,7 @@ func (g Grammar) LLParseTable() (M LL1Table, err error) {
 	for _, A := range nts {
 		ARule := g.Rule(A)
 		for _, alpha := range ARule.Productions {
-			FIRSTalpha := util.StringSetOf(g.FIRST(alpha[0]).Elements())
+			FIRSTalpha := box.StringSetOf(g.FIRST(alpha[0]).Elements())
 
 			// 1. For each terminal a in FIRST(A), add A -> α to M[A, a].
 			// -purple dragon book
@@ -1598,7 +1601,7 @@ func (g Grammar) IsLL1() bool {
 		AiRule := g.Rule(A)
 
 		// we'll need this later, glubglub 38)
-		followSetA := util.StringSetOf(g.FOLLOW(A).Elements())
+		followSetA := box.StringSetOf(g.FOLLOW(A).Elements())
 
 		// Whenever A -> α | β are two distinct productions of G:
 		// -purple dragon book
@@ -1607,8 +1610,8 @@ func (g Grammar) IsLL1() bool {
 				alphaFIRST := g.FIRST(AiRule.Productions[i][0])
 				betaFIRST := g.FIRST(AiRule.Productions[j][0])
 
-				aFSet := util.StringSetOf(alphaFIRST.Elements())
-				bFSet := util.StringSetOf(betaFIRST.Elements())
+				aFSet := box.StringSetOf(alphaFIRST.Elements())
+				bFSet := box.StringSetOf(betaFIRST.Elements())
 
 				// 1. For no terminal a do both α and β derive strings beginning
 				// with a.
@@ -1652,12 +1655,12 @@ func (g Grammar) IsLL1() bool {
 	return true
 }
 
-func (g Grammar) FOLLOW(X string) util.ISet[string] {
-	return g.recursiveFindFollowSet(X, util.NewStringSet())
+func (g Grammar) FOLLOW(X string) box.ISet[string] {
+	return g.recursiveFindFollowSet(X, box.NewStringSet())
 }
 
-func (g Grammar) FIRST_STRING(X ...string) util.ISet[string] {
-	first := util.NewStringSet()
+func (g Grammar) FIRST_STRING(X ...string) box.ISet[string] {
+	first := box.NewStringSet()
 	epsilonPresent := false
 	for i := range X {
 		fXi := g.FIRST(X[i])
@@ -1680,18 +1683,18 @@ func (g Grammar) FIRST_STRING(X ...string) util.ISet[string] {
 	return first
 }
 
-func (g Grammar) FIRST(X string) util.ISet[string] {
-	return g.firstSetSafeRecurse(X, util.NewStringSet())
+func (g Grammar) FIRST(X string) box.ISet[string] {
+	return g.firstSetSafeRecurse(X, box.NewStringSet())
 }
 
 // TODO: seen should be a util.ISet[string]
-func (g Grammar) firstSetSafeRecurse(X string, seen util.StringSet) util.ISet[string] {
+func (g Grammar) firstSetSafeRecurse(X string, seen box.StringSet) box.ISet[string] {
 	seen.Add(X)
 	if strings.ToLower(X) == X {
 		// terminal or epsilon
-		return util.NewStringSet(map[string]bool{X: true})
+		return box.NewStringSet(map[string]bool{X: true})
 	} else {
-		firsts := util.NewStringSet()
+		firsts := box.NewStringSet()
 		r := g.Rule(X)
 
 		for ntIdx := range r.Productions {
@@ -1924,7 +1927,7 @@ func (g Grammar) Validate() error {
 
 	// make sure all non-terminals produce either defined
 	// non-terminals or defined terminals
-	orderedTermKeys := util.OrderedKeys(g.terminals)
+	orderedTermKeys := textfmt.OrderedKeys(g.terminals)
 
 	errStr := ""
 

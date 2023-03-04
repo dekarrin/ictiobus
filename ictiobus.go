@@ -18,18 +18,10 @@ package ictiobus
 // validating LALR(1) grammars quickly.
 
 import (
-	"fmt"
-	"io"
-	"reflect"
-	"strings"
-
-	"github.com/dekarrin/ictiobus/internal/grammar"
-	"github.com/dekarrin/tunaq/internal/ictiobus/lex"
-	"github.com/dekarrin/tunaq/internal/ictiobus/parse"
-	"github.com/dekarrin/tunaq/internal/ictiobus/translation"
-	"github.com/dekarrin/tunaq/internal/ictiobus/types"
+	"github.com/dekarrin/ictiobus/types"
 )
 
+/*
 type Lexer interface {
 	// Lex returns a token stream. The tokens may be lexed in a lazy fashion or
 	// an immediate fashion; if it is immediate, errors will be returned at that
@@ -44,7 +36,7 @@ type Lexer interface {
 	StartingState() string
 
 	RegisterTokenListener(func(t types.Token))
-}
+}*/
 
 type Parser interface {
 	// Parse parses input text and returns the parse tree built from it, or a
@@ -70,6 +62,7 @@ type Parser interface {
 	GetDFA() string
 }
 
+/*
 // SDD is a series of syntax-directed definitions bound to syntactic rules of
 // a grammar. It is used for evaluation of a parse tree into an intermediate
 // representation, or for direct execution.
@@ -128,7 +121,8 @@ type SDD interface {
 	// value dependency graph.
 	Evaluate(tree types.ParseTree, attributes ...translation.NodeAttrName) ([]translation.NodeAttrValue, error)
 }
-
+*/
+/*
 // NewLexer returns a lexer whose Lex method will immediately lex the entire
 // input source, finding errors and reporting them and stopping as soon as the
 // first lexing error is encountered or the input has been completely lexed.
@@ -283,3 +277,4 @@ func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, err error) {
 
 	return ir, nil
 }
+*/
