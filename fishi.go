@@ -96,8 +96,33 @@ func ProcessFishiMd(mdText []byte) error {
 	}*/
 
 	// now, try to make a parse tree for your own grammar
-	fishiSource = []byte(`%%tokens
-[somefin] %stateshift`) /*`%%tokens
+	fishiSource = []byte(`%%actions
+
+	%symbol 
+	
+	
+	{hey}
+	%prod  %index 8
+
+%action {thing}.thing %hook thing
+	%prod {some}
+	
+%action {thing}.thing %hook thing
+	%prod {test}
+
+	%action {thing}.thing %hook thing
+%prod {ye}
+%action {thing}.thing %hook thing
+
+		%symbol {yo}%prod + {EAT} ext
+	
+%action {thing}.thing %hook thing
+%%tokens
+[somefin]
+
+%stateshift   someState
+
+%%tokens
 
 	glub  %discard
 
@@ -105,7 +130,13 @@ func ProcessFishiMd(mdText []byte) error {
 	[some]{FREEFORM}idk[^bullshit]text\*
 	%discard
 
-	[more]b*shi{2,4}   %stateshift
+	[more]b*shi{2,4}   %stateshift glub
+%token lovely %human "Something nice"
+	%priority 1
+	
+%state this
+
+[yo] %discard
 
 	%%grammar
 		{RULE} =   {SOMEBULLSHIT}
@@ -118,7 +149,19 @@ func ProcessFishiMd(mdText []byte) error {
 		%state someState
 
 		{RULE}=		{HMM}
-			`*/
+
+
+
+%%actions
+
+%symbol {text-element}
+%prod FREEFORM_TEXT
+%action {text-element}.str
+%hook identity  %with FREEFORM_TEXT.$text
+
+%prod ESCSEQ
+%action {text-element}.str
+%hook unescape  %with ESCSEQ.$test		`)
 	fishiSource = Preprocess(fishiSource)
 	fishi = bytes.NewBuffer(fishiSource)
 	stream, err := lx.Lex(fishi)
@@ -164,7 +207,8 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddTerm(tcId.ID(), tcId)
 	bootCfg.AddTerm(tcEscseq.ID(), tcEscseq)
 	bootCfg.AddTerm(tcEpsilon.ID(), tcEpsilon)
-	bootCfg.AddTerm(tcDiscard.ID(), tcDiscard)
+	bootCfg.AddTerm(tcDirDiscard.ID(), tcDirDiscard)
+	bootCfg.AddTerm(tcDirPriority.ID(), tcDirPriority)
 
 	bootCfg.AddRule("FISHISPEC", []string{"BLOCKS"})
 
@@ -173,11 +217,56 @@ func CreateBootstrapGrammar() grammar.Grammar {
 
 	bootCfg.AddRule("BLOCK", []string{"GRAMMAR-BLOCK"})
 	bootCfg.AddRule("BLOCK", []string{"TOKENS-BLOCK"})
+	bootCfg.AddRule("BLOCK", []string{"ACTIONS-BLOCK"})
 
-	// TODO: tokens-block is entering a rather absurd reduction chain, examine it
-	// and make sure it's correctly reading in the next set of tokens, then uncomment
-	// the full test string and try it with that
+	bootCfg.AddRule("ACTIONS-BLOCK", []string{tcHeaderActions.ID(), "ACTIONS-CONTENT"})
 
+	bootCfg.AddRule("ACTIONS-CONTENT", []string{"ACTIONS-CONTENT", "ACTIONS-STATE-BLOCK"})
+	bootCfg.AddRule("ACTIONS-CONTENT", []string{"ACTIONS-CONTENT", "SYMBOL-ACTIONS-LIST"})
+	bootCfg.AddRule("ACTIONS-CONTENT", []string{"ACTIONS-STATE-BLOCK"})
+	bootCfg.AddRule("ACTIONS-CONTENT", []string{"SYMBOL-ACTIONS-LIST"})
+
+	bootCfg.AddRule("ACTIONS-STATE-BLOCK", []string{"STATE-INSTRUCTION", "SYMBOL-ACTIONS-LIST"})
+
+	bootCfg.AddRule("SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS-LIST", "SYMBOL-ACTIONS"})
+	bootCfg.AddRule("SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS"})
+
+	bootCfg.AddRule("SYMBOL-ACTIONS", []string{tcDirSymbol.ID(), tcNonterminal.ID(), "PROD-ACTIONS"})
+
+	bootCfg.AddRule("PROD-ACTIONS", []string{"PROD-ACTIONS", "PROD-ACTION"})
+	bootCfg.AddRule("PROD-ACTIONS", []string{"PROD-ACTION"})
+
+	bootCfg.AddRule("PROD-ACTION", []string{"PROD-SPECIFIER", "SEMANTIC-ACTIONS"})
+
+	bootCfg.AddRule("SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTIONS", "SEMANTIC-ACTION"})
+	bootCfg.AddRule("SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTION"})
+
+	bootCfg.AddRule("SEMANTIC-ACTION", []string{tcDirAction.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID()})
+	bootCfg.AddRule("SEMANTIC-ACTION", []string{tcDirAction.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID(), "WITH-CLAUSE"})
+
+	bootCfg.AddRule("WITH-CLAUSE", []string{tcDirWith.ID(), "ATTR-REFS"})
+
+	bootCfg.AddRule("ATTR-REFS", []string{"ATTR-REFS", tcAttrRef.ID()})
+	bootCfg.AddRule("ATTR-REFS", []string{tcAttrRef.ID()})
+
+	bootCfg.AddRule("PROD-SPECIFIER", []string{tcDirProd.ID(), "PROD-ADDR"})
+	bootCfg.AddRule("PROD-SPECIFIER", []string{tcDirProd.ID()})
+
+	bootCfg.AddRule("PROD-ADDR", []string{tcDirIndex.ID(), tcInt.ID()})
+	bootCfg.AddRule("PROD-ADDR", []string{"ACTION-PRODUCTION"})
+
+	bootCfg.AddRule("ACTION-PRODUCTION", []string{"ACTION-SYMBOL-SEQUENCE"})
+	bootCfg.AddRule("ACTION-PRODUCTION", []string{tcEpsilon.ID()})
+
+	bootCfg.AddRule("ACTION-SYMBOL-SEQUENCE", []string{"ACTION-SYMBOL-SEQUENCE", "ACTION-SYMBOL"})
+	bootCfg.AddRule("ACTION-SYMBOL-SEQUENCE", []string{"ACTION-SYMBOL"})
+
+	bootCfg.AddRule("ACTION-SYMBOL", []string{tcNonterminal.ID()})
+	bootCfg.AddRule("ACTION-SYMBOL", []string{tcTerminal.ID()})
+	bootCfg.AddRule("ACTION-SYMBOL", []string{tcInt.ID()})
+	bootCfg.AddRule("ACTION-SYMBOL", []string{tcId.ID()})
+
+	// tokens
 	bootCfg.AddRule("TOKENS-BLOCK", []string{tcHeaderTokens.ID(), "TOKENS-CONTENT"})
 	bootCfg.AddRule("TOKENS-BLOCK", []string{tcHeaderTokens.ID(), "NEWLINES", "TOKENS-CONTENT"})
 
@@ -196,11 +285,21 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddRule("TOKENS-ENTRY", []string{"PATTERN", "TOKEN-OPTS"})
 	bootCfg.AddRule("TOKENS-ENTRY", []string{"PATTERN", "TOKEN-OPTS", "NEWLINES"})
 
-	bootCfg.AddRule("TOKEN-OPTS", []string{"DISCARD"})
-	bootCfg.AddRule("TOKEN-OPTS", []string{"STATESHIFT"})
+	bootCfg.AddRule("TOKEN-OPTS", []string{"TOKEN-OPTS", "NEWLINES", "TOKEN-OPTION"})
+	bootCfg.AddRule("TOKEN-OPTS", []string{"TOKEN-OPTS", "TOKEN-OPTION"})
+	bootCfg.AddRule("TOKEN-OPTS", []string{"TOKEN-OPTION"})
 
-	bootCfg.AddRule("DISCARD", []string{tcDiscard.ID()})
+	bootCfg.AddRule("TOKEN-OPTION", []string{"DISCARD"})
+	bootCfg.AddRule("TOKEN-OPTION", []string{"STATESHIFT"})
+	bootCfg.AddRule("TOKEN-OPTION", []string{"TOKEN"})
+	bootCfg.AddRule("TOKEN-OPTION", []string{"HUMAN"})
+	bootCfg.AddRule("TOKEN-OPTION", []string{"PRIORITY"})
+
+	bootCfg.AddRule("DISCARD", []string{tcDirDiscard.ID()})
 	bootCfg.AddRule("STATESHIFT", []string{tcDirShift.ID(), "TEXT"})
+	bootCfg.AddRule("TOKEN", []string{tcDirToken.ID(), "TEXT"})
+	bootCfg.AddRule("HUMAN", []string{tcDirHuman.ID(), "TEXT"})
+	bootCfg.AddRule("PRIORITY", []string{tcDirPriority.ID(), "TEXT"})
 
 	bootCfg.AddRule("PATTERN", []string{"TEXT"})
 
@@ -298,11 +397,13 @@ var (
 	tcHeaderGrammar = lex.NewTokenClass("grammar_header", "'grammar' header")
 	tcHeaderActions = lex.NewTokenClass("actions_header", "'actions' header")
 	tcDirAction     = lex.NewTokenClass("action_dir", "'action' directive")
+	tcDirDiscard    = lex.NewTokenClass("discard", "%discard")
 	tcDirHook       = lex.NewTokenClass("hook_dir", "'hook' directive")
 	tcDirHuman      = lex.NewTokenClass("human_dir", "'human' directive")
 	tcDirIndex      = lex.NewTokenClass("index_dir", "'index' directive")
 	tcDirProd       = lex.NewTokenClass("prod_dir", "'prod' directive")
 	tcDirShift      = lex.NewTokenClass("shift_dir", "'stateshift' directive")
+	tcDirPriority   = lex.NewTokenClass("priority_dir", "'priority' directive")
 	tcDirState      = lex.NewTokenClass("state_dir", "'state' directive")
 	tcDirSymbol     = lex.NewTokenClass("symbol_dir", "'symbol' directive")
 	tcDirToken      = lex.NewTokenClass("token_dir", "'token' directive")
@@ -318,7 +419,6 @@ var (
 	tcId            = lex.NewTokenClass("id", "identifier")
 	tcEscseq        = lex.NewTokenClass("escseq", "escape sequence")
 	tcEpsilon       = lex.NewTokenClass("epsilon", "epsilon production")
-	tcDiscard       = lex.NewTokenClass("discard", "%discard")
 )
 
 func CreateBootstrapLexer() Lexer {
@@ -347,16 +447,20 @@ func CreateBootstrapLexer() Lexer {
 	bootLx.RegisterClass(tcDirToken, "tokens")
 	//bootLx.RegisterClass(tcDirDefault, "tokens")
 	bootLx.RegisterClass(tcNewline, "tokens")
-	bootLx.RegisterClass(tcDiscard, "tokens")
+	bootLx.RegisterClass(tcDirDiscard, "tokens")
+	bootLx.RegisterClass(tcDirPriority, "tokens")
+	bootLx.RegisterClass(tcInt, "tokens")
 
 	// tokens patterns
-	bootLx.AddPattern(`%[Ss][Tt][Aa][Tt][Ee][Ss][Hh][Ii][Ff][Tt]`, lex.LexAs(tcDirShift.ID()), "tokens", 0)
+	bootLx.AddPattern(`%[Ss][Tt][Aa][Tt][Ee][Ss][Hh][Ii][Ff][Tt]`, lex.LexAs(tcDirShift.ID()), "tokens", 1)
 	bootLx.AddPattern(`%[Hh][Uu][Mm][Aa][Nn]`, lex.LexAs(tcDirHuman.ID()), "tokens", 0)
 	bootLx.AddPattern(`%[Tt][Oo][Kk][Ee][Nn]`, lex.LexAs(tcDirToken.ID()), "tokens", 0)
-	bootLx.AddPattern(`%[Dd][Ii][Ss][Cc][Aa][Rr][Dd]`, lex.LexAs(tcDiscard.ID()), "tokens", 0)
+	bootLx.AddPattern(`%[Dd][Ii][Ss][Cc][Aa][Rr][Dd]`, lex.LexAs(tcDirDiscard.ID()), "tokens", 0)
+	bootLx.AddPattern(`%[Pp][Rr][Ii][Oo][Rr][Ii][Tt][Yy]`, lex.LexAs(tcDirPriority.ID()), "tokens", 0)
 	//bootLx.AddPattern(`%[Dd][Ee][Ff][Aa][Uu][Ll][Tt]`, lex.LexAs(tcDirDefault.ID()), "tokens")
 	bootLx.AddPattern(`\n`, lex.LexAs(tcNewline.ID()), "tokens", 0)
-	bootLx.AddPattern(`[^%\n]+`, lex.LexAs(tcFreeformText.ID()), "tokens", 0)
+	bootLx.AddPattern(`[^%\s]+[^%\n]*`, lex.LexAs(tcFreeformText.ID()), "tokens", 0)
+	bootLx.AddPattern(`[^\S\n]+`, lex.Discard(), "tokens", 0)
 
 	// grammar classes
 	bootLx.RegisterClass(tcNewline, "grammar")

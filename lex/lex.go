@@ -10,9 +10,10 @@ import (
 
 // TODO: src is useless as its in pat.
 type patAct struct {
-	src string
-	pat *regexp.Regexp
-	act Action
+	priority int
+	src      string
+	pat      *regexp.Regexp
+	act      Action
 }
 
 type lexerTemplate struct {
@@ -103,9 +104,10 @@ func (lx *lexerTemplate) AddPattern(pat string, action Action, forState string, 
 	}
 
 	record := patAct{
-		src: pat,
-		pat: compiled,
-		act: action,
+		priority: priority,
+		src:      pat,
+		pat:      compiled,
+		act:      action,
 	}
 	statePatterns = append(statePatterns, record)
 

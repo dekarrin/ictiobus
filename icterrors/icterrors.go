@@ -71,7 +71,7 @@ func (se SyntaxError) SourceLineWithCursor() string {
 
 	cursorLine := ""
 	// pos will be 1-indexed.
-	for i := 0; i < se.pos-1; i++ {
+	for i := 0; i < se.pos-1 && i < len(se.sourceLine); i++ {
 		if se.sourceLine[i] == '\t' {
 			cursorLine += "    "
 		} else {

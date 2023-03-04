@@ -69,6 +69,40 @@ func (lx *lexerTemplate) LazyLex(input io.Reader) (types.TokenStream, error) {
 			}
 		}
 		statePats = append(statePats, lx.patterns[k]...)
+
+		// sort by priority
+		priorityPats := [][]patAct{}
+		for i := range statePats {
+			p := statePats[i]
+			if p.priority <= 0 {
+				p.priority = 0
+			}
+
+			for len(priorityPats) < (p.priority + 1) {
+				priorityPats = append(priorityPats, []patAct{})
+			}
+
+			priorityList := priorityPats[p.priority]
+			priorityList = append(priorityList, p)
+			priorityPats[p.priority] = priorityList
+		}
+		// and then put back in statePats
+		//
+		// (but 0 is actually the LOWEST priority; other than that, all others
+		// are simply in numerical order)
+		statePats = make([]patAct, 0)
+		for i := range priorityPats {
+			if i == 0 {
+				continue
+			}
+			for j := range priorityPats[i] {
+				statePats = append(statePats, priorityPats[i][j])
+			}
+		}
+		for i := range priorityPats[0] {
+			statePats = append(statePats, priorityPats[0][i])
+		}
+
 		var superRegex strings.Builder
 		superRegex.WriteString("^(?:")
 		lazyActs := make([]Action, len(statePats))
@@ -216,13 +250,22 @@ func (lx *lazyTokenStream) Next() types.Token {
 		}
 
 		// update source text context tracking
+		// TODO: make this efficient
+		var numNewLines int
+		var leadingLineChars string
 		for _, ch := range lexeme {
 			if ch == '\n' {
 				lx.curLine++
 				lx.curPos = 0
-				lx.curFullLine = readLineWithoutAdvancing(lx.r)
+				numNewLines++
+				leadingLineChars = ""
+			} else if numNewLines > 0 {
+				leadingLineChars += string(ch)
 			}
 			lx.curPos++
+		}
+		if numNewLines > 0 {
+			lx.curFullLine = leadingLineChars + readLineWithoutAdvancing(lx.r)
 		}
 
 		// return token if we do that now
