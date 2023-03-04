@@ -18,9 +18,12 @@ package ictiobus
 // validating LALR(1) grammars quickly.
 
 import (
+	"fmt"
 	"io"
 
+	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/lex"
+	"github.com/dekarrin/ictiobus/parse"
 	"github.com/dekarrin/ictiobus/types"
 )
 
@@ -144,7 +147,6 @@ func NewLazyLexer() Lexer {
 	return lex.NewLexer(true)
 }
 
-/*
 // NewParser returns what is the most flexible and efficient parser in this
 // package that can parse the given grammar. The following parsers will be
 // attempted to be built, in order, with each subsequent one attempted after the
@@ -213,6 +215,7 @@ func NewCLRParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigW
 	return parse.GenerateCanonicalLR1Parser(g, allowAmbiguous)
 }
 
+/*
 // NewSDD returns a new Syntax-Directed Definition Scheme.
 func NewSDD() SDD {
 	return translation.NewSDD()
