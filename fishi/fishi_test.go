@@ -1,4 +1,4 @@
-package ictiobus
+package fishi
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 func Test_CompleteRun(t *testing.T) {
 	assert := assert.New(t)
 
-	actual := ReadFishiMdFile("fishi.md")
+	actual := ReadFishiMdFile("../fishi.md")
 
 	assert.NoError(actual)
 
