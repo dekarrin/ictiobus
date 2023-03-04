@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/dekarrin/rosed v1.2.1
+	github.com/gomarkdown/markdown v0.0.0-20221013030248-663e2500819c
 	github.com/stretchr/testify v1.8.2
 )
 
