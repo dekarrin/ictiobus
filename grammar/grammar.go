@@ -6,11 +6,13 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/dekarrin/ictiobus/internal/util/box"
-	"github.com/dekarrin/ictiobus/internal/util/matrix"
-	"github.com/dekarrin/ictiobus/internal/util/slices"
-	"github.com/dekarrin/ictiobus/internal/util/textfmt"
 	"github.com/dekarrin/ictiobus/types"
+
+	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/internal/matrix"
+	"github.com/dekarrin/ictiobus/internal/slices"
+	"github.com/dekarrin/ictiobus/internal/textfmt"
+
 	"github.com/dekarrin/rosed"
 )
 

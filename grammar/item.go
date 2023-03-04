@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dekarrin/ictiobus/internal/util/box"
+	"github.com/dekarrin/ictiobus/internal/box"
 )
 
 type LR0Item struct {

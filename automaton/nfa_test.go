@@ -3,9 +3,10 @@ package automaton
 import (
 	"testing"
 
-	"github.com/dekarrin/ictiobus/internal/grammar"
-	"github.com/dekarrin/ictiobus/internal/util/box"
-	"github.com/dekarrin/ictiobus/internal/util/textfmt"
+	"github.com/dekarrin/ictiobus/grammar"
+
+	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/stretchr/testify/assert"
 )
 

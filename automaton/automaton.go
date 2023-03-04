@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/dekarrin/ictiobus/internal/util/textfmt"
+	"github.com/dekarrin/ictiobus/internal/textfmt"
 )
 
 type FATransition struct {

@@ -5,9 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dekarrin/ictiobus/internal/util/box"
-	"github.com/dekarrin/ictiobus/internal/util/textfmt"
 	"github.com/dekarrin/ictiobus/types"
+
+	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/stretchr/testify/assert"
 )
 
