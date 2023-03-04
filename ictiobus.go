@@ -18,10 +18,12 @@ package ictiobus
 // validating LALR(1) grammars quickly.
 
 import (
+	"io"
+
+	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/types"
 )
 
-/*
 type Lexer interface {
 	// Lex returns a token stream. The tokens may be lexed in a lazy fashion or
 	// an immediate fashion; if it is immediate, errors will be returned at that
@@ -36,7 +38,7 @@ type Lexer interface {
 	StartingState() string
 
 	RegisterTokenListener(func(t types.Token))
-}*/
+}
 
 type Parser interface {
 	// Parse parses input text and returns the parse tree built from it, or a
@@ -122,7 +124,7 @@ type SDD interface {
 	Evaluate(tree types.ParseTree, attributes ...translation.NodeAttrName) ([]translation.NodeAttrValue, error)
 }
 */
-/*
+
 // NewLexer returns a lexer whose Lex method will immediately lex the entire
 // input source, finding errors and reporting them and stopping as soon as the
 // first lexing error is encountered or the input has been completely lexed.
@@ -142,6 +144,7 @@ func NewLazyLexer() Lexer {
 	return lex.NewLexer(true)
 }
 
+/*
 // NewParser returns what is the most flexible and efficient parser in this
 // package that can parse the given grammar. The following parsers will be
 // attempted to be built, in order, with each subsequent one attempted after the
