@@ -292,7 +292,7 @@ func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 		curAnnoNode.Terminal = curTreeNode.Terminal
 		curAnnoNode.Symbol = curTreeNode.Value
 		curAnnoNode.Source = curTreeNode.Source
-		curAnnoNode.Children = make([]*AnnotatedParseTree, len(curAnnoNode.Children))
+		curAnnoNode.Children = make([]*AnnotatedParseTree, len(curTreeNode.Children))
 		curAnnoNode.Attributes = NodeAttrs{
 			string("$id"): idGen.Next(),
 		}
