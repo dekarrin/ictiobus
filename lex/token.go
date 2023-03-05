@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dekarrin/ictiobus/internal/decbin"
 	"github.com/dekarrin/ictiobus/types"
 )
 
@@ -13,15 +14,39 @@ type lexerClass struct {
 	name string
 }
 
-func (lc lexerClass) ID() string {
+func (lc *lexerClass) UnmarshalBinary(data []byte) error {
+	var err error
+	var n int
+
+	lc.id, n, err = decbin.DecString(data)
+	if err != nil {
+		return err
+	}
+	data = data[n:]
+
+	lc.name, _, err = decbin.DecString(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (lc *lexerClass) MarshalBinary() ([]byte, error) {
+	data := decbin.EncString(lc.id)
+	data = append(data, decbin.EncString(lc.name)...)
+	return data, nil
+}
+
+func (lc *lexerClass) ID() string {
 	return lc.id
 }
 
-func (lc lexerClass) Human() string {
+func (lc *lexerClass) Human() string {
 	return lc.name
 }
 
-func (lc lexerClass) Equal(o any) bool {
+func (lc *lexerClass) Equal(o any) bool {
 	other, ok := o.(types.TokenClass)
 	if !ok {
 		otherPtr, ok := o.(*types.TokenClass)
@@ -37,8 +62,8 @@ func (lc lexerClass) Equal(o any) bool {
 	return other.ID() == lc.ID()
 }
 
-func NewTokenClass(id string, human string) lexerClass {
-	return lexerClass{id: id, name: human}
+func NewTokenClass(id string, human string) *lexerClass {
+	return &lexerClass{id: id, name: human}
 }
 
 // implementation of Token interface for lex package use only

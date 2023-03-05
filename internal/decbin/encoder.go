@@ -1,4 +1,4 @@
-package marshal
+package decbin
 
 import (
 	"bytes"
@@ -31,19 +31,19 @@ func (sbe *simpleBinaryEncoder) checkInit() {
 
 func (sbe *simpleBinaryEncoder) EncodeBool(b bool) {
 	sbe.checkInit()
-	val := EncBinaryBool(b)
+	val := EncBool(b)
 	sbe.b.Write(val)
 }
 
 func (sbe *simpleBinaryEncoder) EncodeInt(i int) {
 	sbe.checkInit()
-	val := EncBinaryInt(i)
+	val := EncInt(i)
 	sbe.b.Write(val)
 }
 
 func (sbe *simpleBinaryEncoder) EncodeString(s string) {
 	sbe.checkInit()
-	val := EncBinaryString(s)
+	val := EncString(s)
 	sbe.b.Write(val)
 }
 

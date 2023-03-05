@@ -9,7 +9,7 @@ import (
 	"github.com/dekarrin/ictiobus/types"
 
 	"github.com/dekarrin/ictiobus/internal/box"
-	"github.com/dekarrin/ictiobus/internal/marshal"
+	"github.com/dekarrin/ictiobus/internal/decbin"
 	"github.com/dekarrin/ictiobus/internal/matrix"
 	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
@@ -147,10 +147,45 @@ func (p Production) HasSymbol(sym string) bool {
 	return slices.In(sym, p)
 }
 
+func (p Production) MarshalBinary() ([]byte, error) {
+	return decbin.EncSliceString([]string(p)), nil
+}
+
+func (p *Production) UnmarshalBinary(data []byte) error {
+	strSlice, _, err := decbin.DecSliceString(data)
+	if err != nil {
+		return err
+	}
+
+	*p = strSlice
+	return nil
+}
+
 // terminals will be upper, non-terms will be lower.
 type Rule struct {
 	NonTerminal string
 	Productions []Production
+}
+
+func (r Rule) MarshalBinary() ([]byte, error) {
+	data := decbin.EncString(r.NonTerminal)
+	data = append(data, decbin.EncSliceBinary(r.Productions)...)
+	return data, nil
+}
+
+func (r *Rule) UnmarshalBinary(data []byte) error {
+	var n int
+	var err error
+
+	r.NonTerminal, n, err = decbin.DecString(data)
+	if err != nil {
+		return err
+	}
+	data = data[n:]
+
+	prodSl, _, err := decbin.DecSliceBinary[*Production](data)
+	data = append(data, decbin.EncSliceBinary(r.Productions)...)
+	return data, nil
 }
 
 // Returns all LRItems in the Rule with their NonTerminal field properly set.
@@ -319,19 +354,18 @@ type Grammar struct {
 }
 
 func (g Grammar) MarshalBinary() ([]byte, error) {
-	data := marshal.EncBinary(ll.table)
-	data = append(data, marshal.EncBinary(ll.g)...)
+	data := decbin.EncMapStringToInt(g.rulesByName)
 	return data, nil
 }
 
 func (ll *Grammar) UnmarshalBinary(data []byte) error {
-	n, err := marshal.DecBinary(data, ll.table)
+	n, err := decbin.DecBinary(data, ll.table)
 	if err != nil {
 		return fmt.Errorf("table: %w", err)
 	}
 	data = data[n:]
 
-	_, err = marshal.DecBinary(data, &ll.g)
+	_, err = decbin.DecBinary(data, &ll.g)
 	if err != nil {
 		return fmt.Errorf("g: %w", err)
 	}

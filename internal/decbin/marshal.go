@@ -5,12 +5,15 @@
 // values such as strings or other types, this is accomplished by placing an
 // encoded integer at the head of the bytes which indicates how many bytes that
 // follow are part of the type being decoded.
-package marshal
+package decbin
+
+// TODO: rename this decbin
 
 import (
 	"encoding"
 	"encoding/binary"
 	"fmt"
+	"reflect"
 	"strings"
 	"unicode/utf8"
 
@@ -31,12 +34,12 @@ func NewBinaryDecoder() Decoder[encoding.BinaryUnmarshaler] {
 	return dec
 }
 
-// EncBinaryBool encodes the bool value as a slice of bytes. The value can later
+// EncBool encodes the bool value as a slice of bytes. The value can later
 // be decoded with DecBinaryBool. No type indicator is included in the output;
 // it is up to the caller to add this if they so wish it.
 //
 // The output will always contain exactly 1 byte.
-func EncBinaryBool(b bool) []byte {
+func EncBool(b bool) []byte {
 	enc := make([]byte, 1)
 
 	if b {
@@ -48,18 +51,18 @@ func EncBinaryBool(b bool) []byte {
 	return enc
 }
 
-// EncBinaryInt encodes the int value as a slice of bytes. The value can later
+// EncInt encodes the int value as a slice of bytes. The value can later
 // be decoded with DecBinaryInt. No type indicator is included in the output;
 // it is up to the caller to add this if they so wish it.
 //
 // The output will always contain exactly 8 bytes.
-func EncBinaryInt(i int) []byte {
+func EncInt(i int) []byte {
 	enc := make([]byte, 8)
 	enc = binary.AppendVarint(enc, int64(i))
 	return enc
 }
 
-// EncBinaryString encodes a string value as a slice of bytes. The value can
+// EncString encodes a string value as a slice of bytes. The value can
 // later be decoded with DecBinaryString. Encoded string output starts with an
 // integer (as encoded by EncBinaryInt) indicating the number of bytes following
 // that make up the string, followed by that many bytes containing the string
@@ -67,7 +70,7 @@ func EncBinaryInt(i int) []byte {
 //
 // The output will be variable length; it will contain 8 bytes followed by the
 // number of bytes encoded in those 8 bytes.
-func EncBinaryString(s string) []byte {
+func EncString(s string) []byte {
 	enc := make([]byte, 0)
 
 	chCount := 0
@@ -78,34 +81,155 @@ func EncBinaryString(s string) []byte {
 		chCount++
 	}
 
-	countBytes := EncBinaryInt(chCount)
+	countBytes := EncInt(chCount)
 	enc = append(countBytes, enc...)
 
 	return enc
 }
 
+func EncSliceString(sl []string) []byte {
+	if sl == nil {
+		return EncInt(0)
+	}
+
+	enc := make([]byte, 0)
+
+	for i := range sl {
+		enc = append(enc, EncString(sl[i])...)
+	}
+
+	enc = append(EncInt(len(enc)), enc...)
+	return enc
+}
+
+func EncSliceBinary[E encoding.BinaryMarshaler](sl []E) []byte {
+	if sl == nil {
+		return EncInt(0)
+	}
+
+	enc := make([]byte, 0)
+
+	for i := range sl {
+		enc = append(enc, EncBinary(sl[i])...)
+	}
+
+	enc = append(EncInt(len(enc)), enc...)
+	return enc
+}
+
 // Order of keys in output is gauranteed to be consistent.
-func EncBinaryStringIntMap(m map[string]int) []byte {
+func EncMapStringToBinary[E encoding.BinaryMarshaler](m map[string]E) []byte {
 	if m == nil {
-		return EncBinaryInt(0)
+		return EncInt(0)
 	}
 
 	enc := make([]byte, 0)
 
 	keys := textfmt.OrderedKeys(m)
 	for i := range keys {
-		enc = append(enc, EncBinaryString(keys[i])...)
-		enc = append(enc, EncBinaryInt(m[keys[i]])...)
+		enc = append(enc, EncString(keys[i])...)
+		enc = append(enc, EncBinary(m[keys[i]])...)
 	}
 
-	enc = append(EncBinaryInt(len(enc)), enc...)
+	enc = append(EncInt(len(enc)), enc...)
 	return enc
 }
 
-func DecBinaryStringIntMap(data []byte) (map[string]int, int, error) {
+// Order of keys in output is gauranteed to be consistent.
+func EncMapStringToInt(m map[string]int) []byte {
+	if m == nil {
+		return EncInt(0)
+	}
+
+	enc := make([]byte, 0)
+
+	keys := textfmt.OrderedKeys(m)
+	for i := range keys {
+		enc = append(enc, EncString(keys[i])...)
+		enc = append(enc, EncInt(m[keys[i]])...)
+	}
+
+	enc = append(EncInt(len(enc)), enc...)
+	return enc
+}
+
+func DecSliceBinary[E encoding.BinaryUnmarshaler](data []byte) ([]E, int, error) {
 	var totalConsumed int
 
-	toConsume, n, err := DecBinaryInt(data)
+	toConsume, n, err := DecInt(data)
+	if err != nil {
+		return nil, 0, fmt.Errorf("decode byte count: %w", err)
+	}
+	data = data[n:]
+	totalConsumed += n
+
+	if toConsume == 0 {
+		return nil, totalConsumed, nil
+	}
+
+	if len(data) < toConsume {
+		return nil, 0, fmt.Errorf("not enough bytes")
+	}
+
+	sl := []E{}
+
+	for i := 0; i < toConsume; i++ {
+		v := initType[E]()
+
+		n, err := DecBinary(data, v)
+		if err != nil {
+			return nil, totalConsumed, fmt.Errorf("decode item: %w", err)
+		}
+		totalConsumed += n
+		i += n
+		data = data[n:]
+
+		sl = append(sl, v)
+	}
+
+	return sl, totalConsumed, nil
+}
+
+func DecSliceString(data []byte) ([]string, int, error) {
+	var totalConsumed int
+
+	toConsume, n, err := DecInt(data)
+	if err != nil {
+		return nil, 0, fmt.Errorf("decode byte count: %w", err)
+	}
+	data = data[n:]
+	totalConsumed += n
+
+	if toConsume == 0 {
+		return nil, totalConsumed, nil
+	}
+
+	if len(data) < toConsume {
+		return nil, 0, fmt.Errorf("not enough bytes")
+	}
+
+	sl := []string{}
+
+	for i := 0; i < toConsume; i++ {
+		s, n, err := DecString(data)
+		if err != nil {
+			return nil, totalConsumed, fmt.Errorf("decode item: %w", err)
+		}
+		totalConsumed += n
+		i += n
+		data = data[n:]
+
+		sl = append(sl, s)
+	}
+
+	return sl, totalConsumed, nil
+
+}
+
+func DecMapStringToInt(data []byte) (map[string]int, int, error) {
+	var totalConsumed int
+
+	toConsume, n, err := DecInt(data)
 	if err != nil {
 		return nil, 0, fmt.Errorf("decode byte count: %w", err)
 	}
@@ -123,7 +247,7 @@ func DecBinaryStringIntMap(data []byte) (map[string]int, int, error) {
 	m := map[string]int{}
 
 	for i := 0; i < toConsume; i++ {
-		k, n, err := DecBinaryString(data)
+		k, n, err := DecString(data)
 		if err != nil {
 			return nil, totalConsumed, fmt.Errorf("decode key: %w", err)
 		}
@@ -131,7 +255,51 @@ func DecBinaryStringIntMap(data []byte) (map[string]int, int, error) {
 		i += n
 		data = data[n:]
 
-		v, n, err := DecBinaryInt(data)
+		v, n, err := DecInt(data)
+		if err != nil {
+			return nil, totalConsumed, fmt.Errorf("decode key: %w", err)
+		}
+		totalConsumed += n
+		i += n
+		data = data[n:]
+
+		m[k] = v
+	}
+
+	return m, totalConsumed, nil
+}
+
+func DecMapStringToBinary[E encoding.BinaryUnmarshaler](data []byte) (map[string]E, int, error) {
+	var totalConsumed int
+
+	toConsume, n, err := DecInt(data)
+	if err != nil {
+		return nil, 0, fmt.Errorf("decode byte count: %w", err)
+	}
+	data = data[n:]
+	totalConsumed += n
+
+	if toConsume == 0 {
+		return nil, totalConsumed, nil
+	}
+
+	if len(data) < toConsume {
+		return nil, 0, fmt.Errorf("not enough bytes")
+	}
+
+	m := map[string]E{}
+
+	for i := 0; i < toConsume; i++ {
+		k, n, err := DecString(data)
+		if err != nil {
+			return nil, totalConsumed, fmt.Errorf("decode key: %w", err)
+		}
+		totalConsumed += n
+		i += n
+		data = data[n:]
+
+		v := initType[E]()
+		n, err = DecBinary(data, v)
 		if err != nil {
 			return nil, totalConsumed, fmt.Errorf("decode key: %w", err)
 		}
@@ -155,14 +323,14 @@ func DecBinaryStringIntMap(data []byte) (map[string]int, int, error) {
 func EncBinary(b encoding.BinaryMarshaler) []byte {
 	enc, _ := b.MarshalBinary()
 
-	enc = append(EncBinaryInt(len(enc)), enc...)
+	enc = append(EncInt(len(enc)), enc...)
 
 	return enc
 }
 
-// DecBinaryBool decodes a bool value at the start of the given bytes and
+// DecBool decodes a bool value at the start of the given bytes and
 // returns the value and the number of bytes read.
-func DecBinaryBool(data []byte) (bool, int, error) {
+func DecBool(data []byte) (bool, int, error) {
 	if len(data) < 1 {
 		return false, 0, fmt.Errorf("unexpected end of data")
 	}
@@ -176,13 +344,13 @@ func DecBinaryBool(data []byte) (bool, int, error) {
 	}
 }
 
-// DecBinaryString decodes a string value at the start of the given bytes and
+// DecString decodes a string value at the start of the given bytes and
 // returns the value and the number of bytes read.
-func DecBinaryString(data []byte) (string, int, error) {
+func DecString(data []byte) (string, int, error) {
 	if len(data) < 8 {
 		return "", 0, fmt.Errorf("unexpected end of data")
 	}
-	runeCount, _, err := DecBinaryInt(data)
+	runeCount, _, err := DecInt(data)
 	if err != nil {
 		return "", 0, fmt.Errorf("decoding string rune count: %w", err)
 	}
@@ -216,9 +384,9 @@ func DecBinaryString(data []byte) (string, int, error) {
 	return sb.String(), readBytes, nil
 }
 
-// DecBinaryInt decodes an integer value at the start of the given bytes and
+// DecInt decodes an integer value at the start of the given bytes and
 // returns the value and the number of bytes read.
-func DecBinaryInt(data []byte) (int, int, error) {
+func DecInt(data []byte) (int, int, error) {
 	if len(data) < 8 {
 		return 0, 0, fmt.Errorf("data does not contain 8 bytes")
 	}
@@ -241,7 +409,7 @@ func DecBinary(data []byte, b encoding.BinaryUnmarshaler) (int, error) {
 	var byteLen int
 	var err error
 
-	byteLen, readBytes, err = DecBinaryInt(data)
+	byteLen, readBytes, err = DecInt(data)
 	if err != nil {
 		return 0, err
 	}
@@ -258,4 +426,26 @@ func DecBinary(data []byte, b encoding.BinaryUnmarshaler) (int, error) {
 	}
 
 	return byteLen + readBytes, nil
+}
+
+// get zero value for a type if not a pointer, or a pointer to a valid 0 value
+// if a pointer type.
+func initType[E any]() E {
+	var v E
+
+	vType := reflect.TypeOf(v)
+
+	if vType.Kind() == reflect.Pointer {
+		pointedTo := vType.Elem()
+		pointedVal := reflect.New(pointedTo)
+		pointedIFace := pointedVal.Interface()
+		var ok bool
+		v, ok = pointedIFace.(E)
+		if !ok {
+			// should never happen
+			panic("could not convert returned type")
+		}
+	}
+
+	return v
 }

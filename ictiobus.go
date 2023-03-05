@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
-	"github.com/dekarrin/ictiobus/internal/marshal"
+	"github.com/dekarrin/ictiobus/internal/decbin"
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/parse"
 	"github.com/dekarrin/ictiobus/translation"
@@ -207,15 +207,15 @@ func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigWarn
 
 // EncodeParserBytes takes a parser and returns the encoded bytes.
 func EncodeParserBytes(p Parser) []byte {
-	data := marshal.EncBinaryString(p.Type().String())
-	data = append(data, marshal.EncBinary(p)...)
+	data := decbin.EncString(p.Type().String())
+	data = append(data, decbin.EncBinary(p)...)
 	return data
 }
 
 // DecodeParserBytes takes bytes and returns the Parser encoded within it.
 func DecodeParserBytes(data []byte) (p Parser, err error) {
 	// first get the string giving the type
-	typeStr, n, err := marshal.DecBinaryString(data)
+	typeStr, n, err := decbin.DecString(data)
 	if err != nil {
 		return nil, fmt.Errorf("read parser type: %w", err)
 	}
@@ -238,7 +238,7 @@ func DecodeParserBytes(data []byte) (p Parser, err error) {
 		panic("should never happen: parsed parserType is not valid")
 	}
 
-	_, err = marshal.DecBinary(data[n:], p)
+	_, err = decbin.DecBinary(data[n:], p)
 	return p, err
 }
 

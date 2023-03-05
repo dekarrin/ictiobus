@@ -6,7 +6,7 @@ import (
 
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/icterrors"
-	"github.com/dekarrin/ictiobus/internal/marshal"
+	"github.com/dekarrin/ictiobus/internal/decbin"
 	"github.com/dekarrin/ictiobus/internal/stack"
 	"github.com/dekarrin/ictiobus/types"
 )
@@ -30,19 +30,19 @@ func (ll *ll1Parser) TableString() string {
 }
 
 func (ll *ll1Parser) MarshalBinary() ([]byte, error) {
-	data := marshal.EncBinary(ll.table)
-	data = append(data, marshal.EncBinary(ll.g)...)
+	data := decbin.EncBinary(ll.table)
+	data = append(data, decbin.EncBinary(ll.g)...)
 	return data, nil
 }
 
 func (ll *ll1Parser) UnmarshalBinary(data []byte) error {
-	n, err := marshal.DecBinary(data, ll.table)
+	n, err := decbin.DecBinary(data, ll.table)
 	if err != nil {
 		return fmt.Errorf("table: %w", err)
 	}
 	data = data[n:]
 
-	_, err = marshal.DecBinary(data, &ll.g)
+	_, err = decbin.DecBinary(data, &ll.g)
 	if err != nil {
 		return fmt.Errorf("g: %w", err)
 	}

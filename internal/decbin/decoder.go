@@ -1,4 +1,4 @@
-package marshal
+package decbin
 
 import "encoding"
 
@@ -35,7 +35,7 @@ type simpleBinaryDecoder struct {
 }
 
 func (sbe *simpleBinaryDecoder) DecodeBool() (bool, error) {
-	val, n, err := DecBinaryBool(sbe.b[sbe.cur:])
+	val, n, err := DecBool(sbe.b[sbe.cur:])
 	if err != nil {
 		return val, err
 	}
@@ -44,7 +44,7 @@ func (sbe *simpleBinaryDecoder) DecodeBool() (bool, error) {
 }
 
 func (sbe *simpleBinaryDecoder) DecodeInt() (int, error) {
-	val, n, err := DecBinaryInt(sbe.b[sbe.cur:])
+	val, n, err := DecInt(sbe.b[sbe.cur:])
 	if err != nil {
 		return val, err
 	}
@@ -53,7 +53,7 @@ func (sbe *simpleBinaryDecoder) DecodeInt() (int, error) {
 }
 
 func (sbe *simpleBinaryDecoder) DecodeString() (string, error) {
-	val, n, err := DecBinaryString(sbe.b[sbe.cur:])
+	val, n, err := DecString(sbe.b[sbe.cur:])
 	if err != nil {
 		return val, err
 	}
