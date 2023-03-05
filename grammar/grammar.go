@@ -1513,6 +1513,7 @@ func (M LL1Table) MarshalBinary() ([]byte, error) {
 	var data []byte
 	xOrdered := textfmt.OrderedKeys(M)
 
+	data = append(data, decbin.EncInt(len(M))...)
 	for _, x := range xOrdered {
 		col := M[x]
 		data = append(data, decbin.EncString(x)...)
@@ -1529,20 +1530,8 @@ func (M LL1Table) MarshalBinary() ([]byte, error) {
 }
 
 func (M *LL1Table) UnmarshalBinary(data []byte) error {
-	var data []byte
-	xOrdered := textfmt.OrderedKeys(M)
-
-	for _, x := range xOrdered {
-		col := M[x]
-		data = append(data, decbin.EncString(x)...)
-		data = append(data, decbin.EncInt(len(col))...)
-		yOrdered := textfmt.OrderedKeys(M[x])
-		for _, y := range yOrdered {
-			cell := col[y]
-			data = append(data, decbin.EncString(y)...)
-			data = append(data, decbin.EncBinary(cell)...)
-		}
-	}
+	var err error
+	var n int
 
 	return data, nil
 }
