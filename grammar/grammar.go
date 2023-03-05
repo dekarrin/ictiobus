@@ -184,8 +184,17 @@ func (r *Rule) UnmarshalBinary(data []byte) error {
 	data = data[n:]
 
 	prodSl, _, err := decbin.DecSliceBinary[*Production](data)
-	data = append(data, decbin.EncSliceBinary(r.Productions)...)
-	return data, nil
+	if err != nil {
+		return err
+	}
+	r.Productions = make([]Production, len(prodSl))
+	for i := range prodSl {
+		if prodSl[i] != nil {
+			r.Productions[i] = *prodSl[i]
+		}
+	}
+
+	return nil
 }
 
 // Returns all LRItems in the Rule with their NonTerminal field properly set.
@@ -355,20 +364,45 @@ type Grammar struct {
 
 func (g Grammar) MarshalBinary() ([]byte, error) {
 	data := decbin.EncMapStringToInt(g.rulesByName)
+	data = append(data, decbin.EncSliceBinary(g.rules)...)
+	data = append(data, decbin.EncMapStringToBinary(g.terminals)...)
+	data = append(data, decbin.EncString(g.Start)...)
 	return data, nil
 }
 
-func (ll *Grammar) UnmarshalBinary(data []byte) error {
-	n, err := decbin.DecBinary(data, ll.table)
+func (g *Grammar) UnmarshalBinary(data []byte) error {
+	var n int
+	var err error
+
+	g.rulesByName, n, err = decbin.DecMapStringToInt(data)
 	if err != nil {
-		return fmt.Errorf("table: %w", err)
+		return fmt.Errorf("rulesByName: %w", err)
 	}
 	data = data[n:]
 
-	_, err = decbin.DecBinary(data, &ll.g)
+	rulesSl, n, err := decbin.DecSliceBinary[*Rule](data)
 	if err != nil {
-		return fmt.Errorf("g: %w", err)
+		return fmt.Errorf("rules: %w", err)
 	}
+	g.rules = make([]Rule, len(rulesSl))
+	for i := range rulesSl {
+		if rulesSl[i] != nil {
+			g.rules[i] = *rulesSl[i]
+		}
+	}
+	data = data[n:]
+
+	g.terminals, n, err = decbin.DecMapStringToBinary[types.TokenClass](data)
+	if err != nil {
+		return fmt.Errorf("terminals: %w", err)
+	}
+	data = data[n:]
+
+	g.Start, n, err = decbin.DecString(data)
+	if err != nil {
+		return fmt.Errorf("start: %w", err)
+	}
+	data = data[n:]
 
 	return nil
 }
