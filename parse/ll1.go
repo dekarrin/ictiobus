@@ -6,6 +6,7 @@ import (
 
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/icterrors"
+	"github.com/dekarrin/ictiobus/internal/marshal"
 	"github.com/dekarrin/ictiobus/internal/stack"
 	"github.com/dekarrin/ictiobus/types"
 )
@@ -26,6 +27,34 @@ func (ll *ll1Parser) RegisterTraceListener(listener func(s string)) {
 
 func (ll *ll1Parser) TableString() string {
 	return ll.table.String()
+}
+
+func (ll *ll1Parser) MarshalBinary() ([]byte, error) {
+	data := marshal.EncBinary(ll.table)
+	data = append(data, marshal.EncBinary(ll.g)...)
+	return data, nil
+}
+
+func (ll *ll1Parser) UnmarshalBinary(data []byte) error {
+	n, err := marshal.DecBinary(data, ll.table)
+	if err != nil {
+		return fmt.Errorf("table: %w", err)
+	}
+	data = data[n:]
+
+	_, err = marshal.DecBinary(data, &ll.g)
+	if err != nil {
+		return fmt.Errorf("g: %w", err)
+	}
+
+	return nil
+}
+
+// EmptyLL1Parser returns a completely empty LL1 parser, unsuitable for use.
+// Generally this should not be used directly except for internal purposes; use
+// GenerateLL1Parser to generate one ready for use.
+func EmptyLL1Parser() *ll1Parser {
+	return &ll1Parser{}
 }
 
 // GenerateLL1Parser generates a parser for LL1 grammar g. The grammar must

@@ -9,6 +9,7 @@ import (
 	"github.com/dekarrin/ictiobus/types"
 
 	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/internal/marshal"
 	"github.com/dekarrin/ictiobus/internal/matrix"
 	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
@@ -315,6 +316,27 @@ type Grammar struct {
 
 	// name of the start symbol. If not set, assumed to be S.
 	Start string
+}
+
+func (g Grammar) MarshalBinary() ([]byte, error) {
+	data := marshal.EncBinary(ll.table)
+	data = append(data, marshal.EncBinary(ll.g)...)
+	return data, nil
+}
+
+func (ll *Grammar) UnmarshalBinary(data []byte) error {
+	n, err := marshal.DecBinary(data, ll.table)
+	if err != nil {
+		return fmt.Errorf("table: %w", err)
+	}
+	data = data[n:]
+
+	_, err = marshal.DecBinary(data, &ll.g)
+	if err != nil {
+		return fmt.Errorf("g: %w", err)
+	}
+
+	return nil
 }
 
 // Terminals returns an ordered list of the terminals in the grammar.

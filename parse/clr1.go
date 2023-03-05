@@ -14,6 +14,13 @@ import (
 	"github.com/dekarrin/rosed"
 )
 
+// EmptyCLR1Parser returns a completely empty CLR1Parser, unsuitable for use.
+// Generally this should not be used directly except for internal purposes; use
+// GenerateCanonicalLR1Parser to generate one ready for use
+func EmptyCLR1Parser() *lrParser {
+	return &lrParser{parseType: types.ParserCLR1}
+}
+
 // GenerateCanonicalLR1Parser returns a parser that uses the set of canonical
 // LR(1) items from g to parse input in language g. The provided language must
 // be in LR(1) or else the a non-nil error is returned.

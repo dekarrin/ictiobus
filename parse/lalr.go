@@ -13,6 +13,13 @@ import (
 	"github.com/dekarrin/rosed"
 )
 
+// EmptyLALR1Parser returns a completely empty LALR1Parser, unsuitable for use.
+// Generally this should not be used directly except for internal purposes; use
+// GenerateLALR1Parser to generate one ready for use
+func EmptyLALR1Parser() *lrParser {
+	return &lrParser{parseType: types.ParserLALR1}
+}
+
 // computeLALR1Kernels computes LALR(1) kernels for grammar g, which must NOT be
 // an augmented grammar.
 //

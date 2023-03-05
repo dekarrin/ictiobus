@@ -71,6 +71,14 @@ func (lr *lrParser) TableString() string {
 	return lr.table.String()
 }
 
+func (lr *lrParser) MarshalBinary() ([]byte, error) {
+
+}
+
+func (lr *lrParser) UnmarshalBinary(data []byte) error {
+
+}
+
 func (lr lrParser) notifyTraceFn(fn func() string) {
 	if lr.trace != nil {
 		lr.trace(fn())

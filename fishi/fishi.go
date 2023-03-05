@@ -100,7 +100,7 @@ func ProcessFishiMd(mdText []byte) error {
 
 	sdd := CreateBootstrapSDD()
 
-	frontEnd := ictiobus.Frontend[AST]{
+	frontEnd := ictiobus.Frontend[string]{
 		Lexer:       lx,
 		Parser:      parser,
 		SDT:         sdd,
@@ -186,7 +186,7 @@ func ProcessFishiMd(mdText []byte) error {
 	}
 
 	fmt.Printf("AST read from data:\n")
-	fmt.Printf(ast.String())
+	fmt.Printf(ast + "\n")
 
 	return nil
 }

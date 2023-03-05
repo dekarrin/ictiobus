@@ -13,6 +13,13 @@ import (
 	"github.com/dekarrin/rosed"
 )
 
+// EmptySLR1Parser returns a completely empty SLR1Parser, unsuitable for use.
+// Generally this should not be used directly except for internal purposes; use
+// GenerateSimpleLRParser to generate one ready for use
+func EmptySLR1Parser() *lrParser {
+	return &lrParser{parseType: types.ParserSLR1}
+}
+
 // GenerateSimpleLRParser returns a parser that uses SLR bottom-up parsing to
 // parse languages in g. It will return an error if g is not an SLR(1) grammar.
 //

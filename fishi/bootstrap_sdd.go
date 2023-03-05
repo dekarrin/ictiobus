@@ -8,7 +8,9 @@ import (
 func CreateBootstrapSDD() ictiobus.SDD {
 	sdd := ictiobus.NewSDD()
 
-	bootstrapSDDFishispecAST(sdd)
+	bootstrapSDDFakeSynth(sdd, "FISHISPEC", []string{"BLOCKS"}, "ast", "WILD")
+
+	/*bootstrapSDDFishispecAST(sdd)
 	bootstrapSDDBlocksValue(sdd)
 	bootstrapSDDBlockAST(sdd)
 	bootstrapSDDGrammarBlockAST(sdd)
@@ -23,9 +25,18 @@ func CreateBootstrapSDD() ictiobus.SDD {
 	bootstrapSDDStateInstructionState(sdd)
 	bootstrapSDDIDExprValue(sdd)
 	bootstrapSDDTextValue(sdd)
-	bootstrapSDDTextElementValue(sdd)
+	bootstrapSDDTextElementValue(sdd)*/
 
 	return sdd
+}
+
+func bootstrapSDDFakeSynth(sdd ictiobus.SDD, head string, prod []string, name string, value interface{}) {
+	sdd.BindSynthesizedAttribute(
+		head, prod,
+		name,
+		func(_, _ string, args []interface{}) interface{} { return value },
+		nil,
+	)
 }
 
 func bootstrapSDDFishispecAST(sdd ictiobus.SDD) {

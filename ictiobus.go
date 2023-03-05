@@ -18,19 +18,24 @@ package ictiobus
 // validating LALR(1) grammars quickly.
 
 import (
+	"encoding"
 	"fmt"
 	"io"
 	"reflect"
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
+	"github.com/dekarrin/ictiobus/internal/marshal"
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/parse"
 	"github.com/dekarrin/ictiobus/translation"
 	"github.com/dekarrin/ictiobus/types"
 )
 
+// A Lexer represents an in-progress or ready-built lexing engine ready for use.
+// It can be stored as a byte representation and retrieved from bytes as well.
 type Lexer interface {
+
 	// Lex returns a token stream. The tokens may be lexed in a lazy fashion or
 	// an immediate fashion; if it is immediate, errors will be returned at that
 	// point. If it is lazy, then error token productions will be returned to
@@ -46,7 +51,13 @@ type Lexer interface {
 	RegisterTokenListener(func(t types.Token))
 }
 
+// A Parser represents an in-progress or ready-built parsing engine ready for
+// use. It can be stored as a byte representation and retrieved from bytes as
+// well.
 type Parser interface {
+	encoding.BinaryMarshaler
+	encoding.BinaryUnmarshaler
+
 	// Parse parses input text and returns the parse tree built from it, or a
 	// SyntaxError with the description of the problem.
 	Parse(stream types.TokenStream) (types.ParseTree, error)
@@ -75,6 +86,8 @@ type Parser interface {
 // representation, or for direct execution.
 //
 // Strictly speaking, this is closer to an Attribute grammar.
+//
+// It can be stored as bytes and retrieved as such as well.
 type SDD interface {
 
 	// BindInheritedAttribute creates a new SDD binding for setting the value of
@@ -190,6 +203,43 @@ func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigWarn
 	}
 
 	return parser, ambigWarns, nil
+}
+
+// EncodeParserBytes takes a parser and returns the encoded bytes.
+func EncodeParserBytes(p Parser) []byte {
+	data := marshal.EncBinaryString(p.Type().String())
+	data = append(data, marshal.EncBinary(p)...)
+	return data
+}
+
+// DecodeParserBytes takes bytes and returns the Parser encoded within it.
+func DecodeParserBytes(data []byte) (p Parser, err error) {
+	// first get the string giving the type
+	typeStr, n, err := marshal.DecBinaryString(data)
+	if err != nil {
+		return nil, fmt.Errorf("read parser type: %w", err)
+	}
+	parserType, err := types.ParseParserType(typeStr)
+	if err != nil {
+		return nil, fmt.Errorf("decode parser type: %w", err)
+	}
+
+	// set var's concrete type by getting an empty copy
+	switch parserType {
+	case types.ParserLL1:
+		p = parse.EmptyLL1Parser()
+	case types.ParserSLR1:
+		p = parse.EmptySLR1Parser()
+	case types.ParserLALR1:
+		p = parse.EmptyLALR1Parser()
+	case types.ParserCLR1:
+		p = parse.EmptyCLR1Parser()
+	default:
+		panic("should never happen: parsed parserType is not valid")
+	}
+
+	_, err = marshal.DecBinary(data[n:], p)
+	return p, err
 }
 
 // NewLALR1Parser returns an LALR(1) parser that can generate parse trees for
