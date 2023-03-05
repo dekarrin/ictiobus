@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/dekarrin/ictiobus"
 	"github.com/gomarkdown/markdown"
 	mkast "github.com/gomarkdown/markdown/ast"
 	mkparser "github.com/gomarkdown/markdown/parser"
@@ -87,18 +88,7 @@ func ProcessFishiMd(mdText []byte) error {
 
 	fishiSource := GetFishiFromMarkdown(mdText)
 	fishiSource = Preprocess(fishiSource)
-	fishi := bytes.NewBuffer(fishiSource)
-
-	/*stream, err := lx.Lex(fishi)
-	if err != nil {
-		return err
-	}
-	fmt.Println("------------------------------------------------------------------")*/
-
-	/*
-		parser.RegisterTraceListener(func(s string) {
-			fmt.Printf(">> %s\n", strings.ReplaceAll(s, "\n", "\n   "))
-		})*/
+	//fishi := bytes.NewBuffer(fishiSource)
 
 	lx := CreateBootstrapLexer()
 	parser, ambigWarns := CreateBootstrapParser()
@@ -108,13 +98,22 @@ func ProcessFishiMd(mdText []byte) error {
 
 	fmt.Printf("successfully built %s parser", parser.Type().String())
 
+	sdd := CreateBootstrapSDD()
+
+	frontEnd := ictiobus.Frontend[AST]{
+		Lexer:       lx,
+		Parser:      parser,
+		SDT:         sdd,
+		IRAttribute: "ast",
+	}
+
 	/*dfa := parser.GetDFA()
 	if dfa != "" {
 		fmt.Printf("%s\n", dfa)
 	}*/
 
 	// now, try to make a parse tree for your own grammar
-	fishiSource = []byte(`%%actions
+	fishiTest := `%%actions
 
 	%symbol 
 	
@@ -179,19 +178,15 @@ func ProcessFishiMd(mdText []byte) error {
 
 %prod ESCSEQ
 %action {text-element}.str
-%hook unescape  %with ESCSEQ.$test		`)
-	fishiSource = Preprocess(fishiSource)
-	fishi = bytes.NewBuffer(fishiSource)
-	stream, err := lx.Lex(fishi)
+%hook unescape  %with ESCSEQ.$test		`
+
+	ast, err := frontEnd.AnalyzeString(fishiTest)
 	if err != nil {
 		return err
 	}
-	pt, err := parser.Parse(stream)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("successfully parsed own spec:\n")
-	fmt.Printf("%s\n", pt.String())
+
+	fmt.Printf("AST read from data:\n")
+	fmt.Printf(ast.String())
 
 	return nil
 }

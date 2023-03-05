@@ -93,7 +93,7 @@ type SDD interface {
 	// attribute name whose value to retrieve in the withArgs slice. Explicitly
 	// giving the referenced attributes in this fashion makes it easy to
 	// determine the dependency graph for later execution.
-	BindInheritedAttribute(head string, prod []string, attrName translation.NodeAttrName, bindFunc translation.AttributeSetter, withArgs []translation.AttrRef, forProd translation.NodeRelation) error
+	BindInheritedAttribute(head string, prod []string, attrName string, bindFunc translation.AttributeSetter, withArgs []translation.AttrRef, forProd translation.NodeRelation) error
 
 	// BindSynthesizedAttribute creates a new SDD binding for setting the value
 	// of a synthesized attribute with name attrName. The attribute is set on
@@ -109,7 +109,7 @@ type SDD interface {
 	// node and attribute name whose value to retrieve in the withArgs slice.
 	// Explicitly giving the referenced attributes in this fashion makes it easy
 	// to determine the dependency graph for later execution.
-	BindSynthesizedAttribute(head string, prod []string, attrName translation.NodeAttrName, bindFunc translation.AttributeSetter, forAttr string, withArgs []translation.AttrRef) error
+	BindSynthesizedAttribute(head string, prod []string, attrName string, bindFunc translation.AttributeSetter, withArgs []translation.AttrRef) error
 
 	// Bindings returns all bindings defined to apply when at a node in a parse
 	// tree created by the rule production with head as its head symbol and prod
@@ -126,7 +126,7 @@ type SDD interface {
 	// SDD; cycles are not supported. Do note that this does not require the SDD
 	// to be S-attributed or L-attributed, only that it not have cycles in its
 	// value dependency graph.
-	Evaluate(tree types.ParseTree, attributes ...translation.NodeAttrName) ([]translation.NodeAttrValue, error)
+	Evaluate(tree types.ParseTree, attributes ...string) ([]interface{}, error)
 }
 
 // NewLexer returns a lexer whose Lex method will immediately lex the entire
@@ -224,10 +224,10 @@ func NewSDD() SDD {
 // Frontend is a complete input-to-intermediate representation compiler
 // front-end.
 type Frontend[E any] struct {
-	lx     Lexer
-	p      Parser
-	sdt    SDD
-	irAttr translation.NodeAttrName
+	Lexer       Lexer
+	Parser      Parser
+	SDT         SDD
+	IRAttribute string
 }
 
 // AnalyzeString is the same as Analyze but accepts a string as input. It simply
@@ -251,26 +251,26 @@ func (fe *Frontend[E]) AnalyzeString(s string) (ir E, err error) {
 // s.
 func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, err error) {
 	// lexical analysis
-	tokStream, err := fe.lx.Lex(r)
+	tokStream, err := fe.Lexer.Lex(r)
 	if err != nil {
 		return ir, err
 	}
 
 	// syntactic analysis
-	parseTree, err := fe.p.Parse(tokStream)
+	parseTree, err := fe.Parser.Parse(tokStream)
 	if err != nil {
 		return ir, err
 	}
 
 	// semantic analysis
-	attrVals, err := fe.sdt.Evaluate(parseTree, fe.irAttr)
+	attrVals, err := fe.SDT.Evaluate(parseTree, fe.IRAttribute)
 	if err != nil {
 		return ir, err
 	}
 
 	// all analysis complete, now retrieve the result
 	if len(attrVals) != 1 {
-		return ir, fmt.Errorf("requested final IR attribute %q from root node but got %d values back", fe.irAttr, len(attrVals))
+		return ir, fmt.Errorf("requested final IR attribute %q from root node but got %d values back", fe.IRAttribute, len(attrVals))
 	}
 	irUncast := attrVals[0]
 	ir, ok := irUncast.(E)
@@ -278,7 +278,7 @@ func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, err error) {
 		// type mismatch; use reflections to collect type for err reporting
 		irType := reflect.TypeOf(ir).Name()
 		actualType := reflect.TypeOf(irUncast).Name()
-		return ir, fmt.Errorf("expected final IR attribute %q to be of type %q at the root node, but result was of type %q", fe.irAttr, irType, actualType)
+		return ir, fmt.Errorf("expected final IR attribute %q to be of type %q at the root node, but result was of type %q", fe.IRAttribute, irType, actualType)
 	}
 
 	return ir, nil

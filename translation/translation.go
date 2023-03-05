@@ -29,7 +29,7 @@ func (sdd *sddImpl) BindingsFor(head string, prod []string, attrRef AttrRef) []S
 	return matchingBindings
 }
 
-func (sdd *sddImpl) Evaluate(tree types.ParseTree, attributes ...NodeAttrName) ([]NodeAttrValue, error) {
+func (sdd *sddImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]interface{}, error) {
 	// first get an annotated parse tree
 	root := AddAttributes(tree)
 	depGraphs := DepGraph(root, sdd)
@@ -84,7 +84,7 @@ func (sdd *sddImpl) Bindings(head string, prod []string) []SDDBinding {
 	return targetBindings
 }
 
-func (sdd *sddImpl) BindSynthesizedAttribute(head string, prod []string, attrName NodeAttrName, bindFunc AttributeSetter, forAttr string, withArgs []AttrRef) error {
+func (sdd *sddImpl) BindSynthesizedAttribute(head string, prod []string, attrName string, bindFunc AttributeSetter, withArgs []AttrRef) error {
 	// sanity checks; can we even call this?
 	if bindFunc == nil {
 		return fmt.Errorf("cannot bind nil bindFunc")
@@ -135,7 +135,7 @@ func (sdd *sddImpl) BindSynthesizedAttribute(head string, prod []string, attrNam
 	return nil
 }
 
-func (sdd *sddImpl) BindInheritedAttribute(head string, prod []string, attrName NodeAttrName, bindFunc AttributeSetter, withArgs []AttrRef, forProd NodeRelation) error {
+func (sdd *sddImpl) BindInheritedAttribute(head string, prod []string, attrName string, bindFunc AttributeSetter, withArgs []AttrRef, forProd NodeRelation) error {
 	// sanity checks; can we even call this?
 	if bindFunc == nil {
 		return fmt.Errorf("cannot bind nil bindFunc")
@@ -249,15 +249,13 @@ func (idGen *IDGenerator) Next() APTNodeID {
 	return next
 }
 
-type NodeAttrName string
+type AttrName string
 
-func (nan NodeAttrName) String() string {
+func (nan AttrName) String() string {
 	return string(nan)
 }
 
-type NodeAttrValue interface{}
-
-type NodeAttrs map[NodeAttrName]NodeAttrValue
+type NodeAttrs map[string]interface{}
 
 func (na NodeAttrs) Copy() NodeAttrs {
 	newNa := NodeAttrs{}
@@ -275,7 +273,7 @@ type NodeValues struct {
 	Symbol string
 }
 
-type AttributeSetter func(symbol string, name NodeAttrName, args []NodeAttrValue) NodeAttrValue
+type AttributeSetter func(symbol string, name string, args []interface{}) interface{}
 
 // AddAttributes adds annotation fields to the given parse tree. Returns an
 // AnnotatedParseTree with only auto fields set ('$text' for terminals, '$id'
@@ -296,11 +294,11 @@ func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 		curAnnoNode.Source = curTreeNode.Source
 		curAnnoNode.Children = make([]*AnnotatedParseTree, len(curAnnoNode.Children))
 		curAnnoNode.Attributes = NodeAttrs{
-			NodeAttrName("$id"): NodeAttrValue(idGen.Next()),
+			string("$id"): idGen.Next(),
 		}
 
 		if curTreeNode.Terminal {
-			curAnnoNode.Attributes[NodeAttrName("$text")] = curAnnoNode.Source.Lexeme()
+			curAnnoNode.Attributes[string("$text")] = curAnnoNode.Source.Lexeme()
 		}
 
 		// put child nodes on stack in reverse order to get left-first
@@ -388,7 +386,7 @@ func (apt AnnotatedParseTree) SymbolOf(rel NodeRelation) (symbol string, ok bool
 // specifies whether ref refers to an existing attribute in the node whose
 // relation to apt matches that specified in ref; if the returned 'ok' value is
 // false, val should be considered a nil value and unsafe to use.
-func (apt AnnotatedParseTree) AttributeValueOf(ref AttrRef) (val NodeAttrValue, ok bool) {
+func (apt AnnotatedParseTree) AttributeValueOf(ref AttrRef) (val interface{}, ok bool) {
 	// first get the attributes
 	attributes, ok := apt.AttributesOf(ref.Relation)
 	if !ok {

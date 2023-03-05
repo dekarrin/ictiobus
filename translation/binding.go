@@ -43,7 +43,7 @@ func (bind SDDBinding) Copy() SDDBinding {
 }
 
 // Invoke calls the given binding while visiting an annotated parse tree node.
-func (bind SDDBinding) Invoke(apt *AnnotatedParseTree) NodeAttrValue {
+func (bind SDDBinding) Invoke(apt *AnnotatedParseTree) interface{} {
 	// sanity checks; can we even call this?
 	if bind.Setter == nil {
 		panic("attempt to invoke nil attribute setter func")
@@ -62,7 +62,7 @@ func (bind SDDBinding) Invoke(apt *AnnotatedParseTree) NodeAttrValue {
 	}
 
 	// gather args
-	args := []NodeAttrValue{}
+	args := []interface{}{}
 	for i := range bind.Requirements {
 		req := bind.Requirements[i]
 		reqVal, ok := apt.AttributeValueOf(req)

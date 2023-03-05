@@ -11,7 +11,7 @@ import (
 // directly.
 type AttrRef struct {
 	Relation NodeRelation
-	Name     NodeAttrName
+	Name     string
 }
 
 type NodeRelationType int
