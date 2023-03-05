@@ -1509,6 +1509,44 @@ func (g Grammar) recursiveFindFollowSet(X string, prevFollowChecks box.ISet[stri
 
 type LL1Table matrix.Matrix2[string, string, Production]
 
+func (M LL1Table) MarshalBinary() ([]byte, error) {
+	var data []byte
+	xOrdered := textfmt.OrderedKeys(M)
+
+	for _, x := range xOrdered {
+		col := M[x]
+		data = append(data, decbin.EncString(x)...)
+		data = append(data, decbin.EncInt(len(col))...)
+		yOrdered := textfmt.OrderedKeys(M[x])
+		for _, y := range yOrdered {
+			cell := col[y]
+			data = append(data, decbin.EncString(y)...)
+			data = append(data, decbin.EncBinary(cell)...)
+		}
+	}
+
+	return data, nil
+}
+
+func (M *LL1Table) UnmarshalBinary(data []byte) error {
+	var data []byte
+	xOrdered := textfmt.OrderedKeys(M)
+
+	for _, x := range xOrdered {
+		col := M[x]
+		data = append(data, decbin.EncString(x)...)
+		data = append(data, decbin.EncInt(len(col))...)
+		yOrdered := textfmt.OrderedKeys(M[x])
+		for _, y := range yOrdered {
+			cell := col[y]
+			data = append(data, decbin.EncString(y)...)
+			data = append(data, decbin.EncBinary(cell)...)
+		}
+	}
+
+	return data, nil
+}
+
 func (M LL1Table) Set(A string, a string, alpha Production) {
 	matrix.Matrix2[string, string, Production](M).Set(A, a, alpha)
 }
