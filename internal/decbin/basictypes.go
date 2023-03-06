@@ -50,7 +50,7 @@ func DecBool(data []byte) (bool, int, error) {
 //
 // The output will always contain exactly 8 bytes.
 func EncInt(i int) []byte {
-	b1 := byte((i >> 52) & 0xff)
+	b1 := byte((i >> 56) & 0xff)
 	b2 := byte((i >> 48) & 0xff)
 	b3 := byte((i >> 40) & 0xff)
 	b4 := byte((i >> 32) & 0xff)
@@ -70,17 +70,19 @@ func DecInt(data []byte) (int, int, error) {
 	}
 
 	intData := data[:8]
-	var iVal int
-	iVal |= (int(intData[0]) << 52)
-	iVal |= (int(intData[1]) << 48)
-	iVal |= (int(intData[2]) << 40)
-	iVal |= (int(intData[3]) << 32)
-	iVal |= (int(intData[4]) << 24)
-	iVal |= (int(intData[5]) << 16)
-	iVal |= (int(intData[6]) << 8)
-	iVal |= (int(intData[7]))
 
-	return iVal, 8, nil
+	// keep value as uint until we return so we avoid logical shift semantics
+	var iVal uint
+	iVal |= (uint(intData[0]) << 56)
+	iVal |= (uint(intData[1]) << 48)
+	iVal |= (uint(intData[2]) << 40)
+	iVal |= (uint(intData[3]) << 32)
+	iVal |= (uint(intData[4]) << 24)
+	iVal |= (uint(intData[5]) << 16)
+	iVal |= (uint(intData[6]) << 8)
+	iVal |= (uint(intData[7]))
+
+	return int(iVal), 8, nil
 }
 
 // EncString encodes a string value as a slice of bytes. The value can
