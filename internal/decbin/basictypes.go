@@ -36,9 +36,9 @@ func DecBool(data []byte) (bool, int, error) {
 	}
 
 	if data[0] == 0 {
-		return false, 0, nil
+		return false, 1, nil
 	} else if data[0] == 1 {
-		return true, 0, nil
+		return true, 1, nil
 	} else {
 		return false, 0, fmt.Errorf("unknown non-bool value")
 	}
