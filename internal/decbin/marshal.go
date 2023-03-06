@@ -11,7 +11,6 @@ package decbin
 
 import (
 	"encoding"
-	"encoding/binary"
 	"fmt"
 	"reflect"
 	"strings"
@@ -57,8 +56,15 @@ func EncBool(b bool) []byte {
 //
 // The output will always contain exactly 8 bytes.
 func EncInt(i int) []byte {
-	enc := make([]byte, 8)
-	enc = binary.AppendVarint(enc, int64(i))
+	b1 := byte((i >> 52) & 0xff)
+	b2 := byte((i >> 48) & 0xff)
+	b3 := byte((i >> 40) & 0xff)
+	b4 := byte((i >> 32) & 0xff)
+	b5 := byte((i >> 24) & 0xff)
+	b6 := byte((i >> 16) & 0xff)
+	b7 := byte((i >> 8) & 0xff)
+	b8 := byte(i & 0xff)
+	enc := []byte{b1, b2, b3, b4, b5, b6, b7, b8}
 	return enc
 }
 
@@ -391,13 +397,18 @@ func DecInt(data []byte) (int, int, error) {
 		return 0, 0, fmt.Errorf("data does not contain 8 bytes")
 	}
 
-	val, read := binary.Varint(data[:8])
-	if read == 0 {
-		return 0, 0, fmt.Errorf("input buffer too small, should never happen")
-	} else if read < 0 {
-		return 0, 0, fmt.Errorf("input buffer contains value larger than 64 bits, should never happen")
-	}
-	return int(val), 8, nil
+	intData := data[:8]
+	var iVal int
+	iVal |= (int(intData[0]) << 52)
+	iVal |= (int(intData[1]) << 48)
+	iVal |= (int(intData[2]) << 40)
+	iVal |= (int(intData[3]) << 32)
+	iVal |= (int(intData[4]) << 24)
+	iVal |= (int(intData[5]) << 16)
+	iVal |= (int(intData[6]) << 8)
+	iVal |= (int(intData[7]))
+
+	return iVal, 8, nil
 }
 
 // DecBinary decodes a value at the start of the given bytes and calls

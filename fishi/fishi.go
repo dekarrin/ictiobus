@@ -3,6 +3,7 @@ package fishi
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -87,15 +88,17 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 	var preloadedParser ictiobus.Parser
 	var cachefile string
 	if filename != "" {
-		cachefileBaseName := filepath.Base(filename)
+		filenameBaseName := filepath.Base(filename)
+		filenameExt := filepath.Ext(filename)
+		filenamePreExt := filenameBaseName[:len(filenameBaseName)-len(filenameExt)]
 		cachefileDir := filepath.Dir(filename)
-		cachefileName := cachefileBaseName + "-parser.cff"
+		cachefileName := filenamePreExt + "-parser.cff"
 		cachefile = filepath.Join(cachefileDir, cachefileName)
 
 		var err error
 		preloadedParser, err = ictiobus.GetParserFromDisk(cachefile)
 		if err != nil {
-			if err == os.ErrNotExist {
+			if errors.Is(err, os.ErrNotExist) {
 				preloadedParser = nil
 			} else {
 				return fmt.Errorf("loading cachefile %q: %w", cachefile, err)
