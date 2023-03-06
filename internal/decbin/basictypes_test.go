@@ -139,6 +139,11 @@ func Test_EncInt(t *testing.T) {
 			input:  -413,
 			expect: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, 0x63},
 		},
+		{
+			name:   "-5,320,721,484,761,530,367",
+			input:  -5320721484761530367,
+			expect: []byte{0xb6, 0x29, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -162,36 +167,40 @@ func Test_DecInt(t *testing.T) {
 	}{
 		{
 			name:        "0 from exact value",
-			input:       []byte{0x01},
+			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 			expectValue: 0,
-			expectRead:  1,
+			expectRead:  8,
 		},
-
 		{
 			name:        "1 from exact value",
-			input:       []byte{0x01},
-			expectValue: 0,
-			expectRead:  1,
+			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
+			expectValue: 1,
+			expectRead:  8,
 		},
 
 		{
 			name:        "-1 from exact value",
-			input:       []byte{0x01},
-			expectValue: 0,
-			expectRead:  1,
+			input:       []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+			expectValue: -1,
+			expectRead:  8,
 		},
 
 		{
 			name:        "413 from exact value",
-			input:       []byte{0x01},
-			expectValue: 0,
-			expectRead:  1,
+			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x9d},
+			expectValue: 413,
+			expectRead:  8,
 		},
 		{
-			name:        "-413413413 from exact value",
-			input:       []byte{0x01},
+			name:        "-413413413 from sequence",
+			input:       []byte{0xff, 0xff, 0xff, 0xff, 0xe7, 0x5b, 0xcf, 0xdb, 0x00},
 			expectValue: -413413413,
-			expectRead:  1,
+			expectRead:  8,
+		},
+		{
+			name:        "error too short",
+			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
+			expectError: true,
 		},
 	}
 
@@ -199,7 +208,7 @@ func Test_DecInt(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			actualValue, actualRead, err := DecBool(tc.input)
+			actualValue, actualRead, err := DecInt(tc.input)
 			if tc.expectError {
 				if !assert.Error(err) {
 					return
