@@ -36,7 +36,7 @@ func (ll *ll1Parser) MarshalBinary() ([]byte, error) {
 }
 
 func (ll *ll1Parser) UnmarshalBinary(data []byte) error {
-	n, err := decbin.DecBinary(data, ll.table)
+	n, err := decbin.DecBinary(data, &ll.table)
 	if err != nil {
 		return fmt.Errorf("table: %w", err)
 	}

@@ -11,6 +11,7 @@ import (
 	"github.com/dekarrin/ictiobus/grammar"
 
 	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/internal/decbin"
 	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/rosed"
@@ -21,6 +22,77 @@ type DFA[E any] struct {
 	order  uint64
 	states map[string]DFAState[E]
 	Start  string
+}
+
+func (dfa DFA[E]) MarshalBytes(conv func(E) []byte) []byte {
+	data := decbin.EncInt(int(dfa.order))
+	data = append(data, decbin.EncString(dfa.Start)...)
+	stateNames := textfmt.OrderedKeys(dfa.states)
+
+	data = append(data, decbin.EncInt(len(stateNames))...)
+	for _, stateName := range stateNames {
+		data = append(data, decbin.EncString(stateName)...)
+		stateBytes := dfa.states[stateName].MarshalBytes(conv)
+		data = append(data, decbin.EncInt(len(stateBytes))...)
+		data = append(data, stateBytes...)
+	}
+
+	return data
+}
+
+func UnmarshalDFABytes[E any](data []byte, conv func([]byte) (E, error)) (DFA[E], error) {
+	var dfa DFA[E]
+	var n int
+	var err error
+
+	var iVal int
+	iVal, n, err = decbin.DecInt(data)
+	if err != nil {
+		return dfa, fmt.Errorf(".order: %w", err)
+	}
+	dfa.order = uint64(iVal)
+	data = data[n:]
+
+	dfa.Start, n, err = decbin.DecString(data)
+	if err != nil {
+		return dfa, fmt.Errorf(".Start: %w", err)
+	}
+	data = data[n:]
+
+	dfa.states = map[string]DFAState[E]{}
+	var numStates int
+	numStates, n, err = decbin.DecInt(data)
+	if err != nil {
+		return dfa, fmt.Errorf(".states: %w", err)
+	}
+	data = data[n:]
+	for i := 0; i < numStates; i++ {
+		var name string
+		var stateBytesLen int
+		var state DFAState[E]
+
+		name, n, err = decbin.DecString(data)
+		if err != nil {
+			return dfa, fmt.Errorf(".states[%d]: %w", i, err)
+		}
+		data = data[n:]
+
+		stateBytesLen, n, err = decbin.DecInt(data)
+		if err != nil {
+			return dfa, fmt.Errorf(".states[%s]: value bytes len: %w", name, err)
+		}
+		data = data[n:]
+		stateBytes := data[:stateBytesLen]
+		state, err = UnmarshalDFAStateBytes[E](stateBytes, conv)
+		if err != nil {
+			return dfa, fmt.Errorf(".states[%s]: %w", name, err)
+		}
+		data = data[stateBytesLen:]
+
+		dfa.states[name] = state
+	}
+
+	return dfa, nil
 }
 
 // Copy returns a duplicate of this DFA.

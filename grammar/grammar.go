@@ -1517,13 +1517,7 @@ func (M LL1Table) MarshalBinary() ([]byte, error) {
 	for _, x := range xOrdered {
 		col := M[x]
 		data = append(data, decbin.EncString(x)...)
-		data = append(data, decbin.EncInt(len(col))...)
-		yOrdered := textfmt.OrderedKeys(M[x])
-		for _, y := range yOrdered {
-			cell := col[y]
-			data = append(data, decbin.EncString(y)...)
-			data = append(data, decbin.EncBinary(cell)...)
-		}
+		data = append(data, decbin.EncMapStringToBinary(col)...)
 	}
 
 	return data, nil
@@ -1533,7 +1527,39 @@ func (M *LL1Table) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
 
-	return data, nil
+	newM := LL1Table{}
+
+	var numEntries int
+	numEntries, n, err = decbin.DecInt(data)
+	if err != nil {
+		return err
+	}
+	data = data[n:]
+
+	for i := 0; i < numEntries; i++ {
+		var x string
+		x, n, err = decbin.DecString(data)
+		if err != nil {
+			return err
+		}
+		data = data[n:]
+
+		var ptrMap map[string]*Production
+		ptrMap, n, err = decbin.DecMapStringToBinary[*Production](data)
+		if err != nil {
+			return err
+		}
+		data = data[n:]
+
+		newMap := map[string]Production{}
+		for k := range ptrMap {
+			newMap[k] = *ptrMap[k]
+		}
+		newM[x] = newMap
+	}
+
+	*M = newM
+	return nil
 }
 
 func (M LL1Table) Set(A string, a string, alpha Production) {

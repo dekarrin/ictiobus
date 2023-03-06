@@ -8,6 +8,7 @@ import (
 	"github.com/dekarrin/ictiobus/automaton"
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/internal/decbin"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/types"
 
@@ -18,7 +19,7 @@ import (
 // Generally this should not be used directly except for internal purposes; use
 // GenerateCanonicalLR1Parser to generate one ready for use
 func EmptyCLR1Parser() *lrParser {
-	return &lrParser{parseType: types.ParserCLR1}
+	return &lrParser{table: &canonicalLR1Table{}, parseType: types.ParserCLR1}
 }
 
 // GenerateCanonicalLR1Parser returns a parser that uses the set of canonical
@@ -152,6 +153,137 @@ type canonicalLR1Table struct {
 	gTerms     []string
 	gNonTerms  []string
 	allowAmbig bool
+}
+
+func (clr1 *canonicalLR1Table) MarshalBinary() ([]byte, error) {
+	data := decbin.EncBinary(clr1.gPrime)
+	data = append(data, decbin.EncString(clr1.gStart)...)
+	data = append(data, decbin.EncMapStringToBinary(clr1.itemCache)...)
+	data = append(data, decbin.EncSliceString(clr1.gTerms)...)
+	data = append(data, decbin.EncSliceString(clr1.gNonTerms)...)
+	data = append(data, decbin.EncBool(clr1.allowAmbig)...)
+
+	// now the long part, the dfa
+	dfaBytes := clr1.lr1.MarshalBytes(func(s box.SVSet[grammar.LR1Item]) []byte {
+		keys := s.Elements()
+		sort.Strings(keys)
+
+		innerData := decbin.EncInt(len(keys))
+		for _, k := range keys {
+			v := s.Get(k)
+
+			innerData = append(innerData, decbin.EncString(k)...)
+			innerData = append(innerData, decbin.EncBinary(v)...)
+		}
+
+		return innerData
+	})
+	data = append(data, decbin.EncInt(len(dfaBytes))...)
+	data = append(data, dfaBytes...)
+
+	return data, nil
+}
+
+func (clr1 *canonicalLR1Table) UnmarshalBinary(data []byte) error {
+	var err error
+	var n int
+
+	n, err = decbin.DecBinary(data, &clr1.gPrime)
+	if err != nil {
+		return fmt.Errorf(".gPrime: %w", err)
+	}
+	data = data[n:]
+
+	clr1.gStart, n, err = decbin.DecString(data)
+	if err != nil {
+		return fmt.Errorf(".gStart: %w", err)
+	}
+	data = data[n:]
+
+	var ptrMap map[string]*grammar.LR1Item
+	ptrMap, n, err = decbin.DecMapStringToBinary[*grammar.LR1Item](data)
+	if err != nil {
+		return fmt.Errorf(".itemCache: %w", err)
+	}
+	clr1.itemCache = map[string]grammar.LR1Item{}
+	for k := range ptrMap {
+		if ptrMap[k] != nil {
+			clr1.itemCache[k] = *ptrMap[k]
+		} else {
+			clr1.itemCache[k] = grammar.LR1Item{}
+		}
+	}
+	data = data[n:]
+
+	clr1.gTerms, n, err = decbin.DecSliceString(data)
+	if err != nil {
+		return fmt.Errorf(".gTerms: %w", err)
+	}
+	data = data[n:]
+
+	clr1.gNonTerms, n, err = decbin.DecSliceString(data)
+	if err != nil {
+		return fmt.Errorf(".gNonTerms: %w", err)
+	}
+	data = data[n:]
+
+	clr1.allowAmbig, n, err = decbin.DecBool(data)
+	if err != nil {
+		return fmt.Errorf(".allowAmbig: %w", err)
+	}
+	data = data[n:]
+
+	var dfaBytesLen int
+	dfaBytesLen, n, err = decbin.DecInt(data)
+	if err != nil {
+		// TODO: rename all .dfa-ish fields to actually be dfa
+		return fmt.Errorf(".dfa: %w", err)
+	}
+	data = data[n:]
+	if len(data) < dfaBytesLen {
+		// TODO: make all "not enough bytes" messages be unexpected EOF
+		return fmt.Errorf(".dfa: unexpected EOF")
+	}
+	dfaBytes := data[:dfaBytesLen]
+
+	clr1.lr1, err = automaton.UnmarshalDFABytes[box.SVSet[grammar.LR1Item]](dfaBytes, func(b []byte) (box.SVSet[grammar.LR1Item], error) {
+		var innerN int
+		var innerErr error
+		var numEntries int
+		set := box.NewSVSet[grammar.LR1Item]()
+
+		numEntries, innerN, innerErr = decbin.DecInt(b)
+		if innerErr != nil {
+			return nil, fmt.Errorf("get entry count: %w", innerErr)
+		}
+		b = b[innerN:]
+		for i := 0; i < numEntries; i++ {
+			var k string
+			var v grammar.LR1Item
+
+			k, innerN, innerErr = decbin.DecString(b)
+			if innerErr != nil {
+				return nil, fmt.Errorf("entry[%d]: %w", i, innerErr)
+			}
+			b = b[innerN:]
+
+			innerN, innerErr = decbin.DecBinary(b, &v)
+			if innerErr != nil {
+				return nil, fmt.Errorf("entry[%s]: %w", k, innerErr)
+			}
+			b = b[innerN:]
+
+			set.Add(k)
+			set.Set(k, v)
+		}
+
+		return set, nil
+	})
+	if err != nil {
+		return fmt.Errorf(".dfa: %w", err)
+	}
+
+	return nil
 }
 
 func (clr1 *canonicalLR1Table) GetDFA() string {

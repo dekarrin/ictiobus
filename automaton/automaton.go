@@ -5,12 +5,37 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/dekarrin/ictiobus/internal/decbin"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 )
 
 type FATransition struct {
 	input string
 	next  string
+}
+
+func (t FATransition) MarshalBinary() ([]byte, error) {
+	data := decbin.EncString(t.input)
+	data = append(data, decbin.EncString(t.next)...)
+	return data, nil
+}
+
+func (t *FATransition) UnmarshalBinary(data []byte) error {
+	var err error
+	var n int
+
+	t.input, n, err = decbin.DecString(data)
+	if err != nil {
+		return fmt.Errorf(".input: %w", err)
+	}
+	data = data[n:]
+
+	t.next, _, err = decbin.DecString(data)
+	if err != nil {
+		return fmt.Errorf(".next: %w", err)
+	}
+
+	return nil
 }
 
 func (t FATransition) String() string {
@@ -82,6 +107,77 @@ type DFAState[E any] struct {
 	value       E
 	transitions map[string]FATransition
 	accepting   bool
+}
+
+func (ds DFAState[E]) MarshalBytes(conv func(E) []byte) []byte {
+	data := decbin.EncInt(int(ds.ordering))
+	data = append(data, decbin.EncString(ds.name)...)
+
+	convData := conv(ds.value)
+
+	data = append(data, decbin.EncInt(len(convData))...)
+	data = append(data, convData...)
+	data = append(data, decbin.EncMapStringToBinary(ds.transitions)...)
+	data = append(data, decbin.EncBool(ds.accepting)...)
+	return data
+}
+
+func UnmarshalDFAStateBytes[E any](data []byte, conv func([]byte) (E, error)) (DFAState[E], error) {
+	var ds DFAState[E]
+	var n int
+	var err error
+
+	var iVal int
+	iVal, n, err = decbin.DecInt(data)
+	if err != nil {
+		return ds, fmt.Errorf(".ordering: %w", err)
+	}
+	data = data[n:]
+	ds.ordering = uint64(iVal)
+
+	ds.name, n, err = decbin.DecString(data)
+	if err != nil {
+		return ds, fmt.Errorf(".name: %w", err)
+	}
+	data = data[n:]
+
+	var convLen int
+	convLen, n, err = decbin.DecInt(data)
+	if err != nil {
+		return ds, fmt.Errorf("get value data len: %w", err)
+	}
+	data = data[n:]
+	if len(data) < convLen {
+		return ds, fmt.Errorf(".value: not enough bytes")
+	}
+	convData := data[:convLen]
+	ds.value, err = conv(convData)
+	if err != nil {
+		return ds, fmt.Errorf(".value: %w", err)
+	}
+	data = data[convLen:]
+
+	var ptrMap map[string]*FATransition
+	ptrMap, n, err = decbin.DecMapStringToBinary[*FATransition](data)
+	if err != nil {
+		return ds, fmt.Errorf(".transitions: %w", err)
+	}
+	ds.transitions = map[string]FATransition{}
+	for k := range ptrMap {
+		if ptrMap[k] != nil {
+			ds.transitions[k] = *ptrMap[k]
+		} else {
+			ds.transitions[k] = FATransition{}
+		}
+	}
+	data = data[n:]
+
+	ds.accepting, _, err = decbin.DecBool(data)
+	if err != nil {
+		return ds, fmt.Errorf(".accepting: %w", err)
+	}
+
+	return ds, nil
 }
 
 func (ds DFAState[E]) Copy() DFAState[E] {

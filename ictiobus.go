@@ -18,9 +18,11 @@ package ictiobus
 // validating LALR(1) grammars quickly.
 
 import (
+	"bufio"
 	"encoding"
 	"fmt"
 	"io"
+	"os"
 	"reflect"
 	"strings"
 
@@ -203,6 +205,43 @@ func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigWarn
 	}
 
 	return parser, ambigWarns, nil
+}
+
+// SaveParserToDisk stores the parser in a binary file format on disk.
+func SaveParserToDisk(p Parser, filename string) error {
+	fp, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer fp.Close()
+
+	bufWriter := bufio.NewWriter(fp)
+
+	allBytes := EncodeParserBytes(p)
+	_, err = bufWriter.Write(allBytes)
+	if err != nil {
+		return err
+	}
+	err = bufWriter.Flush()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetParserFromDisk(filename string) (Parser, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	p, err := DecodeParserBytes(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
 }
 
 // EncodeParserBytes takes a parser and returns the encoded bytes.

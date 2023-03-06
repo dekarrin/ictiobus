@@ -1,11 +1,13 @@
 package parse
 
 import (
+	"encoding"
 	"fmt"
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/icterrors"
+	"github.com/dekarrin/ictiobus/internal/decbin"
 	"github.com/dekarrin/ictiobus/internal/stack"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/types"
@@ -14,6 +16,9 @@ import (
 // LRParseTable is a table of information passed to an LR parser. These will be
 // generated from a grammar for the purposes of performing bottom-up parsing.
 type LRParseTable interface {
+	encoding.BinaryMarshaler
+	encoding.BinaryUnmarshaler
+
 	// Shift reads one token of input. For SR parsers that are implemented with
 	// a stack, this will push a terminal onto the stack.
 	//
@@ -72,11 +77,39 @@ func (lr *lrParser) TableString() string {
 }
 
 func (lr *lrParser) MarshalBinary() ([]byte, error) {
-
+	data := decbin.EncString(lr.parseType.String())
+	data = append(data, decbin.EncBinary(lr.table)...)
+	data = append(data, decbin.EncBinary(lr.gram)...)
+	return data, nil
 }
 
 func (lr *lrParser) UnmarshalBinary(data []byte) error {
+	var err error
+	var n int
 
+	var parseTypeName string
+	parseTypeName, n, err = decbin.DecString(data)
+	if err != nil {
+		return fmt.Errorf("parseType: %w", err)
+	}
+	data = data[n:]
+	lr.parseType, err = types.ParseParserType(parseTypeName)
+	if err != nil {
+		return fmt.Errorf("parsing parseType: %w", err)
+	}
+
+	n, err = decbin.DecBinary(data, lr.table)
+	if err != nil {
+		return fmt.Errorf("table: %w", err)
+	}
+	data = data[n:]
+
+	_, err = decbin.DecBinary(data, &lr.gram)
+	if err != nil {
+		return fmt.Errorf("gram: %w", err)
+	}
+
+	return nil
 }
 
 func (lr lrParser) notifyTraceFn(fn func() string) {
