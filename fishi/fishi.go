@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/dekarrin/ictiobus"
@@ -71,7 +72,7 @@ func ReadFishiMdFile(filename string) error {
 		return err
 	}
 
-	err = ProcessFishiMd(data)
+	err = ProcessFishiMd(filename, data)
 	if err != nil {
 		return err
 	}
@@ -79,7 +80,28 @@ func ReadFishiMdFile(filename string) error {
 	return nil
 }
 
-func ProcessFishiMd(mdText []byte) error {
+func ProcessFishiMd(filename string, mdText []byte) error {
+
+	// TODO: read in filename, based on it check for cached version
+
+	var preloadedParser ictiobus.Parser
+	var cachefile string
+	if filename != "" {
+		cachefileBaseName := filepath.Base(filename)
+		cachefileDir := filepath.Dir(filename)
+		cachefileName := cachefileBaseName + "-parser.cff"
+		cachefile = filepath.Join(cachefileDir, cachefileName)
+
+		var err error
+		preloadedParser, err = ictiobus.GetParserFromDisk(cachefile)
+		if err != nil {
+			if err == os.ErrNotExist {
+				preloadedParser = nil
+			} else {
+				return fmt.Errorf("loading cachefile %q: %w", cachefile, err)
+			}
+		}
+	}
 
 	// debug steps: output source after preprocess
 	// output token stream
@@ -91,12 +113,30 @@ func ProcessFishiMd(mdText []byte) error {
 	//fishi := bytes.NewBuffer(fishiSource)
 
 	lx := CreateBootstrapLexer()
-	parser, ambigWarns := CreateBootstrapParser()
-	for i := range ambigWarns {
-		fmt.Printf("warn: ambiguous grammar: %s\n", ambigWarns[i])
-	}
 
-	fmt.Printf("successfully built %s parser", parser.Type().String())
+	var parser ictiobus.Parser
+	if preloadedParser != nil {
+		parser = preloadedParser
+
+		fmt.Printf("successfully loaded %s parser", parser.Type().String())
+	} else {
+		var ambigWarns []string
+		parser, ambigWarns := CreateBootstrapParser()
+		for i := range ambigWarns {
+			fmt.Printf("warn: ambiguous grammar: %s\n", ambigWarns[i])
+		}
+
+		fmt.Printf("successfully built %s parser\n", parser.Type().String())
+
+		if cachefile != "" {
+			err := ictiobus.SaveParserToDisk(parser, cachefile)
+			if err != nil {
+				fmt.Printf("writing parser to disk: %s\n", err.Error())
+			} else {
+				fmt.Printf("wrote parser to %q\n", cachefile)
+			}
+		}
+	}
 
 	sdd := CreateBootstrapSDD()
 
