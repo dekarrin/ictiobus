@@ -39,7 +39,7 @@ func DecMapStringToInt(data []byte) (map[string]int, int, error) {
 	totalConsumed += n
 
 	if toConsume == 0 {
-		return nil, totalConsumed, nil
+		return map[string]int{}, totalConsumed, nil
 	}
 
 	if len(data) < toConsume {
