@@ -48,8 +48,18 @@ func DecBool(data []byte) (bool, int, error) {
 // be decoded with DecInt. No type indicator is included in the output;
 // it is up to the caller to add this if they so wish it.
 //
-// The output will always contain exactly 8 bytes.
+// The output will contain a byte specifying how many bytes the integer is in
+// the least-significant nibble, with the sign encoded as the first bit,
+// followed by that many bytes, with the exception of 0 which is encoded as a
+// single 0-byte. Negative numbers will always be 8 bytes as a
+// result of the 2's complement encoding they use.
 func EncInt(i int) []byte {
+	if i == 0 {
+		return []byte{0x00}
+	}
+
+	negative := i < 0
+
 	b1 := byte((i >> 56) & 0xff)
 	b2 := byte((i >> 48) & 0xff)
 	b3 := byte((i >> 40) & 0xff)
@@ -58,18 +68,63 @@ func EncInt(i int) []byte {
 	b6 := byte((i >> 16) & 0xff)
 	b7 := byte((i >> 8) & 0xff)
 	b8 := byte(i & 0xff)
-	enc := []byte{b1, b2, b3, b4, b5, b6, b7, b8}
+
+	parts := []byte{b1, b2, b3, b4, b5, b6, b7, b8}
+
+	enc := []byte{}
+	var hitMSB bool
+	for i := range parts {
+		if hitMSB {
+			enc = append(enc, parts[i])
+		} else if (!negative && parts[i] != 0x00) || (negative && parts[i] != 0xff) {
+			enc = append(enc, parts[i])
+			hitMSB = true
+		}
+	}
+
+	byteCount := uint8(len(enc))
+
+	// byteCount will never be more than 8 so we can encode sign info in most
+	// significant bit
+	if negative {
+		byteCount |= 0x80
+	}
+
+	enc = append([]byte{byteCount}, enc...)
+
 	return enc
 }
 
 // DecInt decodes an integer value at the start of the given bytes and
 // returns the value and the number of bytes read.
 func DecInt(data []byte) (int, int, error) {
-	if len(data) < 8 {
-		return 0, 0, fmt.Errorf("data does not contain 8 bytes")
+	if len(data) < 2 {
+		return 0, 0, fmt.Errorf("data does not contain at least 2 bytes")
 	}
 
-	intData := data[:8]
+	byteCount := data[0]
+
+	if byteCount == 0 {
+		return 0, 1, nil
+	}
+	data = data[1:]
+
+	// pull count and sign out of byteCount
+	negative := byteCount&0x80 != 0
+	byteCount &= 0x0f
+
+	intData := data[:byteCount]
+
+	// put missing other bytes back in
+
+	padByte := byte(0x00)
+	if negative {
+		padByte = 0xff
+	}
+	for len(intData) < 8 {
+		// if we're negative, we need to pad with 0xff bytes, otherwise 0x00
+		intData = append([]byte{padByte}, intData...)
+	}
 
 	// keep value as uint until we return so we avoid logical shift semantics
 	var iVal uint
