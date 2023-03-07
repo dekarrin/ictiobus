@@ -1,6 +1,7 @@
 package decbin
 
 import (
+	"encoding"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -172,6 +173,57 @@ func Test_DecMapStringToInt(t *testing.T) {
 
 			assert.Equal(tc.expectValue, actualValue)
 			assert.Equal(tc.expectRead, actualRead)
+		})
+	}
+}
+
+func Test_EncMapStringToBinary(t *testing.T) {
+	testCases := []struct {
+		name   string
+		input  map[string]encoding.BinaryMarshaler
+		expect []byte
+	}{
+		{
+			name:   "empty",
+			input:  map[string]encoding.BinaryMarshaler{},
+			expect: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		},
+		{
+			name:   "nil",
+			input:  nil,
+			expect: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		},
+		{
+			name: "one item",
+			input: map[string]encoding.BinaryMarshaler{
+				"item": valueThatMarshalsWith(func() []byte {
+					return []byte{0x03, 0xaf, 0xff, 0xde, 0x83}
+				}),
+			},
+		},
+		{
+			name: "multiple items",
+			input: map[string]encoding.BinaryMarshaler{
+				"someItem": valueThatMarshalsWith(func() []byte {
+					return []byte{0x03, 0xaf, 0xff, 0xde, 0x83}
+				}),
+				"other": valueThatMarshalsWith(func() []byte {
+					return []byte{}
+				}),
+				"Français": valueThatMarshalsWith(func() []byte {
+					return []byte{0x04, 0x04, 0x04, 0xe6}
+				}),
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			actual := EncMapStringToBinary(tc.input)
+
+			assert.Equal(tc.expect, actual)
 		})
 	}
 }
