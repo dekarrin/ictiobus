@@ -337,27 +337,3 @@ func Test_DecBinary(t *testing.T) {
 		})
 	}
 }
-
-func valueThatUnmarshalsWith(byteConsumer func([]byte) error) encoding.BinaryUnmarshaler {
-	return marshaledBytesConsumer{fn: byteConsumer}
-}
-
-func valueThatMarshalsWith(byteProducer func() []byte) encoding.BinaryMarshaler {
-	return marshaledBytesProducer{fn: byteProducer}
-}
-
-type marshaledBytesConsumer struct {
-	fn func([]byte) error
-}
-
-func (mv marshaledBytesConsumer) UnmarshalBinary(b []byte) error {
-	return mv.fn(b)
-}
-
-type marshaledBytesProducer struct {
-	fn func() []byte
-}
-
-func (mv marshaledBytesProducer) MarshalBinary() ([]byte, error) {
-	return mv.fn(), nil
-}

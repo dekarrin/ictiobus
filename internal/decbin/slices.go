@@ -84,7 +84,7 @@ func DecSliceBinary[E encoding.BinaryUnmarshaler](data []byte) ([]E, int, error)
 	totalConsumed += n
 
 	if toConsume == 0 {
-		return nil, totalConsumed, nil
+		return []E{}, totalConsumed, nil
 	}
 
 	if len(data) < toConsume {

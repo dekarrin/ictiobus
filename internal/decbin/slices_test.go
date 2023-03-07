@@ -70,15 +70,11 @@ func Test_DecSliceString(t *testing.T) {
 		{
 			name:        "not enough bytes for list",
 			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x03, 0x6f, 0x6e, 0x6f},
-			expectValue: nil,
-			expectRead:  0,
 			expectError: true,
 		},
 		{
 			name:        "not enough bytes for list item",
-			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x03, 0x6f, 0x6e},
-			expectValue: nil,
-			expectRead:  0,
+			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x04, 0x6f, 0x6e, 0x6a},
 			expectError: true,
 		},
 	}
@@ -88,14 +84,15 @@ func Test_DecSliceString(t *testing.T) {
 			assert := assert.New(t)
 
 			actualValue, actualRead, err := DecSliceString(tc.input)
+			if tc.expectError {
+				assert.Error(err)
+				return
+			} else if !assert.NoError(err) {
+				return
+			}
 
 			assert.Equal(tc.expectValue, actualValue)
 			assert.Equal(tc.expectRead, actualRead)
-			if tc.expectError {
-				assert.Error(err)
-			} else {
-				assert.NoError(err)
-			}
 		})
 	}
 }
@@ -141,6 +138,68 @@ func Test_EncSliceBinary(t *testing.T) {
 			actual := EncSliceBinary(tc.input)
 
 			assert.Equal(tc.expect, actual)
+		})
+	}
+}
+
+func Test_DecSliceBinary(t *testing.T) {
+	testCases := []struct {
+		name         string
+		input        []byte
+		expectValue  []*marshaledBytesReceiver
+		expectRead   int
+		expectError  bool
+		consumerFunc func([]byte) error
+	}{
+		{
+			name:        "empty",
+			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			expectValue: []*marshaledBytesReceiver{},
+			expectRead:  8,
+		},
+		{
+			name:  "one item, and extra bytes",
+			input: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x03, 0xaf, 0xff, 0xde, 0x83, 0x12, 0x33},
+			expectValue: []*marshaledBytesReceiver{
+				{[]byte{0x03, 0xaf, 0xff, 0xde, 0x83}},
+			},
+			expectRead: 21,
+		},
+		{
+			name:  "two items",
+			input: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x28, 0x03, 0x00, 0x00, 0x12, 0x17},
+			expectValue: []*marshaledBytesReceiver{
+				{[]byte{}},
+				{[]byte{0x28, 0x03, 0x00, 0x00, 0x12, 0x17}},
+			},
+			expectRead: 30,
+		},
+		{
+			name:        "not enough bytes for list",
+			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x03, 0x6f, 0x6e, 0x6f},
+			expectError: true,
+		},
+		{
+			name:        "not enough bytes for list item",
+			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x04, 0x6f, 0x6e, 0xff},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			actualValue, actualRead, err := DecSliceBinary[*marshaledBytesReceiver](tc.input)
+			if tc.expectError {
+				assert.Error(err)
+				return
+			} else if !assert.NoError(err) {
+				return
+			}
+
+			assert.Equal(tc.expectValue, actualValue)
+			assert.Equal(tc.expectRead, actualRead)
 		})
 	}
 }
