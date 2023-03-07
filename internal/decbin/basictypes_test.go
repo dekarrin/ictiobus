@@ -168,39 +168,38 @@ func Test_DecInt(t *testing.T) {
 	}{
 		{
 			name:        "0 from exact value",
-			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			input:       []byte{0x00},
 			expectValue: 0,
-			expectRead:  8,
+			expectRead:  1,
 		},
 		{
 			name:        "1 from exact value",
-			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
+			input:       []byte{0x01, 0x01},
 			expectValue: 1,
-			expectRead:  8,
+			expectRead:  2,
 		},
-
 		{
 			name:        "-1 from exact value",
-			input:       []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+			input:       []byte{0x80},
 			expectValue: -1,
-			expectRead:  8,
+			expectRead:  1,
 		},
 
 		{
 			name:        "413 from exact value",
-			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x9d},
+			input:       []byte{0x02, 0x01, 0x9d},
 			expectValue: 413,
-			expectRead:  8,
+			expectRead:  3,
 		},
 		{
 			name:        "-413413413 from sequence",
-			input:       []byte{0xff, 0xff, 0xff, 0xff, 0xe7, 0x5b, 0xcf, 0xdb, 0x00},
+			input:       []byte{0x84, 0xe7, 0x5b, 0xcf, 0xdb, 0x00},
 			expectValue: -413413413,
-			expectRead:  8,
+			expectRead:  5,
 		},
 		{
 			name:        "error too short",
-			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
+			input:       []byte{0x03, 0x00, 0x01},
 			expectError: true,
 		},
 	}

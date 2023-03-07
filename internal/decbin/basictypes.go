@@ -51,8 +51,10 @@ func DecBool(data []byte) (bool, int, error) {
 // The output will contain a byte specifying how many bytes the integer is in
 // the least-significant nibble, with the sign encoded as the first bit,
 // followed by that many bytes, with the exception of 0 which is encoded as a
-// single 0-byte. Negative numbers will always be 8 bytes as a
-// result of the 2's complement encoding they use.
+// single 0-byte, and -1 which is encoded as 0x80.
+//
+// TODO: betta description of encoding for negative values and how the
+// non-significant bytes are assumed to be either 0xff or 0x00.
 func EncInt(i int) []byte {
 	if i == 0 {
 		return []byte{0x00}
@@ -98,8 +100,8 @@ func EncInt(i int) []byte {
 // DecInt decodes an integer value at the start of the given bytes and
 // returns the value and the number of bytes read.
 func DecInt(data []byte) (int, int, error) {
-	if len(data) < 2 {
-		return 0, 0, fmt.Errorf("data does not contain at least 2 bytes")
+	if len(data) < 1 {
+		return 0, 0, fmt.Errorf("data does not contain at least 1 byte")
 	}
 
 	byteCount := data[0]
@@ -112,6 +114,10 @@ func DecInt(data []byte) (int, int, error) {
 	// pull count and sign out of byteCount
 	negative := byteCount&0x80 != 0
 	byteCount &= 0x0f
+
+	if len(data) < int(byteCount) {
+		return 0, 0, fmt.Errorf("unexpected EOF")
+	}
 
 	intData := data[:byteCount]
 
@@ -137,7 +143,7 @@ func DecInt(data []byte) (int, int, error) {
 	iVal |= (uint(intData[6]) << 8)
 	iVal |= (uint(intData[7]))
 
-	return int(iVal), 8, nil
+	return int(iVal), int(byteCount + 1), nil
 }
 
 // EncString encodes a string value as a slice of bytes. The value can
