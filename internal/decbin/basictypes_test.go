@@ -1,6 +1,8 @@
 package decbin
 
 import (
+	"encoding"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -90,9 +92,8 @@ func Test_DecBool(t *testing.T) {
 
 			actualValue, actualRead, err := DecBool(tc.input)
 			if tc.expectError {
-				if !assert.Error(err) {
-					return
-				}
+				assert.Error(err)
+				return
 			} else if !assert.NoError(err) {
 				return
 			}
@@ -210,9 +211,8 @@ func Test_DecInt(t *testing.T) {
 
 			actualValue, actualRead, err := DecInt(tc.input)
 			if tc.expectError {
-				if !assert.Error(err) {
-					return
-				}
+				assert.Error(err)
+				return
 			} else if !assert.NoError(err) {
 				return
 			}
@@ -223,31 +223,39 @@ func Test_DecInt(t *testing.T) {
 	}
 }
 
-func Test_EncString(t *testing.T) {
+func Test_EncBinary(t *testing.T) {
 	testCases := []struct {
 		name   string
-		input  string
+		input  encoding.BinaryMarshaler
 		expect []byte
 	}{
 		{
-			name:   "empty",
-			input:  "",
+			name: "nil bytes",
+			input: valueThatMarshalsWith(func() []byte {
+				return nil
+			}),
 			expect: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		},
 		{
-			name:   "one char",
-			input:  "1",
-			expect: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x31},
+			name: "empty bytes",
+			input: valueThatMarshalsWith(func() []byte {
+				return []byte{}
+			}),
+			expect: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		},
 		{
-			name:   "'Hello, 世界'",
-			input:  "Hello, 世界",
-			expect: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x2c, 0x20, 0xe4, 0xb8, 0x96, 0xe7, 0x95, 0x8c},
+			name: "1 byte",
+			input: valueThatMarshalsWith(func() []byte {
+				return []byte{0xff}
+			}),
+			expect: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xff},
 		},
 		{
-			name:   "'hi, world!'",
-			input:  "hi, world!",
-			expect: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a, 0x68, 0x69, 0x2c, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21},
+			name: "several bytes",
+			input: valueThatMarshalsWith(func() []byte {
+				return []byte{0xff, 0x0a, 0x0b, 0x0c, 0x0e}
+			}),
+			expect: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0xff, 0x0a, 0x0b, 0x0c, 0x0e},
 		},
 	}
 
@@ -255,45 +263,58 @@ func Test_EncString(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			actual := EncString(tc.input)
+			actual := EncBinary(tc.input)
 
 			assert.Equal(tc.expect, actual)
 		})
 	}
 }
 
-func Test_DecString(t *testing.T) {
-	testCases := []struct {
-		name        string
-		input       []byte
-		expectValue string
-		expectRead  int
-		expectError bool
-	}{
+func Test_DecBinary(t *testing.T) {
+	var received []byte
 
+	sendToReceived := func(b []byte) error {
+		received = make([]byte, len(b))
+		copy(received, b)
+		return nil
+	}
+
+	testCases := []struct {
+		name          string
+		input         []byte
+		expectReceive []byte
+		expectRead    int
+		expectError   bool
+		consumerFunc  func([]byte) error
+	}{
 		{
-			name:        "empty",
-			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-			expectValue: "",
-			expectRead:  8,
+			name:          "empty",
+			input:         []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			expectReceive: []byte{},
+			expectRead:    8,
+			consumerFunc:  sendToReceived,
 		},
 		{
-			name:        "one char followed by ff field",
-			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x31, 0xff, 0xff},
-			expectValue: "1",
-			expectRead:  9,
+			name:          "1 byte",
+			input:         []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xff},
+			expectReceive: []byte{0xff},
+			expectRead:    9,
+			consumerFunc:  sendToReceived,
 		},
 		{
-			name:        "'Hello, 世界', followed by other bytes",
-			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x2c, 0x20, 0xe4, 0xb8, 0x96, 0xe7, 0x95, 0x8c, 0x01, 0x02, 0x03},
-			expectValue: "Hello, 世界",
-			expectRead:  21,
+			name:          "several bytes",
+			input:         []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0xff, 0x0a, 0x0b, 0x0c, 0x0e},
+			expectReceive: []byte{0xff, 0x0a, 0x0b, 0x0c, 0x0e},
+			expectRead:    13,
+			consumerFunc:  sendToReceived,
 		},
 		{
-			name:        "'hi, world!'",
-			input:       []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a, 0x68, 0x69, 0x2c, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21},
-			expectValue: "hi, world!",
-			expectRead:  18,
+			name:  "several bytes, but it will error",
+			input: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0xff, 0x0a, 0x0b, 0x0c, 0x0e},
+			consumerFunc: func(b []byte) error {
+				return fmt.Errorf("error")
+			},
+			expectError: true,
 		},
 	}
 
@@ -301,17 +322,42 @@ func Test_DecString(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			actualValue, actualRead, err := DecString(tc.input)
+			unmarshalTo := valueThatUnmarshalsWith(tc.consumerFunc)
+
+			actualRead, err := DecBinary(tc.input, unmarshalTo)
 			if tc.expectError {
-				if !assert.Error(err) {
-					return
-				}
+				assert.Error(err)
+				return
 			} else if !assert.NoError(err) {
 				return
 			}
 
-			assert.Equal(tc.expectValue, actualValue)
+			assert.Equal(tc.expectReceive, received)
 			assert.Equal(tc.expectRead, actualRead, "num read bytes does not match expected")
 		})
 	}
+}
+
+func valueThatUnmarshalsWith(byteConsumer func([]byte) error) encoding.BinaryUnmarshaler {
+	return marshaledBytesConsumer{fn: byteConsumer}
+}
+
+func valueThatMarshalsWith(byteProducer func() []byte) encoding.BinaryMarshaler {
+	return marshaledBytesProducer{fn: byteProducer}
+}
+
+type marshaledBytesConsumer struct {
+	fn func([]byte) error
+}
+
+func (mv marshaledBytesConsumer) UnmarshalBinary(b []byte) error {
+	return mv.fn(b)
+}
+
+type marshaledBytesProducer struct {
+	fn func() []byte
+}
+
+func (mv marshaledBytesProducer) MarshalBinary() ([]byte, error) {
+	return mv.fn(), nil
 }

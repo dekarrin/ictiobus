@@ -92,7 +92,9 @@ func DecInt(data []byte) (int, int, error) {
 // encoded as UTF-8.
 //
 // The output will be variable length; it will contain 8 bytes followed by the
-// number of bytes encoded in those 8 bytes.
+// bytes that make up X characters, where X is the int value contained in the
+// first 8 bytes. Due to the specifics of how UTF-8 strings are encoded, this
+// may or may not be the actual number of bytes used.
 func EncString(s string) []byte {
 	enc := make([]byte, 0)
 
