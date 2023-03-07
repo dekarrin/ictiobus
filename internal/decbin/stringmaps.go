@@ -100,7 +100,7 @@ func DecMapStringToBinary[E encoding.BinaryUnmarshaler](data []byte) (map[string
 	totalConsumed += n
 
 	if toConsume == 0 {
-		return nil, totalConsumed, nil
+		return map[string]E{}, totalConsumed, nil
 	}
 
 	if len(data) < toConsume {
