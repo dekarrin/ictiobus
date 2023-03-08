@@ -18,8 +18,8 @@ func Test_EncodeDecodeParserBytes(t *testing.T) {
 			name: "CLR parser",
 			ctor: NewCLRParser,
 			g: `
-				S -> C C
-				C -> c C | d
+				S -> C C ;
+				C -> c C | d ;
 			`,
 		},
 	}
