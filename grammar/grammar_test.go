@@ -26,6 +26,28 @@ func Test_Grammar_MarshalUnmarshalBinary(t *testing.T) {
 			name:  "empty",
 			input: Grammar{},
 		},
+		{
+			name: "one rule",
+			input: MustParse(`
+				S -> S a ;
+			`),
+		},
+		{
+			name: "two rules",
+			input: MustParse(`
+				S -> S a | B ;
+				B -> b | ε ;
+			`),
+		},
+		{
+			name: "several rules",
+			input: MustParse(`
+				S -> T ;
+				T -> E | T + E ;
+				E -> E * S | S | ( E ) | F ;
+				F -> id | num ;
+			`),
+		},
 	}
 
 	for _, tc := range testCases {

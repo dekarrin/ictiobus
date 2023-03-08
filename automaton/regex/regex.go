@@ -1,4 +1,4 @@
-package lex
+package regex
 
 import (
 	"github.com/dekarrin/ictiobus/automaton"

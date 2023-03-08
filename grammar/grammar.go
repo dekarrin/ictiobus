@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/types"
 
 	"github.com/dekarrin/ictiobus/internal/box"
@@ -46,10 +47,48 @@ type Grammar struct {
 	Start string
 }
 
+type marshaledTokenClass struct {
+	id    string
+	human string
+}
+
+func (m marshaledTokenClass) MarshalBinary() ([]byte, error) {
+	data := decbin.EncString(m.id)
+	data = append(data, decbin.EncString(m.human)...)
+	return data, nil
+}
+
+func (m *marshaledTokenClass) UnmarshalBinary(data []byte) error {
+	var err error
+	var n int
+
+	m.id, n, err = decbin.DecString(data)
+	if err != nil {
+		return err
+	}
+	data = data[n:]
+
+	m.human, _, err = decbin.DecString(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (g Grammar) MarshalBinary() ([]byte, error) {
 	data := decbin.EncMapStringToInt(g.rulesByName)
 	data = append(data, decbin.EncSliceBinary(g.rules)...)
-	data = append(data, decbin.EncMapStringToBinary(g.terminals)...)
+
+	serializedTerminals := map[string]marshaledTokenClass{}
+	for k := range g.terminals {
+		serializedTerminals[k] = marshaledTokenClass{
+			id:    g.terminals[k].ID(),
+			human: g.terminals[k].Human(),
+		}
+	}
+
+	data = append(data, decbin.EncMapStringToBinary(serializedTerminals)...)
 	data = append(data, decbin.EncString(g.Start)...)
 	return data, nil
 }
@@ -76,17 +115,24 @@ func (g *Grammar) UnmarshalBinary(data []byte) error {
 	}
 	data = data[n:]
 
-	g.terminals, n, err = decbin.DecMapStringToBinary[types.TokenClass](data)
+	var serializedTerminals map[string]*marshaledTokenClass
+	serializedTerminals, n, err = decbin.DecMapStringToBinary[*marshaledTokenClass](data)
 	if err != nil {
 		return fmt.Errorf("terminals: %w", err)
 	}
 	data = data[n:]
 
-	g.Start, n, err = decbin.DecString(data)
+	if serializedTerminals != nil {
+		g.terminals = map[string]types.TokenClass{}
+		for k := range serializedTerminals {
+			g.terminals[k] = lex.NewTokenClass(serializedTerminals[k].id, serializedTerminals[k].human)
+		}
+	}
+
+	g.Start, _, err = decbin.DecString(data)
 	if err != nil {
 		return fmt.Errorf("start: %w", err)
 	}
-	data = data[n:]
 
 	return nil
 }
