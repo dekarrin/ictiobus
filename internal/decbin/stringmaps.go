@@ -13,7 +13,7 @@ import (
 // Order of keys in output is gauranteed to be consistent.
 func EncMapStringToInt(m map[string]int) []byte {
 	if m == nil {
-		return EncInt(0)
+		return EncInt(-1)
 	}
 
 	enc := make([]byte, 0)
@@ -40,6 +40,8 @@ func DecMapStringToInt(data []byte) (map[string]int, int, error) {
 
 	if toConsume == 0 {
 		return map[string]int{}, totalConsumed, nil
+	} else if toConsume == -1 {
+		return nil, totalConsumed, nil
 	}
 
 	if len(data) < toConsume {
@@ -74,7 +76,7 @@ func DecMapStringToInt(data []byte) (map[string]int, int, error) {
 // Order of keys in output is gauranteed to be consistent.
 func EncMapStringToBinary[E encoding.BinaryMarshaler](m map[string]E) []byte {
 	if m == nil {
-		return EncInt(0)
+		return EncInt(-1)
 	}
 
 	enc := make([]byte, 0)
@@ -101,6 +103,8 @@ func DecMapStringToBinary[E encoding.BinaryUnmarshaler](data []byte) (map[string
 
 	if toConsume == 0 {
 		return map[string]E{}, totalConsumed, nil
+	} else if toConsume == -1 {
+		return nil, totalConsumed, nil
 	}
 
 	if len(data) < toConsume {

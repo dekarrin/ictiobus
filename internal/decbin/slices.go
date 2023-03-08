@@ -9,7 +9,7 @@ import (
 
 func EncSliceString(sl []string) []byte {
 	if sl == nil {
-		return EncInt(0)
+		return EncInt(-1)
 	}
 
 	enc := make([]byte, 0)
@@ -34,6 +34,8 @@ func DecSliceString(data []byte) ([]string, int, error) {
 
 	if toConsume == 0 {
 		return []string{}, totalConsumed, nil
+	} else if toConsume == -1 {
+		return nil, totalConsumed, nil
 	}
 
 	if len(data) < toConsume {
@@ -60,7 +62,7 @@ func DecSliceString(data []byte) ([]string, int, error) {
 
 func EncSliceBinary[E encoding.BinaryMarshaler](sl []E) []byte {
 	if sl == nil {
-		return EncInt(0)
+		return EncInt(-1)
 	}
 
 	enc := make([]byte, 0)
@@ -85,6 +87,8 @@ func DecSliceBinary[E encoding.BinaryUnmarshaler](data []byte) ([]E, int, error)
 
 	if toConsume == 0 {
 		return []E{}, totalConsumed, nil
+	} else if toConsume == -1 {
+		return nil, totalConsumed, nil
 	}
 
 	if len(data) < toConsume {

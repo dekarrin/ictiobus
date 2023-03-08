@@ -32,7 +32,7 @@ func EncBool(b bool) []byte {
 // returns the value and the number of bytes read.
 func DecBool(data []byte) (bool, int, error) {
 	if len(data) < 1 {
-		return false, 0, fmt.Errorf("unexpected end of data")
+		return false, 0, fmt.Errorf("unexpected EOF")
 	}
 
 	if data[0] == 0 {
@@ -48,8 +48,20 @@ func DecBool(data []byte) (bool, int, error) {
 // be decoded with DecInt. No type indicator is included in the output;
 // it is up to the caller to add this if they so wish it.
 //
-// The output will always contain exactly 8 bytes.
+// The output will contain a byte specifying how many bytes the integer is in
+// the least-significant nibble, with the sign encoded as the first bit,
+// followed by that many bytes, with the exception of 0 which is encoded as a
+// single 0-byte, and -1 which is encoded as 0x80.
+//
+// TODO: betta description of encoding for negative values and how the
+// non-significant bytes are assumed to be either 0xff or 0x00.
 func EncInt(i int) []byte {
+	if i == 0 {
+		return []byte{0x00}
+	}
+
+	negative := i < 0
+
 	b1 := byte((i >> 56) & 0xff)
 	b2 := byte((i >> 48) & 0xff)
 	b3 := byte((i >> 40) & 0xff)
@@ -58,18 +70,70 @@ func EncInt(i int) []byte {
 	b6 := byte((i >> 16) & 0xff)
 	b7 := byte((i >> 8) & 0xff)
 	b8 := byte(i & 0xff)
-	enc := []byte{b1, b2, b3, b4, b5, b6, b7, b8}
+
+	parts := []byte{b1, b2, b3, b4, b5, b6, b7, b8}
+
+	enc := []byte{}
+	var hitMSB bool
+	for i := range parts {
+		if hitMSB {
+			enc = append(enc, parts[i])
+		} else if (!negative && parts[i] != 0x00) || (negative && parts[i] != 0xff) {
+			enc = append(enc, parts[i])
+			hitMSB = true
+		}
+	}
+
+	byteCount := uint8(len(enc))
+
+	// byteCount will never be more than 8 so we can encode sign info in most
+	// significant bit
+	if negative {
+		byteCount |= 0x80
+	}
+
+	enc = append([]byte{byteCount}, enc...)
+
 	return enc
 }
 
 // DecInt decodes an integer value at the start of the given bytes and
 // returns the value and the number of bytes read.
 func DecInt(data []byte) (int, int, error) {
-	if len(data) < 8 {
-		return 0, 0, fmt.Errorf("data does not contain 8 bytes")
+	if len(data) < 1 {
+		return 0, 0, fmt.Errorf("data does not contain at least 1 byte")
 	}
 
-	intData := data[:8]
+	byteCount := data[0]
+
+	if byteCount == 0 {
+		return 0, 1, nil
+	}
+	data = data[1:]
+
+	// pull count and sign out of byteCount
+	negative := byteCount&0x80 != 0
+	byteCount &= 0x0f
+
+	// do not examine the 2nd, 3rd, and 4th left-most bits; they are reserved
+	// for future use
+
+	if len(data) < int(byteCount) {
+		return 0, 0, fmt.Errorf("unexpected EOF")
+	}
+
+	intData := data[:byteCount]
+
+	// put missing other bytes back in
+
+	padByte := byte(0x00)
+	if negative {
+		padByte = 0xff
+	}
+	for len(intData) < 8 {
+		// if we're negative, we need to pad with 0xff bytes, otherwise 0x00
+		intData = append([]byte{padByte}, intData...)
+	}
 
 	// keep value as uint until we return so we avoid logical shift semantics
 	var iVal uint
@@ -82,7 +146,7 @@ func DecInt(data []byte) (int, int, error) {
 	iVal |= (uint(intData[6]) << 8)
 	iVal |= (uint(intData[7]))
 
-	return int(iVal), 8, nil
+	return int(iVal), int(byteCount + 1), nil
 }
 
 // EncString encodes a string value as a slice of bytes. The value can
@@ -115,29 +179,29 @@ func EncString(s string) []byte {
 // DecString decodes a string value at the start of the given bytes and
 // returns the value and the number of bytes read.
 func DecString(data []byte) (string, int, error) {
-	if len(data) < 8 {
-		return "", 0, fmt.Errorf("unexpected end of data")
+	if len(data) < 1 {
+		return "", 0, fmt.Errorf("unexpected EOF")
 	}
-	runeCount, _, err := DecInt(data)
+	runeCount, n, err := DecInt(data)
 	if err != nil {
 		return "", 0, fmt.Errorf("decoding string rune count: %w", err)
 	}
-	data = data[8:]
+	data = data[n:]
 
 	if runeCount < 0 {
 		return "", 0, fmt.Errorf("string rune count < 0")
 	}
 
-	readBytes := 8
+	readBytes := n
 
 	var sb strings.Builder
 
 	for i := 0; i < runeCount; i++ {
-		ch, bytesRead := utf8.DecodeRune(data)
+		ch, charBytesRead := utf8.DecodeRune(data)
 		if ch == utf8.RuneError {
-			if bytesRead == 0 {
-				return "", 0, fmt.Errorf("unexpected end of data in string")
-			} else if bytesRead == 1 {
+			if charBytesRead == 0 {
+				return "", 0, fmt.Errorf("unexpected EOF")
+			} else if charBytesRead == 1 {
 				return "", 0, fmt.Errorf("invalid UTF-8 encoding in string")
 			} else {
 				return "", 0, fmt.Errorf("invalid unicode replacement character in rune")
@@ -145,8 +209,8 @@ func DecString(data []byte) (string, int, error) {
 		}
 
 		sb.WriteRune(ch)
-		readBytes += bytesRead
-		data = data[bytesRead:]
+		readBytes += charBytesRead
+		data = data[charBytesRead:]
 	}
 
 	return sb.String(), readBytes, nil
