@@ -17,6 +17,39 @@ var (
 	testTCNumber = types.MakeDefaultClass("int")
 )
 
+func Test_Grammar_MarshalUnmarshalBinary(t *testing.T) {
+	testCases := []struct {
+		name  string
+		input Grammar
+	}{
+		{
+			name:  "empty",
+			input: Grammar{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			encoded, err := tc.input.MarshalBinary()
+			if !assert.NoError(err, "MarshalBinary failed") {
+				return
+			}
+
+			actualPtr := &Grammar{}
+			err = actualPtr.UnmarshalBinary(encoded)
+			if !assert.NoError(err, "UnmarshalBinary failed") {
+				return
+			}
+
+			actual := *actualPtr
+
+			assert.Equal(tc.input, actual)
+		})
+	}
+}
+
 func Test_Grammar_Validate(t *testing.T) {
 	testCases := []struct {
 		name      string
