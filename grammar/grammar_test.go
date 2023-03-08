@@ -67,7 +67,18 @@ func Test_Grammar_MarshalUnmarshalBinary(t *testing.T) {
 
 			actual := *actualPtr
 
-			assert.Equal(tc.input, actual)
+			// grammar uses an interface and cannot be directly compared, so
+			// we must check each property
+			assert.Equal(tc.input.rules, actual.rules, "rules mismatch")
+			assert.Equal(tc.input.rulesByName, actual.rulesByName, "rulesByName mismatch")
+			assert.Equal(tc.input.Start, actual.Start, "Start symbol mismatch")
+
+			// check terminals
+			assert.Equal(len(tc.input.terminals), len(actual.terminals), "terminal count mismatch")
+			for i := range tc.input.terminals {
+				assert.Equal(tc.input.terminals[i].ID(), actual.terminals[i].ID(), "terminal #%d: ID mismatch", i)
+				assert.Equal(tc.input.terminals[i].Human(), actual.terminals[i].Human(), "terminal #%d: human string mismatch", i)
+			}
 		})
 	}
 }

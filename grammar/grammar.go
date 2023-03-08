@@ -107,10 +107,14 @@ func (g *Grammar) UnmarshalBinary(data []byte) error {
 	if err != nil {
 		return fmt.Errorf("rules: %w", err)
 	}
-	g.rules = make([]Rule, len(rulesSl))
-	for i := range rulesSl {
-		if rulesSl[i] != nil {
-			g.rules[i] = *rulesSl[i]
+	if rulesSl == nil {
+		g.rules = nil
+	} else {
+		g.rules = make([]Rule, len(rulesSl))
+		for i := range rulesSl {
+			if rulesSl[i] != nil {
+				g.rules[i] = *rulesSl[i]
+			}
 		}
 	}
 	data = data[n:]
