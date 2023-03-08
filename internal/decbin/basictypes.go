@@ -32,7 +32,7 @@ func EncBool(b bool) []byte {
 // returns the value and the number of bytes read.
 func DecBool(data []byte) (bool, int, error) {
 	if len(data) < 1 {
-		return false, 0, fmt.Errorf("unexpected end of data")
+		return false, 0, fmt.Errorf("unexpected EOF")
 	}
 
 	if data[0] == 0 {
@@ -114,6 +114,9 @@ func DecInt(data []byte) (int, int, error) {
 	// pull count and sign out of byteCount
 	negative := byteCount&0x80 != 0
 	byteCount &= 0x0f
+
+	// do not examine the 2nd, 3rd, and 4th left-most bits; they are reserved
+	// for future use
 
 	if len(data) < int(byteCount) {
 		return 0, 0, fmt.Errorf("unexpected EOF")

@@ -19,6 +19,11 @@ func Test_EncSliceString(t *testing.T) {
 			expect: []byte{0x00},
 		},
 		{
+			name:   "nil",
+			input:  nil,
+			expect: []byte{0x80},
+		},
+		{
 			name:   "one item",
 			input:  []string{"one"},
 			expect: []byte{0x01, 0x05, 0x01, 0x03, 0x6f, 0x6e, 0x65},
@@ -53,6 +58,12 @@ func Test_DecSliceString(t *testing.T) {
 			name:        "empty",
 			input:       []byte{0x00},
 			expectValue: []string{},
+			expectRead:  1,
+		},
+		{
+			name:        "nil",
+			input:       []byte{0x80},
+			expectValue: nil,
 			expectRead:  1,
 		},
 		{
@@ -109,6 +120,11 @@ func Test_EncSliceBinary(t *testing.T) {
 			expect: []byte{0x00},
 		},
 		{
+			name:   "nil",
+			input:  nil,
+			expect: []byte{0x80},
+		},
+		{
 			name: "one item",
 			input: []encoding.BinaryMarshaler{
 				valueThatMarshalsWith(func() []byte {
@@ -155,6 +171,12 @@ func Test_DecSliceBinary(t *testing.T) {
 			name:        "empty",
 			input:       []byte{0x00},
 			expectValue: []*marshaledBytesReceiver{},
+			expectRead:  1,
+		},
+		{
+			name:        "nil",
+			input:       []byte{0x80},
+			expectValue: nil,
 			expectRead:  1,
 		},
 		{

@@ -387,6 +387,13 @@ func Test_DecBinary(t *testing.T) {
 			consumerFunc:  sendToReceived,
 		},
 		{
+			name:          "nil",
+			input:         []byte{0x00},
+			expectReceive: []byte{},
+			expectRead:    1,
+			consumerFunc:  sendToReceived,
+		},
+		{
 			name:          "1 byte",
 			input:         []byte{0x01, 0x01, 0xff},
 			expectReceive: []byte{0xff},
