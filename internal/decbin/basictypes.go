@@ -176,29 +176,29 @@ func EncString(s string) []byte {
 // DecString decodes a string value at the start of the given bytes and
 // returns the value and the number of bytes read.
 func DecString(data []byte) (string, int, error) {
-	if len(data) < 8 {
-		return "", 0, fmt.Errorf("unexpected end of data")
+	if len(data) < 1 {
+		return "", 0, fmt.Errorf("unexpected EOF")
 	}
-	runeCount, _, err := DecInt(data)
+	runeCount, n, err := DecInt(data)
 	if err != nil {
 		return "", 0, fmt.Errorf("decoding string rune count: %w", err)
 	}
-	data = data[8:]
+	data = data[n:]
 
 	if runeCount < 0 {
 		return "", 0, fmt.Errorf("string rune count < 0")
 	}
 
-	readBytes := 8
+	readBytes := n
 
 	var sb strings.Builder
 
 	for i := 0; i < runeCount; i++ {
-		ch, bytesRead := utf8.DecodeRune(data)
+		ch, charBytesRead := utf8.DecodeRune(data)
 		if ch == utf8.RuneError {
-			if bytesRead == 0 {
-				return "", 0, fmt.Errorf("unexpected end of data in string")
-			} else if bytesRead == 1 {
+			if charBytesRead == 0 {
+				return "", 0, fmt.Errorf("unexpected EOF")
+			} else if charBytesRead == 1 {
 				return "", 0, fmt.Errorf("invalid UTF-8 encoding in string")
 			} else {
 				return "", 0, fmt.Errorf("invalid unicode replacement character in rune")
@@ -206,8 +206,8 @@ func DecString(data []byte) (string, int, error) {
 		}
 
 		sb.WriteRune(ch)
-		readBytes += bytesRead
-		data = data[bytesRead:]
+		readBytes += charBytesRead
+		data = data[charBytesRead:]
 	}
 
 	return sb.String(), readBytes, nil
