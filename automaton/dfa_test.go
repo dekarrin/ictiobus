@@ -1,12 +1,111 @@
 package automaton
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/internal/decbin"
 	"github.com/stretchr/testify/assert"
 )
+
+func Test_DFA_MarshalUnmarshalBinary(t *testing.T) {
+	type dummy struct {
+		val1 string
+		val2 int
+	}
+
+	testCases := []struct {
+		name  string
+		input DFA[dummy]
+	}{
+		{
+			name:  "empty",
+			input: DFA[dummy]{},
+		},
+		{
+			name: "fully populated",
+			input: DFA[dummy]{
+				order: 285039842,
+				Start: "Feferi Peixes",
+				states: map[string]DFAState[dummy]{
+					"Nepeta Leijon": {
+						ordering: 28921,
+						name:     "bizarrely long name",
+						value: dummy{
+							val1: "nepeta leijon",
+							val2: 88888888,
+						},
+						transitions: map[string]FATransition{
+							"a": {input: "a", next: "b"},
+						},
+						accepting: true,
+					},
+					"Feferi Peixes": {
+						ordering: 413,
+						name:     "Feferi Peixes",
+						value: dummy{
+							val1: "feferi peixes",
+							val2: 6188,
+						},
+						transitions: map[string]FATransition{},
+					},
+					"Karkat Vantas": {
+						ordering: 612,
+						name:     "Karkat Vantas",
+						value: dummy{
+							val1: "karkat vantas",
+							val2: 8888,
+						},
+						transitions: map[string]FATransition{
+							"a": {input: "a", next: "Feferi Peixes"},
+							"b": {input: "b", next: "Nepeta Leijon"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			encoded := tc.input.MarshalBytes(func(d dummy) []byte {
+				data := decbin.EncString(d.val1)
+				data = append(data, decbin.EncInt(d.val2)...)
+				return data
+			})
+
+			actual, err := UnmarshalDFABytes(encoded, func(data []byte) (dummy, error) {
+				var d dummy
+				var n int
+				var err error
+
+				d.val1, n, err = decbin.DecString(data)
+				if err != nil {
+					return d, fmt.Errorf(".val1: %w", err)
+				}
+				data = data[n:]
+
+				d.val2, n, err = decbin.DecInt(data)
+				if err != nil {
+					return d, fmt.Errorf(".val2: %w", err)
+				}
+				data = data[n:]
+
+				return d, nil
+			})
+			if !assert.NoError(err, "UnmarshalDFAStateBytes failed") {
+				return
+			}
+
+			// glub glub 38D v happy fishy
+			assert.Equal(tc.input, actual)
+		})
+	}
+}
 
 func Test_NewLALR1ViablePrefixDFA(t *testing.T) {
 	testCases := []struct {

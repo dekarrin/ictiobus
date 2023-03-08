@@ -27,14 +27,18 @@ type DFA[E any] struct {
 func (dfa DFA[E]) MarshalBytes(conv func(E) []byte) []byte {
 	data := decbin.EncInt(int(dfa.order))
 	data = append(data, decbin.EncString(dfa.Start)...)
-	stateNames := textfmt.OrderedKeys(dfa.states)
 
-	data = append(data, decbin.EncInt(len(stateNames))...)
-	for _, stateName := range stateNames {
-		data = append(data, decbin.EncString(stateName)...)
-		stateBytes := dfa.states[stateName].MarshalBytes(conv)
-		data = append(data, decbin.EncInt(len(stateBytes))...)
-		data = append(data, stateBytes...)
+	if dfa.states == nil {
+		data = append(data, decbin.EncInt(-1)...)
+	} else {
+		stateNames := textfmt.OrderedKeys(dfa.states)
+		data = append(data, decbin.EncInt(len(stateNames))...)
+		for _, stateName := range stateNames {
+			data = append(data, decbin.EncString(stateName)...)
+			stateBytes := dfa.states[stateName].MarshalBytes(conv)
+			data = append(data, decbin.EncInt(len(stateBytes))...)
+			data = append(data, stateBytes...)
+		}
 	}
 
 	return data
@@ -59,37 +63,41 @@ func UnmarshalDFABytes[E any](data []byte, conv func([]byte) (E, error)) (DFA[E]
 	}
 	data = data[n:]
 
-	dfa.states = map[string]DFAState[E]{}
 	var numStates int
 	numStates, n, err = decbin.DecInt(data)
 	if err != nil {
 		return dfa, fmt.Errorf(".states: %w", err)
 	}
 	data = data[n:]
-	for i := 0; i < numStates; i++ {
-		var name string
-		var stateBytesLen int
-		var state DFAState[E]
+	if numStates > -1 {
+		dfa.states = map[string]DFAState[E]{}
+		for i := 0; i < numStates; i++ {
+			var name string
+			var stateBytesLen int
+			var state DFAState[E]
 
-		name, n, err = decbin.DecString(data)
-		if err != nil {
-			return dfa, fmt.Errorf(".states[%d]: %w", i, err)
-		}
-		data = data[n:]
+			name, n, err = decbin.DecString(data)
+			if err != nil {
+				return dfa, fmt.Errorf(".states[%d]: %w", i, err)
+			}
+			data = data[n:]
 
-		stateBytesLen, n, err = decbin.DecInt(data)
-		if err != nil {
-			return dfa, fmt.Errorf(".states[%s]: value bytes len: %w", name, err)
-		}
-		data = data[n:]
-		stateBytes := data[:stateBytesLen]
-		state, err = UnmarshalDFAStateBytes[E](stateBytes, conv)
-		if err != nil {
-			return dfa, fmt.Errorf(".states[%s]: %w", name, err)
-		}
-		data = data[stateBytesLen:]
+			stateBytesLen, n, err = decbin.DecInt(data)
+			if err != nil {
+				return dfa, fmt.Errorf(".states[%s]: value bytes len: %w", name, err)
+			}
+			data = data[n:]
+			stateBytes := data[:stateBytesLen]
+			state, err = UnmarshalDFAStateBytes[E](stateBytes, conv)
+			if err != nil {
+				return dfa, fmt.Errorf(".states[%s]: %w", name, err)
+			}
+			data = data[stateBytesLen:]
 
-		dfa.states[name] = state
+			dfa.states[name] = state
+		}
+	} else {
+		dfa.states = nil
 	}
 
 	return dfa, nil

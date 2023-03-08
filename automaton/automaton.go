@@ -162,13 +162,17 @@ func UnmarshalDFAStateBytes[E any](data []byte, conv func([]byte) (E, error)) (D
 	if err != nil {
 		return ds, fmt.Errorf(".transitions: %w", err)
 	}
-	ds.transitions = map[string]FATransition{}
-	for k := range ptrMap {
-		if ptrMap[k] != nil {
-			ds.transitions[k] = *ptrMap[k]
-		} else {
-			ds.transitions[k] = FATransition{}
+	if ptrMap != nil {
+		ds.transitions = map[string]FATransition{}
+		for k := range ptrMap {
+			if ptrMap[k] != nil {
+				ds.transitions[k] = *ptrMap[k]
+			} else {
+				ds.transitions[k] = FATransition{}
+			}
 		}
+	} else {
+		ds.transitions = nil
 	}
 	data = data[n:]
 

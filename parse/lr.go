@@ -98,11 +98,24 @@ func (lr *lrParser) UnmarshalBinary(data []byte) error {
 		return fmt.Errorf("parsing parseType: %w", err)
 	}
 
-	n, err = decbin.DecBinary(data, lr.table)
+	var tableVal LRParseTable
+	switch lr.parseType {
+	case types.ParserCLR1:
+		tableVal = &canonicalLR1Table{}
+	case types.ParserLALR1:
+		tableVal = &lalr1Table{}
+	case types.ParserSLR1:
+		tableVal = &slrTable{}
+	default:
+		return fmt.Errorf("unknown parse type: %s", lr.parseType.String())
+	}
+
+	n, err = decbin.DecBinary(data, tableVal)
 	if err != nil {
 		return fmt.Errorf("table: %w", err)
 	}
 	data = data[n:]
+	lr.table = tableVal
 
 	_, err = decbin.DecBinary(data, &lr.gram)
 	if err != nil {
