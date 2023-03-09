@@ -17,6 +17,72 @@ var (
 	testTCNumber = types.MakeDefaultClass("int")
 )
 
+func Test_Grammar_MarshalUnmarshalBinary(t *testing.T) {
+	testCases := []struct {
+		name  string
+		input Grammar
+	}{
+		{
+			name:  "empty",
+			input: Grammar{},
+		},
+		{
+			name: "one rule",
+			input: MustParse(`
+				S -> S a ;
+			`),
+		},
+		{
+			name: "two rules",
+			input: MustParse(`
+				S -> S a | B ;
+				B -> b | ε ;
+			`),
+		},
+		{
+			name: "several rules",
+			input: MustParse(`
+				S -> T ;
+				T -> E | T + E ;
+				E -> E * S | S | ( E ) | F ;
+				F -> id | num ;
+			`),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			encoded, err := tc.input.MarshalBinary()
+			if !assert.NoError(err, "MarshalBinary failed") {
+				return
+			}
+
+			actualPtr := &Grammar{}
+			err = actualPtr.UnmarshalBinary(encoded)
+			if !assert.NoError(err, "UnmarshalBinary failed") {
+				return
+			}
+
+			actual := *actualPtr
+
+			// grammar uses an interface and cannot be directly compared, so
+			// we must check each property
+			assert.Equal(tc.input.rules, actual.rules, "rules mismatch")
+			assert.Equal(tc.input.rulesByName, actual.rulesByName, "rulesByName mismatch")
+			assert.Equal(tc.input.Start, actual.Start, "Start symbol mismatch")
+
+			// check terminals
+			assert.Equal(len(tc.input.terminals), len(actual.terminals), "terminal count mismatch")
+			for i := range tc.input.terminals {
+				assert.Equal(tc.input.terminals[i].ID(), actual.terminals[i].ID(), "terminal #%d: ID mismatch", i)
+				assert.Equal(tc.input.terminals[i].Human(), actual.terminals[i].Human(), "terminal #%d: human string mismatch", i)
+			}
+		})
+	}
+}
+
 func Test_Grammar_Validate(t *testing.T) {
 	testCases := []struct {
 		name      string

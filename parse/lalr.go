@@ -570,7 +570,7 @@ func (lalr1 *lalr1Table) UnmarshalBinary(data []byte) error {
 	}
 	dfaBytes := data[:dfaBytesLen]
 
-	lalr1.dfa, err = automaton.UnmarshalDFABytes[box.SVSet[grammar.LR1Item]](dfaBytes, func(b []byte) (box.SVSet[grammar.LR1Item], error) {
+	lalr1.dfa, err = automaton.UnmarshalDFABytes(dfaBytes, func(b []byte) (box.SVSet[grammar.LR1Item], error) {
 		var innerN int
 		var innerErr error
 		var numEntries int

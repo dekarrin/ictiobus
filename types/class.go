@@ -1,7 +1,6 @@
 package types
 
 import (
-	"encoding"
 	"strings"
 
 	"github.com/dekarrin/ictiobus/internal/decbin"
@@ -9,9 +8,6 @@ import (
 
 // TODO: TokenClass must implement binary encoding
 type TokenClass interface {
-	encoding.BinaryMarshaler
-	encoding.BinaryUnmarshaler
-
 	// ID returns the ID of the token class. The ID must uniquely identify the
 	// token within all terminals of a grammar.
 	ID() string

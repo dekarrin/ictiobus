@@ -35,6 +35,10 @@ func initType[E any]() E {
 
 	vType := reflect.TypeOf(v)
 
+	if vType == nil {
+		panic("cannot initialize an interface value; must decode to a concrete type")
+	}
+
 	if vType.Kind() == reflect.Pointer {
 		pointedTo := vType.Elem()
 		pointedVal := reflect.New(pointedTo)
