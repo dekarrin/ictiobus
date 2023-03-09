@@ -22,6 +22,33 @@ func Test_EncodeDecodeParserBytes(t *testing.T) {
 				C -> c C | d ;
 			`,
 		},
+		{
+			name: "SLR parser",
+			ctor: NewSLRParser,
+			g: `
+				S -> C C ;
+				C -> c C | d ;
+			`,
+		},
+		{
+			name: "LALR parser",
+			ctor: NewLALR1Parser,
+			g: `
+				S -> C C ;
+				C -> c C | d ;
+			`,
+		},
+		{
+			name: "LL parser",
+			ctor: func(g grammar.Grammar, b bool) (Parser, []string, error) {
+				p, err := NewLL1Parser(g)
+				return p, nil, err
+			},
+			g: `
+				S -> C C ;
+				C -> c C | d ;
+			`,
+		},
 	}
 
 	for _, tc := range testCases {
