@@ -50,7 +50,8 @@ func DecMapStringToInt(data []byte) (map[string]int, int, error) {
 
 	m := map[string]int{}
 
-	for i := 0; i < toConsume; i++ {
+	var i int
+	for i < toConsume {
 		k, n, err := DecString(data)
 		if err != nil {
 			return nil, totalConsumed, fmt.Errorf("decode key: %w", err)
@@ -113,7 +114,8 @@ func DecMapStringToBinary[E encoding.BinaryUnmarshaler](data []byte) (map[string
 
 	m := map[string]E{}
 
-	for i := 0; i < toConsume; i++ {
+	var i int
+	for i < toConsume {
 		k, n, err := DecString(data)
 		if err != nil {
 			return nil, totalConsumed, fmt.Errorf("decode key: %w", err)

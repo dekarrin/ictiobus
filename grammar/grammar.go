@@ -78,7 +78,8 @@ func (m *marshaledTokenClass) UnmarshalBinary(data []byte) error {
 
 func (g Grammar) MarshalBinary() ([]byte, error) {
 	data := decbin.EncMapStringToInt(g.rulesByName)
-	data = append(data, decbin.EncSliceBinary(g.rules)...)
+	rulesData := decbin.EncSliceBinary(g.rules)
+	data = append(data, rulesData...)
 
 	serializedTerminals := map[string]marshaledTokenClass{}
 	for k := range g.terminals {

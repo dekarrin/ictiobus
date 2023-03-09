@@ -131,6 +131,12 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 
 		fmt.Printf("successfully built %s parser\n", parser.Type().String())
 
+		parserBytes := ictiobus.EncodeParserBytes(parser)
+		_, err := ictiobus.DecodeParserBytes(parserBytes)
+		if err != nil {
+			fmt.Printf("FAILED TO DECODE IMMEDIATELY: %s\n", err.Error())
+		}
+
 		if cachefile != "" {
 			err := ictiobus.SaveParserToDisk(parser, cachefile)
 			if err != nil {
