@@ -12,6 +12,7 @@ import (
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/decbin"
 	"github.com/dekarrin/ictiobus/internal/slices"
+	"github.com/dekarrin/ictiobus/internal/stack"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 )
 
@@ -728,6 +729,156 @@ func (g Grammar) UnreachableNonTerminals() []string {
 	return unreachables
 }
 
+// deriveShortest returns the parse tree for the given symbol with the fewest
+// possible number of nodes.
+func (g Grammar) deriveShortestTree(sym string, shortestDerivation map[string]Production, tokMaker func(term string) types.Token) *types.ParseTree {
+	root := &types.ParseTree{
+		Value: sym,
+	}
+
+	treeStack := stack.Stack[*types.ParseTree]{Of: []*types.ParseTree{root}}
+
+	for treeStack.Len() > 0 {
+		pt := treeStack.Pop()
+
+		if pt.Terminal {
+			continue
+		}
+
+		option := shortestDerivation[pt.Value]
+		if option.Equal(Epsilon) {
+			pt.Children = []*types.ParseTree{{Terminal: true}}
+		} else {
+			pt.Children = make([]*types.ParseTree, len(option))
+			for i, sym := range option {
+				if g.IsTerminal(sym) {
+					pt.Children[i] = &types.ParseTree{
+						Value:    sym,
+						Terminal: true,
+						Source:   tokMaker(sym),
+					}
+				} else {
+					pt.Children[i] = &types.ParseTree{
+						Value: sym,
+					}
+				}
+			}
+		}
+
+		// push children onto stack in reverse order so they are popped in
+		// the correct order (left to right)
+		for i := len(pt.Children) - 1; i >= 0; i-- {
+			treeStack.Push(pt.Children[i])
+		}
+	}
+
+	return root
+}
+
+// DeriveFullTree derives a parse tree based on the grammar that is guaranteed
+// to contain every rule at least once. It is *not* garunteed to have each rule
+// only once, although it will make a best effort to minimize duplications.
+//
+// The fakeValProducer map, if provided, will be used to assign a lexed
+// value to each synthesized terminal node that has a class whose ID matches
+// a key in it. If the map is not provided or does not contain a key for a
+// token class matching a terminal being generated, a default string will be
+// automatically generated for it.
+func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) (types.ParseTree, error) {
+	// create a function to get a value for any terminal from the
+	// fakeValProducer, falling back on default behavior if none is provided or
+	// if a token class is not found in the fakeValProducer.
+	var lineNo int
+	makeTermSource := func(forTerm string) types.Token {
+		class := g.Term(forTerm)
+		val := fmt.Sprintf("<SIMULATED %s>", class.ID())
+		if len(fakeValProducer) > 0 && fakeValProducer[0] != nil {
+			if fvp, ok := fakeValProducer[0][class.ID()]; ok {
+				val = fvp()
+			}
+		}
+		lineNo++
+		t := lex.NewToken(class, val, 11, lineNo, fmt.Sprintf("<fakeLine>%s</fakeLine>", val))
+		return t
+	}
+
+	// we need to get a list of all productions that we have yet to create
+	toCreate := map[string][]Production{}
+	for _, nonTerm := range g.NonTerminals() {
+		rule := g.Rule(nonTerm)
+		prods := make([]Production, len(rule.Productions))
+		copy(prods, rule.Productions)
+		toCreate[nonTerm] = prods
+	}
+
+	// we also need to get the 'shortest' production for each non-terminal; this
+	// is the production that eventually results in the fewest number of
+	// non-terminals being used in the final parse tree.
+	shortestDerivation, err := g.CreateFewestNonTermsAlternationsTable()
+	if err != nil {
+		return types.ParseTree{}, fmt.Errorf("failed to get shortest derivation table for grammar: %w", err)
+	}
+
+	root := &types.ParseTree{
+		Terminal: false,
+		Value:    g.StartSymbol(),
+	}
+	treeStack := stack.Stack[*types.ParseTree]{Of: []*types.ParseTree{root}}
+
+	for treeStack.Len() > 0 {
+		pt := treeStack.Pop()
+
+		if pt.Terminal {
+			continue
+		}
+
+		// select the production to do
+		options, ok := toCreate[pt.Value]
+		if !ok {
+			// we have already created all the productions for this non-terminal
+			// so we need to select the production that results in the fewest
+			// non-terminals being used and be done.
+			shortest := g.deriveShortestTree(pt.Value, shortestDerivation, makeTermSource)
+			pt.Children = shortest.Children
+			continue
+		}
+
+		option := options[0]
+		if option.Equal(Epsilon) {
+			pt.Children = []*types.ParseTree{{Terminal: true}}
+		} else {
+			pt.Children = make([]*types.ParseTree, len(option))
+			for i, sym := range option {
+				if g.IsTerminal(sym) {
+					pt.Children[i] = &types.ParseTree{
+						Value:    sym,
+						Terminal: true,
+						Source:   makeTermSource(sym),
+					}
+				} else {
+					pt.Children[i] = &types.ParseTree{
+						Value: sym,
+					}
+				}
+			}
+		}
+
+		// push children onto stack in reverse order so they are popped in
+		// the correct order (left to right)
+		for i := len(pt.Children) - 1; i >= 0; i-- {
+			treeStack.Push(pt.Children[i])
+		}
+
+		// remove the option we just did from the list of options
+		toCreate[pt.Value] = options[1:]
+		if len(toCreate[pt.Value]) == 0 {
+			delete(toCreate, pt.Value)
+		}
+	}
+
+	return *root, nil
+}
+
 // CreateFewestNonTermsAlternationsTable returns a map of non-terminals to the
 // production in their associated rule that using to derive would result in the
 // fewest new non-terminals being derived for that rule.
@@ -831,6 +982,8 @@ func (g Grammar) CreateFewestNonTermsAlternationsTable() (map[string]Production,
 
 	// Repeat the following until the calculations table is empty:
 	for len(calcs) > 0 {
+		modified := false
+
 		// For each rule R in the calculations table, if there is a production
 		// for it which has a single constant value that is indisputably the
 		// lowest value, set that constant as the value of S(R) and the
@@ -884,6 +1037,7 @@ func (g Grammar) CreateFewestNonTermsAlternationsTable() (map[string]Production,
 			}
 			if remove {
 				delete(calcs, nt)
+				modified = true
 			}
 		}
 
@@ -909,6 +1063,7 @@ func (g Grammar) CreateFewestNonTermsAlternationsTable() (map[string]Production,
 
 					// replace the ref with the score
 					calc[i] = valOrRef{val: refedScore}
+					modified = true
 				}
 			}
 		}
@@ -931,11 +1086,19 @@ func (g Grammar) CreateFewestNonTermsAlternationsTable() (map[string]Production,
 					}
 				}
 				if allConstants {
+					modified = true
+
 					// replace the entry with a single constant that is the sum
 					// of all the constants
 					ntCalcs[prodStr] = []valOrRef{{val: sum}}
 				}
 			}
+		}
+
+		// cycle check; if a pass results in no changes, we have an indirect cycle
+		// and cannot continue.
+		if !modified {
+			return nil, fmt.Errorf("indirect derivation cycle detected")
 		}
 	}
 
@@ -1855,7 +2018,7 @@ func (g Grammar) Validate() error {
 				if sym == "" {
 					continue
 				}
-				if strings.ToUpper(sym) == sym {
+				if g.IsNonTerminal(sym) {
 					// non-terminal
 					if _, ok := g.rulesByName[sym]; !ok {
 						errStr += fmt.Sprintf("ERR: no production defined for nonterminal %q produced by %q\n", sym, rule.NonTerminal)

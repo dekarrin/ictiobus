@@ -17,18 +17,163 @@ var (
 	testTCNumber = types.MakeDefaultClass("int")
 )
 
+func Test_Grammar_DeriveFullTree(t *testing.T) {
+	testCases := []struct {
+		name      string
+		input     Grammar
+		expect    types.ParseTree
+		expectErr bool
+	}{
+		{
+			name: "expr grammar",
+			input: MustParse(`
+				E -> E + T | T   ;
+				T -> T * F | F   ;
+				F -> ( E ) | id  ;
+			`),
+			expect: types.ParseTree{Value: "E", Children: []*types.ParseTree{
+				{Value: "E", Children: []*types.ParseTree{
+					{Value: "T", Children: []*types.ParseTree{
+						{Value: "T", Children: []*types.ParseTree{
+							{Value: "F", Children: []*types.ParseTree{
+								{Value: "(", Terminal: true},
+								{Value: "E", Children: []*types.ParseTree{
+									{Value: "T", Children: []*types.ParseTree{
+										{Value: "F", Children: []*types.ParseTree{
+											{Value: "id", Terminal: true},
+										}},
+									}},
+								}},
+								{Value: ")", Terminal: true},
+							}},
+						}},
+						{Value: "*", Terminal: true},
+						{Value: "F", Children: []*types.ParseTree{
+							{Value: "id", Terminal: true},
+						}},
+					}},
+				}},
+				{Value: "+", Terminal: true},
+				{Value: "T", Children: []*types.ParseTree{
+					{Value: "F", Children: []*types.ParseTree{
+						{Value: "id", Terminal: true},
+					}},
+				}},
+			}},
+		},
+		{
+			name: "grammar with epsilon",
+			input: MustParse(`
+				S -> S a | B   ;
+				B -> b | ε     ;
+			`),
+			expect: types.ParseTree{Value: "S", Children: []*types.ParseTree{
+				{Value: "S", Children: []*types.ParseTree{
+					{Value: "B", Children: []*types.ParseTree{
+						{Value: "b", Terminal: true},
+					}},
+				}},
+				{Value: "a", Terminal: true},
+			}},
+		},
+		{
+			name: "a* grammar",
+			input: MustParse(`
+				S -> S a | ε   ;
+			`),
+			expect: types.ParseTree{Value: "S", Children: []*types.ParseTree{
+				{Value: "S", Children: []*types.ParseTree{
+					{Value: "", Terminal: true},
+				}},
+				{Value: "a", Terminal: true},
+			}},
+		},
+		{
+			name: "inescapable derivation cycle in single rule",
+			input: MustParse(`
+				S -> S a | S b  ;
+			`),
+			expectErr: true,
+		},
+		{
+			name: "multi-rule inescapable derivation cycle",
+			input: MustParse(`
+				S -> A a | b B  ;
+				A -> S d		;
+				B -> c S		;
+			`),
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			actual, err := tc.input.DeriveFullTree()
+			if tc.expectErr {
+				assert.Error(err)
+				return
+			} else if !assert.NoError(err) {
+				return
+			}
+
+			assert.Equal(tc.expect.String(), actual.String())
+		})
+	}
+}
+
 func Test_Grammar_CreateFewestNonTermsAlternationsTable(t *testing.T) {
 	testCases := []struct {
-		name   string
-		input  Grammar
-		expect map[string]Production
+		name      string
+		input     Grammar
+		expect    map[string]Production
+		expectErr bool
 	}{
+		{
+			name: "inescapable derivation cycle in single rule",
+			input: MustParse(`
+				S -> S a | S b  ;
+			`),
+			expectErr: true,
+		},
+		{
+			name: "multi-rule inescapable derivation cycle",
+			input: MustParse(`
+				S -> A a | b B  ;
+				A -> S d		;
+				B -> c S		;
+			`),
+			expectErr: true,
+		},
+		{
+			name: "single rule",
+			input: MustParse(`
+				E -> id ;
+			`),
+			expect: map[string]Production{
+				"E": {"id"},
+			},
+		},
 		{
 			name: "simple expr grammar",
 			input: MustParse(`
 				E -> E + T | T ;
 				T -> T * F | F ;
 				F -> ( E ) | id ;
+			`),
+			expect: map[string]Production{
+				"E": {"T"},
+				"T": {"F"},
+				"F": {"id"},
+			},
+		},
+		{
+			name: "same score on rule",
+			input: MustParse(`
+				E -> E + T | T ;
+				T -> T * F | F ;
+				F -> ( E ) | id | num;
 			`),
 			expect: map[string]Production{
 				"E": {"T"},
@@ -43,7 +188,10 @@ func Test_Grammar_CreateFewestNonTermsAlternationsTable(t *testing.T) {
 			assert := assert.New(t)
 
 			actual, err := tc.input.CreateFewestNonTermsAlternationsTable()
-			if !assert.NoError(err) {
+			if tc.expectErr {
+				assert.Error(err)
+				return
+			} else if !assert.NoError(err) {
 				return
 			}
 

@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
+	"github.com/dekarrin/ictiobus/internal/stack"
+	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/types"
 )
 
@@ -214,6 +216,51 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, fakeValProducer ...map[string]
 	err := g.Validate()
 	if err != nil {
 		return fmt.Errorf("grammar is not valid: %w", err)
+	}
+
+	// create a function to get a value for any terminal from the
+	// fakeValProducer, falling back on default behavior if none is provided or
+	// if a token class is not found in the fakeValProducer.
+	makeTermValue := func(class types.TokenClass) string {
+		if len(fakeValProducer) > 0 {
+			if fvp, ok := fakeValProducer[0][class.ID()]; ok {
+				return fvp()
+			}
+		}
+		return fmt.Sprintf("<SIMULATED %s>", class.ID())
+	}
+
+	root := &types.ParseTree{}
+	treeStack := stack.Stack[*types.ParseTree]{Of: []*types.ParseTree{root}}
+	sym := g.StartSymbol()
+	var lineNo int
+
+	for {
+		pt := treeStack.Pop()
+
+		isTerm := g.Rule(sym).NonTerminal == ""
+		pt.Value = sym
+		if isTerm {
+			termClass := g.Term(sym)
+			val := makeTermValue(termClass)
+			pt.Terminal = true
+			pt.Source = lex.NewToken(termClass, val, 11, lineNo, fmt.Sprintf("<fakeLine>%s</fakeLine>", val))
+			pt.Children = nil
+			lineNo++
+		} else {
+			pt.Terminal = false
+			pt.Source = nil
+			pt.Children = make([]*types.ParseTree, 0)
+
+			// need to make sure we add the children to the parse tree.
+			r := g.Rule(sym)
+
+			// what are the possible alternations?
+			for i := range r.Productions {
+				alt := r.Productions[i]
+
+			}
+		}
 	}
 
 	return nil
