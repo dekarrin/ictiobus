@@ -66,8 +66,26 @@ func (errBlock astErrorBlock) Grammar() astGrammarBlock {
 	panic("not grammar type block")
 }
 
+func (errBlock astErrorBlock) String() string {
+	return "<Block: ERR>"
+}
+
 type astGrammarBlock struct {
 	content []astGrammarContent
+}
+
+func (bl astGrammarBlock) String() string {
+	var sb strings.Builder
+
+	sb.WriteString("<Block: GRAMMAR, Content: {")
+	for i := range bl.content {
+		sb.WriteString(bl.content[i].String())
+		if i+1 < len(bl.content) {
+			sb.WriteString(", ")
+		}
+	}
+	sb.WriteRune('}')
+	return sb.String()
 }
 
 func (agb astGrammarBlock) Type() blockType {
@@ -81,6 +99,14 @@ func (agb astGrammarBlock) Grammar() astGrammarBlock {
 type astGrammarContent struct {
 	rules []grammar.Rule
 	state string
+}
+
+func (content astGrammarContent) String() string {
+	if len(content.rules) > 0 {
+		return fmt.Sprintf("(State: %q, Rules: %v)", content.state, content.rules)
+	} else {
+		return fmt.Sprintf("(State: %q, Rules: (empty))", content.state)
+	}
 }
 
 const ErrString = "<ERR>"

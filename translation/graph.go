@@ -264,7 +264,7 @@ type DepNode struct {
 	Dest      AttrRef
 }
 
-// Info on this func from 5.2.1 dragon book, purple.
+// Info on this func from algorithm 5.2.1 of the purple dragon book.
 //
 // Returns one node from each of the connected sub-graphs of the dependency
 // tree. If the entire dependency graph is connected, there will be only 1 item
@@ -280,7 +280,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 	// TODO: yeahhhhhhhhhhh this should probs be map of APTNodeID -> map[AttrRef]*DG
 	// or SOMEFIN that isn't subject to attribute name collision, which this is
 	// atm.
-	depNodes := map[APTNodeID]map[AttrRef]*DirectedGraph[DepNode]{}
+	depNodes := map[APTNodeID]map[string]*DirectedGraph[DepNode]{}
 
 	for treeStack.Len() > 0 {
 		curTreeAndParent := treeStack.Pop()
@@ -309,7 +309,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 				targetNodeID := targetNode.ID()
 				targetNodeDepNodes, ok := depNodes[targetNodeID]
 				if !ok {
-					targetNodeDepNodes = map[AttrRef]*DirectedGraph[DepNode]{}
+					targetNodeDepNodes = map[string]*DirectedGraph[DepNode]{}
 				}
 				targetParent := curParent
 				synthTarget := true
@@ -323,7 +323,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 				}
 
 				// specifically, need to address the one for the desired attribute
-				toDepNode, ok := targetNodeDepNodes[binding.Dest]
+				toDepNode, ok := targetNodeDepNodes[binding.Dest.Name]
 				if !ok {
 					toDepNode = &DirectedGraph[DepNode]{Data: DepNode{
 						Parent: targetParent, Tree: targetNode, Dest: binding.Dest, Synthetic: synthTarget,
@@ -335,7 +335,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 				toDepNode.Data.Synthetic = synthTarget
 				toDepNode.Data.Dest = binding.Dest
 
-				targetNodeDepNodes[binding.Dest] = toDepNode
+				targetNodeDepNodes[binding.Dest.Name] = toDepNode
 				depNodes[targetNodeID] = targetNodeDepNodes
 			}
 			for j := range binding.Requirements {
@@ -349,10 +349,10 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 				relNodeID := relNode.ID()
 				relNodeDepNodes, ok := depNodes[relNodeID]
 				if !ok {
-					relNodeDepNodes = map[AttrRef]*DirectedGraph[DepNode]{}
+					relNodeDepNodes = map[string]*DirectedGraph[DepNode]{}
 				}
 				// specifically, need to address the one for the desired attribute
-				fromDepNode, ok := relNodeDepNodes[req]
+				fromDepNode, ok := relNodeDepNodes[req.Name]
 				if !ok {
 					relParent := curParent
 					if relNode != curTree {
@@ -374,7 +374,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 				targetNodeID := targetNode.ID()
 				targetNodeDepNodes, ok := depNodes[targetNodeID]
 				if !ok {
-					targetNodeDepNodes = map[AttrRef]*DirectedGraph[DepNode]{}
+					targetNodeDepNodes = map[string]*DirectedGraph[DepNode]{}
 				}
 				targetParent := curParent
 				synthTarget := true
@@ -387,7 +387,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 					synthTarget = false
 				}
 				// specifically, need to address the one for the desired attribute
-				toDepNode, ok := targetNodeDepNodes[binding.Dest]
+				toDepNode, ok := targetNodeDepNodes[binding.Dest.Name]
 				if !ok {
 					toDepNode = &DirectedGraph[DepNode]{Data: DepNode{
 						Parent: targetParent, Tree: targetNode, Dest: binding.Dest, Synthetic: synthTarget,
@@ -405,8 +405,8 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 				// make shore to assign after modification (shouldn't NEED
 				// to due to attrDepNode being ptr-to but do it just to be
 				// safe)
-				relNodeDepNodes[req] = fromDepNode
-				targetNodeDepNodes[binding.Dest] = toDepNode
+				relNodeDepNodes[req.Name] = fromDepNode
+				targetNodeDepNodes[binding.Dest.Name] = toDepNode
 				depNodes[relNodeID] = relNodeDepNodes
 				depNodes[targetNodeID] = targetNodeDepNodes
 			}

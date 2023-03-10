@@ -2,17 +2,58 @@ package fishi
 
 import (
 	"github.com/dekarrin/ictiobus"
+	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/translation"
 )
 
 func CreateBootstrapSDD() ictiobus.SDD {
 	sdd := ictiobus.NewSDD()
 
-	bootstrapSDDFakeSynth(sdd, "FISHISPEC", []string{"BLOCKS"}, "ast", "WILD")
-
-	/*bootstrapSDDFishispecAST(sdd)
+	bootstrapSDDFishispecAST(sdd)
 	bootstrapSDDBlocksValue(sdd)
-	bootstrapSDDBlockAST(sdd)
+
+	bootstrapSDDFakeSynth(sdd, "BLOCK", []string{"GRAMMAR-BLOCK"}, "ast", astGrammarBlock{content: []astGrammarContent{
+		{
+			state: "fakeState",
+			rules: []grammar.Rule{
+				{
+					NonTerminal: "FAKE",
+					Productions: []grammar.Production{
+						{"FAKE1", "FAKE2", "FAKE3"},
+					},
+				},
+			},
+		},
+	}})
+
+	bootstrapSDDFakeSynth(sdd, "BLOCK", []string{"TOKENS-BLOCK"}, "ast", astGrammarBlock{content: []astGrammarContent{
+		{
+			state: "COULD BE TOKENS",
+			rules: []grammar.Rule{
+				{
+					NonTerminal: "TOKEN",
+					Productions: []grammar.Production{
+						{"TOKEN", "TOKEN", "TOKEN"},
+					},
+				},
+			},
+		},
+	}})
+
+	bootstrapSDDFakeSynth(sdd, "BLOCK", []string{"ACTIONS-BLOCK"}, "ast", astGrammarBlock{content: []astGrammarContent{
+		{
+			state: "COULD BE ACTIONS",
+			rules: []grammar.Rule{
+				{
+					NonTerminal: "ACTION",
+					Productions: []grammar.Production{
+						{"ACTION", "ACTION", "ACTION"},
+					},
+				},
+			},
+		},
+	}})
+	/*bootstrapSDDBlockAST(sdd)
 	bootstrapSDDGrammarBlockAST(sdd)
 	bootstrapSDDGrammarContentAST(sdd)
 	bootstrapSDDGrammarStateBlockValue(sdd)
@@ -29,6 +70,10 @@ func CreateBootstrapSDD() ictiobus.SDD {
 
 	return sdd
 }
+
+// I'm sorry for this. I'm sorry for everything. Maybe I'll fix this later. But
+// for now, I just want to get this done.
+//
 
 func bootstrapSDDFakeSynth(sdd ictiobus.SDD, head string, prod []string, name string, value interface{}) {
 	sdd.BindSynthesizedAttribute(
