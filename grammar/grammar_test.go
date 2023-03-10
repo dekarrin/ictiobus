@@ -17,6 +17,42 @@ var (
 	testTCNumber = types.MakeDefaultClass("int")
 )
 
+func Test_Grammar_CreateFewestNonTermsAlternationsTable(t *testing.T) {
+	testCases := []struct {
+		name   string
+		input  Grammar
+		expect map[string]Production
+	}{
+		{
+			name: "simple expr grammar",
+			input: MustParse(`
+				E -> E + T | T ;
+				T -> T * F | F ;
+				F -> ( E ) | id ;
+			`),
+			expect: map[string]Production{
+				"E": {"T"},
+				"T": {"F"},
+				"F": {"id"},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			actual, err := tc.input.CreateFewestNonTermsAlternationsTable()
+			if !assert.NoError(err) {
+				return
+			}
+
+			assert.Equal(tc.expect, actual)
+		})
+	}
+
+}
+
 func Test_Grammar_MarshalUnmarshalBinary(t *testing.T) {
 	testCases := []struct {
 		name  string

@@ -207,7 +207,15 @@ func (sdts *sdtsImpl) BindInheritedAttribute(head string, prod []string, attrNam
 	return nil
 }
 
-func (sdts *sdtsImpl) Validate(grammar.Grammar) error {
+func (sdts *sdtsImpl) Validate(g grammar.Grammar, fakeValProducer ...map[string]func() string) error {
+	// validate the grammar so we know that any non-terminal we get from it is
+	// valid and produced within the grammar, and anything we get that is not
+	// a non-terminal is a terminal used within the grammar.
+	err := g.Validate()
+	if err != nil {
+		return fmt.Errorf("grammar is not valid: %w", err)
+	}
+
 	return nil
 }
 

@@ -728,6 +728,220 @@ func (g Grammar) UnreachableNonTerminals() []string {
 	return unreachables
 }
 
+// CreateFewestNonTermsAlternationsTable returns a map of non-terminals to the
+// production in their associated rule that using to derive would result in the
+// fewest new non-terminals being derived for that rule.
+func (g Grammar) CreateFewestNonTermsAlternationsTable() (map[string]Production, error) {
+	// DEFINITION OF SCORE:
+	// S(rule) = Floor(S(prod1) + S(prod2) + ... + S(prodN))
+	// S(prod) = num N of non terminals in a production + S(nonterm1) + S(nonterm2) + ... + S(nontermN)
+
+	// type to let us store either the int value or a reference to a score
+	type valOrRef struct {
+		val int
+		ref string
+	}
+
+	// this will let us quickly check the minimum possible value for a calculation
+	// and whether it is constant
+	minPossibleVal := func(calcSlice []valOrRef) (int, bool) {
+		valSoFar := 0
+		constant := true
+		for _, v := range calcSlice {
+			if v.ref != "" {
+				constant = false
+			} else {
+				valSoFar += v.val
+			}
+		}
+		return valSoFar, constant
+	}
+
+	// make shore we are operating on a sane grammar
+	err := g.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("invalid grammar: %w", err)
+	}
+
+	// use this to "unconvert" a production from its string represntation
+	prodStringToProd := map[string]Production{}
+
+	// Create entries in a table for each non-terminal for which there is a rule
+	// in the grammar, initially with no value set. Each item will be the score.
+	// Additionally, create a "shortest alt" table from a rule to the production
+	// that has the lowest score
+	shortest := map[string]Production{}
+	scores := map[string]int{}
+	calcs := map[string]map[string][]valOrRef{}
+
+	// For each production of each rule, create an entry in a calculations table
+	// that specifies the calculation to carry out as specified above. Not all
+	// will be fully solvable in this step. That's okay, we're just getting the
+	// calculation steps.
+	nts := g.NonTerminals()
+	for _, nt := range nts {
+		r := g.Rule(nt)
+		ntMap, ok := calcs[nt]
+		if !ok {
+			ntMap = map[string][]valOrRef{}
+			calcs[nt] = ntMap
+		}
+		for _, p := range r.Productions {
+			calcEntry := []valOrRef{}
+			for _, sym := range p {
+				if g.IsNonTerminal(sym) {
+					calcEntry = append(calcEntry, valOrRef{val: 1})
+					calcEntry = append(calcEntry, valOrRef{ref: sym})
+				}
+			}
+
+			// if the production is only terminals, then the score is 0
+			if len(calcEntry) == 0 {
+				calcEntry = append(calcEntry, valOrRef{val: 0})
+			}
+
+			prodStringToProd[p.String()] = p
+			ntMap[p.String()] = calcEntry
+		}
+	}
+
+	// Next, for each rule, if there are productions whose calculation is
+	// self-referential, eliminate them because they will never be the smallest.
+	// If this results in a rule being totally eliminated, the grammar has an
+	// inescapable derivation cycle and should not be considered valid.
+	for nt := range calcs {
+		ntCalcs := calcs[nt]
+
+		// find all the productions that are self-referential
+		for prodStr, calc := range ntCalcs {
+			for _, term := range calc {
+				if term.ref == nt {
+					delete(ntCalcs, prodStr)
+					break
+				}
+			}
+		}
+		calcs[nt] = ntCalcs
+
+		// check if this results in all prods being removed
+		if len(ntCalcs) == 0 {
+			return nil, fmt.Errorf("rule %s has an inescapable derivation cycle", nt)
+		}
+	}
+
+	// Repeat the following until the calculations table is empty:
+	for len(calcs) > 0 {
+		// For each rule R in the calculations table, if there is a production
+		// for it which has a single constant value that is indisputably the
+		// lowest value, set that constant as the value of S(R) and the
+		// alternation as the value of the rule in shortest table, then
+		// eliminate all productions of R from the calculations table.
+		for nt := range calcs {
+			var remove bool
+			ntCalcs := calcs[nt]
+
+			for prodStr, calc := range ntCalcs {
+				if len(calc) == 1 && calc[0].ref == "" {
+					// we have a single constant value. check if it is the lowest
+					minVal := calc[0].val
+					isSmallest := true
+
+					for prodStr2, calc2 := range ntCalcs {
+						if prodStr2 == prodStr {
+							// don't check self
+							continue
+						}
+
+						// TODO: efficiency. use otherIsConstant to immediately
+						// move to THAT being the candidate instead of just
+						// giving up.
+						otherMinVal, _ := minPossibleVal(calc2)
+						if otherMinVal < minVal {
+							isSmallest = false
+							break
+						}
+					}
+
+					if isSmallest {
+						// set that constant as the value of S(R) and the
+						// alternation as the value of the rule in shortest
+						// table
+						scores[nt] = calc[0].val
+						prod, ok := prodStringToProd[prodStr]
+						if !ok {
+							// should never happen
+							panic(fmt.Sprintf("prod for %s not found in prodStringToProd", prodStr))
+						}
+						shortest[nt] = prod
+						remove = true
+					}
+				}
+				if remove {
+					// we already found the smallest and know we need to remove
+					// the nt, no need to keep looking
+					break
+				}
+			}
+			if remove {
+				delete(calcs, nt)
+			}
+		}
+
+		// For each entry in the calculations table, replace the value of all
+		// known S(rule) expressions referred to with their actual value.
+		for nt := range calcs {
+			ntCalcs := calcs[nt]
+
+			for _, calc := range ntCalcs {
+				// Replace the value of all known S(rule) expressions referred
+				// to with their actual value.
+				for i := range calc {
+					if calc[i].ref == "" {
+						// constant value, nothing to do
+						continue
+					}
+
+					refedScore, ok := scores[calc[i].ref]
+					if !ok {
+						// we don't know the score yet, so we can't replace it
+						continue
+					}
+
+					// replace the ref with the score
+					calc[i] = valOrRef{val: refedScore}
+				}
+			}
+		}
+
+		// Next, for each entry in the calculations table, if all items in the
+		// calculation are constants, replace the entry with a single constant
+		// that is the sum of all the constants.
+		for nt := range calcs {
+			ntCalcs := calcs[nt]
+
+			for prodStr, calc := range ntCalcs {
+				allConstants := true
+				var sum int
+				for i := range calc {
+					if calc[i].ref != "" {
+						allConstants = false
+						break
+					} else {
+						sum += calc[i].val
+					}
+				}
+				if allConstants {
+					// replace the entry with a single constant that is the sum
+					// of all the constants
+					ntCalcs[prodStr] = []valOrRef{{val: sum}}
+				}
+			}
+		}
+	}
+
+	return shortest, nil
+}
+
 // RemoveUnitProductions returns a Grammar that derives strings equivalent to
 // this one but with all unit production rules removed.
 func (g Grammar) RemoveUnitProductions() Grammar {
