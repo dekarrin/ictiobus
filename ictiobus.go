@@ -83,14 +83,12 @@ type Parser interface {
 	GetDFA() string
 }
 
-// SDD is a series of syntax-directed definitions bound to syntactic rules of
+// SDTS is a series of syntax-directed translations bound to syntactic rules of
 // a grammar. It is used for evaluation of a parse tree into an intermediate
 // representation, or for direct execution.
 //
 // Strictly speaking, this is closer to an Attribute grammar.
-//
-// It can be stored as bytes and retrieved as such as well.
-type SDD interface {
+type SDTS interface {
 
 	// BindInheritedAttribute creates a new SDD binding for setting the value of
 	// an inherited attribute with name attrName. The production that the
@@ -142,6 +140,12 @@ type SDD interface {
 	// to be S-attributed or L-attributed, only that it not have cycles in its
 	// value dependency graph.
 	Evaluate(tree types.ParseTree, attributes ...string) ([]interface{}, error)
+
+	// Validate checks whether this SDTS is valid for the given grammar. It will
+	// create a simulated parse tree that contains a node for every rule of the
+	// given grammar and will attempt to evaluate it, returning an error if
+	// there is any issue running the bindings.
+	Validate(grammar grammar.Grammar) error
 }
 
 // NewLexer returns a lexer whose Lex method will immediately lex the entire
@@ -305,9 +309,9 @@ func NewCLRParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigW
 	return parse.GenerateCanonicalLR1Parser(g, allowAmbiguous)
 }
 
-// NewSDD returns a new Syntax-Directed Definition Scheme.
-func NewSDD() SDD {
-	return translation.NewSDD()
+// NewSDTS returns a new Syntax-Directed Translation Scheme.
+func NewSDTS() SDTS {
+	return translation.NewSDTS()
 }
 
 // Frontend is a complete input-to-intermediate representation compiler
@@ -315,7 +319,7 @@ func NewSDD() SDD {
 type Frontend[E any] struct {
 	Lexer       Lexer
 	Parser      Parser
-	SDT         SDD
+	SDT         SDTS
 	IRAttribute string
 }
 
