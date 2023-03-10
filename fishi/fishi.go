@@ -131,6 +131,12 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 
 		fmt.Printf("successfully built %s parser\n", parser.Type().String())
 
+		parserBytes := ictiobus.EncodeParserBytes(parser)
+		_, err := ictiobus.DecodeParserBytes(parserBytes)
+		if err != nil {
+			fmt.Printf("FAILED TO DECODE IMMEDIATELY: %s\n", err.Error())
+		}
+
 		if cachefile != "" {
 			err := ictiobus.SaveParserToDisk(parser, cachefile)
 			if err != nil {
@@ -143,7 +149,7 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 
 	sdd := CreateBootstrapSDD()
 
-	frontEnd := ictiobus.Frontend[string]{
+	frontEnd := ictiobus.Frontend[AST]{
 		Lexer:       lx,
 		Parser:      parser,
 		SDT:         sdd,
@@ -158,70 +164,70 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 	// now, try to make a parse tree for your own grammar
 	fishiTest := `%%actions
 
-	%symbol 
-	
-	
-	{hey}
-	%prod  %index 8
-
-%action {thing}.thing %hook thing
-	%prod {some}
-	
-%action {thing}.thing %hook thing
-	%prod {test}
-
-	%action {thing}.thing %hook thing
-%prod {ye}
-%action {thing}.thing %hook thing
-
-		%symbol {yo}%prod + {EAT} ext
-	
-%action {thing}.thing %hook thing
-%%tokens
-[somefin]
-
-%stateshift   someState
-
-%%tokens
-
-	glub  %discard
+			%symbol
 
 
-	[some]{FREEFORM}idk[^bullshit]text\*
-	%discard
+			{hey}
+			%prod  %index 8
 
-	[more]b*shi{2,4}   %stateshift glub
-%token lovely %human "Something nice"
-	%priority 1
-	
-%state this
+		%action {thing}.thing %hook thing
+			%prod {some}
 
-[yo] %discard
+		%action {thing}.thing %hook thing
+			%prod {test}
 
-	%%grammar
-		{RULE} =   {SOMEBULLSHIT}
+			%action {thing}.thing %hook thing
+		%prod {ye}
+		%action {thing}.thing %hook thing
+
+				%symbol {yo}%prod + {EAT} ext
+
+		%action {thing}.thing %hook thing
+		%%tokens
+		[somefin]
+
+		%stateshift   someState
+
+		%%tokens
+
+			glub  %discard
+
+
+			[some]{FREEFORM}idk[^bullshit]text\*
+			%discard
+
+			[more]b*shi{2,4}   %stateshift glub
+		%token lovely %human "Something nice"
+			%priority 1
+
+		%state this
+
+		[yo] %discard
 
 		%%grammar
-		{RULE}=                           {WOAH} | n
-		{RULE}				= =+  {DAMN} cool | okaythen + 2 | {}
-		                 | {SOMEFIN ELSE}
+		{RULE} =   {SOMEBULLSHIT}
 
-		%state someState
+					%%grammar
+					{RULE}=                           {WOAH} | n
+					{RULE}				= =+  {DAMN} cool | okaythen + 2 | {}
+					                 | {SOMEFIN ELSE}
 
-		{RULE}=		{HMM}
+					%state someState
+
+					{RULE}=		{HMM}
 
 
 
-%%actions
+			%%actions
 
-%symbol {text-element}
-%prod FREEFORM_TEXT
-%action {text-element}.str
-%hook identity  %with FREEFORM_TEXT.$text
+			%symbol {text-element}
+			%prod FREEFORM_TEXT
+			%action {text-element}.str
+			%hook identity  %with FREEFORM_TEXT.$text
 
-%prod ESCSEQ
-%action {text-element}.str
-%hook unescape  %with ESCSEQ.$test		`
+			%prod ESCSEQ
+			%action {text-element}.str
+			%hook unescape  %with ESCSEQ.$test		`
 
 	ast, err := frontEnd.AnalyzeString(fishiTest)
 	if err != nil {
@@ -229,7 +235,7 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 	}
 
 	fmt.Printf("AST read from data:\n")
-	fmt.Printf(ast + "\n")
+	fmt.Printf(ast.String() + "\n")
 
 	return nil
 }

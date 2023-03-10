@@ -44,27 +44,40 @@ func (sdd *sddImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]inte
 	for i := range visitOrder {
 		depNode := visitOrder[i].Data
 
-		tree := depNode.Tree
+		nodeTree := depNode.Tree
 		synthetic := depNode.Synthetic
 		treeParent := depNode.Parent
 
 		var invokeOn *AnnotatedParseTree
 		if synthetic {
-			invokeOn = tree
+			invokeOn = nodeTree
 		} else {
 			invokeOn = treeParent
 		}
 
-		nodeRuleHead, nodeRuleProd := tree.Rule()
+		nodeRuleHead, nodeRuleProd := nodeTree.Rule()
 
 		bindingsToExec := sdd.BindingsFor(nodeRuleHead, nodeRuleProd, depNode.Dest)
 		for j := range bindingsToExec {
 			binding := bindingsToExec[j]
-			binding.Invoke(invokeOn)
+			value := binding.Invoke(invokeOn)
+
+			// now actually set the value on the attribute
+			nodeTree.Attributes[depNode.Dest.Name] = value
 		}
 	}
 
-	return nil, nil
+	// gather requested attributes from root
+	attrValues := make([]interface{}, len(attributes))
+	for i := range attributes {
+		val, ok := root.Attributes[attributes[i]]
+		if !ok {
+			return nil, fmt.Errorf("SDD does not set attribute %q on root node", attributes[i])
+		}
+		attrValues[i] = val
+	}
+
+	return attrValues, nil
 }
 
 func (sdd *sddImpl) Bindings(head string, prod []string) []SDDBinding {

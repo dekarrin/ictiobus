@@ -153,6 +153,7 @@ func KahnSort[V any](dg *DirectedGraph[V]) ([]*DirectedGraph[V], error) {
 			break
 		}
 
+		noIncomingS.Remove(n)
 		sortedL = append(sortedL, n)
 
 		for i := range n.Edges {
@@ -263,7 +264,7 @@ type DepNode struct {
 	Dest      AttrRef
 }
 
-// Info on this func from 5.2.1 dragon book, purple.
+// Info on this func from algorithm 5.2.1 of the purple dragon book.
 //
 // Returns one node from each of the connected sub-graphs of the dependency
 // tree. If the entire dependency graph is connected, there will be only 1 item
@@ -279,7 +280,8 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 	// TODO: yeahhhhhhhhhhh this should probs be map of APTNodeID -> map[AttrRef]*DG
 	// or SOMEFIN that isn't subject to attribute name collision, which this is
 	// atm.
-	depNodes := map[APTNodeID]map[AttrRef]*DirectedGraph[DepNode]{}
+	depNodes := map[APTNodeID]map[string]*DirectedGraph[DepNode]{}
+
 	for treeStack.Len() > 0 {
 		curTreeAndParent := treeStack.Pop()
 		curTree := curTreeAndParent.Tree
@@ -297,7 +299,44 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 		for i := range binds {
 			binding := binds[i]
 			if len(binding.Requirements) < 1 {
-				continue
+				// we still need to add the binding as a target node so it can
+				// be found by other dep nodes
+
+				targetNode, ok := curTree.RelativeNode(binding.Dest.Relation)
+				if !ok {
+					panic(fmt.Sprintf("relative address cannot be followed: %v", binding.Dest.Relation.String()))
+				}
+				targetNodeID := targetNode.ID()
+				targetNodeDepNodes, ok := depNodes[targetNodeID]
+				if !ok {
+					targetNodeDepNodes = map[string]*DirectedGraph[DepNode]{}
+				}
+				targetParent := curParent
+				synthTarget := true
+				if targetNode.ID() != curTree.ID() {
+					// then targetNode MUST be a child of curTreeNode
+					targetParent = curTree
+
+					// additionally, it cannot be synthetic because it is not
+					// being set at the head of a production
+					synthTarget = false
+				}
+
+				// specifically, need to address the one for the desired attribute
+				toDepNode, ok := targetNodeDepNodes[binding.Dest.Name]
+				if !ok {
+					toDepNode = &DirectedGraph[DepNode]{Data: DepNode{
+						Parent: targetParent, Tree: targetNode, Dest: binding.Dest, Synthetic: synthTarget,
+					}}
+				}
+				// but also, if it DOES already exist we might have created it
+				// without knowing whether it is a synthetic attr; either way,
+				// check it now
+				toDepNode.Data.Synthetic = synthTarget
+				toDepNode.Data.Dest = binding.Dest
+
+				targetNodeDepNodes[binding.Dest.Name] = toDepNode
+				depNodes[targetNodeID] = targetNodeDepNodes
 			}
 			for j := range binding.Requirements {
 				req := binding.Requirements[j]
@@ -310,10 +349,10 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 				relNodeID := relNode.ID()
 				relNodeDepNodes, ok := depNodes[relNodeID]
 				if !ok {
-					relNodeDepNodes = map[AttrRef]*DirectedGraph[DepNode]{}
+					relNodeDepNodes = map[string]*DirectedGraph[DepNode]{}
 				}
 				// specifically, need to address the one for the desired attribute
-				fromDepNode, ok := relNodeDepNodes[req]
+				fromDepNode, ok := relNodeDepNodes[req.Name]
 				if !ok {
 					relParent := curParent
 					if relNode != curTree {
@@ -330,16 +369,16 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 				// get the TARGET node
 				targetNode, ok := curTree.RelativeNode(binding.Dest.Relation)
 				if !ok {
-					panic(fmt.Sprintf("relative address cannot be followed: %v", req.Relation.String()))
+					panic(fmt.Sprintf("relative address cannot be followed: %v", binding.Dest.Relation.String()))
 				}
 				targetNodeID := targetNode.ID()
 				targetNodeDepNodes, ok := depNodes[targetNodeID]
 				if !ok {
-					targetNodeDepNodes = map[AttrRef]*DirectedGraph[DepNode]{}
+					targetNodeDepNodes = map[string]*DirectedGraph[DepNode]{}
 				}
 				targetParent := curParent
 				synthTarget := true
-				if targetNode != curTree {
+				if targetNode.ID() != curTree.ID() {
 					// then targetNode MUST be a child of curTreeNode
 					targetParent = curTree
 
@@ -348,7 +387,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 					synthTarget = false
 				}
 				// specifically, need to address the one for the desired attribute
-				toDepNode, ok := targetNodeDepNodes[binding.Dest]
+				toDepNode, ok := targetNodeDepNodes[binding.Dest.Name]
 				if !ok {
 					toDepNode = &DirectedGraph[DepNode]{Data: DepNode{
 						Parent: targetParent, Tree: targetNode, Dest: binding.Dest, Synthetic: synthTarget,
@@ -366,8 +405,8 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 				// make shore to assign after modification (shouldn't NEED
 				// to due to attrDepNode being ptr-to but do it just to be
 				// safe)
-				relNodeDepNodes[req] = fromDepNode
-				targetNodeDepNodes[binding.Dest] = toDepNode
+				relNodeDepNodes[req.Name] = fromDepNode
+				targetNodeDepNodes[binding.Dest.Name] = toDepNode
 				depNodes[relNodeID] = relNodeDepNodes
 				depNodes[targetNodeID] = targetNodeDepNodes
 			}
@@ -386,12 +425,13 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 		idDepNodes := depNodes[k]
 		for attrRef := range idDepNodes {
 			node := idDepNodes[attrRef]
+			var alreadyHaveGraph bool
 			if len(node.Edges) > 0 || len(node.InEdges) > 0 {
-				// we found a non-empty node, include that
+				// we found a non-empty node, need to check if it's already
+				// added
 
 				// first, is this already in a graph we've grabbed? no need to
 				// keep it if so
-				var alreadyHaveGraph bool
 				for i := range connectedSubGraphs {
 					prevSub := connectedSubGraphs[i]
 					if prevSub.Contains(node) {
@@ -399,9 +439,9 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode
 						break
 					}
 				}
-				if !alreadyHaveGraph {
-					connectedSubGraphs = append(connectedSubGraphs, node)
-				}
+			}
+			if !alreadyHaveGraph {
+				connectedSubGraphs = append(connectedSubGraphs, node)
 			}
 		}
 	}

@@ -44,7 +44,8 @@ func DecSliceString(data []byte) ([]string, int, error) {
 
 	sl := []string{}
 
-	for i := 0; i < toConsume; i++ {
+	var i int
+	for i < toConsume {
 		s, n, err := DecString(data)
 		if err != nil {
 			return nil, totalConsumed, fmt.Errorf("decode item: %w", err)
@@ -97,7 +98,8 @@ func DecSliceBinary[E encoding.BinaryUnmarshaler](data []byte) ([]E, int, error)
 
 	sl := []E{}
 
-	for i := 0; i < toConsume; i++ {
+	var i int
+	for i < toConsume {
 		v := initType[E]()
 
 		n, err := DecBinary(data, v)

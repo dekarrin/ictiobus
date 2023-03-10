@@ -2,30 +2,117 @@ package fishi
 
 import (
 	"github.com/dekarrin/ictiobus"
+	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/translation"
 )
 
 func CreateBootstrapSDD() ictiobus.SDD {
 	sdd := ictiobus.NewSDD()
 
-	bootstrapSDDFakeSynth(sdd, "FISHISPEC", []string{"BLOCKS"}, "ast", "WILD")
+	// fill in the gaps until this part is fully written out
+	bootstrapSDDFakeSynth(sdd, "BLOCK", []string{"TOKENS-BLOCK"}, "ast", astGrammarBlock{content: []astGrammarContent{
+		{
+			state: "COULD BE TOKENS",
+			rules: []grammar.Rule{
+				{
+					NonTerminal: "TOKEN",
+					Productions: []grammar.Production{
+						{"TOKEN", "TOKEN", "TOKEN"},
+					},
+				},
+			},
+		},
+	}})
 
-	/*bootstrapSDDFishispecAST(sdd)
+	bootstrapSDDFakeSynth(sdd, "BLOCK", []string{"ACTIONS-BLOCK"}, "ast", astGrammarBlock{content: []astGrammarContent{
+		{
+			state: "COULD BE ACTIONS",
+			rules: []grammar.Rule{
+				{
+					NonTerminal: "ACTION",
+					Productions: []grammar.Production{
+						{"ACTION", "ACTION", "ACTION"},
+					},
+				},
+			},
+		},
+	}})
+
+	bootstrapSDDFishispecAST(sdd)
 	bootstrapSDDBlocksValue(sdd)
+
 	bootstrapSDDBlockAST(sdd)
 	bootstrapSDDGrammarBlockAST(sdd)
-	bootstrapSDDGrammarContentAST(sdd)
-	bootstrapSDDGrammarStateBlockValue(sdd)
-	bootstrapSDDGrammarRulesValue(sdd)
-	bootstrapSDDGrammarRuleValue(sdd)
-	bootstrapSDDAlternationsValue(sdd)
-	bootstrapSDDProductionValue(sdd)
-	bootstrapSDDSymbolSequenceValue(sdd)
-	bootstrapSDDSymbolValue(sdd)
-	bootstrapSDDStateInstructionState(sdd)
-	bootstrapSDDIDExprValue(sdd)
-	bootstrapSDDTextValue(sdd)
-	bootstrapSDDTextElementValue(sdd)*/
+
+	bootstrapSDDFakeSynth(sdd, "GRAMMAR-CONTENT", []string{"GRAMMAR-CONTENT", "GRAMMAR-STATE-BLOCK"}, "ast", []astGrammarContent{
+		{
+			state: "GRAMMAR-CONTENT A",
+			rules: []grammar.Rule{
+				{
+					NonTerminal: "ACTION",
+					Productions: []grammar.Production{
+						{"ACTION", "ACTION", "ACTION"},
+					},
+				},
+			},
+		},
+	})
+
+	bootstrapSDDFakeSynth(sdd, "GRAMMAR-CONTENT", []string{"GRAMMAR-CONTENT", "GRAMMAR-RULES"}, "ast", []astGrammarContent{
+		{
+			state: "GRAMMAR-CONTENT B",
+			rules: []grammar.Rule{
+				{
+					NonTerminal: "ACTION",
+					Productions: []grammar.Production{
+						{"ACTION", "ACTION", "ACTION"},
+					},
+				},
+			},
+		},
+	})
+
+	bootstrapSDDFakeSynth(sdd, "GRAMMAR-CONTENT", []string{"GRAMMAR-STATE-BLOCK"}, "ast", []astGrammarContent{
+		{
+			state: "GRAMMAR-CONTENT C",
+			rules: []grammar.Rule{
+				{
+					NonTerminal: "ACTION",
+					Productions: []grammar.Production{
+						{"ACTION", "ACTION", "ACTION"},
+					},
+				},
+			},
+		},
+	})
+
+	bootstrapSDDFakeSynth(sdd, "GRAMMAR-CONTENT", []string{"GRAMMAR-RULES"}, "ast", []astGrammarContent{
+		{
+			state: "GRAMMAR-CONTENT D",
+			rules: []grammar.Rule{
+				{
+					NonTerminal: "ACTION",
+					Productions: []grammar.Production{
+						{"ACTION", "ACTION", "ACTION"},
+					},
+				},
+			},
+		},
+	})
+
+	/*
+		bootstrapSDDGrammarContentAST(sdd)
+		bootstrapSDDGrammarStateBlockValue(sdd)
+		bootstrapSDDGrammarRulesValue(sdd)
+		bootstrapSDDGrammarRuleValue(sdd)
+		bootstrapSDDAlternationsValue(sdd)
+		bootstrapSDDProductionValue(sdd)
+		bootstrapSDDSymbolSequenceValue(sdd)
+		bootstrapSDDSymbolValue(sdd)
+		bootstrapSDDStateInstructionState(sdd)
+		bootstrapSDDIDExprValue(sdd)
+		bootstrapSDDTextValue(sdd)
+		bootstrapSDDTextElementValue(sdd)*/
 
 	return sdd
 }
@@ -79,22 +166,23 @@ func bootstrapSDDBlockAST(sdd ictiobus.SDD) {
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "ast"},
 		},
 	)
-	sdd.BindSynthesizedAttribute(
-		"BLOCK", []string{"TOKENS-BLOCK"},
-		"ast",
-		sddFnIdentity,
-		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "ast"},
-		},
-	)
-	sdd.BindSynthesizedAttribute(
-		"BLOCK", []string{"ACTIONS-BLOCK"},
-		"ast",
-		sddFnIdentity,
-		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "ast"},
-		},
-	)
+	/*
+		sdd.BindSynthesizedAttribute(
+			"BLOCK", []string{"TOKENS-BLOCK"},
+			"ast",
+			sddFnIdentity,
+			[]translation.AttrRef{
+				{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "ast"},
+			},
+		)
+		sdd.BindSynthesizedAttribute(
+			"BLOCK", []string{"ACTIONS-BLOCK"},
+			"ast",
+			sddFnIdentity,
+			[]translation.AttrRef{
+				{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "ast"},
+			},
+		)*/
 }
 
 func bootstrapSDDGrammarBlockAST(sdd ictiobus.SDD) {

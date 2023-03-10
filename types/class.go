@@ -6,7 +6,6 @@ import (
 	"github.com/dekarrin/ictiobus/internal/decbin"
 )
 
-// TODO: TokenClass must implement binary encoding
 type TokenClass interface {
 	// ID returns the ID of the token class. The ID must uniquely identify the
 	// token within all terminals of a grammar.
