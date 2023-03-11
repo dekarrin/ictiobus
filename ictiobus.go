@@ -145,17 +145,7 @@ type SDTS interface {
 	// create a simulated parse tree that contains a node for every rule of the
 	// given grammar and will attempt to evaluate it, returning an error if
 	// there is any issue running the bindings.
-	//
-	// The fakeValProducer map, if provided, will be used to assign a lexed
-	// value to each synthesized terminal node that has a class whose ID matches
-	// a key in it. If the map is not provided or does not contain a key for a
-	// token class matching a terminal being generated, a default string will be
-	// automatically generated for it.
-	//
-	// TODO: pull out the fakeValProducer into a separate function that is used
-	// to create a simulated ParseTree, then have this accept types.ParseTree
-	// instead of the fakeValProducer.
-	Validate(grammar grammar.Grammar, fakeValProducer ...map[string]func() string) error
+	Validate(grammar grammar.Grammar) error
 }
 
 // NewLexer returns a lexer whose Lex method will immediately lex the entire
