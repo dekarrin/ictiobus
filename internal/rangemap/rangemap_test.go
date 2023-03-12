@@ -484,16 +484,199 @@ func Test_Range_Compare(t *testing.T) {
 	}
 }
 
-// cases of r1 > r2:
-//
-//
-//       r1.Lo --------------- r1.Hi
-// r2.Lo --------------- r2.Hi
-//
-//                 r1.Lo ----- r1.Hi
-// r2.Lo --- r2.Hi
-// ...or to put it another way:
-//
-// Who is greater in this case?
+func Test_RangeMap_Count(t *testing.T) {
+	testCases := []struct {
+		name   string
+		rm     RangeMap[int]
+		expect int
+	}{
+		{
+			name:   "empty",
+			rm:     RangeMap[int]{},
+			expect: 0,
+		},
+		{
+			name:   "non-empty",
+			rm:     RangeMap[int]{count: 20},
+			expect: 20,
+		},
+	}
 
-// r2 is
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			actual := tc.rm.Count()
+
+			assert.Equal(tc.expect, actual)
+		})
+	}
+}
+
+func Test_RangeMap_Call(t *testing.T) {
+	testCases := []struct {
+		name        string
+		rm          RangeMap[int]
+		input       int
+		expect      int
+		expectPanic bool
+	}{
+		{
+			name: "one range, input within domain",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 10},
+				},
+				ranges: []Range[int]{
+					{Lo: 10, Hi: 20},
+				},
+				count: 11,
+			},
+			input:  5,
+			expect: 15,
+		},
+		{
+			name: "one range, input 0",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 10},
+				},
+				ranges: []Range[int]{
+					{Lo: 10, Hi: 20},
+				},
+				count: 11,
+			},
+			input:  0,
+			expect: 10,
+		},
+		{
+			name: "one range, input max",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 10},
+				},
+				ranges: []Range[int]{
+					{Lo: 10, Hi: 20},
+				},
+				count: 11,
+			},
+			input:  10,
+			expect: 20,
+		},
+		{
+			name: "two ranges",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 10},
+					{Lo: 11, Hi: 13},
+				},
+				ranges: []Range[int]{
+					{Lo: 10, Hi: 20},
+					{Lo: 200, Hi: 202},
+				},
+				count: 14,
+			},
+			input:  0,
+			expect: 10,
+		},
+		{
+			name: "two ranges, input specifies start of second",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 10},
+					{Lo: 11, Hi: 13},
+				},
+				ranges: []Range[int]{
+					{Lo: 10, Hi: 20},
+					{Lo: 200, Hi: 202},
+				},
+				count: 14,
+			},
+			input:  11,
+			expect: 200,
+		},
+		{
+			name: "two ranges, input max",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 10},
+					{Lo: 11, Hi: 13},
+				},
+				ranges: []Range[int]{
+					{Lo: 10, Hi: 20},
+					{Lo: 200, Hi: 202},
+				},
+				count: 14,
+			},
+			input:  13,
+			expect: 202,
+		},
+		{
+			name: "two ranges, input middle of second",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 10},
+					{Lo: 11, Hi: 13},
+				},
+				ranges: []Range[int]{
+					{Lo: 10, Hi: 20},
+					{Lo: 200, Hi: 202},
+				},
+				count: 14,
+			},
+			input:  12,
+			expect: 201,
+		},
+		{
+			name: "panics: one range, input < 0",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 10},
+				},
+				ranges: []Range[int]{
+					{Lo: 10, Hi: 20},
+				},
+				count: 11,
+			},
+			input:       -1,
+			expectPanic: true,
+		},
+		{
+			name: "panics: one range, input >= Count()",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 10},
+				},
+				ranges: []Range[int]{
+					{Lo: 10, Hi: 20},
+				},
+				count: 11,
+			},
+			input:       11,
+			expectPanic: true,
+		},
+		{
+			name:        "panics: empty RangeMap",
+			rm:          RangeMap[int]{},
+			input:       10,
+			expectPanic: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			var actual int
+			if tc.expectPanic {
+				assert.Panics(func() {
+					actual = tc.rm.Call(tc.input)
+				})
+			} else {
+				actual = tc.rm.Call(tc.input)
+			}
+
+			assert.Equal(tc.expect, actual)
+		})
+	}
+}
