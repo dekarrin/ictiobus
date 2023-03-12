@@ -687,34 +687,362 @@ func Test_RangeMap_Add(t *testing.T) {
 		rm          RangeMap[int]
 		start       int
 		end         int
+		expect      RangeMap[int]
 		expectPanic bool
 	}{
 		{
-			name: "one range",
-			rm:   RangeMap[int]{},
-			domain: Range[int]{
-				Lo: 0,
-				Hi: 10,
-			},
-			range_: Range[int]{
-				Lo: 10,
-				Hi: 20,
-			},
+			name:  "add (0, 2) to empty",
+			rm:    RangeMap[int]{},
+			start: 0,
+			end:   2,
 			expect: RangeMap[int]{
 				domains: []Range[int]{
-					{Lo: 0, Hi: 10},
+					{Lo: 0, Hi: 2},
 				},
 				ranges: []Range[int]{
-					{Lo: 10, Hi: 20},
+					{Lo: 0, Hi: 2},
 				},
-				count: 11,
+				count: 3,
 			},
 		},
 		{
-			name: "two ranges",
-			rm:   RangeMap[int]{},
+			name:  "add (413, 612) to empty",
+			rm:    RangeMap[int]{},
+			start: 413,
+			end:   612,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 199},
+				},
+				ranges: []Range[int]{
+					{Lo: 413, Hi: 612},
+				},
+				count: 200,
+			},
+		},
+		{
+			name: "new before one existing: add (1, 8) to existing {(413, 612)}",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 199},
+				},
+				ranges: []Range[int]{
+					{Lo: 413, Hi: 612},
+				},
+				count: 200,
+			},
+			start: 1,
+			end:   8,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+					{Lo: 8, Hi: 207},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+					{Lo: 413, Hi: 612},
+				},
+				count: 208,
+			},
+		},
+		{
+			name: "new after one existing: add (413, 612) to existing {(1, 8)}",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+				},
+				count: 8,
+			},
+			start: 413,
+			end:   612,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+					{Lo: 8, Hi: 207},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+					{Lo: 413, Hi: 612},
+				},
+				count: 208,
+			},
+		},
+		{
+			name: "new after two existing: add (615, 620) to existing {(1, 8), (413, 612)}",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+					{Lo: 8, Hi: 207},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+					{Lo: 413, Hi: 612},
+				},
+				count: 208,
+			},
+			start: 615,
+			end:   620,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+					{Lo: 8, Hi: 207},
+					{Lo: 208, Hi: 213},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+					{Lo: 413, Hi: 612},
+					{Lo: 615, Hi: 620},
+				},
+				count: 214,
+			},
+		},
+		{
+			name: "new before two existing: add (1, 8) to existing {(413, 612), (615, 620)}",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 199},
+					{Lo: 200, Hi: 205},
+				},
+				ranges: []Range[int]{
+					{Lo: 413, Hi: 612},
+					{Lo: 615, Hi: 620},
+				},
+				count: 206,
+			},
+			start: 1,
+			end:   8,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+					{Lo: 8, Hi: 207},
+					{Lo: 208, Hi: 213},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+					{Lo: 413, Hi: 612},
+					{Lo: 615, Hi: 620},
+				},
+				count: 214,
+			},
+		},
+		{
+			name: "new between two existing: add (413, 612) to existing {(1, 8), (615, 620)}",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+					{Lo: 8, Hi: 13},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+					{Lo: 615, Hi: 620},
+				},
+				count: 14,
+			},
+			start: 413,
+			end:   612,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+					{Lo: 8, Hi: 207},
+					{Lo: 208, Hi: 213},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+					{Lo: 413, Hi: 612},
+					{Lo: 615, Hi: 620},
+				},
+				count: 214,
+			},
+		},
+
+		// 	   r1.Lo ------------ r1.Hi
+		// e2.Lo --------------------- e2.Hi
+		{
+			name: "add range completely within existing range: add (2, 6) to existing {(1, 8)}",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+				},
+				count: 8,
+			},
+			start: 2,
+			end:   6,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+				},
+				count: 8,
+			},
+		},
+
+		// r1.Lo -------------------- r1.Hi
+		//     e2.Lo ----------- e2.Hi
+		{
+			name: "add range that completely contains existing range: add (1, 8) to existing {(2, 6)}",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 4},
+				},
+				ranges: []Range[int]{
+					{Lo: 2, Hi: 6},
+				},
+				count: 5,
+			},
+			start: 1,
+			end:   8,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+				},
+				count: 8,
+			},
+		},
+
+		// r1.Lo -------------------- r1.Hi
+		// e2.Lo -------------------- e2.Hi
+		{
+			name: "add range that completely equals existing range: add (1, 8) to existing {(1, 8)}",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+				},
+				count: 8,
+			},
+			start: 1,
+			end:   8,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+				},
+				count: 8,
+			},
+		},
+
+		{
+			name: "start of r is inside an existing range, but end is outside all ranges (no other overlap)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+				},
+				count: 8,
+			},
+			start: 2,
+			end:   10,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 9},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 10},
+				},
+				count: 10,
+			},
+		},
+		{
+			name: "start of r is inside an existing range, but end is outside all ranges (overlap one)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+					{Lo: 8, Hi: 13},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+					{Lo: 615, Hi: 620},
+				},
+				count: 14,
+			},
+			start: 2,
+			end:   621,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 620},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 621},
+				},
+				count: 621,
+			},
+		},
+		{
+			name: "start of r is inside an existing range, but end is outside all ranges (overlap one, one other item after)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+					{Lo: 8, Hi: 13},
+					{Lo: 14, Hi: 19},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+					{Lo: 615, Hi: 620},
+					{Lo: 650, Hi: 655},
+				},
+				count: 19,
+			},
+			start: 2,
+			end:   621,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 620},
+					{Lo: 621, Hi: 626},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 621},
+					{Lo: 650, Hi: 655},
+				},
+				count: 626,
+			},
+		},
+		{
+			name: "start of r is inside an existing range, but end is outside all ranges (overlap two)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+					{Lo: 8, Hi: 13},
+					{Lo: 14, Hi: 23},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+					{Lo: 615, Hi: 620},
+					{Lo: 1001, Hi: 1010},
+				},
+				count: 24,
+			},
+			start: 2,
+			end:   1011,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 1010},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 1011},
+				},
+				count: 1011,
+			},
 		},
 	}
+
+	// TODO: two more test cases to add to this, then begin using in unregexer.
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -12,8 +12,8 @@ type Integral interface {
 }
 
 type Range[E Integral] struct {
-	Hi E
 	Lo E
+	Hi E
 }
 
 // Count returns the number of values included within the range.
@@ -83,9 +83,28 @@ type RangeMap[E Integral] struct {
 	domains []Range[E]
 }
 
+func (rm *RangeMap[E]) Copy() *RangeMap[E] {
+	rmCopy := &RangeMap[E]{
+		count:   rm.count,
+		ranges:  make([]Range[E], len(rm.ranges)),
+		domains: make([]Range[E], len(rm.domains)),
+	}
+	copy(rmCopy.ranges, rm.ranges)
+	copy(rmCopy.domains, rm.domains)
+	return rmCopy
+}
+
 func (rm *RangeMap[E]) String() string {
 	var sb strings.Builder
-	return fmt.Sprintf("RangeMap: {x | x ∈ [0, %d)} → {y | y ∈ %d} , )", rm.count, rm.ranges, rm.domains)
+	for i := range rm.ranges {
+		sb.WriteRune('{')
+		sb.WriteString(rm.ranges[i].String())
+		sb.WriteRune('}')
+		if i+1 < len(rm.ranges) {
+			sb.WriteString(" U ")
+		}
+	}
+	return fmt.Sprintf("RangeMap: {x | x ∈ [0, %d)} → {y | y ∈ %s}", rm.count, sb.String())
 }
 
 // Count returns the current number of values in the range map's domain. Count
@@ -306,7 +325,7 @@ func (rm *RangeMap[E]) findRangeInsertionPoint(r Range[E]) int {
 	// find where to insert r in ordering
 	insertIdx := -1
 	for i, v := range rm.ranges {
-		if r.Compare(v) > 0 {
+		if v.Compare(r) > 0 {
 			insertIdx = i
 			break
 		}
