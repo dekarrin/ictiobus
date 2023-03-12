@@ -1,6 +1,9 @@
 package rangemap
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // TODO: none of this should be in the translation package.
 
@@ -80,6 +83,11 @@ type RangeMap[E Integral] struct {
 	domains []Range[E]
 }
 
+func (rm *RangeMap[E]) String() string {
+	var sb strings.Builder
+	return fmt.Sprintf("RangeMap: {x | x ∈ [0, %d)} → {y | y ∈ %d} , )", rm.count, rm.ranges, rm.domains)
+}
+
 // Count returns the current number of values in the range map's domain. Count
 // - 1 is the highest value allowed.
 func (rm *RangeMap[E]) Count() int {
@@ -105,7 +113,7 @@ func (rm *RangeMap[E]) Call(val E) E {
 	panic(fmt.Sprintf("value has no mapping in range map: %d", val))
 }
 
-// Add adds a range to the RangeMap. The range consists of the closed interval
+// Add ad.ds a range to the RangeMap. The range consists of the closed interval
 // [start, end]. If the range is already in the RangeMap, this function has no
 // effect.
 func (rm *RangeMap[E]) Add(start, end E) {

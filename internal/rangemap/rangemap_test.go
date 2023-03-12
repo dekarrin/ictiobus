@@ -680,3 +680,55 @@ func Test_RangeMap_Call(t *testing.T) {
 		})
 	}
 }
+
+func Test_RangeMap_Add(t *testing.T) {
+	testCases := []struct {
+		name        string
+		rm          RangeMap[int]
+		start       int
+		end         int
+		expectPanic bool
+	}{
+		{
+			name: "one range",
+			rm:   RangeMap[int]{},
+			domain: Range[int]{
+				Lo: 0,
+				Hi: 10,
+			},
+			range_: Range[int]{
+				Lo: 10,
+				Hi: 20,
+			},
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 10},
+				},
+				ranges: []Range[int]{
+					{Lo: 10, Hi: 20},
+				},
+				count: 11,
+			},
+		},
+		{
+			name: "two ranges",
+			rm:   RangeMap[int]{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			if tc.expectPanic {
+				assert.Panics(func() {
+					tc.rm.Add(tc.start, tc.end)
+				})
+				return
+			}
+			tc.rm.Add(tc.start, tc.end)
+
+			assert.Equal(tc.expect, tc.rm)
+		})
+	}
+}
