@@ -222,15 +222,10 @@ func (rm *RangeMap[E]) Add(start, end E) {
 			panic("overlapping range not found in map, should be impossible")
 		}
 
+		// get oldDomain before we remove the range
 		oldDomain := rm.domains[extendingIdx]
-		newDomain := Range[E]{Lo: oldDomain.Lo - (extendingRange.Lo - r.Lo), Hi: oldDomain.Hi}
-		newRange := Range[E]{Lo: r.Lo, Hi: extendingRange.Hi}
 
-		// our domain will never go below 0. if it just did, raise it
-		if newDomain.Lo < 0 {
-			newDomain.Hi -= newDomain.Lo
-			newDomain.Lo = 0
-		}
+		newRange := Range[E]{Lo: r.Lo, Hi: extendingRange.Hi}
 
 		// TODO: efficiency. We could simply assume that we need to remove all
 		// so once we find the index of the first one, we can just remove all
@@ -239,10 +234,32 @@ func (rm *RangeMap[E]) Add(start, end E) {
 			rm.removeRange(overlapping[i])
 		}
 
-		// now add the new one in
 		insertIdx := rm.findRangeInsertionPoint(newRange)
+		var domainLow E
+		if insertIdx > 0 {
+			// if there is a previous range, r's domain starts exactly 1 after
+			// its end. otherwise it starts at 0 (the default)
+			domainLow = rm.domains[insertIdx-1].Hi + 1
+		}
+
+		// start the new domain at zero so we can make future adjustments
+		newDomain := Range[E]{Lo: 0, Hi: oldDomain.Hi - oldDomain.Lo}
+
+		// find amount to extend domain by
+		extensionAmt := extendingRange.Lo - r.Lo
+
+		// adjust left side of domain to include r
+		newDomain.Lo -= extensionAmt
+
+		// update domain to match new low
+		domainDiff := newDomain.Lo - domainLow
+		newDomain.Lo -= domainDiff
+		newDomain.Hi -= domainDiff
+
 		rm.insertMapping(insertIdx, newDomain, newRange)
 		return
+
+		// TODO: above pattern and checks should probably be in the other cases too
 	}
 
 	// 5. start of r is inside an existing range, and end is inside another
