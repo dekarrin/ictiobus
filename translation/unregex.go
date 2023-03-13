@@ -7,6 +7,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/dekarrin/ictiobus/internal/rangemap"
 	"github.com/dekarrin/ictiobus/internal/stack"
 )
 
@@ -78,6 +79,40 @@ func (u *unregexer) Derive() string {
 		case syntax.OpCapture:
 			astStack.Push(regexAST.Sub[0])
 		case syntax.OpCharClass:
+			charMap := &rangemap.RangeMap[rune]{}
+			for i := 0; i < len(regexAST.Rune); i += 2 {
+				charMap.Add(regexAST.Rune[i], regexAST.Rune[i+1])
+			}
+			choice := u.rng.Intn(charMap.Count())
+			sb.WriteRune(charMap.Call(rune(choice)))
+		case syntax.OpConcat:
+			// push the subexpressions in reverse order so that they are popped
+			// and therefore evaluated in the correct order
+			for i := len(regexAST.Sub) - 1; i >= 0; i-- {
+				astStack.Push(regexAST.Sub[i])
+			}
+		case syntax.OpEndLine:
+			// if we saw EOT, then it will never match
+			sb.WriteRune('\n')
+		case syntax.OpEndText:
+			// if this is not the very last character, then it will never match
+			// TODO: make this be respected by placing it on the appropriate
+			// place on the stack; this shouldn't be used if, for instance,
+			// another alt works with it.
+			// sawEOTMark = true
+		case syntax.OpLiteral:
+			for _, ch := range regexAST.Rune {
+				sb.WriteRune(ch)
+			}
+		case syntax.OpEmptyMatch:
+			// this would normally be an "empty string" match, but we use a stack
+			// so do this by just not adding anyfin to the string buffer
+		case syntax.OpNoMatch:
+			// explicitly matches no strings. return empty
+			return ""
+		case syntax.OpNoWordBoundary:
+			// TODO: checks, for now do nothing
+		case syntax.OpPlus:
 
 		default:
 			panic("unimplemented")
