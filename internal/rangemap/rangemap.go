@@ -146,6 +146,9 @@ func (rm *RangeMap[E]) Add(start, end E) {
 	r := Range[E]{Lo: start, Hi: end}
 	overlapping := rm.getRangesOverlapping(r)
 
+	// make sure we are normalizing on exit
+	defer rm.joinAdjacentRanges()
+
 	// possible cases:
 
 	// 1. r is entirely outside of all existing ranges
@@ -188,8 +191,9 @@ func (rm *RangeMap[E]) Add(start, end E) {
 			panic("overlapping range not found in map, should be impossible")
 		}
 
+		// get oldDomain before we remove the range
 		oldDomain := rm.domains[extendingIdx]
-		newDomain := Range[E]{Lo: oldDomain.Lo, Hi: oldDomain.Hi + (r.Hi - extendingRange.Hi)}
+
 		newRange := Range[E]{Lo: extendingRange.Lo, Hi: r.Hi}
 
 		// remove all overlapping slices
@@ -202,6 +206,27 @@ func (rm *RangeMap[E]) Add(start, end E) {
 
 		// now add the new one in
 		insertIdx := rm.findRangeInsertionPoint(newRange)
+		var domainLow E
+		if insertIdx > 0 {
+			// if there is a previous range, r's domain starts exactly 1 after
+			// its end. otherwise it starts at 0 (the default)
+			domainLow = rm.domains[insertIdx-1].Hi + 1
+		}
+
+		// start the new domain at zero so we can make future adjustments
+		newDomain := Range[E]{Lo: 0, Hi: oldDomain.Hi - oldDomain.Lo}
+
+		// find amount to extend domain by
+		extensionAmt := r.Hi - extendingRange.Hi
+
+		// adjust right side of domain to include r
+		newDomain.Hi += extensionAmt
+
+		// update domain to match new low
+		domainDiff := newDomain.Lo - domainLow
+		newDomain.Lo -= domainDiff
+		newDomain.Hi -= domainDiff
+
 		rm.insertMapping(insertIdx, newDomain, newRange)
 		return
 	}
@@ -227,6 +252,7 @@ func (rm *RangeMap[E]) Add(start, end E) {
 
 		newRange := Range[E]{Lo: r.Lo, Hi: extendingRange.Hi}
 
+		// remove all overlapping slices
 		// TODO: efficiency. We could simply assume that we need to remove all
 		// so once we find the index of the first one, we can just remove all
 		// after that.
@@ -258,8 +284,6 @@ func (rm *RangeMap[E]) Add(start, end E) {
 
 		rm.insertMapping(insertIdx, newDomain, newRange)
 		return
-
-		// TODO: above pattern and checks should probably be in the other cases too
 	}
 
 	// 5. start of r is inside an existing range, and end is inside another
@@ -269,19 +293,21 @@ func (rm *RangeMap[E]) Add(start, end E) {
 	//		- join the two ranges r starts and ends in. For all ranges it ends
 	//		up covering in the process of doing so, remove those ranges.
 	if len(overlapping) >= 2 && overlapping[0].Contains(r.Lo) && overlapping[len(overlapping)-1].Contains(r.Hi) {
-		startRange := overlapping[0]
+		// treat the start range as the extending range as we will start with that
+		// one and add the end range to it to cover r.
+
+		extendingRange := overlapping[0]
 		endRange := overlapping[len(overlapping)-1]
 
-		startIdx := rm.findRange(startRange)
-		endIdx := rm.findRange(endRange)
+		extendingIdx := rm.findRange(extendingRange)
 
-		startDomain := rm.domains[startIdx]
-		endDomain := rm.domains[endIdx]
+		// get oldDomain before we remove the ranges
+		oldDomain := rm.domains[extendingIdx]
 
 		// join the two ranges r starts and ends in.
-		joinedRange := Range[E]{Lo: startRange.Lo, Hi: startRange.Hi}
-		joinedDomain := Range[E]{Lo: startDomain.Lo, Hi: endDomain.Hi}
+		newRange := Range[E]{Lo: extendingRange.Lo, Hi: endRange.Hi}
 
+		// remove all overlapping slices
 		// TODO: efficiency. We could simply assume that we need to remove all
 		// so once we find the index of the first one, we can just remove all
 		// after that.
@@ -290,8 +316,39 @@ func (rm *RangeMap[E]) Add(start, end E) {
 		}
 
 		// now add the new one in
-		insertIdx := rm.findRangeInsertionPoint(joinedRange)
-		rm.insertMapping(insertIdx, joinedDomain, joinedRange)
+		insertIdx := rm.findRangeInsertionPoint(newRange)
+		var domainLow E
+		if insertIdx > 0 {
+			// if there is a previous range, r's domain starts exactly 1 after
+			// its end. otherwise it starts at 0 (the default)
+			domainLow = rm.domains[insertIdx-1].Hi + 1
+		}
+
+		// start the new domain at zero so we can make future adjustments
+		// use left domain first (oldStartDomain)
+		newDomain := Range[E]{Lo: 0, Hi: oldDomain.Hi - oldDomain.Lo}
+
+		/*
+
+			E1:   [------------]XXXXXXXXXXXXXX
+			E2:                       [------]
+			R:             [--------------]
+			      e1L      rL  e1H    e2L rH e2H
+
+		*/
+
+		// find amount to extend domain by, so that both old domains are covered
+		extensionAmt := endRange.Hi - extendingRange.Hi
+
+		// adjust left side of domain to include r
+		newDomain.Lo -= extensionAmt
+
+		// update domain to match new low
+		domainDiff := newDomain.Lo - domainLow
+		newDomain.Lo -= domainDiff
+		newDomain.Hi -= domainDiff
+
+		rm.insertMapping(insertIdx, newDomain, newRange)
 		return
 	}
 
@@ -326,6 +383,31 @@ func (rm *RangeMap[E]) Add(start, end E) {
 
 	// we should never get here
 	panic("unhandled case in RangeMap.Add")
+}
+
+// goes through and glues together any ranges that have ended up directly
+// adjacent to each other.
+func (rm *RangeMap[E]) joinAdjacentRanges() {
+	newRanges := make([]Range[E], 0)
+	newDomains := make([]Range[E], 0)
+
+	for i := 0; i < len(rm.ranges); i++ {
+		r := rm.ranges[i]
+		d := rm.domains[i]
+
+		// join until no more to join
+		for i+1 < len(rm.ranges) && r.Hi+1 == rm.ranges[i+1].Lo {
+			r.Hi = rm.ranges[i+1].Hi
+			d.Hi = rm.domains[i+1].Hi
+			i++ // skip the next one
+		}
+
+		newRanges = append(newRanges, r)
+		newDomains = append(newDomains, d)
+	}
+
+	rm.ranges = newRanges
+	rm.domains = newDomains
 }
 
 func (rm *RangeMap[E]) getRangesOverlapping(r Range[E]) []Range[E] {

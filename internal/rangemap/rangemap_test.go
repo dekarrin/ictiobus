@@ -690,7 +690,7 @@ func Test_RangeMap_Add(t *testing.T) {
 		expect      RangeMap[int]
 		expectPanic bool
 	}{
-		/*{
+		{
 			name:  "add (0, 2) to empty",
 			rm:    RangeMap[int]{},
 			start: 0,
@@ -960,6 +960,33 @@ func Test_RangeMap_Add(t *testing.T) {
 			},
 		},
 		{
+			name: "start of r is inside an existing range, but end is outside all ranges (no other overlap, one other item before)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 1},
+					{Lo: 2, Hi: 9},
+				},
+				ranges: []Range[int]{
+					{Lo: -2, Hi: -1},
+					{Lo: 1, Hi: 8},
+				},
+				count: 10,
+			},
+			start: 2,
+			end:   10,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 1},
+					{Lo: 2, Hi: 11},
+				},
+				ranges: []Range[int]{
+					{Lo: -2, Hi: -1},
+					{Lo: 1, Hi: 10},
+				},
+				count: 12,
+			},
+		},
+		{
 			name: "start of r is inside an existing range, but end is outside all ranges (overlap one)",
 			rm: RangeMap[int]{
 				domains: []Range[int]{
@@ -982,6 +1009,35 @@ func Test_RangeMap_Add(t *testing.T) {
 					{Lo: 1, Hi: 621},
 				},
 				count: 621,
+			},
+		},
+		{
+			name: "start of r is inside an existing range, but end is outside all ranges (overlap one, one other item before)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+					{Lo: 8, Hi: 13},
+					{Lo: 14, Hi: 16},
+				},
+				ranges: []Range[int]{
+					{Lo: -8, Hi: -1},
+					{Lo: 615, Hi: 620},
+					{Lo: 628, Hi: 630},
+				},
+				count: 17,
+			},
+			start: 616,
+			end:   631,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+					{Lo: 8, Hi: 24},
+				},
+				ranges: []Range[int]{
+					{Lo: -8, Hi: -1},
+					{Lo: 615, Hi: 631},
+				},
+				count: 25,
 			},
 		},
 		{
@@ -1039,7 +1095,7 @@ func Test_RangeMap_Add(t *testing.T) {
 				},
 				count: 1011,
 			},
-		},*/
+		},
 
 		{
 			name: "end of r is inside an existing range, but start is outside all ranges (no other overlap)",
@@ -1065,6 +1121,33 @@ func Test_RangeMap_Add(t *testing.T) {
 			},
 		},
 		{
+			name: "end of r is inside an existing range, but start is outside all ranges (no other overlap, one other item before)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 4},
+					{Lo: 5, Hi: 12},
+				},
+				ranges: []Range[int]{
+					{Lo: -16, Hi: -12},
+					{Lo: 1, Hi: 8},
+				},
+				count: 13,
+			},
+			start: -10,
+			end:   2,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 4},
+					{Lo: 5, Hi: 23},
+				},
+				ranges: []Range[int]{
+					{Lo: -16, Hi: -12},
+					{Lo: -10, Hi: 8},
+				},
+				count: 24,
+			},
+		},
+		{
 			name: "end of r is inside an existing range, but start is outside all ranges (overlap one)",
 			rm: RangeMap[int]{
 				domains: []Range[int]{
@@ -1087,6 +1170,35 @@ func Test_RangeMap_Add(t *testing.T) {
 					{Lo: -11, Hi: 8},
 				},
 				count: 20,
+			},
+		},
+		{
+			name: "end of r is inside an existing range, but start is outside all ranges (overlap one, one other item before)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 4},
+					{Lo: 5, Hi: 12},
+					{Lo: 13, Hi: 18},
+				},
+				ranges: []Range[int]{
+					{Lo: -10, Hi: -6},
+					{Lo: 1, Hi: 8},
+					{Lo: 10, Hi: 15},
+				},
+				count: 19,
+			},
+			start: -4,
+			end:   12,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 4},
+					{Lo: 5, Hi: 24},
+				},
+				ranges: []Range[int]{
+					{Lo: -10, Hi: -6},
+					{Lo: -4, Hi: 15},
+				},
+				count: 25,
 			},
 		},
 		{
@@ -1124,14 +1236,14 @@ func Test_RangeMap_Add(t *testing.T) {
 				domains: []Range[int]{
 					{Lo: 0, Hi: 4},
 					{Lo: 5, Hi: 12},
-					{Lo: 13, Hi: 22},
+					{Lo: 13, Hi: 18},
 				},
 				ranges: []Range[int]{
 					{Lo: -10, Hi: -6},
 					{Lo: 1, Hi: 8},
 					{Lo: 615, Hi: 620},
 				},
-				count: 23,
+				count: 19,
 			},
 			start: -11,
 			end:   616,
@@ -1143,6 +1255,204 @@ func Test_RangeMap_Add(t *testing.T) {
 					{Lo: -11, Hi: 620},
 				},
 				count: 632,
+			},
+		},
+
+		{
+			name: "start of r is inside an existing range, and end is inside other existing range (no other overlap)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 13},
+					{Lo: 14, Hi: 21},
+				},
+				ranges: []Range[int]{
+					{Lo: -7, Hi: 6},
+					{Lo: 8, Hi: 15},
+				},
+				count: 22,
+			},
+			start: 1,
+			end:   10,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 22},
+				},
+				ranges: []Range[int]{
+					{Lo: -7, Hi: 15},
+				},
+				count: 23,
+			},
+		},
+		{
+			name: "start of r is inside an existing range, and end is inside other existing range (no other overlap, one other item before)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 3},
+					{Lo: 4, Hi: 17},
+					{Lo: 18, Hi: 25},
+				},
+				ranges: []Range[int]{
+					{Lo: -12, Hi: -9},
+					{Lo: -7, Hi: 6},
+					{Lo: 8, Hi: 15},
+				},
+				count: 26,
+			},
+			start: 1,
+			end:   10,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 3},
+					{Lo: 4, Hi: 26},
+				},
+				ranges: []Range[int]{
+					{Lo: -12, Hi: -9},
+					{Lo: -7, Hi: 15},
+				},
+				count: 27,
+			},
+		},
+		{
+			name: "start of r is inside an existing range, and end is inside other existing range (overlap one)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 6},
+					{Lo: 7, Hi: 10},
+					{Lo: 11, Hi: 16},
+				},
+				ranges: []Range[int]{
+					{Lo: 0, Hi: 6},
+					{Lo: 8, Hi: 11},
+					{Lo: 15, Hi: 20},
+				},
+				count: 17,
+			},
+			start: 1,
+			end:   17,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 20},
+				},
+				ranges: []Range[int]{
+					{Lo: 0, Hi: 20},
+				},
+				count: 21,
+			},
+		},
+		{
+			name: "start of r is inside an existing range, and end is inside other existing range (overlap one, one other item before)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 3},
+					{Lo: 4, Hi: 10},
+					{Lo: 11, Hi: 14},
+					{Lo: 15, Hi: 20},
+				},
+				ranges: []Range[int]{
+					{Lo: -10, Hi: -7},
+					{Lo: 0, Hi: 6},
+					{Lo: 8, Hi: 11},
+					{Lo: 15, Hi: 20},
+				},
+				count: 21,
+			},
+			start: 1,
+			end:   17,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 3},
+					{Lo: 4, Hi: 24},
+				},
+				ranges: []Range[int]{
+					{Lo: -10, Hi: -7},
+					{Lo: 0, Hi: 20},
+				},
+				count: 25,
+			},
+		},
+		{
+			name: "start of r is inside an existing range, and end is inside other existing range (overlap one, one other item after)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 6},
+					{Lo: 7, Hi: 10},
+					{Lo: 11, Hi: 16},
+					{Lo: 17, Hi: 20},
+				},
+				ranges: []Range[int]{
+					{Lo: 0, Hi: 6},
+					{Lo: 8, Hi: 11},
+					{Lo: 15, Hi: 20},
+					{Lo: 26, Hi: 29},
+				},
+				count: 21,
+			},
+			start: 1,
+			end:   17,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 20},
+					{Lo: 21, Hi: 24},
+				},
+				ranges: []Range[int]{
+					{Lo: 0, Hi: 20},
+					{Lo: 26, Hi: 29},
+				},
+				count: 25,
+			},
+		},
+		{
+			name: "start of r is inside an existing range, and end is inside other existing range (overlap two)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 6},
+					{Lo: 7, Hi: 10},
+					{Lo: 11, Hi: 16},
+					{Lo: 17, Hi: 20},
+				},
+				ranges: []Range[int]{
+					{Lo: 0, Hi: 6},
+					{Lo: 8, Hi: 11},
+					{Lo: 15, Hi: 20},
+					{Lo: 26, Hi: 29},
+				},
+				count: 21,
+			},
+			start: 1,
+			end:   28,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 29},
+				},
+				ranges: []Range[int]{
+					{Lo: 0, Hi: 29},
+				},
+				count: 30,
+			},
+		},
+		{
+			name: "normalize adjacent result ranges",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 2},
+					{Lo: 3, Hi: 4},
+				},
+				ranges: []Range[int]{
+					{Lo: 2, Hi: 4},
+					{Lo: 6, Hi: 7},
+				},
+				count: 5,
+			},
+			start: 5,
+			end:   6,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 5},
+				},
+				ranges: []Range[int]{
+					{Lo: 2, Hi: 7},
+				},
+				count: 6,
 			},
 		},
 	}
