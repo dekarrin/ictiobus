@@ -226,6 +226,12 @@ func (rm *RangeMap[E]) Add(start, end E) {
 		newDomain := Range[E]{Lo: oldDomain.Lo - (extendingRange.Lo - r.Lo), Hi: oldDomain.Hi}
 		newRange := Range[E]{Lo: r.Lo, Hi: extendingRange.Hi}
 
+		// our domain will never go below 0. if it just did, raise it
+		if newDomain.Lo < 0 {
+			newDomain.Hi -= newDomain.Lo
+			newDomain.Lo = 0
+		}
+
 		// TODO: efficiency. We could simply assume that we need to remove all
 		// so once we find the index of the first one, we can just remove all
 		// after that.

@@ -1040,9 +1040,115 @@ func Test_RangeMap_Add(t *testing.T) {
 				count: 1011,
 			},
 		},
+
+		{
+			name: "end of r is inside an existing range, but start is outside all ranges (no other overlap)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 7},
+				},
+				ranges: []Range[int]{
+					{Lo: 1, Hi: 8},
+				},
+				count: 8,
+			},
+			start: -10,
+			end:   2,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 18},
+				},
+				ranges: []Range[int]{
+					{Lo: -10, Hi: 8},
+				},
+				count: 19,
+			},
+		},
+		{
+			name: "end of r is inside an existing range, but start is outside all ranges (overlap one)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 4},
+					{Lo: 5, Hi: 12},
+				},
+				ranges: []Range[int]{
+					{Lo: -10, Hi: -6},
+					{Lo: 1, Hi: 8},
+				},
+				count: 13,
+			},
+			start: -11,
+			end:   2,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 19},
+				},
+				ranges: []Range[int]{
+					{Lo: -11, Hi: 8},
+				},
+				count: 20,
+			},
+		},
+		{
+			name: "end of r is inside an existing range, but start is outside all ranges (overlap one, one other item after)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 4},
+					{Lo: 5, Hi: 12},
+					{Lo: 13, Hi: 18},
+				},
+				ranges: []Range[int]{
+					{Lo: -10, Hi: -6},
+					{Lo: 1, Hi: 8},
+					{Lo: 650, Hi: 655},
+				},
+				count: 19,
+			},
+			start: -11,
+			end:   2,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 19},
+					{Lo: 20, Hi: 25},
+				},
+				ranges: []Range[int]{
+					{Lo: -11, Hi: 8},
+					{Lo: 650, Hi: 655},
+				},
+				count: 26,
+			},
+		},
+		{
+			name: "end of r is inside an existing range, but start is outside all ranges (overlap two)",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 4},
+					{Lo: 5, Hi: 12},
+					{Lo: 13, Hi: 22},
+				},
+				ranges: []Range[int]{
+					{Lo: -10, Hi: -6},
+					{Lo: 1, Hi: 8},
+					{Lo: 615, Hi: 620},
+				},
+				count: 23,
+			},
+			start: -11,
+			end:   616,
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{Lo: 0, Hi: 631},
+				},
+				ranges: []Range[int]{
+					{Lo: -11, Hi: 620},
+				},
+				count: 632,
+			},
+		},
 	}
 
-	// TODO: two more test cases to add to this, then begin using in unregexer.
+	// TODO: find out why above test panics, then add final test cases for
+	// last case in Add.
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
