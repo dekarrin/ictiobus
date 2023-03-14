@@ -681,6 +681,152 @@ func Test_RangeMap_Call(t *testing.T) {
 	}
 }
 
+func Test_RangeMap_Intersection(t *testing.T) {
+	testCases := []struct {
+		name        string
+		rm          RangeMap[int]
+		input       RangeMap[int]
+		expect      RangeMap[int]
+		expectPanic bool
+	}{
+		{
+			name:   "empty and empty - no intersections",
+			rm:     RangeMap[int]{},
+			input:  RangeMap[int]{},
+			expect: RangeMap[int]{},
+		},
+		{
+			name: "basic test, one with another",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{0, 5},
+					{6, 10},
+				},
+				ranges: []Range[int]{
+					{20, 25},
+					{36, 40},
+				},
+				count: 11,
+			},
+			input: RangeMap[int]{
+				domains: []Range[int]{
+					{0, 6},
+				},
+				ranges: []Range[int]{
+					{22, 28},
+				},
+				count: 7,
+			},
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{0, 3},
+				},
+				ranges: []Range[int]{
+					{22, 25},
+				},
+				count: 4,
+			},
+		},
+		{
+			name: "no intersections",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{0, 5},
+					{6, 10},
+				},
+				ranges: []Range[int]{
+					{20, 25},
+					{36, 40},
+				},
+				count: 11,
+			},
+			input: RangeMap[int]{
+				domains: []Range[int]{
+					{0, 2},
+					{3, 5},
+					{6, 11},
+				},
+				ranges: []Range[int]{
+					{26, 28},
+					{30, 32},
+					{45, 50},
+				},
+				count: 12,
+			},
+			expect: RangeMap[int]{},
+		},
+		{
+			name: "multiple intersections",
+			rm: RangeMap[int]{
+				domains: []Range[int]{
+					{0, 12},
+					{13, 27},
+					{28, 38},
+				},
+				ranges: []Range[int]{
+					{8, 20},
+					{36, 50},
+					{60, 70},
+				},
+				count: 39,
+			},
+			input: RangeMap[int]{
+				domains: []Range[int]{
+					{0, 12},
+					{13, 15},
+					{16, 18},
+					{19, 23},
+					{24, 24},
+					{25, 27},
+				},
+				ranges: []Range[int]{
+					{8, 20},
+					{36, 38},
+					{40, 42},
+					{48, 52},
+					{62, 62},
+					{208, 210},
+				},
+				count: 28,
+			},
+			expect: RangeMap[int]{
+				domains: []Range[int]{
+					{0, 12},
+					{13, 15},
+					{16, 18},
+					{19, 21},
+					{22, 22},
+				},
+				ranges: []Range[int]{
+					{8, 20},
+					{36, 38},
+					{40, 42},
+					{48, 50},
+					{62, 62},
+				},
+				count: 23,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			var actual *RangeMap[int]
+			if tc.expectPanic {
+				assert.Panics(func() {
+					actual = tc.rm.Intersection(&tc.input)
+				})
+			} else {
+				actual = tc.rm.Intersection(&tc.input)
+			}
+
+			assert.Equal(&tc.expect, actual)
+		})
+	}
+}
+
 func Test_RangeMap_Add(t *testing.T) {
 	testCases := []struct {
 		name        string

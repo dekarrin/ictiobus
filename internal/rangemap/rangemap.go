@@ -16,6 +16,31 @@ type Range[E Integral] struct {
 	Hi E
 }
 
+// Intersection returns the intersection of r2 with r, that is, a Range that
+// contains only the values that are in both r and r2.
+//
+// Returns intersect, the intersection of r and r2, and valid, a boolean
+// specifying whether the intersect is valid. If r and r2's intersection is not
+// the empty set, valid will be true. If r and r2's intersection is the empty
+// set (i.e. if they do not have any values in common), valid will be false and
+// intersect should not be used.
+func (r Range[E]) Intersection(r2 Range[E]) (intersect Range[E], valid bool) {
+	if !r.Overlaps(r2) {
+		return Range[E]{}, false
+	}
+
+	inter := r
+
+	if r2.Lo > r.Lo {
+		inter.Lo = r2.Lo
+	}
+	if r2.Hi < r.Hi {
+		inter.Hi = r2.Hi
+	}
+
+	return inter, true
+}
+
 // Count returns the number of values included within the range.
 func (r Range[E]) Count() int {
 	return int(r.Hi - r.Lo + 1)
@@ -77,6 +102,14 @@ func (r Range[E]) Compare(r2 Range[E]) int {
 // RangeMap represents a piecewise function that maps ranges of its domain to
 // ranges of its value range. The domain of the range map is always [0, n),
 // where n is the value of Count().
+//
+// RangeMap has the property that the ranges added to it will always be mapped
+// to in numerical order, as opposed to the order in which they were added. For
+// example, adding (6, 10) to an empty RangeMap will result in a mapping of
+// (0, 4) -> (6, 10), and if (2, 4) is then added, it will result in a mapping
+// of (0, 2) -> (2, 4), (3, 7) -> (6, 10).
+//
+// The zero-value of RangeMap is an empty RangeMap ready for use.
 type RangeMap[E Integral] struct {
 	count   int
 	ranges  []Range[E]
@@ -92,6 +125,49 @@ func (rm *RangeMap[E]) Copy() *RangeMap[E] {
 	copy(rmCopy.ranges, rm.ranges)
 	copy(rmCopy.domains, rm.domains)
 	return rmCopy
+}
+
+// Intersection returns a new RangeMap that is the intersection of rm and rm2;
+// that is, its mapped-to ranges contain only the values that are in both rm and
+// rm2. If rm and rm2 do not have any values in common, the returned RangeMap
+// will be empty.
+func (rm *RangeMap[E]) Intersection(rm2 *RangeMap[E]) *RangeMap[E] {
+	newRanges := make([]Range[E], 0)
+
+	var lastIntersectedWith int
+	// luckily, we can assume that the ranges are ordered for both maps.
+	for i := 0; i < len(rm2.ranges); i++ {
+		checkRange := rm2.ranges[i]
+		var checkHasIntersected bool
+		for j := lastIntersectedWith; j < len(rm.ranges); j++ {
+			againstRange := rm.ranges[j]
+			intersect, ok := checkRange.Intersection(againstRange)
+
+			if ok {
+				lastIntersectedWith = j
+				checkHasIntersected = true
+				newRanges = append(newRanges, intersect)
+			} else if checkHasIntersected {
+				// because the ranges are ordered, if our checkRange had
+				// previously intersected but then didn't, we can stop checking
+				// for that checkRange and continue with the next.
+				//
+				// However, the next checkRange *may* intersect with the one
+				// that checkRange last intersected with, so we keep the
+				// lastInteractedWith and track that.
+				break
+			}
+		}
+	}
+
+	// now we have the list of new ranges, add them all to a new RangeMap
+	intersectedMap := &RangeMap[E]{}
+
+	for _, r := range newRanges {
+		intersectedMap.Add(r.Lo, r.Hi)
+	}
+
+	return intersectedMap
 }
 
 func (rm *RangeMap[E]) String() string {
