@@ -208,13 +208,13 @@ func (sdts *sdtsImpl) BindInheritedAttribute(head string, prod []string, attrNam
 }
 
 func (sdts *sdtsImpl) Validate(g grammar.Grammar) error {
-	// validate the grammar so we know that any non-terminal we get from it is
-	// valid and produced within the grammar, and anything we get that is not
-	// a non-terminal is a terminal used within the grammar.
-	err := g.Validate()
-	if err != nil {
-		return fmt.Errorf("grammar is not valid: %w", err)
-	}
+	fakeValUnregexers := map[string]func() string{}
+	fakeValProd := map[string]func() string{}
+
+	// TODO: complete garbage, the unregexer. allow a caller to specify if they
+	// want, but leave it on the caller to provide one.
+
+	g.DeriveFullTree()
 
 	// rewrite this function
 	return fmt.Errorf("UNIMPLEMENTED")
