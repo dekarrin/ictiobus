@@ -35,8 +35,8 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 	depGraphs := DepGraph(root, sdts)
 	if len(depGraphs) > 1 {
 		return nil, evalError{
-			msg:      "applying SDD to tree results in evaluation dependency graph with disconnected segments",
-			depNodes: depGraphs,
+			msg:       "applying SDD to tree results in evaluation dependency graph with disconnected segments",
+			depGraphs: depGraphs,
 		}
 	}
 	visitOrder, err := KahnSort(depGraphs[0])
@@ -235,6 +235,19 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, fakeValProdu
 	}
 
 	// TODO: betta explanation of what happened using the info in the error
+	if len(evalErr.depGraphs) > 0 {
+		// disconnected depgraph error
+
+		fullMsg := "translation on fake parse tree resulted in disconnected depency graphs:"
+
+		for i := range evalErr.depGraphs {
+			fullMsg += fmt.Sprintf("\n* %s", DepGraphString(evalErr.depGraphs[i]))
+		}
+
+		return fmt.Errorf(fullMsg)
+	}
+
+	// TODO: betta message for kahn sort error
 
 	return err
 }
@@ -251,7 +264,7 @@ func NewSDTS() *sdtsImpl {
 type evalError struct {
 	// if this is a disconnected dep graph segments error, this slice will be
 	// non-nil and contain the issue nodes.
-	depNodes []*DirectedGraph[DepNode]
+	depGraphs []*DirectedGraph[DepNode]
 
 	// if this is a sort error, this will be true
 	sortError bool

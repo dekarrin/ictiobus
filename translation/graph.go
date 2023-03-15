@@ -2,6 +2,7 @@ package translation
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/stack"
@@ -262,6 +263,46 @@ type DepNode struct {
 	Tree      *AnnotatedParseTree
 	Synthetic bool
 	Dest      AttrRef
+}
+
+func DepGraphString(dg *DirectedGraph[DepNode]) string {
+	nodes := dg.AllNodes()
+	var sb strings.Builder
+
+	sb.WriteRune('(')
+
+	for i := range nodes {
+		n := nodes[i]
+		dep := n.Data
+		sym := dep.Tree.Symbol
+		nodeID := dep.Tree.ID()
+		nextIDs := []APTNodeID{}
+
+		for i := range n.Edges {
+			nextIDs = append(nextIDs, n.Edges[i].Data.Tree.ID())
+		}
+
+		sb.WriteString(fmt.Sprintf("(%v: %q", nodeID, sym))
+
+		if len(nextIDs) > 0 {
+			sb.WriteString(" -> {")
+			for j := range nextIDs {
+				sb.WriteString(fmt.Sprintf("%v", nextIDs[j]))
+				if j+1 < len(nextIDs) {
+					sb.WriteString(", ")
+				}
+			}
+			sb.WriteRune('}')
+		}
+
+		sb.WriteRune(')')
+		if i+1 < len(nodes) {
+			sb.WriteString(", ")
+		}
+	}
+
+	sb.WriteRune(')')
+	return sb.String()
 }
 
 // Info on this func from algorithm 5.2.1 of the purple dragon book.
