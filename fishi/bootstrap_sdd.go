@@ -191,7 +191,7 @@ func bootstrapSDDGrammarBlockAST(sdd ictiobus.SDTS) {
 		"ast",
 		sddFnMakeGrammarBlock,
 		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "ast"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "ast"},
 		},
 	)
 	sdd.BindSynthesizedAttribute(
@@ -199,7 +199,7 @@ func bootstrapSDDGrammarBlockAST(sdd ictiobus.SDTS) {
 		"ast",
 		sddFnGrammarContentBlocksAppendStateBlock,
 		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "ast"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 2}, Name: "ast"},
 		},
 	)
 }

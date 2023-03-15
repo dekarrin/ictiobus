@@ -239,7 +239,7 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, fakeValProdu
 	if len(evalErr.depGraphs) > 0 {
 		// disconnected depgraph error
 
-		fullMsg := "translation on fake parse tree resulted in disconnected depency graphs:"
+		fullMsg := "translation on fake parse tree resulted in disconnected dependency graphs:"
 
 		for i := range evalErr.depGraphs {
 			fullMsg += fmt.Sprintf("\n* %s", DepGraphString(evalErr.depGraphs[i]))
