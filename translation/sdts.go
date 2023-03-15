@@ -34,11 +34,17 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 	root := AddAttributes(tree)
 	depGraphs := DepGraph(root, sdts)
 	if len(depGraphs) > 1 {
-		return nil, fmt.Errorf("applying SDD to tree results in evaluation dependency graph with disconnected segments")
+		return nil, evalError{
+			msg:      "applying SDD to tree results in evaluation dependency graph with disconnected segments",
+			depNodes: depGraphs,
+		}
 	}
 	visitOrder, err := KahnSort(depGraphs[0])
 	if err != nil {
-		return nil, fmt.Errorf("sorting SDD dependency graph: %w", err)
+		return nil, evalError{
+			msg:       fmt.Sprintf("sorting SDD dependency graph: %s", err.Error()),
+			sortError: true,
+		}
 	}
 
 	for i := range visitOrder {
@@ -72,7 +78,10 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 	for i := range attributes {
 		val, ok := root.Attributes[attributes[i]]
 		if !ok {
-			return nil, fmt.Errorf("SDD does not set attribute %q on root node", attributes[i])
+			return nil, evalError{
+				msg:       fmt.Sprintf("SDD does not set attribute %q on root node", attributes[i]),
+				sortError: true,
+			}
 		}
 		attrValues[i] = val
 	}
@@ -219,6 +228,14 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, fakeValProdu
 	}
 
 	_, err = sdts.Evaluate(pt, attribute)
+
+	evalErr, ok := err.(evalError)
+	if !ok {
+		return err
+	}
+
+	// TODO: betta explanation of what happened using the info in the error
+
 	return err
 }
 
@@ -227,4 +244,21 @@ func NewSDTS() *sdtsImpl {
 		map[string]map[string][]SDDBinding{},
 	}
 	return &impl
+}
+
+// highly populated error struct for examination by validation code and internal
+// routines. may make this betta and exported later.
+type evalError struct {
+	// if this is a disconnected dep graph segments error, this slice will be
+	// non-nil and contain the issue nodes.
+	depNodes []*DirectedGraph[DepNode]
+
+	// if this is a sort error, this will be true
+	sortError bool
+
+	msg string
+}
+
+func (ee evalError) Error() string {
+	return ee.msg
 }
