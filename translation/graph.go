@@ -275,14 +275,27 @@ func DepGraphString(dg *DirectedGraph[DepNode]) string {
 		n := nodes[i]
 		dep := n.Data
 		sym := dep.Tree.Symbol
+
+		prd := ""
+		for j := range dep.Tree.Children {
+			prd += dep.Tree.Children[j].Symbol
+			if j+1 < len(dep.Tree.Children) {
+				prd += " "
+			}
+		}
+
+		if prd != "" {
+			prd = " [" + prd + "]"
+		}
+
 		nodeID := dep.Tree.ID()
 		nextIDs := []APTNodeID{}
 
-		for i := range n.Edges {
-			nextIDs = append(nextIDs, n.Edges[i].Data.Tree.ID())
+		for j := range n.Edges {
+			nextIDs = append(nextIDs, n.Edges[j].Data.Tree.ID())
 		}
 
-		sb.WriteString(fmt.Sprintf("(%v: %q", nodeID, sym))
+		sb.WriteString(fmt.Sprintf("(%v: %q%s", nodeID, sym, prd))
 
 		if len(nextIDs) > 0 {
 			sb.WriteString(" -> {")

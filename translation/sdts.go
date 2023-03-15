@@ -31,6 +31,7 @@ func (sdts *sdtsImpl) BindingsFor(head string, prod []string, attrRef AttrRef) [
 
 func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]interface{}, error) {
 	// first get an annotated parse tree
+	fmt.Println(tree.String())
 	root := AddAttributes(tree)
 	depGraphs := DepGraph(root, sdts)
 	if len(depGraphs) > 1 {
