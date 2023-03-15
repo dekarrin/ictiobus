@@ -149,6 +149,14 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 
 	sdd := CreateBootstrapSDD()
 
+	// but does the thing work? grab a val producer and the grammar and find out
+	valProd := lx.FakeLexemeProducer(true, "")
+	g := parser.Grammar()
+	sddErr := sdd.Validate(g, "ast", valProd)
+	if sddErr != nil {
+		return fmt.Errorf("sdd validation error: %w", sddErr)
+	}
+
 	frontEnd := ictiobus.Frontend[AST]{
 		Lexer:       lx,
 		Parser:      parser,

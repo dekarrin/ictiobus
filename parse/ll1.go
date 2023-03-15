@@ -17,6 +17,10 @@ type ll1Parser struct {
 	trace func(s string)
 }
 
+func (ll *ll1Parser) Grammar() grammar.Grammar {
+	return ll.g
+}
+
 func (ll *ll1Parser) GetDFA() string {
 	return ""
 }

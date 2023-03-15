@@ -207,17 +207,19 @@ func (sdts *sdtsImpl) BindInheritedAttribute(head string, prod []string, attrNam
 	return nil
 }
 
-func (sdts *sdtsImpl) Validate(g grammar.Grammar) error {
-	fakeValUnregexers := map[string]func() string{}
-	fakeValProd := map[string]func() string{}
+// Validate runs the SDTS on a fake parse tree derived from the grammar. The
+// given attribute will be attempted to be evaluated on the root node.
+//
+// It will use fake value producer, if provided, to generate lexemes for
+// terminals in the tree; otherwise contrived values will be used.
+func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, fakeValProducer ...map[string]func() string) error {
+	pt, err := g.DeriveFullTree(fakeValProducer...)
+	if err != nil {
+		return fmt.Errorf("deriving fake parse tree: %w", err)
+	}
 
-	// TODO: complete garbage, the unregexer. allow a caller to specify if they
-	// want, but leave it on the caller to provide one.
-
-	g.DeriveFullTree()
-
-	// rewrite this function
-	return fmt.Errorf("UNIMPLEMENTED")
+	_, err = sdts.Evaluate(pt, attribute)
+	return err
 }
 
 func NewSDTS() *sdtsImpl {

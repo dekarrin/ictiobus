@@ -21,7 +21,7 @@ const (
 // Unregexer derives strings from a regex. It uses a random number generator
 // that must be explicitly seeded.
 //
-// Do not use unregexer directly. Instead, use New() to create one.
+// Do not use Unregexer directly. Instead, use New() to create one.
 //
 // Unregexer uses an 'AnyChars' set to determine which ones are allowed to be
 // generated for 'any' operators, such as the dot operator. This also includes
@@ -35,7 +35,7 @@ const (
 //
 // The range of the AnyChars set can be changed by setting AnyCharsMin and
 // AnyCharsMax.
-type unregexer struct {
+type Unregexer struct {
 	// MinReps is the minimum number of times a repeated regex should be
 	// generated when deriving a string. This applies to all repetition
 	// operators like `*`, `+`, and `{n,m}`. If an operator specifies a minimum
@@ -66,13 +66,13 @@ type unregexer struct {
 	rng *rand.Rand
 }
 
-func New(regex string) (*unregexer, error) {
+func New(regex string) (*Unregexer, error) {
 	reAST, err := syntax.Parse(regex, syntax.Perl)
 	if err != nil {
-		return &unregexer{}, err
+		return &Unregexer{}, err
 	}
 
-	return &unregexer{
+	return &Unregexer{
 		MinReps:     DefaultMinCount,
 		MaxReps:     DefaultMaxCount,
 		AnyCharsMax: DefaultAnyCharsMax,
@@ -83,7 +83,7 @@ func New(regex string) (*unregexer, error) {
 
 }
 
-func (u *unregexer) Seed(val int64) {
+func (u *Unregexer) Seed(val int64) {
 	if u.r == nil || u.rng == nil {
 		panic("cannot call Seed() on unintialized unregexer; use NewUnregexer() to make one")
 	}
@@ -91,7 +91,7 @@ func (u *unregexer) Seed(val int64) {
 	u.rng.Seed(val)
 }
 
-func (u *unregexer) SeedTime() {
+func (u *Unregexer) SeedTime() {
 	if u.r == nil || u.rng == nil {
 		panic("cannot call SeedTime() on unintialized unregexer; use NewUnregexer() to make one")
 	}
@@ -99,7 +99,7 @@ func (u *unregexer) SeedTime() {
 	u.rng.Seed(time.Now().UnixNano())
 }
 
-func (u *unregexer) Derive() string {
+func (u *Unregexer) Derive() string {
 	if u.r == nil || u.rng == nil {
 		panic("cannot call Derive() on unintialized unregexer; use NewUnregexer() to make one")
 	}
