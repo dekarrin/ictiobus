@@ -66,7 +66,7 @@ func NewTokenClass(id string, human string) *lexerClass {
 	return &lexerClass{id: id, name: human}
 }
 
-// implementation of Token interface for lex package use only
+// implementation of Token interface
 type lexerToken struct {
 	class   types.TokenClass
 	lexed   string
@@ -100,4 +100,14 @@ func (lt lexerToken) String() string {
 	fmtStr := "(%s <%d:%d> \"%s\")"
 	content := strings.ReplaceAll(lt.lexed, "\n", "\\n")
 	return fmt.Sprintf(fmtStr, strings.ToUpper(lt.class.ID()), lt.lineNum, lt.linePos, content)
+}
+
+func NewToken(class types.TokenClass, lexed string, linePos int, lineNum int, line string) types.Token {
+	return lexerToken{
+		class:   class,
+		lexed:   lexed,
+		linePos: linePos,
+		lineNum: lineNum,
+		line:    line,
+	}
 }

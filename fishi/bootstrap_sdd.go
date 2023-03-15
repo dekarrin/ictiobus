@@ -6,8 +6,8 @@ import (
 	"github.com/dekarrin/ictiobus/translation"
 )
 
-func CreateBootstrapSDD() ictiobus.SDD {
-	sdd := ictiobus.NewSDD()
+func CreateBootstrapSDD() ictiobus.SDTS {
+	sdd := ictiobus.NewSDTS()
 
 	// fill in the gaps until this part is fully written out
 	bootstrapSDDFakeSynth(sdd, "BLOCK", []string{"TOKENS-BLOCK"}, "ast", astGrammarBlock{content: []astGrammarContent{
@@ -117,7 +117,7 @@ func CreateBootstrapSDD() ictiobus.SDD {
 	return sdd
 }
 
-func bootstrapSDDFakeSynth(sdd ictiobus.SDD, head string, prod []string, name string, value interface{}) {
+func bootstrapSDDFakeSynth(sdd ictiobus.SDTS, head string, prod []string, name string, value interface{}) {
 	sdd.BindSynthesizedAttribute(
 		head, prod,
 		name,
@@ -126,7 +126,7 @@ func bootstrapSDDFakeSynth(sdd ictiobus.SDD, head string, prod []string, name st
 	)
 }
 
-func bootstrapSDDFishispecAST(sdd ictiobus.SDD) {
+func bootstrapSDDFishispecAST(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"FISHISPEC", []string{"BLOCKS"},
 		"ast",
@@ -137,7 +137,7 @@ func bootstrapSDDFishispecAST(sdd ictiobus.SDD) {
 	)
 }
 
-func bootstrapSDDBlocksValue(sdd ictiobus.SDD) {
+func bootstrapSDDBlocksValue(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"BLOCKS", []string{"BLOCKS", "BLOCK"},
 		"value",
@@ -157,7 +157,7 @@ func bootstrapSDDBlocksValue(sdd ictiobus.SDD) {
 	)
 }
 
-func bootstrapSDDBlockAST(sdd ictiobus.SDD) {
+func bootstrapSDDBlockAST(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"BLOCK", []string{"GRAMMAR-BLOCK"},
 		"ast",
@@ -185,7 +185,7 @@ func bootstrapSDDBlockAST(sdd ictiobus.SDD) {
 		)*/
 }
 
-func bootstrapSDDGrammarBlockAST(sdd ictiobus.SDD) {
+func bootstrapSDDGrammarBlockAST(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"GRAMMAR-BLOCK", []string{tcHeaderGrammar.ID(), "GRAMMAR-CONTENT"},
 		"ast",
@@ -204,7 +204,7 @@ func bootstrapSDDGrammarBlockAST(sdd ictiobus.SDD) {
 	)
 }
 
-func bootstrapSDDGrammarContentAST(sdd ictiobus.SDD) {
+func bootstrapSDDGrammarContentAST(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"GRAMMAR-CONTENT", []string{"GRAMMAR-CONTENT", "GRAMMAR-STATE-BLOCK"},
 		"ast",
@@ -241,7 +241,7 @@ func bootstrapSDDGrammarContentAST(sdd ictiobus.SDD) {
 	)
 }
 
-func bootstrapSDDGrammarStateBlockValue(sdd ictiobus.SDD) {
+func bootstrapSDDGrammarStateBlockValue(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"GRAMMAR-STATE-BLOCK", []string{"STATE-INSTRUCTION", "NEWLINES", "GRAMMAR-RULES"},
 		"value",
@@ -253,7 +253,7 @@ func bootstrapSDDGrammarStateBlockValue(sdd ictiobus.SDD) {
 	)
 }
 
-func bootstrapSDDGrammarRulesValue(sdd ictiobus.SDD) {
+func bootstrapSDDGrammarRulesValue(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"GRAMMAR-RULES", []string{"GRAMMAR-RULES", "NEWLINES", "GRAMMAR-RULE"},
 		"value",
@@ -273,7 +273,7 @@ func bootstrapSDDGrammarRulesValue(sdd ictiobus.SDD) {
 	)
 }
 
-func bootstrapSDDGrammarRuleValue(sdd ictiobus.SDD) {
+func bootstrapSDDGrammarRuleValue(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"GRAMMAR-RULE", []string{tcNonterminal.ID(), tcEq.ID(), "ALTERNATIONS"},
 		"value",
@@ -294,7 +294,7 @@ func bootstrapSDDGrammarRuleValue(sdd ictiobus.SDD) {
 	)
 }
 
-func bootstrapSDDAlternationsValue(sdd ictiobus.SDD) {
+func bootstrapSDDAlternationsValue(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"ALTERNATIONS", []string{"PRODUCTION"},
 		"value",
@@ -323,7 +323,7 @@ func bootstrapSDDAlternationsValue(sdd ictiobus.SDD) {
 	)
 }
 
-func bootstrapSDDProductionValue(sdd ictiobus.SDD) {
+func bootstrapSDDProductionValue(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"PRODUCTION", []string{"SYMBOL-SEQUENCE"},
 		"value",
@@ -340,7 +340,7 @@ func bootstrapSDDProductionValue(sdd ictiobus.SDD) {
 	)
 }
 
-func bootstrapSDDSymbolSequenceValue(sdd ictiobus.SDD) {
+func bootstrapSDDSymbolSequenceValue(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"SYMBOL-SEQUENCE", []string{"SYMBOL-SEQUENCE", "SYMBOL"},
 		"value",
@@ -361,7 +361,7 @@ func bootstrapSDDSymbolSequenceValue(sdd ictiobus.SDD) {
 	)
 }
 
-func bootstrapSDDSymbolValue(sdd ictiobus.SDD) {
+func bootstrapSDDSymbolValue(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"SYMBOL", []string{tcNonterminal.ID()},
 		"value",
@@ -381,7 +381,7 @@ func bootstrapSDDSymbolValue(sdd ictiobus.SDD) {
 	)
 }
 
-func bootstrapSDDStateInstructionState(sdd ictiobus.SDD) {
+func bootstrapSDDStateInstructionState(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"},
 		"state",
@@ -401,7 +401,7 @@ func bootstrapSDDStateInstructionState(sdd ictiobus.SDD) {
 	)
 }
 
-func bootstrapSDDIDExprValue(sdd ictiobus.SDD) {
+func bootstrapSDDIDExprValue(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"ID-EXPR", []string{tcId.ID()},
 		"value",
@@ -430,7 +430,7 @@ func bootstrapSDDIDExprValue(sdd ictiobus.SDD) {
 	)
 }
 
-func bootstrapSDDTextValue(sdd ictiobus.SDD) {
+func bootstrapSDDTextValue(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"TEXT", []string{"TEXT-ELEMENT"},
 		"value",
@@ -451,7 +451,7 @@ func bootstrapSDDTextValue(sdd ictiobus.SDD) {
 	)
 }
 
-func bootstrapSDDTextElementValue(sdd ictiobus.SDD) {
+func bootstrapSDDTextElementValue(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"TEXT-ELEMENT", []string{tcFreeformText.ID()},
 		"value",

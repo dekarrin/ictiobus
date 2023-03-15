@@ -2,8 +2,10 @@ package translation
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/stack"
 )
 
@@ -264,12 +266,77 @@ type DepNode struct {
 	Dest      AttrRef
 }
 
+func DepGraphString(dg *DirectedGraph[DepNode]) string {
+	nodes := dg.AllNodes()
+	var sb strings.Builder
+
+	sb.WriteRune('(')
+
+	nodes = slices.SortBy(nodes, func(left, right *DirectedGraph[DepNode]) bool {
+		return left.Data.Tree.ID() < right.Data.Tree.ID()
+	})
+
+	for i := range nodes {
+		n := nodes[i]
+		dep := n.Data
+		sym := dep.Tree.Symbol
+
+		prd := ""
+		for j := range dep.Tree.Children {
+			prd += dep.Tree.Children[j].Symbol
+			if j+1 < len(dep.Tree.Children) {
+				prd += " "
+			}
+		}
+
+		if prd != "" {
+			prd = " [" + prd + "]"
+		}
+
+		nodeID := dep.Tree.ID()
+		nextIDs := []APTNodeID{}
+
+		for j := range n.Edges {
+			nextIDs = append(nextIDs, n.Edges[j].Data.Tree.ID())
+		}
+
+		var nodeStart string
+		if len(nodes) > 1 {
+			nodeStart = "\n\t"
+		}
+		sb.WriteString(fmt.Sprintf("%s(%v: %q%s <%s>", nodeStart, nodeID, sym, prd, dep.Dest))
+
+		if len(nextIDs) > 0 {
+			sb.WriteString(" -> {")
+			for j := range nextIDs {
+				sb.WriteString(fmt.Sprintf("%v", nextIDs[j]))
+				if j+1 < len(nextIDs) {
+					sb.WriteString(", ")
+				}
+			}
+			sb.WriteRune('}')
+		}
+
+		sb.WriteRune(')')
+		if i+1 < len(nodes) {
+			sb.WriteRune(',')
+		}
+	}
+
+	if len(nodes) > 1 {
+		sb.WriteRune('\n')
+	}
+
+	sb.WriteRune(')')
+	return sb.String()
+}
+
 // Info on this func from algorithm 5.2.1 of the purple dragon book.
 //
 // Returns one node from each of the connected sub-graphs of the dependency
 // tree. If the entire dependency graph is connected, there will be only 1 item
 // in the returned slice.
-func DepGraph(aptRoot AnnotatedParseTree, sdd *sddImpl) []*DirectedGraph[DepNode] {
+func DepGraph(aptRoot AnnotatedParseTree, sdd *sdtsImpl) []*DirectedGraph[DepNode] {
 	type treeAndParent struct {
 		Tree   *AnnotatedParseTree
 		Parent *AnnotatedParseTree

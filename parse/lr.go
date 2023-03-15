@@ -60,6 +60,10 @@ type lrParser struct {
 	trace     func(s string)
 }
 
+func (lr *lrParser) Grammar() grammar.Grammar {
+	return lr.gram
+}
+
 func (lr *lrParser) GetDFA() string {
 	return lr.table.GetDFA()
 }

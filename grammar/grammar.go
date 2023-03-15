@@ -12,6 +12,7 @@ import (
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/decbin"
 	"github.com/dekarrin/ictiobus/internal/slices"
+	"github.com/dekarrin/ictiobus/internal/stack"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 )
 
@@ -726,6 +727,382 @@ func (g Grammar) UnreachableNonTerminals() []string {
 	}
 
 	return unreachables
+}
+
+// deriveShortest returns the parse tree for the given symbol with the fewest
+// possible number of nodes.
+func (g Grammar) deriveShortestTree(sym string, shortestDerivation map[string]Production, tokMaker func(term string) types.Token) *types.ParseTree {
+	root := &types.ParseTree{
+		Value: sym,
+	}
+
+	treeStack := stack.Stack[*types.ParseTree]{Of: []*types.ParseTree{root}}
+
+	for treeStack.Len() > 0 {
+		pt := treeStack.Pop()
+
+		if pt.Terminal {
+			continue
+		}
+
+		option := shortestDerivation[pt.Value]
+		if option.Equal(Epsilon) {
+			pt.Children = []*types.ParseTree{{Terminal: true}}
+		} else {
+			pt.Children = make([]*types.ParseTree, len(option))
+			for i, sym := range option {
+				if g.IsTerminal(sym) {
+					pt.Children[i] = &types.ParseTree{
+						Value:    sym,
+						Terminal: true,
+						Source:   tokMaker(sym),
+					}
+				} else {
+					pt.Children[i] = &types.ParseTree{
+						Value: sym,
+					}
+				}
+			}
+		}
+
+		// push children onto stack in reverse order so they are popped in
+		// the correct order (left to right)
+		for i := len(pt.Children) - 1; i >= 0; i-- {
+			treeStack.Push(pt.Children[i])
+		}
+	}
+
+	return root
+}
+
+// DeriveFullTree derives a parse tree based on the grammar that is guaranteed
+// to contain every rule at least once. It is *not* garunteed to have each rule
+// only once, although it will make a best effort to minimize duplications.
+//
+// The fakeValProducer map, if provided, will be used to assign a lexed
+// value to each synthesized terminal node that has a class whose ID matches
+// a key in it. If the map is not provided or does not contain a key for a
+// token class matching a terminal being generated, a default string will be
+// automatically generated for it.
+func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) (types.ParseTree, error) {
+	// create a function to get a value for any terminal from the
+	// fakeValProducer, falling back on default behavior if none is provided or
+	// if a token class is not found in the fakeValProducer.
+	var lineNo int
+	makeTermSource := func(forTerm string) types.Token {
+		class := g.Term(forTerm)
+		val := fmt.Sprintf("<SIMULATED %s>", class.ID())
+		if len(fakeValProducer) > 0 && fakeValProducer[0] != nil {
+			if fvp, ok := fakeValProducer[0][class.ID()]; ok {
+				val = fvp()
+			}
+		}
+		lineNo++
+		t := lex.NewToken(class, val, 11, lineNo, fmt.Sprintf("<fakeLine>%s</fakeLine>", val))
+		return t
+	}
+
+	// we need to get a list of all productions that we have yet to create
+	toCreate := map[string][]Production{}
+	for _, nonTerm := range g.NonTerminals() {
+		rule := g.Rule(nonTerm)
+		prods := make([]Production, len(rule.Productions))
+		copy(prods, rule.Productions)
+		toCreate[nonTerm] = prods
+	}
+
+	// we also need to get the 'shortest' production for each non-terminal; this
+	// is the production that eventually results in the fewest number of
+	// non-terminals being used in the final parse tree.
+	shortestDerivation, err := g.CreateFewestNonTermsAlternationsTable()
+	if err != nil {
+		return types.ParseTree{}, fmt.Errorf("failed to get shortest derivation table for grammar: %w", err)
+	}
+
+	root := &types.ParseTree{
+		Terminal: false,
+		Value:    g.StartSymbol(),
+	}
+	treeStack := stack.Stack[*types.ParseTree]{Of: []*types.ParseTree{root}}
+
+	for treeStack.Len() > 0 {
+		pt := treeStack.Pop()
+
+		if pt.Terminal {
+			continue
+		}
+
+		// select the production to do
+		options, ok := toCreate[pt.Value]
+		if !ok {
+			// we have already created all the productions for this non-terminal
+			// so we need to select the production that results in the fewest
+			// non-terminals being used and be done.
+			shortest := g.deriveShortestTree(pt.Value, shortestDerivation, makeTermSource)
+			pt.Children = shortest.Children
+			continue
+		}
+
+		option := options[0]
+		if option.Equal(Epsilon) {
+			pt.Children = []*types.ParseTree{{Terminal: true}}
+		} else {
+			pt.Children = make([]*types.ParseTree, len(option))
+			for i, sym := range option {
+				if g.IsTerminal(sym) {
+					pt.Children[i] = &types.ParseTree{
+						Value:    sym,
+						Terminal: true,
+						Source:   makeTermSource(sym),
+					}
+				} else {
+					pt.Children[i] = &types.ParseTree{
+						Value: sym,
+					}
+				}
+			}
+		}
+
+		// push children onto stack in reverse order so they are popped in
+		// the correct order (left to right)
+		for i := len(pt.Children) - 1; i >= 0; i-- {
+			treeStack.Push(pt.Children[i])
+		}
+
+		// remove the option we just did from the list of options
+		toCreate[pt.Value] = options[1:]
+		if len(toCreate[pt.Value]) == 0 {
+			delete(toCreate, pt.Value)
+		}
+	}
+
+	return *root, nil
+}
+
+// CreateFewestNonTermsAlternationsTable returns a map of non-terminals to the
+// production in their associated rule that using to derive would result in the
+// fewest new non-terminals being derived for that rule.
+func (g Grammar) CreateFewestNonTermsAlternationsTable() (map[string]Production, error) {
+	// DEFINITION OF SCORE:
+	// S(rule) = Floor(S(prod1) + S(prod2) + ... + S(prodN))
+	// S(prod) = num N of non terminals in a production + S(nonterm1) + S(nonterm2) + ... + S(nontermN)
+
+	// type to let us store either the int value or a reference to a score
+	type valOrRef struct {
+		val int
+		ref string
+	}
+
+	// this will let us quickly check the minimum possible value for a calculation
+	// and whether it is constant
+	minPossibleVal := func(calcSlice []valOrRef) (int, bool) {
+		valSoFar := 0
+		constant := true
+		for _, v := range calcSlice {
+			if v.ref != "" {
+				constant = false
+			} else {
+				valSoFar += v.val
+			}
+		}
+		return valSoFar, constant
+	}
+
+	// make shore we are operating on a sane grammar
+	err := g.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("invalid grammar: %w", err)
+	}
+
+	// use this to "unconvert" a production from its string represntation
+	prodStringToProd := map[string]Production{}
+
+	// Create entries in a table for each non-terminal for which there is a rule
+	// in the grammar, initially with no value set. Each item will be the score.
+	// Additionally, create a "shortest alt" table from a rule to the production
+	// that has the lowest score
+	shortest := map[string]Production{}
+	scores := map[string]int{}
+	calcs := map[string]map[string][]valOrRef{}
+
+	// For each production of each rule, create an entry in a calculations table
+	// that specifies the calculation to carry out as specified above. Not all
+	// will be fully solvable in this step. That's okay, we're just getting the
+	// calculation steps.
+	nts := g.NonTerminals()
+	for _, nt := range nts {
+		r := g.Rule(nt)
+		ntMap, ok := calcs[nt]
+		if !ok {
+			ntMap = map[string][]valOrRef{}
+			calcs[nt] = ntMap
+		}
+		for _, p := range r.Productions {
+			calcEntry := []valOrRef{}
+			for _, sym := range p {
+				if g.IsNonTerminal(sym) {
+					calcEntry = append(calcEntry, valOrRef{val: 1})
+					calcEntry = append(calcEntry, valOrRef{ref: sym})
+				}
+			}
+
+			// if the production is only terminals, then the score is 0
+			if len(calcEntry) == 0 {
+				calcEntry = append(calcEntry, valOrRef{val: 0})
+			}
+
+			prodStringToProd[p.String()] = p
+			ntMap[p.String()] = calcEntry
+		}
+	}
+
+	// Next, for each rule, if there are productions whose calculation is
+	// self-referential, eliminate them because they will never be the smallest.
+	// If this results in a rule being totally eliminated, the grammar has an
+	// inescapable derivation cycle and should not be considered valid.
+	for nt := range calcs {
+		ntCalcs := calcs[nt]
+
+		// find all the productions that are self-referential
+		for prodStr, calc := range ntCalcs {
+			for _, term := range calc {
+				if term.ref == nt {
+					delete(ntCalcs, prodStr)
+					break
+				}
+			}
+		}
+		calcs[nt] = ntCalcs
+
+		// check if this results in all prods being removed
+		if len(ntCalcs) == 0 {
+			return nil, fmt.Errorf("rule %s has an inescapable derivation cycle", nt)
+		}
+	}
+
+	// Repeat the following until the calculations table is empty:
+	for len(calcs) > 0 {
+		modified := false
+
+		// For each rule R in the calculations table, if there is a production
+		// for it which has a single constant value that is indisputably the
+		// lowest value, set that constant as the value of S(R) and the
+		// alternation as the value of the rule in shortest table, then
+		// eliminate all productions of R from the calculations table.
+		for nt := range calcs {
+			var remove bool
+			ntCalcs := calcs[nt]
+
+			for prodStr, calc := range ntCalcs {
+				if len(calc) == 1 && calc[0].ref == "" {
+					// we have a single constant value. check if it is the lowest
+					minVal := calc[0].val
+					isSmallest := true
+
+					for prodStr2, calc2 := range ntCalcs {
+						if prodStr2 == prodStr {
+							// don't check self
+							continue
+						}
+
+						// TODO: efficiency. use otherIsConstant to immediately
+						// move to THAT being the candidate instead of just
+						// giving up.
+						otherMinVal, _ := minPossibleVal(calc2)
+						if otherMinVal < minVal {
+							isSmallest = false
+							break
+						}
+					}
+
+					if isSmallest {
+						// set that constant as the value of S(R) and the
+						// alternation as the value of the rule in shortest
+						// table
+						scores[nt] = calc[0].val
+						prod, ok := prodStringToProd[prodStr]
+						if !ok {
+							// should never happen
+							panic(fmt.Sprintf("prod for %s not found in prodStringToProd", prodStr))
+						}
+						shortest[nt] = prod
+						remove = true
+					}
+				}
+				if remove {
+					// we already found the smallest and know we need to remove
+					// the nt, no need to keep looking
+					break
+				}
+			}
+			if remove {
+				delete(calcs, nt)
+				modified = true
+			}
+		}
+
+		// For each entry in the calculations table, replace the value of all
+		// known S(rule) expressions referred to with their actual value.
+		for nt := range calcs {
+			ntCalcs := calcs[nt]
+
+			for _, calc := range ntCalcs {
+				// Replace the value of all known S(rule) expressions referred
+				// to with their actual value.
+				for i := range calc {
+					if calc[i].ref == "" {
+						// constant value, nothing to do
+						continue
+					}
+
+					refedScore, ok := scores[calc[i].ref]
+					if !ok {
+						// we don't know the score yet, so we can't replace it
+						continue
+					}
+
+					// replace the ref with the score
+					calc[i] = valOrRef{val: refedScore}
+					modified = true
+				}
+			}
+		}
+
+		// Next, for each entry in the calculations table, if all items in the
+		// calculation are constants, replace the entry with a single constant
+		// that is the sum of all the constants.
+		for nt := range calcs {
+			ntCalcs := calcs[nt]
+
+			for prodStr, calc := range ntCalcs {
+				allConstants := true
+				var sum int
+				for i := range calc {
+					if calc[i].ref != "" {
+						allConstants = false
+						break
+					} else {
+						sum += calc[i].val
+					}
+				}
+				if allConstants {
+					modified = true
+
+					// replace the entry with a single constant that is the sum
+					// of all the constants
+					ntCalcs[prodStr] = []valOrRef{{val: sum}}
+				}
+			}
+		}
+
+		// cycle check; if a pass results in no changes, we have an indirect cycle
+		// and cannot continue.
+		if !modified {
+			return nil, fmt.Errorf("indirect derivation cycle detected")
+		}
+	}
+
+	return shortest, nil
 }
 
 // RemoveUnitProductions returns a Grammar that derives strings equivalent to
@@ -1641,7 +2018,7 @@ func (g Grammar) Validate() error {
 				if sym == "" {
 					continue
 				}
-				if strings.ToUpper(sym) == sym {
+				if g.IsNonTerminal(sym) {
 					// non-terminal
 					if _, ok := g.rulesByName[sym]; !ok {
 						errStr += fmt.Sprintf("ERR: no production defined for nonterminal %q produced by %q\n", sym, rule.NonTerminal)
