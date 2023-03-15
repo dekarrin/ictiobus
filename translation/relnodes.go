@@ -14,6 +14,10 @@ type AttrRef struct {
 	Name     string
 }
 
+func (ar AttrRef) String() string {
+	return fmt.Sprintf("%s[%q]", ar.Relation.String(), ar.Name)
+}
+
 type NodeRelationType int
 
 const (

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/stack"
 )
 
@@ -271,6 +272,10 @@ func DepGraphString(dg *DirectedGraph[DepNode]) string {
 
 	sb.WriteRune('(')
 
+	nodes = slices.SortBy(nodes, func(left, right *DirectedGraph[DepNode]) bool {
+		return left.Data.Tree.ID() < right.Data.Tree.ID()
+	})
+
 	for i := range nodes {
 		n := nodes[i]
 		dep := n.Data
@@ -295,7 +300,11 @@ func DepGraphString(dg *DirectedGraph[DepNode]) string {
 			nextIDs = append(nextIDs, n.Edges[j].Data.Tree.ID())
 		}
 
-		sb.WriteString(fmt.Sprintf("(%v: %q%s", nodeID, sym, prd))
+		var nodeStart string
+		if len(nodes) > 1 {
+			nodeStart = "\n\t"
+		}
+		sb.WriteString(fmt.Sprintf("%s(%v: %q%s <%s>", nodeStart, nodeID, sym, prd, dep.Dest))
 
 		if len(nextIDs) > 0 {
 			sb.WriteString(" -> {")
@@ -310,8 +319,12 @@ func DepGraphString(dg *DirectedGraph[DepNode]) string {
 
 		sb.WriteRune(')')
 		if i+1 < len(nodes) {
-			sb.WriteString(", ")
+			sb.WriteRune(',')
 		}
+	}
+
+	if len(nodes) > 1 {
+		sb.WriteRune('\n')
 	}
 
 	sb.WriteRune(')')
