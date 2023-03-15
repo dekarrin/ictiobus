@@ -2,10 +2,35 @@ package translation
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dekarrin/ictiobus/internal/stack"
 	"github.com/dekarrin/ictiobus/types"
 )
+
+// TODO: merge this with the ParseTree version
+const (
+	treeLevelEmpty               = "        "
+	treeLevelOngoing             = "  |     "
+	treeLevelPrefix              = "  |%s: "
+	treeLevelPrefixLast          = `  \%s: `
+	treeLevelPrefixNamePadChar   = '-'
+	treeLevelPrefixNamePadAmount = 3
+)
+
+func makeTreeLevelPrefix(msg string) string {
+	for len([]rune(msg)) < treeLevelPrefixNamePadAmount {
+		msg = string(treeLevelPrefixNamePadChar) + msg
+	}
+	return fmt.Sprintf(treeLevelPrefix, msg)
+}
+
+func makeTreeLevelPrefixLast(msg string) string {
+	for len([]rune(msg)) < treeLevelPrefixNamePadAmount {
+		msg = string(treeLevelPrefixNamePadChar) + msg
+	}
+	return fmt.Sprintf(treeLevelPrefixLast, msg)
+}
 
 type AnnotatedParseTree struct {
 	// Terminal is whether this node is for a terminal symbol.
@@ -61,6 +86,38 @@ func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 	}
 
 	return annoRoot
+}
+
+func (apt AnnotatedParseTree) String() string {
+	return apt.leveledStr("", "")
+}
+
+func (apt AnnotatedParseTree) leveledStr(firstPrefix, contPrefix string) string {
+	var sb strings.Builder
+
+	sb.WriteString(firstPrefix)
+	if apt.Terminal {
+		sb.WriteString(fmt.Sprintf("(%s: %s = %q)", apt.ID().String(), apt.Symbol, apt.Source.Lexeme()))
+	} else {
+		sb.WriteString(fmt.Sprintf("(%s: %s )", apt.ID().String(), apt.Symbol))
+	}
+
+	for i := range apt.Children {
+		sb.WriteRune('\n')
+		var leveledFirstPrefix string
+		var leveledContPrefix string
+		if i+1 < len(apt.Children) {
+			leveledFirstPrefix = contPrefix + makeTreeLevelPrefix("")
+			leveledContPrefix = contPrefix + treeLevelOngoing
+		} else {
+			leveledFirstPrefix = contPrefix + makeTreeLevelPrefixLast("")
+			leveledContPrefix = contPrefix + treeLevelEmpty
+		}
+		itemOut := apt.Children[i].leveledStr(leveledFirstPrefix, leveledContPrefix)
+		sb.WriteString(itemOut)
+	}
+
+	return sb.String()
 }
 
 // Returns the ID of this node in the parse tree. All nodes have an ID

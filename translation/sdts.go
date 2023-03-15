@@ -31,9 +31,11 @@ func (sdts *sdtsImpl) BindingsFor(head string, prod []string, attrRef AttrRef) [
 
 func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]interface{}, error) {
 	// first get an annotated parse tree
-	fmt.Println(tree.String())
 	root := AddAttributes(tree)
+	// TODO: allow the annotated parse tree to be printed for debug output
 	depGraphs := DepGraph(root, sdts)
+	// TODO: this is actually fine as long as we got exactly ONE with the root
+	// node but is probably not intended. we should warn, not error.
 	if len(depGraphs) > 1 {
 		return nil, evalError{
 			msg:       "applying SDD to tree results in evaluation dependency graph with disconnected segments",
