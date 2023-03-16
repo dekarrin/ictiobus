@@ -273,9 +273,12 @@ func sddFnRuleListAppend(_, _ string, args []interface{}) interface{} {
 
 	toAppend, ok := args[1].(grammar.Rule)
 	if !ok {
-		list = append(list, toAppend)
+		toAppend = grammar.Rule{
+			NonTerminal: ErrString,
+		}
 	}
 
+	list = append(list, toAppend)
 	return list
 }
 
@@ -296,7 +299,7 @@ func sddFnStringListAppend(_, _ string, args []interface{}) interface{} {
 
 	toAppend, ok := args[1].(string)
 	if !ok {
-		list = append(list, toAppend)
+		toAppend = ErrString
 	}
 
 	list = append(list, toAppend)
@@ -330,7 +333,7 @@ func sddFnStringListListAppend(_, _ string, args []interface{}) interface{} {
 
 	toAppend, ok := args[1].([]string)
 	if !ok {
-		list = append(list, toAppend)
+		toAppend = []string{ErrString}
 	}
 
 	list = append(list, toAppend)

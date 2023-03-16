@@ -31,9 +31,14 @@ func (sdts *sdtsImpl) BindingsFor(head string, prod []string, attrRef AttrRef) [
 
 func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]interface{}, error) {
 	// first get an annotated parse tree
-	fmt.Println(tree.String())
 	root := AddAttributes(tree)
+	// TODO: allow the annotated parse tree to be printed for debug output
 	depGraphs := DepGraph(root, sdts)
+	// TODO: this is actually fine as long as we got exactly ONE with the root
+	// node but is probably not intended. we should warn, not error.
+	//
+	// specifically, also check to see if a disconnected graph in fact has a parent
+	// with no SDT bindings and thus no connection to the child.
 	if len(depGraphs) > 1 {
 		return nil, evalError{
 			msg:       "applying SDD to tree results in evaluation dependency graph with disconnected segments",
@@ -239,7 +244,7 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, fakeValProdu
 	if len(evalErr.depGraphs) > 0 {
 		// disconnected depgraph error
 
-		fullMsg := "translation on fake parse tree resulted in disconnected depency graphs:"
+		fullMsg := "translation on fake parse tree resulted in disconnected dependency graphs:"
 
 		for i := range evalErr.depGraphs {
 			fullMsg += fmt.Sprintf("\n* %s", DepGraphString(evalErr.depGraphs[i]))

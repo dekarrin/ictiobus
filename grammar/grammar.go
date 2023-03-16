@@ -832,6 +832,10 @@ func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) (ty
 			continue
 		}
 
+		if pt.Value == "BLOCK" {
+			fmt.Printf("BREAKPOINT ANCHOR")
+		}
+
 		// select the production to do
 		options, ok := toCreate[pt.Value]
 		if !ok {

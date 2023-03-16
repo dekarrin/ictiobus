@@ -173,6 +173,8 @@ func (lx *lexerTemplate) FakeLexemeProducer(combine bool, state string) map[stri
 						// should never happen
 						panic(fmt.Sprintf("creating unregex for class %s (%q) failed: %v", pat.act.ClassID, pat.src, err))
 					}
+					ur.Seed(0)
+					ur.AnyCharsMax = 0x04ff
 					unregexers[pat.src] = ur
 				}
 

@@ -3,11 +3,17 @@
 // translation intepreter engine.
 package translation
 
+import "fmt"
+
 type APTNodeID uint64
 
 const (
 	IDZero APTNodeID = APTNodeID(0)
 )
+
+func (id APTNodeID) String() string {
+	return fmt.Sprintf("%d", id)
+}
 
 // IDGenerator should not be used directly, use NewIDGenerator. This will
 // generate one that avoids the zero-value of APTNodeID.

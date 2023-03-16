@@ -12,7 +12,7 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	// fill in the gaps until this part is fully written out
 	bootstrapSDDFakeSynth(sdd, "BLOCK", []string{"TOKENS-BLOCK"}, "ast", astGrammarBlock{content: []astGrammarContent{
 		{
-			state: "COULD BE TOKENS",
+			state: "COULD BE TOKENS, grammar block until done",
 			rules: []grammar.Rule{
 				{
 					NonTerminal: "TOKEN",
@@ -26,7 +26,7 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 
 	bootstrapSDDFakeSynth(sdd, "BLOCK", []string{"ACTIONS-BLOCK"}, "ast", astGrammarBlock{content: []astGrammarContent{
 		{
-			state: "COULD BE ACTIONS",
+			state: "COULD BE ACTIONS, grammar block until done",
 			rules: []grammar.Rule{
 				{
 					NonTerminal: "ACTION",
@@ -40,69 +40,56 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 
 	bootstrapSDDFishispecAST(sdd)
 	bootstrapSDDBlocksValue(sdd)
-
 	bootstrapSDDBlockAST(sdd)
 	bootstrapSDDGrammarBlockAST(sdd)
+	bootstrapSDDGrammarContentAST(sdd)
+	bootstrapSDDGrammarStateBlockValue(sdd)
 
-	bootstrapSDDFakeSynth(sdd, "GRAMMAR-CONTENT", []string{"GRAMMAR-CONTENT", "GRAMMAR-STATE-BLOCK"}, "ast", []astGrammarContent{
-		{
-			state: "GRAMMAR-CONTENT A",
-			rules: []grammar.Rule{
+	sdd.BindSynthesizedAttribute(
+		"GRAMMAR-RULES", []string{"GRAMMAR-RULE"},
+		"value",
+		func(_, _ string, args []interface{}) interface{} {
+			return []grammar.Rule{
 				{
-					NonTerminal: "ACTION",
+					NonTerminal: "FAKE-NT",
 					Productions: []grammar.Production{
-						{"ACTION", "ACTION", "ACTION"},
+						{"FAKE-NT-1", "FAKE-NT-2", "FAKE-NT-3"},
 					},
 				},
-			},
+			}
 		},
-	})
+		[]translation.AttrRef{},
+	)
 
-	bootstrapSDDFakeSynth(sdd, "GRAMMAR-CONTENT", []string{"GRAMMAR-CONTENT", "GRAMMAR-RULES"}, "ast", []astGrammarContent{
-		{
-			state: "GRAMMAR-CONTENT B",
-			rules: []grammar.Rule{
-				{
-					NonTerminal: "ACTION",
-					Productions: []grammar.Production{
-						{"ACTION", "ACTION", "ACTION"},
-					},
-				},
-			},
-		},
-	})
+	sdd.BindSynthesizedAttribute(
+		"GRAMMAR-RULES", []string{"GRAMMAR-RULES", "NEWLINES", "GRAMMAR-RULE"},
+		"value",
+		func(_, _ string, args []interface{}) interface{} {
+			list, ok := args[0].([]grammar.Rule)
+			if !ok {
+				return []grammar.Rule{}
+			}
 
-	bootstrapSDDFakeSynth(sdd, "GRAMMAR-CONTENT", []string{"GRAMMAR-STATE-BLOCK"}, "ast", []astGrammarContent{
-		{
-			state: "GRAMMAR-CONTENT C",
-			rules: []grammar.Rule{
-				{
-					NonTerminal: "ACTION",
-					Productions: []grammar.Production{
-						{"ACTION", "ACTION", "ACTION"},
-					},
+			toAppend := grammar.Rule{
+				NonTerminal: "FAKE-NT",
+				Productions: []grammar.Production{
+					{"FAKE-NT-1", "FAKE-NT-2", "FAKE-NT-3"},
 				},
-			},
-		},
-	})
+			}
 
-	bootstrapSDDFakeSynth(sdd, "GRAMMAR-CONTENT", []string{"GRAMMAR-RULES"}, "ast", []astGrammarContent{
-		{
-			state: "GRAMMAR-CONTENT D",
-			rules: []grammar.Rule{
-				{
-					NonTerminal: "ACTION",
-					Productions: []grammar.Production{
-						{"ACTION", "ACTION", "ACTION"},
-					},
-				},
-			},
+			list = append(list, toAppend)
+			return list
 		},
-	})
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+
+	bootstrapSDDFakeSynth(sdd, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", "someFakeState")
+	bootstrapSDDFakeSynth(sdd, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", "someFakeStateNoNL")
 
 	/*
-		bootstrapSDDGrammarContentAST(sdd)
-		bootstrapSDDGrammarStateBlockValue(sdd)
+
 		bootstrapSDDGrammarRulesValue(sdd)
 		bootstrapSDDGrammarRuleValue(sdd)
 		bootstrapSDDAlternationsValue(sdd)
@@ -191,15 +178,15 @@ func bootstrapSDDGrammarBlockAST(sdd ictiobus.SDTS) {
 		"ast",
 		sddFnMakeGrammarBlock,
 		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "ast"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "ast"},
 		},
 	)
 	sdd.BindSynthesizedAttribute(
 		"GRAMMAR-BLOCK", []string{tcHeaderGrammar.ID(), "NEWLINES", "GRAMMAR-CONTENT"},
 		"ast",
-		sddFnGrammarContentBlocksAppendStateBlock,
+		sddFnMakeGrammarBlock,
 		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "ast"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 2}, Name: "ast"},
 		},
 	)
 }
@@ -210,7 +197,7 @@ func bootstrapSDDGrammarContentAST(sdd ictiobus.SDTS) {
 		"ast",
 		sddFnGrammarContentBlocksAppendStateBlock,
 		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "ast"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
@@ -219,7 +206,7 @@ func bootstrapSDDGrammarContentAST(sdd ictiobus.SDTS) {
 		"ast",
 		sddFnGrammarContentBlocksAppendRuleList,
 		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "ast"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
