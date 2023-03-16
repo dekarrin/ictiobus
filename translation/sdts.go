@@ -36,6 +36,9 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 	depGraphs := DepGraph(root, sdts)
 	// TODO: this is actually fine as long as we got exactly ONE with the root
 	// node but is probably not intended. we should warn, not error.
+	//
+	// specifically, also check to see if a disconnected graph in fact has a parent
+	// with no SDT bindings and thus no connection to the child.
 	if len(depGraphs) > 1 {
 		return nil, evalError{
 			msg:       "applying SDD to tree results in evaluation dependency graph with disconnected segments",
