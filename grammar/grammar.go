@@ -936,8 +936,6 @@ func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) ([]
 		// add the root to our list of final trees
 		finalTrees = append(finalTrees, *root)
 
-		// 763-278-4555, ask for rachel
-
 		// now here's the reel trick; if we didn't actually end up covering all
 		// productions of toCreate, we will re-populate it... but ONLY if
 		// toCreate has at least one remaining entry that is not in our
