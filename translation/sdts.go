@@ -228,12 +228,13 @@ func (sdts *sdtsImpl) BindInheritedAttribute(head string, prod []string, attrNam
 // It will use fake value producer, if provided, to generate lexemes for
 // terminals in the tree; otherwise contrived values will be used.
 func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, fakeValProducer ...map[string]func() string) error {
-	pt, err := g.DeriveFullTree(fakeValProducer...)
+	pts, err := g.DeriveFullTree(fakeValProducer...)
 	if err != nil {
 		return fmt.Errorf("deriving fake parse tree: %w", err)
 	}
 
-	_, err = sdts.Evaluate(pt, attribute)
+	// TODO: use *all* parse trees, not just the first one
+	_, err = sdts.Evaluate(pts[0], attribute)
 
 	evalErr, ok := err.(evalError)
 	if !ok {
