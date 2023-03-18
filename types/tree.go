@@ -3,6 +3,8 @@ package types
 import (
 	"fmt"
 	"strings"
+
+	"github.com/dekarrin/ictiobus/internal/stack"
 )
 
 const (
@@ -68,37 +70,14 @@ func (pt ParseTree) Copy() ParseTree {
 	return newPt
 }
 
-func (pt ParseTree) leveledStr(firstPrefix, contPrefix string) string {
-	var sb strings.Builder
-
-	sb.WriteString(firstPrefix)
-	if pt.Terminal {
-		sb.WriteString(fmt.Sprintf("(TERM %q)", pt.Value))
-	} else {
-		sb.WriteString(fmt.Sprintf("( %s )", pt.Value))
-	}
-
-	for i := range pt.Children {
-		sb.WriteRune('\n')
-		var leveledFirstPrefix string
-		var leveledContPrefix string
-		if i+1 < len(pt.Children) {
-			leveledFirstPrefix = contPrefix + makeTreeLevelPrefix("")
-			leveledContPrefix = contPrefix + treeLevelOngoing
-		} else {
-			leveledFirstPrefix = contPrefix + makeTreeLevelPrefixLast("")
-			leveledContPrefix = contPrefix + treeLevelEmpty
-		}
-		itemOut := pt.Children[i].leveledStr(leveledFirstPrefix, leveledContPrefix)
-		sb.WriteString(itemOut)
-	}
-
-	return sb.String()
-}
-
 // Equal returns whether the parseTree is equal to the given object. If the
 // given object is not a parseTree, returns false, else returns whether the two
 // parse trees have the exact same structure.
+//
+// Does not consider the Source field, ergo only the structures of the trees are
+// compared, not their contents.
+//
+// Runs in O(n) time with respect to the number of nodes in the trees.
 func (pt ParseTree) Equal(o any) bool {
 	other, ok := o.(ParseTree)
 	if !ok {
@@ -129,4 +108,75 @@ func (pt ParseTree) Equal(o any) bool {
 		}
 	}
 	return true
+}
+
+// Checks if the given ParseTree contains sub as a sub-tree. Does not consider
+// Source for its comparisons, ergo only the structure is examined.
+//
+// This performs a depth-first traversal of the parse tree, checking if sub is
+// equal at every point. Runs in O(n^2) time with respect to the number of nodes
+// in the trees.
+//
+// Returns whether sub is a sub-tree of pt, and if so, the path to the first
+// node in pt where this is the case. The path is represented as a slice of ints
+// where each is the child index of the node to traverse to. If it is empty,
+// then the root node is the first node where sub is a sub-tree; this is not
+// necessarily the same as equality.
+func (pt ParseTree) ContainsSubTree(sub ParseTree) (isSubTree bool, path []int) {
+	type pair struct {
+		node *ParseTree
+		path []int
+	}
+
+	checkStack := stack.Stack[pair]{}
+	checkStack.Push(pair{&pt, []int{}})
+
+	for !checkStack.Empty() {
+		p := checkStack.Pop()
+		startNode := p.node
+		path := p.path
+
+		// add any node but the root to the path.
+		if idx != -1 {
+			buildingPath = append(buildingPath, idx)
+		}
+
+		if startNode.Equal(sub) {
+			return true, path
+		}
+
+		for i := len(startNode.Children) - 1; i >= 0; i-- {
+			checkStack.Push(startNode.Children[i])
+		}
+	}
+
+	return false
+}
+
+func (pt ParseTree) leveledStr(firstPrefix, contPrefix string) string {
+	var sb strings.Builder
+
+	sb.WriteString(firstPrefix)
+	if pt.Terminal {
+		sb.WriteString(fmt.Sprintf("(TERM %q)", pt.Value))
+	} else {
+		sb.WriteString(fmt.Sprintf("( %s )", pt.Value))
+	}
+
+	for i := range pt.Children {
+		sb.WriteRune('\n')
+		var leveledFirstPrefix string
+		var leveledContPrefix string
+		if i+1 < len(pt.Children) {
+			leveledFirstPrefix = contPrefix + makeTreeLevelPrefix("")
+			leveledContPrefix = contPrefix + treeLevelOngoing
+		} else {
+			leveledFirstPrefix = contPrefix + makeTreeLevelPrefixLast("")
+			leveledContPrefix = contPrefix + treeLevelEmpty
+		}
+		itemOut := pt.Children[i].leveledStr(leveledFirstPrefix, leveledContPrefix)
+		sb.WriteString(itemOut)
+	}
+
+	return sb.String()
 }

@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// TODO: just name this Set. The ISet was to distinguish from a non-box Set type
+// it used to be in the same package with, but that no longer exists.
 type ISet[E any] interface {
 	Container[E]
 

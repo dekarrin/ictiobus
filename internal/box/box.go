@@ -6,7 +6,7 @@ import (
 )
 
 type Container[E any] interface {
-	// Elements returns a slice of the elements. They are not garaunteed to be
+	// Elements returns a slice of the elements. They are not guaranteed to be
 	// in any particular order.
 	Elements() []E
 }
