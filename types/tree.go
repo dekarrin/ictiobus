@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/dekarrin/ictiobus/internal/stack"
 )
@@ -42,6 +43,207 @@ type ParseTree struct {
 
 	// Children is all children of the parse tree.
 	Children []*ParseTree
+}
+
+func MustParseTreeFromDiagram(s string) *ParseTree {
+	pt, err := ParseTreeFromDiagram(s)
+	if err != nil {
+		panic(err)
+	}
+	return pt
+}
+
+// ParseTreeFromDiagram reads a diagram of a parse tree and returns a ParseTree
+// that represents it. In the diagram string s, terminal nodes are enclosed in
+// parenthesis brackets, while non-terminal nodes are enclosed in square
+// brackets. The diagram is read from left to right, and all whitespace is
+// ignored. If a literal parenthesis or square bracket is desired, it must be
+// escaped with a backslash. literal backslashes must be escaped with another
+// backslash.
+//
+// For example, the following diagram:
+//
+//	 [S
+//
+//				  [NUM
+//				    (-)
+//				    (2)
+//				  ]
+//				  (+)
+//				  [NUM
+//					(3)
+//				  ]
+//
+//		    ]
+func ParseTreeFromDiagram(s string) (*ParseTree, error) {
+	var err error
+	var st stack.Stack[*ParseTree]
+	var pt *ParseTree
+
+	var curLine int
+	var inEscape bool
+	var text strings.Builder
+
+	for _, ch := range s {
+		// handle escape sequences
+		if inEscape {
+			if ch != '(' && ch != ')' && ch != '[' && ch != ']' && ch != '\\' && !unicode.IsSpace(ch) {
+				err = fmt.Errorf("invalid escape sequence at line %d", curLine)
+				return nil, err
+			}
+			text.WriteRune(ch)
+			inEscape = false
+			continue
+		}
+
+		// inc line number if we hit a newline, before discarding it
+		if ch == '\n' {
+			curLine++
+		}
+
+		// ignore whitespace
+		if unicode.IsSpace(ch) {
+			continue
+		}
+
+		switch ch {
+		case '\\':
+			inEscape = true
+		case '(':
+			if st.Len() == 0 {
+				// just put it on the stack itself
+				st.Push(&ParseTree{Terminal: true})
+			} else {
+				// make it a child of the top of the stack and push it on.
+				parent := st.Pop()
+
+				if parent.Terminal {
+					err = fmt.Errorf("unexpected start of term '(' at line %d; cannot have a terminal in a terminal", curLine)
+					return nil, err
+				}
+
+				// give parent the text we've been building
+				if parent.Value == "" {
+					parent.Value = text.String()
+				}
+
+				child := &ParseTree{Terminal: true}
+				parent.Children = append(parent.Children, child)
+				st.Push(parent)
+				st.Push(child)
+			}
+
+			text.Reset()
+		case ')':
+			if st.Len() == 0 {
+				err = fmt.Errorf("unexpected end of term ')' at line %d; not currently in term", curLine)
+				return nil, err
+			}
+
+			term := st.Pop()
+			if !term.Terminal {
+				err = fmt.Errorf("unexpected end of term ')' at line %d; not currently in term, did you mean ']'?", curLine)
+				return nil, err
+			}
+
+			term.Value = text.String()
+
+			if st.Len() == 0 {
+				pt = term
+			}
+
+			text.Reset()
+		case '[':
+			if st.Len() == 0 {
+				// just put it on the stack itself
+				st.Push(&ParseTree{Terminal: false})
+			} else {
+				// make it a child of the top of the stack and push it on.
+				parent := st.Pop()
+
+				if parent.Terminal {
+					err = fmt.Errorf("unexpected start of non-term '[' at line %d; cannot have a non-terminal in a terminal", curLine)
+					return nil, err
+				}
+
+				// give parent the text we've been building
+				if parent.Value == "" {
+					parent.Value = text.String()
+				}
+
+				child := &ParseTree{Terminal: false}
+				parent.Children = append(parent.Children, child)
+				st.Push(parent)
+				st.Push(child)
+			}
+
+			text.Reset()
+		case ']':
+			if st.Len() == 0 {
+				err = fmt.Errorf("unexpected end of non-term ']' at line %d; not currently in non-term", curLine)
+				return nil, err
+			}
+
+			nonTerm := st.Pop()
+			if nonTerm.Terminal {
+				err = fmt.Errorf("unexpected end of non-term ']' at line %d; not currently in non-term, did you mean ')'?", curLine)
+				return nil, err
+			}
+
+			if nonTerm.Value == "" {
+				nonTerm.Value = text.String()
+			}
+
+			if st.Len() == 0 {
+				pt = nonTerm
+			}
+
+			text.Reset()
+		default:
+			text.WriteRune(ch)
+		}
+	}
+
+	if st.Len() > 0 {
+		nodeOpenStr := "["
+		last := st.Pop()
+		if last.Terminal {
+			nodeOpenStr = "("
+		}
+
+		name := last.Value
+		if name == "" {
+			name = text.String()
+		}
+
+		err = fmt.Errorf("parse tree diagram ends with unclosed node: \"%s%s\"", nodeOpenStr, name)
+		return nil, err
+	}
+
+	return pt, nil
+}
+
+// PTLeaf is a convenience function for creating a new ParseTree that
+// represents a terminal symbol. The Source token may or may not be set as
+// desired. Note that t's type being ...Token is simply to make it optional;
+// only the first such provided t is examined.
+func PTLeaf(term string, t ...Token) *ParseTree {
+	pt := &ParseTree{Terminal: true, Value: term}
+	if len(t) > 0 {
+		pt.Source = t[0]
+	}
+	return pt
+}
+
+// PTNode is a convenience function for creating a new ParseTree that
+// represents a non-terminal symbol with minimal text.
+func PTNode(nt string, children ...*ParseTree) *ParseTree {
+	pt := &ParseTree{
+		Terminal: false,
+		Value:    nt,
+		Children: children,
+	}
+	return pt
 }
 
 // String returns a prettified representation of the entire parse tree suitable
@@ -110,47 +312,83 @@ func (pt ParseTree) Equal(o any) bool {
 	return true
 }
 
-// Checks if the given ParseTree contains sub as a sub-tree. Does not consider
-// Source for its comparisons, ergo only the structure is examined.
+// IsSubTreeOf checks if this ParseTree is a sub-tree of the given parse tree t.
+// Does not consider Source for its comparisons, ergo only the structure is
+// examined.
 //
-// This performs a depth-first traversal of the parse tree, checking if sub is
-// equal at every point. Runs in O(n^2) time with respect to the number of nodes
-// in the trees.
+// This performs a depth-first traversal of t, checking if there is any sub-tree
+// in t s.t. pt is exactly equal to that node. Runs in O(n^2) time with respect
+// to the number of nodes in the trees.
 //
-// Returns whether sub is a sub-tree of pt, and if so, the path to the first
-// node in pt where this is the case. The path is represented as a slice of ints
+// Returns whether pt is a sub-tree of t, and if so, the path to the first
+// node in t where this is the case. The path is represented as a slice of ints
 // where each is the child index of the node to traverse to. If it is empty,
 // then the root node is the first node where sub is a sub-tree; this is not
 // necessarily the same as equality.
-func (pt ParseTree) ContainsSubTree(sub ParseTree) (isSubTree bool, path []int) {
+func (pt ParseTree) IsSubTreeOf(t ParseTree) (contains bool, path []int) {
+	// impl the path as a reverse-linked list so we dont have to worry about
+	// copying things on every pop
+	//
+	// also include count of nodes, so when converting to slice we know the size
+	// of the slice ahead of time.
+	type pathList struct {
+		d     int
+		prev  *pathList
+		count int
+	}
+
 	type pair struct {
 		node *ParseTree
-		path []int
+		path *pathList
+	}
+
+	pathListToSlice := func(pl *pathList) []int {
+		size := 0
+		if pl != nil {
+			size = pl.count
+		}
+
+		sl := make([]int, size)
+		slIdx := size - 1
+
+		cur := pl
+		for cur != nil {
+			sl[slIdx] = cur.d
+			slIdx--
+			cur = cur.prev
+		}
+
+		return sl
 	}
 
 	checkStack := stack.Stack[pair]{}
-	checkStack.Push(pair{&pt, []int{}})
+	checkStack.Push(pair{&t, nil})
 
 	for !checkStack.Empty() {
 		p := checkStack.Pop()
 		startNode := p.node
-		path := p.path
+		pList := p.path // NOTE: may be nil
 
-		// add any node but the root to the path.
-		if idx != -1 {
-			buildingPath = append(buildingPath, idx)
-		}
-
-		if startNode.Equal(sub) {
-			return true, path
+		if pt.Equal(startNode) {
+			return true, pathListToSlice(pList)
 		}
 
 		for i := len(startNode.Children) - 1; i >= 0; i-- {
-			checkStack.Push(startNode.Children[i])
+			nextPath := &pathList{
+				d:     i,
+				prev:  pList,
+				count: 1,
+			}
+
+			if pList != nil {
+				nextPath.count += pList.count
+			}
+
+			checkStack.Push(pair{startNode.Children[i], nextPath})
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 func (pt ParseTree) leveledStr(firstPrefix, contPrefix string) string {
