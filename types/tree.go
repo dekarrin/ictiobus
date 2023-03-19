@@ -5,6 +5,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/stack"
 )
 
@@ -15,6 +17,8 @@ const (
 	treeLevelPrefixLast          = `  \%s: `
 	treeLevelPrefixNamePadChar   = '-'
 	treeLevelPrefixNamePadAmount = 3
+
+	ShortCircuitPrefix = "__ICTIO__:SHORTCIRC:"
 )
 
 func makeTreeLevelPrefix(msg string) string {
@@ -246,6 +250,19 @@ func PTNode(nt string, children ...*ParseTree) *ParseTree {
 	return pt
 }
 
+func (pt ParseTree) Follow(path []int) *ParseTree {
+	cur := &pt
+	for i := range path {
+		if path[i] < 0 || path[i] >= len(cur.Children) {
+			panic(fmt.Sprintf("cannot follow path[%d]: index out of range: %d", i, path[i]))
+		}
+
+		cur = cur.Children[path[i]]
+	}
+
+	return cur
+}
+
 // String returns a prettified representation of the entire parse tree suitable
 // for use in line-by-line comparisons of tree structure. Two parse trees are
 // considered semantcally identical if they produce identical String() output.
@@ -312,6 +329,77 @@ func (pt ParseTree) Equal(o any) bool {
 	return true
 }
 
+// PathToDiff returns the point at which the two parse trees diverge, as
+// well as whether they diverge at all. If they do not diverge, the returned
+// path should not be used.
+//
+// Finds the path to the point at which the two trees diverge. If set to ignore
+// short-circuit, does not include any branches that were inserted via
+// shortest-circuit, as detected with "__ICTIO__:SHORTCIRC:" in front of it.
+//
+// If there are multiple nodes that satisfy the above definition, then the point
+// of divergence is the first common ancestor of all such nodes.
+//
+// This does not consider the Source field, ergo only the structures of the
+// trees are compared, not their contents.
+//
+// Runs in O(n) time with respect to the number of nodes in the trees.
+func (pt ParseTree) PathToDiff(t ParseTree, ignoreShortCircuit bool) (path []int, diverges bool) {
+	checkStack := stack.Stack[box.HPair[treeNode]]{}
+	checkStack.Push(box.HPairOf(treeNode{&t, slices.LList[int]{}}, treeNode{&pt, slices.LList[int]{}}))
+
+	allPoints := [][]int{}
+
+	for !checkStack.Empty() {
+		p := checkStack.Pop()
+		tn1, tn2 := p.All()
+		n1, n2 := tn1.node, tn2.node
+		if !ignoreShortCircuit || (!(strings.HasPrefix(n1.Value, ShortCircuitPrefix) && !strings.HasPrefix(n2.Value, ShortCircuitPrefix))) {
+			if n1.Terminal != n2.Terminal || n1.Value != n2.Value || len(n1.Children) != len(n2.Children) {
+				// diverges here
+				allPoints = append(allPoints, tn1.path.Slice())
+				// don't check the rest of the children
+				continue
+			}
+		}
+
+		pList := tn1.path // NOTE: may be nil
+		for i := len(tn1.node.Children) - 1; i >= 0; i-- {
+			nextPath := pList.Add(i)
+
+			tn1Child := tn1.node.Children[i]
+			tn2Child := tn2.node.Children[i]
+
+			tn1Item := treeNode{tn1Child, nextPath}
+			tn2Item := treeNode{tn2Child, nextPath}
+
+			checkStack.Push(box.HPairOf(tn1Item, tn2Item))
+		}
+	}
+
+	if len(allPoints) == 0 {
+		return nil, false
+	}
+
+	if len(allPoints) > 1 {
+		// find the first common ancestor
+
+		// check each index
+		for i := 0; i < len(allPoints[0]); i++ {
+
+			// check each output
+			for j := 1; j < len(allPoints); j++ {
+				if allPoints[j-1][i] != allPoints[j][i] {
+					// first common ancestor is the parent of the first divergent node
+					return allPoints[0][:i], true
+				}
+			}
+		}
+	}
+
+	return allPoints[0], true
+}
+
 // IsSubTreeOf checks if this ParseTree is a sub-tree of the given parse tree t.
 // Does not consider Source for its comparisons, ergo only the structure is
 // examined.
@@ -326,65 +414,21 @@ func (pt ParseTree) Equal(o any) bool {
 // then the root node is the first node where sub is a sub-tree; this is not
 // necessarily the same as equality.
 func (pt ParseTree) IsSubTreeOf(t ParseTree) (contains bool, path []int) {
-	// impl the path as a reverse-linked list so we dont have to worry about
-	// copying things on every pop
-	//
-	// also include count of nodes, so when converting to slice we know the size
-	// of the slice ahead of time.
-	type pathList struct {
-		d     int
-		prev  *pathList
-		count int
-	}
-
-	type pair struct {
-		node *ParseTree
-		path *pathList
-	}
-
-	pathListToSlice := func(pl *pathList) []int {
-		size := 0
-		if pl != nil {
-			size = pl.count
-		}
-
-		sl := make([]int, size)
-		slIdx := size - 1
-
-		cur := pl
-		for cur != nil {
-			sl[slIdx] = cur.d
-			slIdx--
-			cur = cur.prev
-		}
-
-		return sl
-	}
-
-	checkStack := stack.Stack[pair]{}
-	checkStack.Push(pair{&t, nil})
+	checkStack := stack.Stack[treeNode]{}
+	checkStack.Push(treeNode{&t, slices.LList[int]{}})
 
 	for !checkStack.Empty() {
 		p := checkStack.Pop()
 		startNode := p.node
-		pList := p.path // NOTE: may be nil
+		pList := p.path
 
 		if pt.Equal(startNode) {
-			return true, pathListToSlice(pList)
+			return true, pList.Slice()
 		}
 
 		for i := len(startNode.Children) - 1; i >= 0; i-- {
-			nextPath := &pathList{
-				d:     i,
-				prev:  pList,
-				count: 1,
-			}
-
-			if pList != nil {
-				nextPath.count += pList.count
-			}
-
-			checkStack.Push(pair{startNode.Children[i], nextPath})
+			nextPath := pList.Add(i)
+			checkStack.Push(treeNode{startNode.Children[i], nextPath})
 		}
 	}
 
@@ -417,4 +461,9 @@ func (pt ParseTree) leveledStr(firstPrefix, contPrefix string) string {
 	}
 
 	return sb.String()
+}
+
+type treeNode struct {
+	node *ParseTree
+	path slices.LList[int]
 }

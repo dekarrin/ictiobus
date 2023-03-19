@@ -1,23 +1,87 @@
 package types
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Help(t *testing.T) {
-	st := MustParseTreeFromDiagram("[S (+) (+)]")
+func Test_ParseTree_PathToDiff(t *testing.T) {
+	testCases := []struct {
+		name          string
+		tree          *ParseTree
+		t             *ParseTree
+		ignoreSC      bool
+		expect        []int
+		expectDiverge bool
+	}{
+		{
+			name:          "zero tree - has no divergence",
+			tree:          &ParseTree{},
+			t:             &ParseTree{},
+			expectDiverge: false,
+		},
+		{
+			name:          "simple tree - divergence at root - value",
+			tree:          MustParseTreeFromDiagram("[A]"),
+			t:             MustParseTreeFromDiagram("[S]"),
+			expect:        []int{},
+			expectDiverge: true,
+		},
+		{
+			name:          "simple tree - divergence at root - num children",
+			tree:          MustParseTreeFromDiagram("[A (a)]"),
+			t:             MustParseTreeFromDiagram("[A (a) (b)]"),
+			expect:        []int{},
+			expectDiverge: true,
+		},
+		{
+			name:          "simple tree - divergence at root - type",
+			tree:          MustParseTreeFromDiagram("[A]"),
+			t:             MustParseTreeFromDiagram("(A)"),
+			expect:        []int{},
+			expectDiverge: true,
+		},
+		{
+			name:          "one point of divergence",
+			tree:          MustParseTreeFromDiagram("[S  [A (a)]  [B (b)]]"),
+			t:             MustParseTreeFromDiagram("[S  [A (b)]  [B (b)]]"),
+			expect:        []int{0, 0},
+			expectDiverge: true,
+		},
+		{
+			name:          "multiple points of divergence",
+			tree:          MustParseTreeFromDiagram("[S  [A (a) (b)]  [B (b)]]"),
+			t:             MustParseTreeFromDiagram("[S  [A (b) (a)]  [B (b)]]"),
+			expect:        []int{0},
+			expectDiverge: true,
+		},
+		{
+			name:          "multiple points of divergence - up to root",
+			tree:          MustParseTreeFromDiagram("[S  [A (a)]  [B (b)]]"),
+			t:             MustParseTreeFromDiagram("[S  [A (b)]  [A (b)]]"),
+			expect:        []int{},
+			expectDiverge: true,
+		},
+	}
 
-	fmt.Println(st.String())
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
 
-	assert.True(t, false)
+			actual, actualDiverge := tc.tree.PathToDiff(*tc.t, tc.ignoreSC)
+
+			assert.Equal(tc.expectDiverge, actualDiverge)
+			if tc.expectDiverge {
+				assert.Equal(tc.expect, actual)
+			}
+		})
+	}
+
 }
 
 func Test_ParseTree_IsSubTreeOf(t *testing.T) {
-
-	testsCases := []struct {
+	testCases := []struct {
 		name       string
 		tree       *ParseTree
 		t          *ParseTree
@@ -188,7 +252,7 @@ func Test_ParseTree_IsSubTreeOf(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testsCases {
+	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := assert.New(t)
 
