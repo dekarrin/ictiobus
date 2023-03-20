@@ -43,7 +43,7 @@ type Triple[E1, E2, E3 any] struct {
 	Third  E3
 }
 
-func NewTriple[E1, E2, E3 any](first E1, second E2, third E3) Triple[E1, E2, E3] {
+func TripleOf[E1, E2, E3 any](first E1, second E2, third E3) Triple[E1, E2, E3] {
 	return Triple[E1, E2, E3]{First: first, Second: second, Third: third}
 }
 
@@ -62,7 +62,7 @@ type HTriple[E any] struct {
 	Third  E
 }
 
-func NewHTriple[E any](first E, second E, third E) HTriple[E] {
+func HTripleOf[E any](first E, second E, third E) HTriple[E] {
 	return HTriple[E]{First: first, Second: second, Third: third}
 }
 
@@ -82,7 +82,7 @@ type Quadruple[E1, E2, E3, E4 any] struct {
 	Fourth E4
 }
 
-func NewQuadruple[E1, E2, E3, E4 any](first E1, second E2, third E3, fourth E4) Quadruple[E1, E2, E3, E4] {
+func QuadrupleOf[E1, E2, E3, E4 any](first E1, second E2, third E3, fourth E4) Quadruple[E1, E2, E3, E4] {
 	return Quadruple[E1, E2, E3, E4]{First: first, Second: second, Third: third, Fourth: fourth}
 }
 
@@ -102,7 +102,7 @@ type HQuadruple[E any] struct {
 	Fourth E
 }
 
-func NewHQuadruple[E any](first E, second E, third E, fourth E) HQuadruple[E] {
+func HQuadrupleOf[E any](first E, second E, third E, fourth E) HQuadruple[E] {
 	return HQuadruple[E]{First: first, Second: second, Third: third, Fourth: fourth}
 }
 

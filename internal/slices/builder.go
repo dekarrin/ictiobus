@@ -10,15 +10,15 @@ package slices
 //
 // The zero value is a valid empty list.
 type LList[E any] struct {
-	d     E
-	prev  *LList[E]
-	count int
+	d      E
+	prev   *LList[E]
+	filled bool
 }
 
 func (ll LList[E]) Add(d E) LList[E] {
-	newList := LList[E]{d: d, count: ll.count + 1}
+	newList := LList[E]{d: d, filled: true}
 
-	if ll.count != 0 {
+	if ll.filled {
 		newList.prev = &ll
 	}
 
@@ -26,7 +26,7 @@ func (ll LList[E]) Add(d E) LList[E] {
 }
 
 func (ll LList[E]) Remove() LList[E] {
-	if ll.count == 0 {
+	if !ll.filled {
 		panic("cannot remove from empty list")
 	}
 
@@ -38,8 +38,25 @@ func (ll LList[E]) Remove() LList[E] {
 	return *ll.prev
 }
 
+// Len gets the number of elements in the list. Note that this is an O(n)
+// operation due to LL's not tracking their length.
+func (ll LList[E]) Len() int {
+	if !ll.filled {
+		return 0
+	}
+
+	count := 0
+	cur := &ll
+	for cur != nil {
+		count++
+		cur = cur.prev
+	}
+
+	return count
+}
+
 func (ll LList[E]) Empty() bool {
-	return ll.count == 0
+	return !ll.filled
 }
 
 func (ll LList[E]) Slice() []E {
@@ -47,8 +64,16 @@ func (ll LList[E]) Slice() []E {
 		return []E{}
 	}
 
-	sl := make([]E, ll.count)
-	slIdx := ll.count - 1
+	// find number of elements
+	curr := &ll
+	count := 0
+	for curr != nil {
+		count++
+		curr = curr.prev
+	}
+
+	sl := make([]E, count)
+	slIdx := count - 1
 
 	cur := &ll
 	for cur != nil {

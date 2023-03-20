@@ -1122,7 +1122,7 @@ func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) ([]
 				for _, pair := range derivationPath {
 					p := pair.Second
 					for _, sym := range p {
-
+						fmt.Println(sym) // TODO: remove. added to make compiler shut up
 					}
 				}
 				reachableRecursablePath = podPath[:i]
@@ -1130,6 +1130,7 @@ func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) ([]
 				break
 			}
 		}
+		fmt.Println(reachableRecursableDerivation) // TODO: remove. added to make compiler shut up
 
 		if reachableRecursablePath == nil {
 			// if there is no such node, then the trees cannot be merged.
@@ -1165,7 +1166,7 @@ func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) ([]
 		// TODO: need to implement this:
 		// first, find *all* paths to self in the one being checked on the left.
 		// then, find *all* paths to F'.
-		//
+		// for each path to self, if there is a path to F'
 		//
 
 		//
@@ -1185,63 +1186,6 @@ func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) ([]
 	// 3. Insert the second tree into the first tree.
 
 	return finalTrees, nil
-}
-
-func (g Grammar) ReachableFrom(start string, end string) (bool, []Pair[string, Production]) {
-	if !g.IsNonTerminal(start) {
-		return false, nil
-	}
-	if !g.IsNonTerminal(end) && !g.IsTerminal(end) {
-		return false, nil
-	}
-
-	// run reachability algorithm, but instead of starting at the start symbol,
-	// start with each production of it.
-
-	reached := box.NewSVSet[slices.LList[Pair[string, Production]]]()
-
-	r := g.Rule(start)
-	for _, p := range r.Productions {
-		for _, sym := range p {
-			var path slices.LList[Pair[string, Production]]
-			path = path.Add(PairOf(start, p))
-
-			if sym == end {
-				return true, path.Slice()
-			}
-			reached.Add(sym)
-			reached.Set(sym, path)
-		}
-	}
-
-	updated := true
-	for updated {
-		updated = false
-		for k := range reached {
-			rule := g.Rule(k)
-			if rule.NonTerminal != k {
-				// terminal; don't check it
-				continue
-			}
-			for _, prod := range rule.Productions {
-				for _, sym := range prod {
-					var path = reached.Get(k)
-					path = path.Add(PairOf(k, prod))
-
-					if sym == end {
-						return true, path.Slice()
-					}
-					if !reached.Has(sym) {
-						reached.Add(sym)
-						reached.Set(sym, path)
-						updated = true
-					}
-				}
-			}
-		}
-	}
-
-	return false, nil
 }
 
 // CreateFewestNonTermsAlternationsTable returns a map of non-terminals to the
