@@ -784,7 +784,7 @@ func (g Grammar) deriveShortestTree(sym string, shortestDerivation map[string]Pr
 // a key in it. If the map is not provided or does not contain a key for a
 // token class matching a terminal being generated, a default string will be
 // automatically generated for it.
-func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) (types.ParseTree, error) {
+func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) ([]types.ParseTree, error) {
 	// create a function to get a value for any terminal from the
 	// fakeValProducer, falling back on default behavior if none is provided or
 	// if a token class is not found in the fakeValProducer.
@@ -804,11 +804,13 @@ func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) (ty
 
 	// we need to get a list of all productions that we have yet to create
 	toCreate := map[string][]Production{}
+	uncoveredSymbols := box.NewStringSet()
 	for _, nonTerm := range g.NonTerminals() {
 		rule := g.Rule(nonTerm)
 		prods := make([]Production, len(rule.Productions))
 		copy(prods, rule.Productions)
 		toCreate[nonTerm] = prods
+		uncoveredSymbols.Add(nonTerm)
 	}
 
 	// we also need to get the 'shortest' production for each non-terminal; this
@@ -816,71 +818,245 @@ func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) (ty
 	// non-terminals being used in the final parse tree.
 	shortestDerivation, err := g.CreateFewestNonTermsAlternationsTable()
 	if err != nil {
-		return types.ParseTree{}, fmt.Errorf("failed to get shortest derivation table for grammar: %w", err)
+		return nil, fmt.Errorf("failed to get shortest derivation table for grammar: %w", err)
 	}
 
-	root := &types.ParseTree{
-		Terminal: false,
-		Value:    g.StartSymbol(),
-	}
-	treeStack := stack.Stack[*types.ParseTree]{Of: []*types.ParseTree{root}}
+	// put in all symbols that we are totally done with
+	// TODO: we can probs replace using both coveredSymbols and uncoveredSymbols
+	// by only using uncoveredSymbols; it's the only one we will iterate on.
+	coveredSymbols := box.NewStringSet()
 
-	for treeStack.Len() > 0 {
-		pt := treeStack.Pop()
-
-		if pt.Terminal {
-			continue
+	// this function will be called for non-terminals who have fully cleared
+	// their productions from toCreate during an iteration.
+	CLEARED_NT_IS_COVERED := func(checkNT string) bool {
+		// if it has ever been covered, it is covered
+		if coveredSymbols.Has(checkNT) {
+			return true
 		}
 
-		if pt.Value == "BLOCK" {
-			fmt.Printf("BREAKPOINT ANCHOR")
-		}
-
-		// select the production to do
-		options, ok := toCreate[pt.Value]
-		if !ok {
-			// we have already created all the productions for this non-terminal
-			// so we need to select the production that results in the fewest
-			// non-terminals being used and be done.
-			shortest := g.deriveShortestTree(pt.Value, shortestDerivation, makeTermSource)
-			pt.Children = shortest.Children
-			continue
-		}
-
-		option := options[0]
-		if option.Equal(Epsilon) {
-			pt.Children = []*types.ParseTree{{Terminal: true}}
-		} else {
-			pt.Children = make([]*types.ParseTree, len(option))
-			for i, sym := range option {
+		ntRule := g.Rule(checkNT)
+		for _, p := range ntRule.Productions {
+			for _, sym := range p {
 				if g.IsTerminal(sym) {
-					pt.Children[i] = &types.ParseTree{
-						Value:    sym,
-						Terminal: true,
-						Source:   makeTermSource(sym),
+					// terminals are not considered as part of the check, as
+					// they will be covered by the non-terminal having done so
+					// in clearing its toCreate entry.
+					continue
+				}
+
+				if coveredSymbols.Has(sym) {
+					// this symbol is covered, so we can skip it
+					continue
+				}
+
+				// ... but dont return not covered if the symbol can recurse
+				// back to checkNT
+				if sym == checkNT {
+					// this symbol can recurse back to NT. do not check it
+					// for coverage, as it will be covered by nature of
+					// being higher up in the tree.
+					continue
+				}
+
+				if reachable, _ := g.ReachableFrom(sym, checkNT); reachable {
+					continue
+				}
+
+				// if we are here, then the sym is a non-terminal not in
+				// coveredSymbols that will not recurse to checkNT. checkNT is
+				// not covered.
+				return false
+			}
+		}
+
+		return true
+	}
+
+	finalTrees := []types.ParseTree{}
+
+	for len(toCreate) > 0 {
+		root := &types.ParseTree{
+			Terminal: false,
+			Value:    g.StartSymbol(),
+		}
+		treeStack := stack.Stack[*types.ParseTree]{Of: []*types.ParseTree{root}}
+
+		for treeStack.Len() > 0 {
+			pt := treeStack.Pop()
+
+			if pt.Terminal {
+				continue
+			}
+
+			// select the production to do
+			options, ok := toCreate[pt.Value]
+			if !ok {
+				// we have already created all the productions for this non-terminal
+				// so we need to select the production that results in the fewest
+				// non-terminals being used and be done.
+				shortest := g.deriveShortestTree(pt.Value, shortestDerivation, makeTermSource)
+				pt.Children = shortest.Children
+				continue
+			}
+
+			option := options[0]
+			if option.Equal(Epsilon) {
+				// epsilon prod must be specifically added to done here since it
+				// would not be added to the done list otherwise
+				pt.Children = []*types.ParseTree{{Terminal: true}}
+			} else {
+				pt.Children = make([]*types.ParseTree, len(option))
+				for i, sym := range option {
+					if g.IsTerminal(sym) {
+						pt.Children[i] = &types.ParseTree{
+							Value:    sym,
+							Terminal: true,
+							Source:   makeTermSource(sym),
+						}
+					} else {
+						pt.Children[i] = &types.ParseTree{
+							Value: sym,
+						}
 					}
-				} else {
-					pt.Children[i] = &types.ParseTree{
-						Value: sym,
+				}
+			}
+
+			// push children onto stack in reverse order so they are popped in
+			// the correct order (left to right)
+			for i := len(pt.Children) - 1; i >= 0; i-- {
+				treeStack.Push(pt.Children[i])
+			}
+
+			toCreate[pt.Value] = options[1:]
+			if len(toCreate[pt.Value]) == 0 {
+				delete(toCreate, pt.Value)
+				if CLEARED_NT_IS_COVERED(pt.Value) {
+					uncoveredSymbols.Remove(pt.Value)
+					coveredSymbols.Add(pt.Value)
+				}
+			}
+
+		}
+		// add the root to our list of final trees
+		finalTrees = append(finalTrees, *root)
+
+		// now here's the reel trick; if we didn't actually end up covering all
+		// productions of toCreate, we will re-populate it... but ONLY if
+		// toCreate has at least one remaining entry that is not in our
+		// "covered" table.
+		//
+		// Additionally, we will not repopulate the ones that were incomplete,
+		// so next time through we are guaranteed to hit the next item.
+		if len(toCreate) > 0 {
+			// prior to running checks, run through our list of uncoveredSymbols
+			// that have been cleared in this iteration and see if they are NOW
+			// covered. We will need to retry on each iteration.
+			clearedButUncovered := box.NewStringSet()
+			for _, nt := range uncoveredSymbols.Elements() {
+				if _, ok := toCreate[nt]; !ok {
+					// if it's not currently covered but it is no longer in toCreate,
+					// then its CLEARED_NT_IS_COVERED check was false. but more
+					// may have happened since then, so we need to check it
+					// again.
+					//
+					// TODO: actually we probably don't need the original check
+					// at all. This would cover it. But we could retain cleared
+					// and update THAT as we go.
+					clearedButUncovered.Add(nt)
+				}
+			}
+			updatedClearedButUncovered := true
+			for updatedClearedButUncovered {
+				updatedClearedButUncovered = false
+				for _, nt := range clearedButUncovered.Elements() {
+					if CLEARED_NT_IS_COVERED(nt) {
+						coveredSymbols.Add(nt)
+						uncoveredSymbols.Remove(nt)
+						clearedButUncovered.Remove(nt)
+						updatedClearedButUncovered = true
+					}
+				}
+			}
+
+			// now everyfin should be current. proceed with normal check.
+
+			stillUncovered := box.NewStringSet()
+
+			for sym := range toCreate {
+				// if sym is in the coveredSymbols, then it *is* complete,
+				// actually; just from a prior iteration
+				if !coveredSymbols.Has(sym) {
+					stillUncovered.Add(sym)
+				}
+			}
+
+			if stillUncovered.Empty() {
+				// if we have nothing in stillUncovered, then we have covered all
+				// items across all iterations, so we are done. set toCreate to
+				// empty so we exit the loop.
+				toCreate = map[string][]Production{}
+			} else {
+				// repopulate all items that were covered in some prior iteration
+				for _, nonTerm := range g.NonTerminals() {
+					if !stillUncovered.Has(nonTerm) {
+						rule := g.Rule(nonTerm)
+						prods := make([]Production, len(rule.Productions))
+						copy(prods, rule.Productions)
+						toCreate[nonTerm] = prods
 					}
 				}
 			}
 		}
+	}
 
-		// push children onto stack in reverse order so they are popped in
-		// the correct order (left to right)
-		for i := len(pt.Children) - 1; i >= 0; i-- {
-			treeStack.Push(pt.Children[i])
+	// clean up all trees that are subtrees and equal to other trees.
+	updated := true
+	for updated {
+		updated = false
+		removeItems := make([]int, 0)
+		for i := 1; i < len(finalTrees); i += 2 {
+			containsLeft, pathLeft := finalTrees[i-1].IsSubTreeOf(finalTrees[i])
+			if containsLeft {
+				if len(pathLeft) == 0 {
+					// it is a subtree at root, aka identical. just keep one.
+					removeItems = append(removeItems, i)
+					updated = true
+				} else {
+					// first final tree is a subtree of the second, so we remove
+					// it
+					removeItems = append(removeItems, i-1)
+				}
+			} else {
+				containsRight, pathRight := finalTrees[i].IsSubTreeOf(finalTrees[i-1])
+				if containsRight {
+					if len(pathRight) == 0 {
+						// it is a subtree at root, aka identical. just keep one.
+						removeItems = append(removeItems, i)
+						updated = true
+					} else {
+						// second final tree is a subtree of the first, so we remove
+						// it
+						removeItems = append(removeItems, i)
+					}
+				}
+			}
+
+			// otherwise, don't remove either
 		}
 
-		// remove the option we just did from the list of options
-		toCreate[pt.Value] = options[1:]
-		if len(toCreate[pt.Value]) == 0 {
-			delete(toCreate, pt.Value)
+		if len(removeItems) > 0 {
+			updatedFinal := make([]types.ParseTree, 0)
+			for i := 0; i < len(finalTrees); i++ {
+				if !slices.In(i, removeItems) {
+					updatedFinal = append(updatedFinal, finalTrees[i])
+				}
+			}
+			finalTrees = updatedFinal
+			updated = true
 		}
 	}
 
-	return *root, nil
+	return finalTrees, nil
 }
 
 // CreateFewestNonTermsAlternationsTable returns a map of non-terminals to the
