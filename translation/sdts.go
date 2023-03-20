@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
+	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/types"
 )
 
@@ -233,30 +234,48 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, fakeValProdu
 		return fmt.Errorf("deriving fake parse tree: %w", err)
 	}
 
-	// TODO: use *all* parse trees, not just the first one
-	_, err = sdts.Evaluate(pts[0], attribute)
+	// TODO: one day, maybe trees can be merged, but that's a lot of work
+	treeErrs := []box.Pair[error, *types.ParseTree]{}
 
-	evalErr, ok := err.(evalError)
-	if !ok {
-		return err
-	}
+	for i := range pts {
+		_, err = sdts.Evaluate(pts[i], attribute)
 
-	// TODO: betta explanation of what happened using the info in the error
-	if len(evalErr.depGraphs) > 0 {
-		// disconnected depgraph error
-
-		fullMsg := "translation on fake parse tree resulted in disconnected dependency graphs:"
-
-		for i := range evalErr.depGraphs {
-			fullMsg += fmt.Sprintf("\n* %s", DepGraphString(evalErr.depGraphs[i]))
+		evalErr, ok := err.(evalError)
+		if !ok {
+			treeErrs = append(treeErrs, box.PairOf(err, &pts[i]))
+			continue
 		}
 
-		return fmt.Errorf(fullMsg)
+		// TODO: betta explanation of what happened using the info in the error
+		if len(evalErr.depGraphs) > 0 {
+			// disconnected depgraph error
+
+			fullMsg := "translation on fake parse tree resulted in disconnected dependency graphs:"
+
+			for i := range evalErr.depGraphs {
+				fullMsg += fmt.Sprintf("\n* %s", DepGraphString(evalErr.depGraphs[i]))
+			}
+
+			treeErrs = append(treeErrs, box.PairOf(fmt.Errorf(fullMsg), &pts[i]))
+			continue
+		}
+
+		// TODO: betta message for kahn sort error
+
+		treeErrs = append(treeErrs, box.PairOf(err, &pts[i]))
 	}
 
-	// TODO: betta message for kahn sort error
+	var finalErr error
 
-	return err
+	if len(treeErrs) > 0 {
+		fullErrStr := "Running on fake parse tree(s) got errors:"
+		for i := range treeErrs {
+			fullErrStr += fmt.Sprintf("\n\nTree %d: \n%s\n%s", i+1, treeErrs[i].Second.String(), treeErrs[i].First.Error())
+		}
+		finalErr = fmt.Errorf(fullErrStr)
+	}
+
+	return finalErr
 }
 
 func NewSDTS() *sdtsImpl {
