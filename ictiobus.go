@@ -134,6 +134,19 @@ type SDTS interface {
 	// to determine the dependency graph for later execution.
 	BindSynthesizedAttribute(head string, prod []string, attrName string, bindFunc translation.AttributeSetter, withArgs []translation.AttrRef) error
 
+	// SetNoFlow sets a binding to be explicitly allowed to not be required to
+	// flow up to a particular parent. This will prevent it from causing an
+	// error if it results in a disconnected dependency graph if the node of
+	// that binding has the given parent.
+	//
+	// - forProd is only used if synth is false. It specifies the production
+	// that the binding to match must apply to.
+	// - which is the index of the binding to set it on, if multiple match the
+	// prior criteria. Set to -1 or less to set it on all matching bindings.
+	// - ifParent is the symbol that the parent of the node must be for no flow
+	// to be considered acceptable.
+	SetNoFlow(synth bool, head string, prod []string, attrName string, forProd translation.NodeRelation, which int, ifParent string) error
+
 	// Bindings returns all bindings defined to apply when at a node in a parse
 	// tree created by the rule production with head as its head symbol and prod
 	// as its produced symbols. They will be returned in the order they were

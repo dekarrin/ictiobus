@@ -198,7 +198,7 @@ func sddFnGrammarContentBlocksAppendRuleList(_, _ string, args []interface{}) in
 }
 
 func sddFnGrammarContentBlocksStartRuleList(_, _ string, args []interface{}) interface{} {
-	rules, ok := args[1].([]grammar.Rule)
+	rules, ok := args[0].([]grammar.Rule)
 	if !ok {
 		rules = []grammar.Rule{}
 	}

@@ -88,6 +88,12 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	bootstrapSDDFakeSynth(sdd, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", "someFakeState")
 	bootstrapSDDFakeSynth(sdd, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", "someFakeStateNoNL")
 
+	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
+	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "TOKENS-STATE-BLOCK")
+
+	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
+	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "TOKENS-STATE-BLOCK")
+
 	/*
 
 		bootstrapSDDGrammarRulesValue(sdd)

@@ -115,3 +115,20 @@ func SortBy[E any](items []E, lt func(left E, right E) bool) []E {
 	sort.Sort(s)
 	return s.src
 }
+
+// Filter returns a slice with only those items from sl that filterFn returns
+// true for. If filterFn is nil, returns a nil slice.
+func Filter[E any](sl []E, filterFn func(item E) bool) []E {
+	if filterFn == nil || sl == nil {
+		return nil
+	}
+
+	out := []E{}
+	for _, item := range sl {
+		if filterFn(item) {
+			out = append(out, item)
+		}
+	}
+
+	return out
+}

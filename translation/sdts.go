@@ -6,6 +6,7 @@ import (
 
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/types"
 )
 
@@ -41,6 +42,14 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 	// specifically, also check to see if a disconnected graph in fact has a parent
 	// with no SDT bindings and thus no connection to the child.
 	if len(depGraphs) > 1 {
+		// first, eliminate all depGraphs whose head has a noFlow that applies
+		// to it.
+		fmt.Println("DEBUG HOOK")
+
+		// for each, go through and find the nodes with no out edges (who are
+		// not the root) and check them for their noFlow(s). If they all apply,
+		// then we can remove them from the errors.
+
 		return nil, evalError{
 			msg:       "applying SDD to tree results in evaluation dependency graph with disconnected segments",
 			depGraphs: depGraphs,
@@ -223,6 +232,87 @@ func (sdts *sdtsImpl) BindInheritedAttribute(head string, prod []string, attrNam
 	return nil
 }
 
+func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName string, forProd NodeRelation, which int, ifParent string) error {
+	prodStr := strings.Join(prod, " ")
+
+	var attrTypeName string
+	if synth {
+		attrTypeName = "synthesized"
+	} else {
+		attrTypeName = "inherited"
+		// check forProd
+		if forProd.Type == RelHead {
+			return fmt.Errorf("inherited attributes can never be defined on production heads")
+		}
+		if !forProd.ValidFor(head, prod) {
+			return fmt.Errorf("(%s -> %s) nodes do not have a %s", head, prodStr, forProd.String())
+		}
+	}
+
+	// get storage slice
+	bindingsForHead, ok := sdts.bindings[head]
+	if !ok {
+		return fmt.Errorf("no bindings present for head %s", head)
+	}
+
+	existingBindings, ok := bindingsForHead[prodStr]
+	if !ok {
+		return fmt.Errorf("no bindings present for rule (%s -> %s)", head, prodStr)
+	}
+
+	// get only the bindings for the attribute we're interested in, and track the
+	// original index of it so we can update it later.
+	candidateBindings := make([]box.Pair[SDDBinding, int], 0)
+	for i := range existingBindings {
+		bind := existingBindings[i]
+		if bind.Dest.Name == attrName {
+			candidateBindings = append(candidateBindings, box.PairOf(bind, i))
+		}
+	}
+	if len(candidateBindings) == 0 {
+		return fmt.Errorf("rule (%s -> %s) does not have any bindings for attribute %s", head, prodStr, attrName)
+	}
+
+	// filter the bindings by synthesized or inherited
+	candidateBindings = slices.Filter(candidateBindings, func(item box.Pair[SDDBinding, int]) bool {
+		return item.First.Synthesized
+	})
+	if len(candidateBindings) == 0 {
+		return fmt.Errorf("rule (%s -> %s) does not have any %s attributes", head, prodStr, attrTypeName)
+	}
+
+	// filter the candidates by forProd, if applicable
+	if !synth {
+		candidateBindings = slices.Filter(candidateBindings, func(item box.Pair[SDDBinding, int]) bool {
+			return item.First.Dest.Relation == forProd
+		})
+	}
+	if len(candidateBindings) == 0 {
+		return fmt.Errorf("rule (%s -> %s) does not have any inherited attributes for attribute %s on %s", head, prodStr, attrName, forProd.String())
+	}
+
+	if which < 0 {
+		// apply to all synthesized/inherited bindings as appropriate
+		for i := range candidateBindings {
+			bind := existingBindings[candidateBindings[i].Second]
+			bind.NoFlows = append(bind.NoFlows, ifParent)
+			existingBindings[candidateBindings[i].Second] = bind
+		}
+	} else {
+		if which >= len(candidateBindings) {
+			return fmt.Errorf("rule does not have binding matching criteria with index %d; highest index is %d", which, len(candidateBindings)-1)
+		}
+		bind := existingBindings[candidateBindings[which].Second]
+		bind.NoFlows = append(bind.NoFlows, ifParent)
+		existingBindings[candidateBindings[which].Second] = bind
+	}
+
+	bindingsForHead[prodStr] = existingBindings
+	sdts.bindings[head] = bindingsForHead
+
+	return nil
+}
+
 // Validate runs the SDTS on a fake parse tree derived from the grammar. The
 // given attribute will be attempted to be evaluated on the root node.
 //
@@ -239,10 +329,13 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, fakeValProdu
 
 	for i := range pts {
 		_, err = sdts.Evaluate(pts[i], attribute)
+		localPT := pts[i]
 
 		evalErr, ok := err.(evalError)
 		if !ok {
-			treeErrs = append(treeErrs, box.PairOf(err, &pts[i]))
+			if err != nil {
+				treeErrs = append(treeErrs, box.PairOf(err, &localPT))
+			}
 			continue
 		}
 
@@ -256,13 +349,15 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, fakeValProdu
 				fullMsg += fmt.Sprintf("\n* %s", DepGraphString(evalErr.depGraphs[i]))
 			}
 
-			treeErrs = append(treeErrs, box.PairOf(fmt.Errorf(fullMsg), &pts[i]))
+			treeErrs = append(treeErrs, box.PairOf(fmt.Errorf(fullMsg), &localPT))
 			continue
 		}
 
 		// TODO: betta message for kahn sort error
 
-		treeErrs = append(treeErrs, box.PairOf(err, &pts[i]))
+		if err != nil {
+			treeErrs = append(treeErrs, box.PairOf(err, &localPT))
+		}
 	}
 
 	var finalErr error

@@ -264,6 +264,7 @@ type DepNode struct {
 	Tree      *AnnotatedParseTree
 	Synthetic bool
 	Dest      AttrRef
+	NoFlows   []string
 }
 
 func DepGraphString(dg *DirectedGraph[DepNode]) string {
@@ -393,8 +394,9 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sdtsImpl) []*DirectedGraph[DepNod
 				toDepNode, ok := targetNodeDepNodes[binding.Dest.Name]
 				if !ok {
 					toDepNode = &DirectedGraph[DepNode]{Data: DepNode{
-						Parent: targetParent, Tree: targetNode, Dest: binding.Dest, Synthetic: synthTarget,
+						Parent: targetParent, Tree: targetNode, Dest: binding.Dest, Synthetic: synthTarget, NoFlows: make([]string, len(binding.NoFlows)),
 					}}
+					copy(toDepNode.Data.NoFlows, binding.NoFlows)
 				}
 				// but also, if it DOES already exist we might have created it
 				// without knowing whether it is a synthetic attr; either way,
@@ -457,8 +459,9 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sdtsImpl) []*DirectedGraph[DepNod
 				toDepNode, ok := targetNodeDepNodes[binding.Dest.Name]
 				if !ok {
 					toDepNode = &DirectedGraph[DepNode]{Data: DepNode{
-						Parent: targetParent, Tree: targetNode, Dest: binding.Dest, Synthetic: synthTarget,
+						Parent: targetParent, Tree: targetNode, Dest: binding.Dest, Synthetic: synthTarget, NoFlows: make([]string, len(binding.NoFlows)),
 					}}
+					copy(toDepNode.Data.NoFlows, binding.NoFlows)
 				}
 				// but also, if it DOES already exist we might have created it
 				// without knowing whether it is a synthetic attr; either way,
