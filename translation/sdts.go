@@ -44,15 +44,57 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 	if len(depGraphs) > 1 {
 		// first, eliminate all depGraphs whose head has a noFlow that applies
 		// to it.
-		fmt.Println("DEBUG HOOK")
+		updatedDepGraphs := []*DirectedGraph[DepNode]{}
+		for i := range depGraphs {
+			var isRoot bool
+			var hasUnexpectedBreaks bool
 
-		// for each, go through and find the nodes with no out edges (who are
-		// not the root) and check them for their noFlow(s). If they all apply,
-		// then we can remove them from the errors.
+			allNodes := depGraphs[i].AllNodes()
 
-		return nil, evalError{
-			msg:       "applying SDD to tree results in evaluation dependency graph with disconnected segments",
-			depGraphs: depGraphs,
+			for j := range allNodes {
+				node := allNodes[j]
+
+				if len(node.Edges) == 0 {
+					// then either it must be root, or it must have a noFlow that matches
+					if node.Data.Parent == nil {
+						isRoot = true
+						break
+					}
+
+					// TODO: things are wonky for inherited, check those separately,
+					// might need to not assume that Parent is the parent of the
+					// node for the rule the actual binding was set on. Synthesized should be fine though.
+					nodeParentSymbol := node.Data.Parent.Symbol
+
+					// check for parent in NoFlows
+					if slices.In(nodeParentSymbol, node.Data.NoFlows) {
+						// then this node does not contribute to unexpected breaks
+						continue
+					}
+
+					// otherwise, if we got here, it's not an expected break.
+					// no need to check further
+					hasUnexpectedBreaks = true
+					break
+				}
+			}
+
+			// if it is the root, we keep it no matter what. otherwise, only
+			// consider it if it has unexpected breaks; else theres no reason to
+			// even evaluate them so we can just drop that graph.
+			if isRoot || hasUnexpectedBreaks {
+				updatedDepGraphs = append(updatedDepGraphs, depGraphs[i])
+			}
+		}
+
+		depGraphs = updatedDepGraphs
+
+		// if it's *still* more than 1, we have a problem.
+		if len(depGraphs) > 1 {
+			return nil, evalError{
+				msg:       "applying SDD to tree results in evaluation dependency graph with undeclared disconnected segments",
+				depGraphs: depGraphs,
+			}
 		}
 	}
 	visitOrder, err := KahnSort(depGraphs[0])
