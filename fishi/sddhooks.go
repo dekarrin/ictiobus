@@ -383,9 +383,9 @@ func sddFnStringListListAppend(_, _ string, args []interface{}) interface{} {
 	return list
 }
 
-func sddFnNilStringList(_, _ string, args []interface{}) interface{} {
-	var strList []string
-	return strList
+func sddFnEpsilonStringList(_, _ string, args []interface{}) interface{} {
+	strList := grammar.Epsilon.Copy()
+	return []string(strList)
 }
 
 func sddFnMakeRule(_, _ string, args []interface{}) interface{} {

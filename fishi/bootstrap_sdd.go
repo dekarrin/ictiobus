@@ -53,22 +53,11 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	bootstrapSDDTextValue(sdd)
 	bootstrapSDDTextElementValue(sdd)
 	bootstrapSDDAlternationsValue(sdd)
-
-	bootstrapSDDFakeSynth(sdd, "SYMBOL-SEQUENCE", []string{"SYMBOL-SEQUENCE", "SYMBOL"}, "value", []string{"FAKEIE-1", "FAKEIE-2"})
-	bootstrapSDDFakeSynth(sdd, "SYMBOL-SEQUENCE", []string{"SYMBOL"}, "value", []string{"ooh symbol"})
+	bootstrapSDDProductionValue(sdd)
+	bootstrapSDDSymbolSequenceValue(sdd)
+	bootstrapSDDSymbolValue(sdd)
 
 	// state-inst branch mocks.
-
-	/* steps for next part in SDTS:
-	- mock out "SYMBOL-SEQUENCE" for both DONE
-	- uncomment bootstrapSDDProductionValue
-	- remove old PRODUCTION mocks DONE
-	*/
-
-	/*
-		bootstrapSDDProductionValue(sdd)
-		bootstrapSDDSymbolSequenceValue(sdd)
-		bootstrapSDDSymbolValue(sdd)*/
 
 	// permanently in place until tokens and actions branches are started.
 
@@ -310,7 +299,7 @@ func bootstrapSDDProductionValue(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"PRODUCTION", []string{tcEpsilon.ID()},
 		"value",
-		sddFnNilStringList,
+		sddFnEpsilonStringList,
 		[]translation.AttrRef{},
 	)
 }
@@ -342,7 +331,7 @@ func bootstrapSDDSymbolValue(sdd ictiobus.SDTS) {
 		"value",
 		sddFnGetNonterminal,
 		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
 
@@ -351,7 +340,7 @@ func bootstrapSDDSymbolValue(sdd ictiobus.SDTS) {
 		"value",
 		sddFnGetTerminal,
 		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
 }
