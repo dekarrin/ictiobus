@@ -57,7 +57,132 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	bootstrapSDDSymbolSequenceValue(sdd)
 	bootstrapSDDSymbolValue(sdd)
 
-	// state-inst branch mocks.
+	// NEXT STEPS:
+	//
+	// TOKENS-BLOCK:
+	// - AST struct for it
+	// - Mock all 4 TOKENS-CONTENT rules
+	// - create function bootstrapSDDTokensBlockAST
+	// - update AST string() to print out the tokens AST block
+	// - remove TOKENS-BLOCK mock for BLOCKS
+	// - uncomment BLOCK -> TOKENS-BLOCK rule in bootstrapSDDBlockAST
+	//
+	// TOKENS-CONTENT:
+	// - AST struct for it
+	// - Mock TOKENS-STATE-BLOCK
+	// - Mock both TOKENS-ENTIRIES
+	// - create function bootstrapSDDTokensContentAST
+	// - update AST string() to print out the tokens AST content block
+	// - remove TOKENS-CONTENT mock
+	//
+	// TOKENS-STATE-BLOCK:
+	// - (TOKENS-ENTRIES should already be mocked)
+	// - create function bootstrapSDDTokensStateBlockAST
+	// - update AST string() to print out the tokens state block
+	// - remove NoFlow STATE-INSTRUCTION -> TOKENS-STATE-BLOCK
+	// - remove TOKENS-STATE-BLOCK mock
+	//
+	// TOKENS-ENTRIES:
+	// - Mock all four TOKENS-ENTRY rules
+	// - create function bootstrapSDDTokensEntriesValue
+	// - remove TOKENS-ENTRIES mock
+	//
+	// TOKENS-ENTRY:
+	// - Mock PATTERN rule
+	// - Mock all three TOKEN-OPTS rules
+	// - create function bootstrapSDDTokensEntryValue
+	// - remove TOKENS-ENTRY mock
+	//
+	// PATTERN:
+	// - create function bootstrapSDDPatternValue
+	// - remove PATTERN mock
+	// - remove NoFlow TEXT -> PATTERN
+	//
+	// TOKEN-OPTS:
+	// - Mock all five TOKEN-OPTION rules
+	// - create function bootstrapSDDTokenOptsValue
+	// - remove TOKEN-OPTS mock
+	//
+	// TOKEN-OPTION:
+	// - Mock DISCARD rule
+	// - Mock STATESHIFT rule
+	// - Mock TOKEN rule
+	// - Mock HUMAN rule
+	// - Mock PRIORITY rule
+	// - create function bootstrapSDDTokenOptionValue
+	// - remove TOKEN-OPTION mock
+	//
+	// DISCARD:
+	// - create function bootstrapSDDDiscardValue
+	// - remove DISCARD mock
+	//
+	// STATESHIFT:
+	// - create function bootstrapSDDStateShiftValue
+	// - remove STATESHIFT mock
+	// - remove NoFlow TEXT -> STATESHIFT
+	//
+	// TOKEN:
+	// - create function bootstrapSDDTokenValue
+	// - remove TOKEN mock
+	// - remove NoFlow TEXT -> TOKEN
+	//
+	// HUMAN:
+	// - create function bootstrapSDDHumanValue
+	// - remove HUMAN mock
+	// - remove NoFlow TEXT -> HUMAN
+	//
+	// PRIORITY:
+	// - create function bootstrapSDDPriorityValue
+	// - remove PRIORITY mock
+	// - remove NoFlow TEXT -> PRIORITY
+	//
+	// BREAK HERE (done with token branch)
+	//
+	// ACTIONS-BLOCK:
+	// - AST struct for it
+	// - Mock all 4 ACTIONS-CONTENT rules
+	// - create function bootstrapSDDActionsBlockAST
+	// - update AST string() to print out the actions AST block
+	// - remove ACTIONS-BLOCK mock for BLOCKS
+	// - uncomment BLOCK -> ACTIONS-BLOCK rule in bootstrapSDDBlockAST
+	//
+	// ACTIONS-CONTENT:
+	// - AST struct for it
+	// - Mock ACTIONS-STATE-BLOCK
+	// - Mock both SYMBOL-ACTIONS-LIST rules
+	// - create function bootstrapSDDActionsContentAST
+	// - update AST string() to print out the actions AST content block
+	// - remove ACTIONS-CONTENT mock
+	//
+	// ACTIONS-STATE-BLOCK:
+	// - (SYMBOL-ACTIONS-LIST should already be mocked)
+	// - create function bootstrapSDDActionsStateBlockAST
+	// - update AST string() to print out the actions state block
+	// - remove NoFlow STATE-INSTRUCTION -> ACTIONS-STATE-BLOCK
+	// - remove ACTIONS-STATE-BLOCK mock
+	//
+	// SYMBOL-ACTIONS-LIST:
+	// - Mock SYMBOL-ACTIONS rule
+	// - create function bootstrapSDDSymbolActionsListValue
+	// - remove SYMBOL-ACTIONS-LIST mock
+	//
+	// SYMBOL-ACTIONS:
+	// - Mock both PROD-ACTIONS rules
+	// - create function bootstrapSDDSymbolActionsValue
+	// - remove SYMBOL-ACTIONS mock
+	//
+	// PROD-ACTIONS:
+	// - Mock PROD-ACTION rule
+	// - create function bootstrapSDDProdActionsValue
+	// - remove PROD-ACTIONS mock
+	//
+	// PROD-ACTION:
+	// - Mock both PROD-SPECIFIER rules
+	// - Mock both SEMANTIC-ACTIONS rules
+	// - create function bootstrapSDDProdActionValue
+	// - remove PROD-ACTION mock
+	//
+	// PROD-SPECIFIER:
 
 	// permanently in place until tokens and actions branches are started.
 
