@@ -57,16 +57,25 @@ func sddFnBlockListStart(_, _ string, args []interface{}) interface{} {
 func sddFnMakeGrammarBlock(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astGrammarContent)
 	if !ok {
-		list = []astGrammarContent{}
+		list = []astGrammarContent{{state: SDDErrMsg("producing this grammar content list: first argument is not a grammar content list")}}
 	}
 
 	return astGrammarBlock{content: list}
 }
 
+func sddFnMakeTokensBlock(_, _ string, args []interface{}) interface{} {
+	list, ok := args[0].([]astTokensContent)
+	if !ok {
+		list = []astTokensContent{{state: SDDErrMsg("producing this tokens content list: first argument is not a tokens content list")}}
+	}
+
+	return astTokensBlock{content: list}
+}
+
 func sddFnGrammarContentBlocksAppendStateBlock(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astGrammarContent)
 	if !ok {
-		return []astGrammarContent{{state: SDDErrMsg("producing this grammar content list: first argument is not a grammar content list")}}
+		list = []astGrammarContent{{state: SDDErrMsg("producing this grammar content list: first argument is not a grammar content list")}}
 	}
 	toAppend, ok := args[1].(astGrammarContent)
 	if !ok {
@@ -91,6 +100,35 @@ func sddFnGrammarContentBlocksAppendStateBlock(_, _ string, args []interface{}) 
 	return list
 }
 
+func sddFnTokensContentBlocksAppendStateBlock(_, _ string, args []interface{}) interface{} {
+	list, ok := args[0].([]astTokensContent)
+	if !ok {
+		list = []astTokensContent{{state: SDDErrMsg("producing this tokens content list: first argument is not a tokens content list")}}
+	}
+	toAppend, ok := args[1].(astTokensContent)
+	if !ok {
+		toAppend = astTokensContent{state: SDDErrMsg("producing this tokens content: first argument is not a tokens content")}
+	}
+
+	// TODO: the following nonsense is needed because GRAMMAR-RULES -> GRAMMAR-RULES GRAMMAR-RULE may never get invoked,
+	// in favor ofsimply having a list of GRAMMAR-CONTENTs. in future, check this, and try to force grammar-content to
+	// be list. for now, the parse tree works fine. So we'll just glue it together HERE too.
+	// (this same thing applies to TOKENS, which has the same pattern)
+
+	// if toAppend's state is the same as an existing one, we simply add to the existing list instead of appending.
+	if ok {
+		for i := range list {
+			if list[i].state == toAppend.state {
+				list[i].entries = append(list[i].entries, toAppend.entries...)
+				return list
+			}
+		}
+	}
+
+	list = append(list, toAppend)
+	return list
+}
+
 func sddFnGrammarContentBlocksStartStateBlock(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(astGrammarContent)
 	if !ok {
@@ -100,10 +138,19 @@ func sddFnGrammarContentBlocksStartStateBlock(_, _ string, args []interface{}) i
 	return []astGrammarContent{toAppend}
 }
 
+func sddFnTokensContentBlocksStartStateBlock(_, _ string, args []interface{}) interface{} {
+	toAppend, ok := args[0].(astTokensContent)
+	if !ok {
+		toAppend = astTokensContent{state: SDDErrMsg("producing this tokens content: first argument is not a tokens content")}
+	}
+
+	return []astTokensContent{toAppend}
+}
+
 func sddFnGrammarContentBlocksAppendRuleList(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astGrammarContent)
 	if !ok {
-		return []astGrammarContent{{state: SDDErrMsg("producing this grammar content list: first argument is not a grammar content list")}}
+		list = []astGrammarContent{{state: SDDErrMsg("producing this grammar content list: first argument is not a grammar content list")}}
 	}
 
 	rules, ok := args[1].([]grammar.Rule)
@@ -136,6 +183,43 @@ func sddFnGrammarContentBlocksAppendRuleList(_, _ string, args []interface{}) in
 	return list
 }
 
+func sddFnTokensContentBlocksAppendRuleList(_, _ string, args []interface{}) interface{} {
+	list, ok := args[0].([]astTokensContent)
+	if !ok {
+		list = []astTokensContent{{state: SDDErrMsg("producing this tokens content list: first argument is not a tokens content list")}}
+	}
+
+	entries, ok := args[1].([]astTokenEntry)
+	if !ok {
+		entries = []astTokenEntry{{pattern: SDDErrMsg("producing this token entry list: second argument is not a token entry list")}}
+	}
+	toAppend := astTokensContent{
+		entries: entries,
+		state:   "",
+	}
+	if !ok {
+		toAppend.state = SDDErrMsg("producing this token entry list for this content block: second argument is not a token entry list list")
+	}
+
+	// TODO: the following nonsense is needed because GRAMMAR-RULES -> GRAMMAR-RULES GRAMMAR-RULE may never get invoked,
+	// in favor ofsimply having a list of GRAMMAR-CONTENTs. in future, check this, and try to force grammar-content to
+	// be list. for now, the parse tree works fine. So we'll just glue it together HERE too.
+	// also applies to TOKEN
+
+	// if toAppend's state is the same as an existing one, we simply add to the existing list instead of appending.
+	if ok {
+		for i := range list {
+			if list[i].state == toAppend.state {
+				list[i].entries = append(list[i].entries, toAppend.entries...)
+				return list
+			}
+		}
+	}
+
+	list = append(list, toAppend)
+	return list
+}
+
 func sddFnGrammarContentBlocksStartRuleList(_, _ string, args []interface{}) interface{} {
 	rules, ok := args[0].([]grammar.Rule)
 	if !ok {
@@ -149,6 +233,19 @@ func sddFnGrammarContentBlocksStartRuleList(_, _ string, args []interface{}) int
 	return []astGrammarContent{toAppend}
 }
 
+func sddFnTokensContentBlocksStartRuleList(_, _ string, args []interface{}) interface{} {
+	entries, ok := args[0].([]astTokenEntry)
+	if !ok {
+		entries = []astTokenEntry{{pattern: SDDErrMsg("producing this token entry list: first argument is not a token entry list")}}
+	}
+	toAppend := astTokensContent{
+		entries: entries,
+		state:   "",
+	}
+
+	return []astTokensContent{toAppend}
+}
+
 func sddFnMakeGrammarContentNode(_, _ string, args []interface{}) interface{} {
 	state, ok := args[0].(string)
 	if !ok {
@@ -159,6 +256,18 @@ func sddFnMakeGrammarContentNode(_, _ string, args []interface{}) interface{} {
 		rules = []grammar.Rule{}
 	}
 	return astGrammarContent{rules: rules, state: state}
+}
+
+func sddFnMakeTokensContentNode(_, _ string, args []interface{}) interface{} {
+	state, ok := args[0].(string)
+	if !ok {
+		state = SDDErrMsg("STATE value is not a string")
+	}
+	entries, ok := args[1].([]astTokenEntry)
+	if !ok {
+		entries = []astTokenEntry{{pattern: SDDErrMsg("producing this token entry list: first argument is not a token entry list")}}
+	}
+	return astTokensContent{entries: entries, state: state}
 }
 
 func sddFnIdentity(_, _ string, args []interface{}) interface{} { return args[0] }
