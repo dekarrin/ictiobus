@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus"
+	"github.com/dekarrin/ictiobus/types"
 	"github.com/gomarkdown/markdown"
 	mkast "github.com/gomarkdown/markdown/ast"
 	mkparser "github.com/gomarkdown/markdown/parser"
@@ -152,7 +153,7 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 	// but does the thing work? grab a val producer and the grammar and find out
 	valProd := lx.FakeLexemeProducer(true, "")
 	g := parser.Grammar()
-	sddErr := sdd.Validate(g, "ast", valProd)
+	sddErr := sdd.Validate(g, "ast", types.DebugInfo{}, valProd)
 	if sddErr != nil {
 		return fmt.Errorf("sdd validation error: %w", sddErr)
 	}

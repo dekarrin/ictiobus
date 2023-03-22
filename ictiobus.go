@@ -175,7 +175,7 @@ type SDTS interface {
 	// values will be used, which may not behave as expected with the SDTS. To
 	// get one that will use the configured regexes of tokens used for lexing,
 	// call FakeLexemeProducer on a Lexer.
-	Validate(grammar grammar.Grammar, attribute string, fakeValProducer ...map[string]func() string) error
+	Validate(grammar grammar.Grammar, attribute string, debug types.DebugInfo, fakeValProducer ...map[string]func() string) error
 }
 
 // NewLexer returns a lexer whose Lex method will immediately lex the entire

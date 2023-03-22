@@ -36,6 +36,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 	root := AddAttributes(tree)
 	// TODO: allow the annotated parse tree to be printed for debug output
 	depGraphs := DepGraph(root, sdts)
+
 	// TODO: this is actually fine as long as we got exactly ONE with the root
 	// node but is probably not intended. we should warn, not error.
 	//
@@ -44,6 +45,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 	if len(depGraphs) > 1 {
 		// first, eliminate all depGraphs whose head has a noFlow that applies
 		// to it.
+		unexpectedBreaks := [][4]string{}
 		updatedDepGraphs := []*DirectedGraph[DepNode]{}
 		for i := range depGraphs {
 			var isRoot bool
@@ -72,6 +74,13 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 						continue
 					}
 
+					parentProdStr := slices.Reduce(node.Data.Parent.Children, "", func(idx int, item *AnnotatedParseTree, accum string) string {
+						return item.Symbol + " "
+					})
+					parentProdStr = strings.TrimSpace(parentProdStr)
+
+					unexpectedBreaks = append(unexpectedBreaks, [4]string{nodeParentSymbol, parentProdStr, node.Data.Tree.Symbol, node.Data.Dest.Name})
+
 					// otherwise, if we got here, it's not an expected break.
 					// no need to check further
 					hasUnexpectedBreaks = true
@@ -92,8 +101,9 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 		// if it's *still* more than 1, we have a problem.
 		if len(depGraphs) > 1 {
 			return nil, evalError{
-				msg:       "applying SDD to tree results in evaluation dependency graph with undeclared disconnected segments",
-				depGraphs: depGraphs,
+				msg:              "applying SDD to tree results in evaluation dependency graph with undeclared disconnected segments",
+				depGraphs:        depGraphs,
+				unexpectedBreaks: unexpectedBreaks,
 			}
 		}
 	}
@@ -360,7 +370,7 @@ func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName
 //
 // It will use fake value producer, if provided, to generate lexemes for
 // terminals in the tree; otherwise contrived values will be used.
-func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, fakeValProducer ...map[string]func() string) error {
+func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug types.DebugInfo, fakeValProducer ...map[string]func() string) error {
 	pts, err := g.DeriveFullTree(fakeValProducer...)
 	if err != nil {
 		return fmt.Errorf("deriving fake parse tree: %w", err)
@@ -387,8 +397,15 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, fakeValProdu
 
 			fullMsg := "translation on fake parse tree resulted in disconnected dependency graphs:"
 
-			for i := range evalErr.depGraphs {
-				fullMsg += fmt.Sprintf("\n* %s", DepGraphString(evalErr.depGraphs[i]))
+			for i := range evalErr.unexpectedBreaks {
+				br := evalErr.unexpectedBreaks[i]
+				fullMsg += fmt.Sprintf("\n* at least one %s.%q in production of (%s -> %s) is unused", br[2], br[3], br[0], br[1])
+			}
+
+			if debug.FullDepGraphs {
+				for i := range evalErr.depGraphs {
+					fullMsg += fmt.Sprintf("\nDepGraph #%d:\n %s", i, DepGraphString(evalErr.depGraphs[i]))
+				}
 			}
 
 			treeErrs = append(treeErrs, box.PairOf(fmt.Errorf(fullMsg), &localPT))
@@ -407,7 +424,11 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, fakeValProdu
 	if len(treeErrs) > 0 {
 		fullErrStr := "Running on fake parse tree(s) got errors:"
 		for i := range treeErrs {
-			fullErrStr += fmt.Sprintf("\n\nTree %d: \n%s\n%s", i+1, AddAttributes(*treeErrs[i].Second).String(), treeErrs[i].First.Error())
+			if debug.ParseTrees {
+				fullErrStr += fmt.Sprintf("\n\nTree %d: \n%s\n%s", i+1, AddAttributes(*treeErrs[i].Second).String(), treeErrs[i].First.Error())
+			} else {
+				fullErrStr += fmt.Sprintf("\n\nTree %d: %s", i+1, treeErrs[i].First.Error())
+			}
 		}
 		finalErr = fmt.Errorf(fullErrStr)
 	}
@@ -428,6 +449,14 @@ type evalError struct {
 	// if this is a disconnected dep graph segments error, this slice will be
 	// non-nil and contain the issue nodes.
 	depGraphs []*DirectedGraph[DepNode]
+
+	// if this is a disconnected dep graph segments error, this slice will be
+	// non-nil and contain the important features of each break. Each element is
+	// a string triple containing: the symbol of the parent of the node that
+	// caused the break, the production the parent node was made from as a
+	// string, the symbol of the node that caused the break, and the name of the
+	// attribute that caused the break.
+	unexpectedBreaks [][4]string
 
 	// if this is a sort error, this will be true
 	sortError bool

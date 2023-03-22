@@ -132,3 +132,11 @@ func Filter[E any](sl []E, filterFn func(item E) bool) []E {
 
 	return out
 }
+
+func Reduce[E any, V any](sl []E, initial V, fn func(idx int, item E, accum V) V) V {
+	accum := initial
+	for i, item := range sl {
+		accum = fn(i, item, accum)
+	}
+	return accum
+}
