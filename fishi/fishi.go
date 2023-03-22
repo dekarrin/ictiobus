@@ -170,7 +170,7 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 	}*/
 
 	// now, try to make a parse tree for your own grammar
-	fishiTest := `%%actions
+	fishiTest := /*`%%actions
 
 			%symbol
 
@@ -210,9 +210,9 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 
 		%state this
 
-		[yo] %discard
+		[yo] %discard*/
 
-		%%grammar
+		`%%grammar
 		{RULE} =   {SOMEBULLSHIT}
 
 					%%grammar
@@ -222,7 +222,8 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 
 					%state someState
 
-					{RULE}=		{HMM}
+					{RULE}=		{HMM}`
+		/*
 
 
 
@@ -235,7 +236,7 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 
 			%prod ESCSEQ
 			%action {text-element}.str
-			%hook unescape  %with ESCSEQ.$test		`
+			%hook unescape  %with ESCSEQ.$test		`*/
 
 	ast, err := frontEnd.AnalyzeString(fishiTest)
 	if err != nil {

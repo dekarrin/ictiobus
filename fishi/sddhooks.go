@@ -109,7 +109,14 @@ func (content astGrammarContent) String() string {
 	}
 }
 
-const ErrString = "<ERR>"
+const (
+	ErrString            = "<ERR>"
+	ErrWithMessageString = "<ERR: %s>"
+)
+
+func SDDErrMsg(msg string) string {
+	return fmt.Sprintf(ErrWithMessageString, msg)
+}
 
 func sddFnMakeFishispec(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astBlock)

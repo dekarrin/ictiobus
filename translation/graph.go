@@ -366,6 +366,9 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sdtsImpl) []*DirectedGraph[DepNod
 
 		for i := range binds {
 			binding := binds[i]
+			if binding.BoundRuleSymbol == "STATE-INSTRUCTION" {
+				fmt.Printf("STATE-INSTRUCTION binding: %v\n", binding)
+			}
 			if len(binding.Requirements) < 1 {
 				// we still need to add the binding as a target node so it can
 				// be found by other dep nodes

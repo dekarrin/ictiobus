@@ -407,7 +407,7 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, fakeValProdu
 	if len(treeErrs) > 0 {
 		fullErrStr := "Running on fake parse tree(s) got errors:"
 		for i := range treeErrs {
-			fullErrStr += fmt.Sprintf("\n\nTree %d: \n%s\n%s", i+1, treeErrs[i].Second.String(), treeErrs[i].First.Error())
+			fullErrStr += fmt.Sprintf("\n\nTree %d: \n%s\n%s", i+1, AddAttributes(*treeErrs[i].Second).String(), treeErrs[i].First.Error())
 		}
 		finalErr = fmt.Errorf(fullErrStr)
 	}

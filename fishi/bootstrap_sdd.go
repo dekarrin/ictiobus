@@ -38,6 +38,8 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 		},
 	}})
 
+	// need these until we fill in the ACTIONs-BLOCK and TOKENS-BLOCK rules
+
 	bootstrapSDDFishispecAST(sdd)
 	bootstrapSDDBlocksValue(sdd)
 	bootstrapSDDBlockAST(sdd)
@@ -45,6 +47,7 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	bootstrapSDDGrammarContentAST(sdd)
 	bootstrapSDDGrammarStateBlockValue(sdd)
 
+	// GRAMMAR branch mock, return later.
 	sdd.BindSynthesizedAttribute(
 		"GRAMMAR-RULES", []string{"GRAMMAR-RULE"},
 		"value",
@@ -85,14 +88,42 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 		},
 	)
 
+	// state-inst branch mocks.
+
 	bootstrapSDDFakeSynth(sdd, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", "someFakeState")
 	bootstrapSDDFakeSynth(sdd, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", "someFakeStateNoNL")
 
-	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
-	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "TOKENS-STATE-BLOCK")
+	/* steps for next part in SDD:
+	// state-inst BRANCH:
+	- mock out ID-EXPR for all three sets
+	- uncomment bootstrapSDDStateInstructionState
+	- remove STATE-INSTRUCTIONS mocks
+	- ID-EXPR will likely NOT need noFlows, so be suspicious if hit that cond
 
-	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
-	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "TOKENS-STATE-BLOCK")
+	ONCE WORKING:
+	- mock out TEXT for both sets
+	- uncomment bootstrapSDDIdExprValue
+	- remove ID-EXPR mocks
+	- TEXT will surely need noFlows as it also rolls up to token blocks. add as needed.
+
+	ONCE WORKING:
+	- mock out TEXT-ELEMENT for both sets
+	- uncomment bootstrapSDDTextValue
+	- remove TEXT mocks
+	- TEXT-ELEMENT will likely NOT need noFlows as it also rolls up to token blocks. be suspicious if hit that cond
+
+	ONCE WORKING:
+	- uncomment bootstrapSDDTextElementValue
+	- remove TEXT-ELEMENT mocks
+	- VALIDATE. if works, done with branch of CFG.
+
+
+
+	// AFTER:
+	- mock out GRAMMAR-RULE for both sets
+	- uncommentGrammarRulesValue
+	- remove GRAMMAR-RULES mocks
+	*/
 
 	/*
 
@@ -106,6 +137,12 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 		bootstrapSDDIDExprValue(sdd)
 		bootstrapSDDTextValue(sdd)
 		bootstrapSDDTextElementValue(sdd)*/
+
+	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
+	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "TOKENS-STATE-BLOCK")
+
+	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
+	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "TOKENS-STATE-BLOCK")
 
 	return sdd
 }
@@ -272,8 +309,8 @@ func bootstrapSDDGrammarRuleValue(sdd ictiobus.SDTS) {
 		"value",
 		sddFnMakeRule,
 		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 2}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 2}, Name: "value"},
 		},
 	)
 	sdd.BindSynthesizedAttribute(
@@ -281,8 +318,8 @@ func bootstrapSDDGrammarRuleValue(sdd ictiobus.SDTS) {
 		"value",
 		sddFnMakeRule,
 		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 2}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 2}, Name: "value"},
 		},
 	)
 }
