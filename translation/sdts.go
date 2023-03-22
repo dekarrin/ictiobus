@@ -75,7 +75,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 					}
 
 					parentProdStr := slices.Reduce(node.Data.Parent.Children, "", func(idx int, item *AnnotatedParseTree, accum string) string {
-						return item.Symbol + " "
+						return accum + " " + item.Symbol
 					})
 					parentProdStr = strings.TrimSpace(parentProdStr)
 
