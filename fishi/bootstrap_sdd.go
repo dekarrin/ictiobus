@@ -46,68 +46,26 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	bootstrapSDDGrammarBlockAST(sdd)
 	bootstrapSDDGrammarContentAST(sdd)
 	bootstrapSDDGrammarStateBlockValue(sdd)
+	bootstrapSDDGrammarRulesValue(sdd)
+	bootstrapSDDGrammarRuleValue(sdd)
 	bootstrapSDDStateInstructionState(sdd)
 	bootstrapSDDIDExprValue(sdd)
 	bootstrapSDDTextValue(sdd)
 	bootstrapSDDTextElementValue(sdd)
+	bootstrapSDDAlternationsValue(sdd)
 
-	// GRAMMAR branch mock, return later.
-	sdd.BindSynthesizedAttribute(
-		"GRAMMAR-RULES", []string{"GRAMMAR-RULE"},
-		"value",
-		func(_, _ string, args []interface{}) interface{} {
-			return []grammar.Rule{
-				{
-					NonTerminal: "FAKE-NT",
-					Productions: []grammar.Production{
-						{"FAKE-NT-1", "FAKE-NT-2", "FAKE-NT-3"},
-					},
-				},
-			}
-		},
-		[]translation.AttrRef{},
-	)
-
-	sdd.BindSynthesizedAttribute(
-		"GRAMMAR-RULES", []string{"GRAMMAR-RULES", "NEWLINES", "GRAMMAR-RULE"},
-		"value",
-		func(_, _ string, args []interface{}) interface{} {
-			list, ok := args[0].([]grammar.Rule)
-			if !ok {
-				return []grammar.Rule{}
-			}
-
-			toAppend := grammar.Rule{
-				NonTerminal: "FAKE-NT",
-				Productions: []grammar.Production{
-					{"FAKE-NT-1", "FAKE-NT-2", "FAKE-NT-3"},
-				},
-			}
-
-			list = append(list, toAppend)
-			return list
-		},
-		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
-		},
-	)
+	bootstrapSDDFakeSynth(sdd, "SYMBOL-SEQUENCE", []string{"SYMBOL-SEQUENCE", "SYMBOL"}, "value", []string{"FAKEIE-1", "FAKEIE-2"})
+	bootstrapSDDFakeSynth(sdd, "SYMBOL-SEQUENCE", []string{"SYMBOL"}, "value", []string{"ooh symbol"})
 
 	// state-inst branch mocks.
 
-	/* steps for next part in SDD:
-	// state-inst BRANCH:
-
-	// AFTER:
-	- mock out GRAMMAR-RULE for both sets
-	- uncommentGrammarRulesValue
-	- remove GRAMMAR-RULES mocks
+	/* steps for next part in SDTS:
+	- mock out "SYMBOL-SEQUENCE" for both DONE
+	- uncomment bootstrapSDDProductionValue
+	- remove old PRODUCTION mocks DONE
 	*/
 
 	/*
-
-		bootstrapSDDGrammarRulesValue(sdd)
-		bootstrapSDDGrammarRuleValue(sdd)
-		bootstrapSDDAlternationsValue(sdd)
 		bootstrapSDDProductionValue(sdd)
 		bootstrapSDDSymbolSequenceValue(sdd)
 		bootstrapSDDSymbolValue(sdd)*/

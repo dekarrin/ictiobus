@@ -168,11 +168,25 @@ func sddFnMakeGrammarBlock(_, _ string, args []interface{}) interface{} {
 func sddFnGrammarContentBlocksAppendStateBlock(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astGrammarContent)
 	if !ok {
-		return []astGrammarContent{}
+		return []astGrammarContent{{state: SDDErrMsg("producing this grammar content list: first argument is not a grammar content list")}}
 	}
 	toAppend, ok := args[1].(astGrammarContent)
 	if !ok {
-		toAppend = astGrammarContent{}
+		toAppend = astGrammarContent{state: SDDErrMsg("producing this grammar content: first argument is not a grammar content")}
+	}
+
+	// TODO: the following nonsense is needed because GRAMMAR-RULES -> GRAMMAR-RULES GRAMMAR-RULE may never get invoked,
+	// in favor ofsimply having a list of GRAMMAR-CONTENTs. in future, check this, and try to force grammar-content to
+	// be list. for now, the parse tree works fine. So we'll just glue it together HERE too.
+
+	// if toAppend's state is the same as an existing one, we simply add to the existing list instead of appending.
+	if ok {
+		for i := range list {
+			if list[i].state == toAppend.state {
+				list[i].rules = append(list[i].rules, toAppend.rules...)
+				return list
+			}
+		}
 	}
 
 	list = append(list, toAppend)
@@ -182,7 +196,7 @@ func sddFnGrammarContentBlocksAppendStateBlock(_, _ string, args []interface{}) 
 func sddFnGrammarContentBlocksStartStateBlock(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(astGrammarContent)
 	if !ok {
-		toAppend = astGrammarContent{}
+		toAppend = astGrammarContent{state: SDDErrMsg("producing this grammar content: first argument is not a grammar content")}
 	}
 
 	return []astGrammarContent{toAppend}
@@ -191,7 +205,7 @@ func sddFnGrammarContentBlocksStartStateBlock(_, _ string, args []interface{}) i
 func sddFnGrammarContentBlocksAppendRuleList(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astGrammarContent)
 	if !ok {
-		return []astGrammarContent{}
+		return []astGrammarContent{{state: SDDErrMsg("producing this grammar content list: first argument is not a grammar content list")}}
 	}
 
 	rules, ok := args[1].([]grammar.Rule)
@@ -202,6 +216,23 @@ func sddFnGrammarContentBlocksAppendRuleList(_, _ string, args []interface{}) in
 		rules: rules,
 		state: "",
 	}
+	if !ok {
+		toAppend.state = SDDErrMsg("producing the rule list for this content block: second argument is not a rule list")
+	}
+
+	// TODO: the following nonsense is needed because GRAMMAR-RULES -> GRAMMAR-RULES GRAMMAR-RULE may never get invoked,
+	// in favor ofsimply having a list of GRAMMAR-CONTENTs. in future, check this, and try to force grammar-content to
+	// be list. for now, the parse tree works fine. So we'll just glue it together HERE too.
+
+	// if toAppend's state is the same as an existing one, we simply add to the existing list instead of appending.
+	if ok {
+		for i := range list {
+			if list[i].state == toAppend.state {
+				list[i].rules = append(list[i].rules, toAppend.rules...)
+				return list
+			}
+		}
+	}
 
 	list = append(list, toAppend)
 	return list
@@ -210,7 +241,7 @@ func sddFnGrammarContentBlocksAppendRuleList(_, _ string, args []interface{}) in
 func sddFnGrammarContentBlocksStartRuleList(_, _ string, args []interface{}) interface{} {
 	rules, ok := args[0].([]grammar.Rule)
 	if !ok {
-		rules = []grammar.Rule{}
+		rules = []grammar.Rule{{NonTerminal: SDDErrMsg("producing this rule list: first argument is not a rule list")}}
 	}
 	toAppend := astGrammarContent{
 		rules: rules,
@@ -282,14 +313,12 @@ func sddFnGetTerminal(_, _ string, args []interface{}) interface{} {
 func sddFnRuleListAppend(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]grammar.Rule)
 	if !ok {
-		return []grammar.Rule{}
+		list = []grammar.Rule{{NonTerminal: SDDErrMsg("producing this rule list: first argument is not a rule list")}}
 	}
 
 	toAppend, ok := args[1].(grammar.Rule)
 	if !ok {
-		toAppend = grammar.Rule{
-			NonTerminal: ErrString,
-		}
+		toAppend = grammar.Rule{NonTerminal: SDDErrMsg("producing this rule: second argument is not a rule")}
 	}
 
 	list = append(list, toAppend)
@@ -299,7 +328,7 @@ func sddFnRuleListAppend(_, _ string, args []interface{}) interface{} {
 func sddFnRuleListStart(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(grammar.Rule)
 	if !ok {
-		toAppend = grammar.Rule{}
+		toAppend = grammar.Rule{NonTerminal: SDDErrMsg("producing this rule: second argument is not a rule")}
 	}
 
 	return []grammar.Rule{toAppend}
@@ -333,7 +362,7 @@ func sddFnStringListStart(_, _ string, args []interface{}) interface{} {
 func sddFnStringListListStart(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].([]string)
 	if !ok {
-		toAppend = []string{}
+		toAppend = []string{SDDErrMsg("producing this string list: first argument is not a string list")}
 	}
 
 	return [][]string{toAppend}
@@ -342,12 +371,12 @@ func sddFnStringListListStart(_, _ string, args []interface{}) interface{} {
 func sddFnStringListListAppend(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([][]string)
 	if !ok {
-		return [][]string{}
+		return [][]string{{SDDErrMsg("producing this string list list: first argument is not a [][]string")}}
 	}
 
 	toAppend, ok := args[1].([]string)
 	if !ok {
-		toAppend = []string{ErrString}
+		toAppend = []string{SDDErrMsg("producing this string list: second argument is not a string list")}
 	}
 
 	list = append(list, toAppend)
@@ -364,12 +393,12 @@ func sddFnMakeRule(_, _ string, args []interface{}) interface{} {
 
 	nt, ok := ntInterface.(string)
 	if !ok {
-		nt = ErrString
+		nt = SDDErrMsg("first argument is not a string")
 	}
 
 	productions, ok := args[1].([][]string)
 	if !ok {
-		productions = [][]string{}
+		productions = [][]string{{SDDErrMsg("producing this list of lists of strings: second argument is not a [][]string")}}
 	}
 
 	r := grammar.Rule{NonTerminal: nt, Productions: []grammar.Production{}}

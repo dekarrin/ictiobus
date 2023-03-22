@@ -68,13 +68,13 @@ func (fs fishiScanner) RenderNode(w io.Writer, node mkast.Node, entering bool) m
 func (fs fishiScanner) RenderHeader(w io.Writer, ast mkast.Node) {}
 func (fs fishiScanner) RenderFooter(w io.Writer, ast mkast.Node) {}
 
-func ReadFishiMdFile(filename string) error {
+func ReadFishiMdFile(filename string, validateSDTS bool) error {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return err
 	}
 
-	err = ProcessFishiMd(filename, data)
+	err = ProcessFishiMd(filename, data, validateSDTS)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func ReadFishiMdFile(filename string) error {
 	return nil
 }
 
-func ProcessFishiMd(filename string, mdText []byte) error {
+func ProcessFishiMd(filename string, mdText []byte, validateSDTS bool) error {
 
 	// TODO: read in filename, based on it check for cached version
 
@@ -153,9 +153,11 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 	// but does the thing work? grab a val producer and the grammar and find out
 	valProd := lx.FakeLexemeProducer(true, "")
 	g := parser.Grammar()
-	sddErr := sdd.Validate(g, "ast", types.DebugInfo{}, valProd)
-	if sddErr != nil {
-		return fmt.Errorf("sdd validation error: %w", sddErr)
+	if validateSDTS {
+		sddErr := sdd.Validate(g, "ast", types.DebugInfo{}, valProd)
+		if sddErr != nil {
+			return fmt.Errorf("sdd validation error: %w", sddErr)
+		}
 	}
 
 	frontEnd := ictiobus.Frontend[AST]{
@@ -219,12 +221,12 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 
 					%%grammar
 					{RULE}=                           {WOAH} | n
-					{RULE}				= =+  {DAMN} cool | okaythen + 2 | {}
+					{R2}				= =+  {DAMN} cool | okaythen + 2 | {}
 					                 | {SOMEFIN ELSE}
 
 					%state someState
 
-					{RULE}=		{HMM}`
+					{ANOTHER}=		{HMM}`
 		/*
 
 
@@ -240,6 +242,7 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 			%action {text-element}.str
 			%hook unescape  %with ESCSEQ.$test		`*/
 
+	frontEnd.Debug = types.DebugInfo{ParseTrees: true}
 	ast, err := frontEnd.AnalyzeString(fishiTest)
 	if err != nil {
 		return err
