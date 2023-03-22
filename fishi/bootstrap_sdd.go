@@ -183,6 +183,48 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	// - remove PROD-ACTION mock
 	//
 	// PROD-SPECIFIER:
+	// - Mock bot PROD-ADDR rules
+	// - create function bootstrapSDDProdSpecifierValue
+	// - remove PROD-SPECIFIER mock
+	//
+	// PROD-ADDR:
+	// - Mock both ACTION-PRODUCTION rules
+	// - create function bootstrapSDDProdAddrValue
+	// - remove PROD-ADDR mock
+	//
+	// ACTION-PRODUCTION:
+	// - Mock both ACTION-SYMBOL-SEQUENCE rules
+	// - create function bootstrapSDDActionProductionValue
+	// - remove ACTION-PRODUCTION mock
+	//
+	// ACTION-SYMBOL-SEQUENCE:
+	// - Mock all four ACTION-SYMBOL rules
+	// - create function bootstrapSDDActionSymbolSequenceValue
+	// - remove ACTION-SYMBOL-SEQUENCE mock
+	//
+	// ACTION-SYMBOL:
+	// - create function bootstrapSDDActionSymbolValue
+	// - remove ACTION-SYMBOL mock
+	//
+	// SEMANTIC-ACTIONS:
+	// - Mock both SEMANTIC-ACTION rules
+	// - create function bootstrapSDDSemanticActionsValue
+	// - remove SEMANTIC-ACTIONS mock
+	//
+	// SEMANTIC-ACTION:
+	// - Mock WITH-CLAUSE rule
+	// - create function bootstrapSDDSemanticActionValue
+	// - remove SEMANTIC-ACTION mock
+	//
+	// WITH-CLAUSE:
+	// - Mock both ATTR-REFS rules
+	// - create function bootstrapSDDWithClauseValue
+	// - remove WITH-CLAUSE mock
+	//
+	// ATTR-REFS:
+	// - create function bootstrapSDDAttrRefsValue
+	// - remove ATTR-REFS mock
+	//
 
 	// permanently in place until tokens and actions branches are started.
 
