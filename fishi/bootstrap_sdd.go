@@ -46,6 +46,7 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	bootstrapSDDGrammarBlockAST(sdd)
 	bootstrapSDDGrammarContentAST(sdd)
 	bootstrapSDDGrammarStateBlockValue(sdd)
+	bootstrapSDDStateInstructionState(sdd)
 
 	// GRAMMAR branch mock, return later.
 	sdd.BindSynthesizedAttribute(
@@ -90,16 +91,12 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 
 	// state-inst branch mocks.
 
-	bootstrapSDDFakeSynth(sdd, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", "someFakeState")
-	bootstrapSDDFakeSynth(sdd, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", "someFakeStateNoNL")
+	bootstrapSDDFakeSynth(sdd, "ID-EXPR", []string{tcId.ID()}, "value", "ID-EXPR:ID")
+	bootstrapSDDFakeSynth(sdd, "ID-EXPR", []string{tcTerminal.ID()}, "value", "ID-EXPR:TERMINAL")
+	bootstrapSDDFakeSynth(sdd, "ID-EXPR", []string{"TEXT"}, "value", "ID-EXPR:TEXT")
 
 	/* steps for next part in SDD:
 	// state-inst BRANCH:
-	- mock out ID-EXPR for all three sets
-	- uncomment bootstrapSDDStateInstructionState
-	- remove STATE-INSTRUCTIONS mocks
-	- ID-EXPR will likely NOT need noFlows, so be suspicious if hit that cond
-
 	ONCE WORKING:
 	- mock out TEXT for both sets
 	- uncomment bootstrapSDDIdExprValue
@@ -133,7 +130,6 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 		bootstrapSDDProductionValue(sdd)
 		bootstrapSDDSymbolSequenceValue(sdd)
 		bootstrapSDDSymbolValue(sdd)
-		bootstrapSDDStateInstructionState(sdd)
 		bootstrapSDDIDExprValue(sdd)
 		bootstrapSDDTextValue(sdd)
 		bootstrapSDDTextElementValue(sdd)*/

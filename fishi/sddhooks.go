@@ -218,13 +218,13 @@ func sddFnGrammarContentBlocksStartRuleList(_, _ string, args []interface{}) int
 }
 
 func sddFnMakeGrammarContentNode(_, _ string, args []interface{}) interface{} {
-	rules, ok := args[0].([]grammar.Rule)
+	state, ok := args[0].(string)
+	if !ok {
+		state = SDDErrMsg("STATE value is not a string")
+	}
+	rules, ok := args[1].([]grammar.Rule)
 	if !ok {
 		rules = []grammar.Rule{}
-	}
-	state, ok := args[1].(string)
-	if !ok {
-		state = ErrString
 	}
 	return astGrammarContent{rules: rules, state: state}
 }
