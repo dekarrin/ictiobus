@@ -114,7 +114,10 @@ const (
 	ErrWithMessageString = "<ERR: %s>"
 )
 
-func SDDErrMsg(msg string) string {
+func SDDErrMsg(msg string, a ...interface{}) string {
+	if len(a) > 0 {
+		msg = fmt.Sprintf(msg, a...)
+	}
 	return fmt.Sprintf(ErrWithMessageString, msg)
 }
 
@@ -234,7 +237,11 @@ func sddFnIdentity(_, _ string, args []interface{}) interface{} { return args[0]
 func sddFnInterpretEscape(_, _ string, args []interface{}) interface{} {
 	str, ok := args[0].(string)
 	if !ok {
-		return ErrString
+		return SDDErrMsg("escape sequence $text is not a string")
+	}
+
+	if len(str) < len("%!") {
+		return SDDErrMsg("escape sequence $text does not appear to have enough characters: %q", str)
 	}
 
 	// escape sequence is %!, so just take the chars after that
@@ -244,11 +251,11 @@ func sddFnInterpretEscape(_, _ string, args []interface{}) interface{} {
 func sddFnAppendStrings(_, _ string, args []interface{}) interface{} {
 	str1, ok := args[0].(string)
 	if !ok {
-		return ErrString
+		return SDDErrMsg("first argument is not a string")
 	}
 	str2, ok := args[1].(string)
 	if !ok {
-		return ErrString
+		return SDDErrMsg("second argument is not a string")
 	}
 
 	return str1 + str2

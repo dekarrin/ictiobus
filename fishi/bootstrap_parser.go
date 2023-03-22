@@ -187,7 +187,6 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddRule("ID-EXPR", []string{tcTerminal.ID()})
 	bootCfg.AddRule("ID-EXPR", []string{"TEXT"})
 
-	// todo: make this be text-elements glued together as well.
 	bootCfg.AddRule("TEXT", []string{"TEXT", "TEXT-ELEMENT"})
 	bootCfg.AddRule("TEXT", []string{"TEXT-ELEMENT"})
 

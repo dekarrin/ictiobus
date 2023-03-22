@@ -122,7 +122,7 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 	if preloadedParser != nil {
 		parser = preloadedParser
 
-		fmt.Printf("successfully loaded %s parser", parser.Type().String())
+		fmt.Printf("successfully loaded %s parser\n", parser.Type().String())
 	} else {
 		var ambigWarns []string
 		parser, ambigWarns := CreateBootstrapParser()
@@ -214,6 +214,7 @@ func ProcessFishiMd(filename string, mdText []byte) error {
 		[yo] %discard*/
 
 		`%%grammar
+		%state glub
 		{RULE} =   {SOMEBULLSHIT}
 
 					%%grammar

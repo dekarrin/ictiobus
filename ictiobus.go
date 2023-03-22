@@ -347,6 +347,7 @@ func NewSDTS() SDTS {
 // Frontend is a complete input-to-intermediate representation compiler
 // front-end.
 type Frontend[E any] struct {
+	Debug       types.DebugInfo
 	Lexer       Lexer
 	Parser      Parser
 	SDT         SDTS
@@ -383,6 +384,10 @@ func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, err error) {
 	parseTree, err := fe.Parser.Parse(tokStream)
 	if err != nil {
 		return ir, err
+	}
+
+	if fe.Debug.ParseTrees {
+		fmt.Printf("parse tree:\n%s\n", parseTree.String())
 	}
 
 	// semantic analysis

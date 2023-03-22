@@ -48,6 +48,8 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	bootstrapSDDGrammarStateBlockValue(sdd)
 	bootstrapSDDStateInstructionState(sdd)
 	bootstrapSDDIDExprValue(sdd)
+	bootstrapSDDTextValue(sdd)
+	bootstrapSDDTextElementValue(sdd)
 
 	// GRAMMAR branch mock, return later.
 	sdd.BindSynthesizedAttribute(
@@ -92,29 +94,8 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 
 	// state-inst branch mocks.
 
-	bootstrapSDDFakeSynth(sdd, "TEXT", []string{"TEXT-ELEMENT"}, "value", "TEXT:TEXT-ELEMENT")
-	bootstrapSDDFakeSynth(sdd, "TEXT", []string{"TEXT", "TEXT-ELEMENT"}, "value", "TEXT:TEXT,TEXT-ELEMENT")
-
 	/* steps for next part in SDD:
 	// state-inst BRANCH:
-	ONCE WORKING:
-	- mock out TEXT for both sets DONE
-	- uncomment bootstrapSDDIdExprValue DONE
-	- remove ID-EXPR mocks DONE
-	- TEXT will surely need noFlows as it also rolls up to token blocks. add as needed.
-
-	ONCE WORKING:
-	- mock out TEXT-ELEMENT for both sets
-	- uncomment bootstrapSDDTextValue
-	- remove TEXT mocks
-	- TEXT-ELEMENT will likely NOT need noFlows as it also rolls up to token blocks. be suspicious if hit that cond
-
-	ONCE WORKING:
-	- uncomment bootstrapSDDTextElementValue
-	- remove TEXT-ELEMENT mocks
-	- VALIDATE. if works, done with branch of CFG.
-
-
 
 	// AFTER:
 	- mock out GRAMMAR-RULE for both sets
@@ -129,15 +110,26 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 		bootstrapSDDAlternationsValue(sdd)
 		bootstrapSDDProductionValue(sdd)
 		bootstrapSDDSymbolSequenceValue(sdd)
-		bootstrapSDDSymbolValue(sdd)
-		bootstrapSDDTextValue(sdd)
-		bootstrapSDDTextElementValue(sdd)*/
+		bootstrapSDDSymbolValue(sdd)*/
+
+	// permanently in place until tokens and actions branches are started.
 
 	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
 	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "TOKENS-STATE-BLOCK")
 
 	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
 	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "TOKENS-STATE-BLOCK")
+
+	sdd.SetNoFlow(true, "TEXT", []string{"TEXT", "TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "PATTERN")
+	sdd.SetNoFlow(true, "TEXT", []string{"TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "PATTERN")
+	sdd.SetNoFlow(true, "TEXT", []string{"TEXT", "TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "STATESHIFT")
+	sdd.SetNoFlow(true, "TEXT", []string{"TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "STATESHIFT")
+	sdd.SetNoFlow(true, "TEXT", []string{"TEXT", "TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "TOKEN")
+	sdd.SetNoFlow(true, "TEXT", []string{"TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "TOKEN")
+	sdd.SetNoFlow(true, "TEXT", []string{"TEXT", "TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "PRIORITY")
+	sdd.SetNoFlow(true, "TEXT", []string{"TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "PRIORITY")
+	sdd.SetNoFlow(true, "TEXT", []string{"TEXT", "TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "HUMAN")
+	sdd.SetNoFlow(true, "TEXT", []string{"TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "HUMAN")
 
 	return sdd
 }
