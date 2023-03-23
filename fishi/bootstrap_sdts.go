@@ -8,115 +8,115 @@ import (
 func CreateBootstrapSDTS() ictiobus.SDTS {
 	sdts := ictiobus.NewSDTS()
 
-	bootstrapSDDFishispecAST(sdts)
-	bootstrapSDDBlocksValue(sdts)
-	bootstrapSDDBlockAST(sdts)
-	bootstrapSDDGrammarBlockAST(sdts)
-	bootstrapSDDGrammarContentAST(sdts)
-	bootstrapSDDGrammarStateBlockValue(sdts)
-	bootstrapSDDGrammarRulesValue(sdts)
-	bootstrapSDDGrammarRuleValue(sdts)
-	bootstrapSDDStateInstructionState(sdts)
-	bootstrapSDDIDExprValue(sdts)
-	bootstrapSDDTextValue(sdts)
-	bootstrapSDDTextElementValue(sdts)
-	bootstrapSDDAlternationsValue(sdts)
-	bootstrapSDDProductionValue(sdts)
-	bootstrapSDDSymbolSequenceValue(sdts)
-	bootstrapSDDSymbolValue(sdts)
-	bootstrapSDDTokensBlockAST(sdts)
-	bootstrapSDDTokensContentAST(sdts)
-	bootstrapSDDTokensStateBlockValue(sdts)
-	bootstrapSDDTokensEntriesValue(sdts)
-	bootstrapSDDTokensEntryValue(sdts)
-	bootstrapSDDPattern(sdts)
-	bootstrapSDDTokenOptsValue(sdts)
-	bootstrapSDDTokenOptionValue(sdts)
-	bootstrapSDDStateshiftValue(sdts)
-	bootstrapSDDTokenValue(sdts)
-	bootstrapSDDHumanValue(sdts)
-	bootstrapSDDPriorityValue(sdts)
+	bootstrapSDTSFishispecAST(sdts)
+	bootstrapSDTSBlocksValue(sdts)
+	bootstrapSDTSBlockAST(sdts)
+	bootstrapSDTSGrammarBlockAST(sdts)
+	bootstrapSDTSGrammarContentAST(sdts)
+	bootstrapSDTSGrammarStateBlockValue(sdts)
+	bootstrapSDTSGrammarRulesValue(sdts)
+	bootstrapSDTSGrammarRuleValue(sdts)
+	bootstrapSDTSStateInstructionState(sdts)
+	bootstrapSDTSIDExprValue(sdts)
+	bootstrapSDTSTextValue(sdts)
+	bootstrapSDTSTextElementValue(sdts)
+	bootstrapSDTSAlternationsValue(sdts)
+	bootstrapSDTSProductionValue(sdts)
+	bootstrapSDTSSymbolSequenceValue(sdts)
+	bootstrapSDTSSymbolValue(sdts)
+	bootstrapSDTSTokensBlockAST(sdts)
+	bootstrapSDTSTokensContentAST(sdts)
+	bootstrapSDTSTokensStateBlockValue(sdts)
+	bootstrapSDTSTokensEntriesValue(sdts)
+	bootstrapSDTSTokensEntryValue(sdts)
+	bootstrapSDTSPattern(sdts)
+	bootstrapSDTSTokenOptsValue(sdts)
+	bootstrapSDTSTokenOptionValue(sdts)
+	bootstrapSDTSStateshiftValue(sdts)
+	bootstrapSDTSTokenValue(sdts)
+	bootstrapSDTSHumanValue(sdts)
+	bootstrapSDTSPriorityValue(sdts)
 
-	bootstrapSDDActionsBlockAST(sdts)
-	bootstrapSDDActionsContentAST(sdts)
+	bootstrapSDTSActionsBlockAST(sdts)
+	bootstrapSDTSActionsContentAST(sdts)
 
-	bootstrapSDDFakeSynth(sdts, "ACTIONS-STATE-BLOCK", []string{"STATE-INSTRUCTION", "SYMBOL-ACTIONS-LIST"}, "value", astActionsContent{state: "fakeFromSTATEBLOCK"})
+	bootstrapSDTSFakeSynth(sdts, "ACTIONS-STATE-BLOCK", []string{"STATE-INSTRUCTION", "SYMBOL-ACTIONS-LIST"}, "value", astActionsContent{state: "fakeFromSTATEBLOCK"})
 
-	bootstrapSDDFakeSynth(sdts, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS-LIST", "SYMBOL-ACTIONS"}, "value", []symbolActions{{symbol: "symACTfake"}})
-	bootstrapSDDFakeSynth(sdts, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS"}, "value", []symbolActions{{symbol: "symACTfake2"}})
+	bootstrapSDTSFakeSynth(sdts, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS-LIST", "SYMBOL-ACTIONS"}, "value", []symbolActions{{symbol: "symACTfake"}})
+	bootstrapSDTSFakeSynth(sdts, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS"}, "value", []symbolActions{{symbol: "symACTfake2"}})
 
 	// NEXT STEPS:
 	//
 	// ACTIONS-STATE-BLOCK:
 	// - (SYMBOL-ACTIONS-LIST should already be mocked)
-	// - create function bootstrapSDDActionsStateBlockAST
+	// - create function bootstrapSDTSActionsStateBlockAST
 	// - update AST string() to print out the actions state block
 	// - remove NoFlow STATE-INSTRUCTION -> ACTIONS-STATE-BLOCK
 	// - remove ACTIONS-STATE-BLOCK mock
 	//
 	// SYMBOL-ACTIONS-LIST:
 	// - Mock SYMBOL-ACTIONS rule
-	// - create function bootstrapSDDSymbolActionsListValue
+	// - create function bootstrapSDTSSymbolActionsListValue
 	// - remove SYMBOL-ACTIONS-LIST mock
 	// - remove SYMBOL-ACTIONS-LIST NoFlows
 	//
 	// SYMBOL-ACTIONS:
 	// - Mock both PROD-ACTIONS rules
-	// - create function bootstrapSDDSymbolActionsValue
+	// - create function bootstrapSDTSSymbolActionsValue
 	// - remove SYMBOL-ACTIONS mock
 	//
 	// PROD-ACTIONS:
 	// - Mock PROD-ACTION rule
-	// - create function bootstrapSDDProdActionsValue
+	// - create function bootstrapSDTSProdActionsValue
 	// - remove PROD-ACTIONS mock
 	//
 	// PROD-ACTION:
 	// - Mock both PROD-SPECIFIER rules
 	// - Mock both SEMANTIC-ACTIONS rules
-	// - create function bootstrapSDDProdActionValue
+	// - create function bootstrapSDTSProdActionValue
 	// - remove PROD-ACTION mock
 	//
 	// PROD-SPECIFIER:
 	// - Mock bot PROD-ADDR rules
-	// - create function bootstrapSDDProdSpecifierValue
+	// - create function bootstrapSDTSProdSpecifierValue
 	// - remove PROD-SPECIFIER mock
 	//
 	// PROD-ADDR:
 	// - Mock both ACTION-PRODUCTION rules
-	// - create function bootstrapSDDProdAddrValue
+	// - create function bootstrapSDTSProdAddrValue
 	// - remove PROD-ADDR mock
 	//
 	// ACTION-PRODUCTION:
 	// - Mock both ACTION-SYMBOL-SEQUENCE rules
-	// - create function bootstrapSDDActionProductionValue
+	// - create function bootstrapSDTSActionProductionValue
 	// - remove ACTION-PRODUCTION mock
 	//
 	// ACTION-SYMBOL-SEQUENCE:
 	// - Mock all four ACTION-SYMBOL rules
-	// - create function bootstrapSDDActionSymbolSequenceValue
+	// - create function bootstrapSDTSActionSymbolSequenceValue
 	// - remove ACTION-SYMBOL-SEQUENCE mock
 	//
 	// ACTION-SYMBOL:
-	// - create function bootstrapSDDActionSymbolValue
+	// - create function bootstrapSDTSActionSymbolValue
 	// - remove ACTION-SYMBOL mock
 	//
 	// SEMANTIC-ACTIONS:
 	// - Mock both SEMANTIC-ACTION rules
-	// - create function bootstrapSDDSemanticActionsValue
+	// - create function bootstrapSDTSSemanticActionsValue
 	// - remove SEMANTIC-ACTIONS mock
 	//
 	// SEMANTIC-ACTION:
 	// - Mock WITH-CLAUSE rule
-	// - create function bootstrapSDDSemanticActionValue
+	// - create function bootstrapSDTSSemanticActionValue
 	// - remove SEMANTIC-ACTION mock
 	//
 	// WITH-CLAUSE:
 	// - Mock both ATTR-REFS rules
-	// - create function bootstrapSDDWithClauseValue
+	// - create function bootstrapSDTSWithClauseValue
 	// - remove WITH-CLAUSE mock
 	//
 	// ATTR-REFS:
-	// - create function bootstrapSDDAttrRefsValue
+	// - create function bootstrapSDTSAttrRefsValue
 	// - remove ATTR-REFS mock
 	//
 
@@ -131,7 +131,7 @@ func CreateBootstrapSDTS() ictiobus.SDTS {
 	return sdts
 }
 
-func bootstrapSDDFakeSynth(sdts ictiobus.SDTS, head string, prod []string, name string, value interface{}) {
+func bootstrapSDTSFakeSynth(sdts ictiobus.SDTS, head string, prod []string, name string, value interface{}) {
 	sdts.BindSynthesizedAttribute(
 		head, prod,
 		name,
@@ -140,7 +140,7 @@ func bootstrapSDDFakeSynth(sdts ictiobus.SDTS, head string, prod []string, name 
 	)
 }
 
-func bootstrapSDDFishispecAST(sdts ictiobus.SDTS) {
+func bootstrapSDTSFishispecAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"FISHISPEC", []string{"BLOCKS"},
 		"ast",
@@ -151,7 +151,7 @@ func bootstrapSDDFishispecAST(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDBlocksValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSBlocksValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"BLOCKS", []string{"BLOCKS", "BLOCK"},
 		"value",
@@ -171,7 +171,7 @@ func bootstrapSDDBlocksValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDBlockAST(sdts ictiobus.SDTS) {
+func bootstrapSDTSBlockAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"BLOCK", []string{"GRAMMAR-BLOCK"},
 		"ast",
@@ -198,7 +198,7 @@ func bootstrapSDDBlockAST(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDActionsBlockAST(sdts ictiobus.SDTS) {
+func bootstrapSDTSActionsBlockAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ACTIONS-BLOCK", []string{tcHeaderActions.ID(), "ACTIONS-CONTENT"},
 		"ast",
@@ -209,7 +209,7 @@ func bootstrapSDDActionsBlockAST(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDTokensBlockAST(sdts ictiobus.SDTS) {
+func bootstrapSDTSTokensBlockAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TOKENS-BLOCK", []string{tcHeaderTokens.ID(), "TOKENS-CONTENT"},
 		"ast",
@@ -228,7 +228,7 @@ func bootstrapSDDTokensBlockAST(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDGrammarBlockAST(sdts ictiobus.SDTS) {
+func bootstrapSDTSGrammarBlockAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GRAMMAR-BLOCK", []string{tcHeaderGrammar.ID(), "GRAMMAR-CONTENT"},
 		"ast",
@@ -247,7 +247,7 @@ func bootstrapSDDGrammarBlockAST(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDTokensContentAST(sdts ictiobus.SDTS) {
+func bootstrapSDTSTokensContentAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TOKENS-CONTENT", []string{"TOKENS-CONTENT", "TOKENS-STATE-BLOCK"},
 		"ast",
@@ -284,7 +284,7 @@ func bootstrapSDDTokensContentAST(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDActionsContentAST(sdts ictiobus.SDTS) {
+func bootstrapSDTSActionsContentAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ACTIONS-CONTENT", []string{"ACTIONS-CONTENT", "ACTIONS-STATE-BLOCK"},
 		"ast",
@@ -321,7 +321,7 @@ func bootstrapSDDActionsContentAST(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDGrammarContentAST(sdts ictiobus.SDTS) {
+func bootstrapSDTSGrammarContentAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GRAMMAR-CONTENT", []string{"GRAMMAR-CONTENT", "GRAMMAR-STATE-BLOCK"},
 		"ast",
@@ -358,7 +358,7 @@ func bootstrapSDDGrammarContentAST(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDGrammarStateBlockValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSGrammarStateBlockValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GRAMMAR-STATE-BLOCK", []string{"STATE-INSTRUCTION", "NEWLINES", "GRAMMAR-RULES"},
 		"value",
@@ -370,7 +370,7 @@ func bootstrapSDDGrammarStateBlockValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDTokensStateBlockValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSTokensStateBlockValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TOKENS-STATE-BLOCK", []string{"STATE-INSTRUCTION", "NEWLINES", "TOKENS-ENTRIES"},
 		"value",
@@ -382,7 +382,7 @@ func bootstrapSDDTokensStateBlockValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDGrammarRulesValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSGrammarRulesValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GRAMMAR-RULES", []string{"GRAMMAR-RULES", "NEWLINES", "GRAMMAR-RULE"},
 		"value",
@@ -402,7 +402,7 @@ func bootstrapSDDGrammarRulesValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDTokensEntriesValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSTokensEntriesValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TOKENS-ENTRIES", []string{"TOKENS-ENTRIES", "NEWLINES", "TOKENS-ENTRY"},
 		"value",
@@ -422,7 +422,7 @@ func bootstrapSDDTokensEntriesValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDTokensEntryValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSTokensEntryValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TOKENS-ENTRY", []string{"PATTERN", "NEWLINES", "TOKEN-OPTS"},
 		"value",
@@ -461,7 +461,7 @@ func bootstrapSDDTokensEntryValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDGrammarRuleValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSGrammarRuleValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GRAMMAR-RULE", []string{tcNonterminal.ID(), tcEq.ID(), "ALTERNATIONS"},
 		"value",
@@ -482,7 +482,7 @@ func bootstrapSDDGrammarRuleValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDAlternationsValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSAlternationsValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ALTERNATIONS", []string{"PRODUCTION"},
 		"value",
@@ -511,7 +511,7 @@ func bootstrapSDDAlternationsValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDProductionValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSProductionValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"PRODUCTION", []string{"SYMBOL-SEQUENCE"},
 		"value",
@@ -528,7 +528,7 @@ func bootstrapSDDProductionValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDSymbolSequenceValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSSymbolSequenceValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"SYMBOL-SEQUENCE", []string{"SYMBOL-SEQUENCE", "SYMBOL"},
 		"value",
@@ -549,7 +549,7 @@ func bootstrapSDDSymbolSequenceValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDPriorityValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSPriorityValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"PRIORITY", []string{tcDirPriority.ID(), "TEXT"},
 		"value",
@@ -560,7 +560,7 @@ func bootstrapSDDPriorityValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDHumanValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSHumanValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"HUMAN", []string{tcDirHuman.ID(), "TEXT"},
 		"value",
@@ -571,7 +571,7 @@ func bootstrapSDDHumanValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDTokenValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSTokenValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TOKEN", []string{tcDirToken.ID(), "TEXT"},
 		"value",
@@ -582,7 +582,7 @@ func bootstrapSDDTokenValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDStateshiftValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSStateshiftValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"STATESHIFT", []string{tcDirShift.ID(), "TEXT"},
 		"value",
@@ -593,7 +593,7 @@ func bootstrapSDDStateshiftValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDTokenOptionValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSTokenOptionValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TOKEN-OPTION", []string{"DISCARD"},
 		"value",
@@ -634,7 +634,7 @@ func bootstrapSDDTokenOptionValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDTokenOptsValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSTokenOptsValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TOKEN-OPTS", []string{"TOKEN-OPTS", "NEWLINES", "TOKEN-OPTION"},
 		"value",
@@ -663,7 +663,7 @@ func bootstrapSDDTokenOptsValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDPattern(sdts ictiobus.SDTS) {
+func bootstrapSDTSPattern(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"PATTERN", []string{"TEXT"},
 		"value",
@@ -674,7 +674,7 @@ func bootstrapSDDPattern(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDSymbolValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSSymbolValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"SYMBOL", []string{tcNonterminal.ID()},
 		"value",
@@ -694,7 +694,7 @@ func bootstrapSDDSymbolValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDStateInstructionState(sdts ictiobus.SDTS) {
+func bootstrapSDTSStateInstructionState(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"},
 		"state",
@@ -714,7 +714,7 @@ func bootstrapSDDStateInstructionState(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDIDExprValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSIDExprValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ID-EXPR", []string{tcId.ID()},
 		"value",
@@ -743,7 +743,7 @@ func bootstrapSDDIDExprValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDTextValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSTextValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TEXT", []string{"TEXT-ELEMENT"},
 		"value",
@@ -764,7 +764,7 @@ func bootstrapSDDTextValue(sdts ictiobus.SDTS) {
 	)
 }
 
-func bootstrapSDDTextElementValue(sdts ictiobus.SDTS) {
+func bootstrapSDTSTextElementValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TEXT-ELEMENT", []string{tcFreeformText.ID()},
 		"value",
