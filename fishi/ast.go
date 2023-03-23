@@ -64,6 +64,7 @@ const (
 	blockTypeError blockType = iota
 	blockTypeGrammar
 	blockTypeTokens
+	blockTypeActions
 )
 
 type astBlock interface {
@@ -118,6 +119,10 @@ func (agb astGrammarBlock) Grammar() astGrammarBlock {
 
 func (agb astGrammarBlock) Tokens() astTokensBlock {
 	panic("not tokens type block")
+}
+
+type astActionsBlock struct {
+	content []astActionsContent
 }
 
 type astTokensBlock struct {
