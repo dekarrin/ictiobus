@@ -163,7 +163,7 @@ func (aab astActionsBlock) String() string {
 }
 
 func (aab astActionsBlock) Type() blockType {
-	return blockTypeGrammar
+	return blockTypeActions
 }
 
 func (aab astActionsBlock) Grammar() astGrammarBlock {
@@ -208,7 +208,7 @@ func (atb astTokensBlock) Tokens() astTokensBlock {
 	return atb
 }
 
-func (atb astTokensBlock) Actions() astGrammarBlock {
+func (atb astTokensBlock) Actions() astActionsBlock {
 	panic("not actions-type block")
 }
 
@@ -227,7 +227,7 @@ type astTokenOption struct {
 	value   string
 }
 
-type astTokenEntry struct {
+type tokenEntry struct {
 	pattern  string
 	discard  bool
 	shift    string
@@ -236,7 +236,7 @@ type astTokenEntry struct {
 	priority int
 }
 
-func (entry astTokenEntry) String() string {
+func (entry tokenEntry) String() string {
 	var sb strings.Builder
 
 	sb.WriteRune('{')
@@ -252,7 +252,7 @@ func (entry astTokenEntry) String() string {
 }
 
 type astTokensContent struct {
-	entries []astTokenEntry
+	entries []tokenEntry
 	state   string
 }
 

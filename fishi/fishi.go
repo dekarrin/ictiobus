@@ -189,6 +189,8 @@ func ProcessFishiMd(filename string, mdText []byte, validateSDTS bool) error {
 
 					%action {thing}.thing %hook thing
 				%prod {ye}
+
+				%state SOMEFIN
 				%action {thing}.thing %hook thing
 
 						%symbol {yo}%prod + {EAT} ext

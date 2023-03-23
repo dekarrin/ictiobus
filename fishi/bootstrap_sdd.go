@@ -2,30 +2,11 @@ package fishi
 
 import (
 	"github.com/dekarrin/ictiobus"
-	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/translation"
 )
 
 func CreateBootstrapSDD() ictiobus.SDTS {
 	sdd := ictiobus.NewSDTS()
-
-	// fill in the gaps until this part is fully written out
-
-	bootstrapSDDFakeSynth(sdd, "BLOCK", []string{"ACTIONS-BLOCK"}, "ast", astGrammarBlock{content: []astGrammarContent{
-		{
-			state: "COULD BE ACTIONS, grammar block until done",
-			rules: []grammar.Rule{
-				{
-					NonTerminal: "ACTION",
-					Productions: []grammar.Production{
-						{"ACTION", "ACTION", "ACTION"},
-					},
-				},
-			},
-		},
-	}})
-
-	// need these until we fill in the ACTIONs-BLOCK and TOKENS-BLOCK rules
 
 	bootstrapSDDFishispecAST(sdd)
 	bootstrapSDDBlocksValue(sdd)
@@ -56,23 +37,24 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	bootstrapSDDHumanValue(sdd)
 	bootstrapSDDPriorityValue(sdd)
 
+	bootstrapSDDActionsBlockAST(sdd)
+	bootstrapSDDActionsContentAST(sdd)
+
+	bootstrapSDDFakeSynth(sdd, "ACTIONS-STATE-BLOCK", []string{"STATE-INSTRUCTION", "SYMBOL-ACTIONS-LIST"}, "value", astActionsContent{state: "fakeFromSTATEBLOCK"})
+
+	bootstrapSDDFakeSynth(sdd, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS-LIST", "SYMBOL-ACTIONS"}, "value", []symbolActions{{symbol: "symACTfake"}})
+	bootstrapSDDFakeSynth(sdd, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS"}, "value", []symbolActions{{symbol: "symACTfake2"}})
+
 	// NEXT STEPS:
 	//
-	// ACTIONS-BLOCK:
-	// - AST struct for it (DONE)
-	// - Mock all 4 ACTIONS-CONTENT rules
-	// - create function bootstrapSDDActionsBlockAST
-	// - update AST string() to print out the actions AST block
-	// - remove ACTIONS-BLOCK mock for BLOCKS
-	// - uncomment BLOCK -> ACTIONS-BLOCK rule in bootstrapSDDBlockAST
-	//
 	// ACTIONS-CONTENT:
-	// - AST struct for it
-	// - Mock ACTIONS-STATE-BLOCK
-	// - Mock both SYMBOL-ACTIONS-LIST rules
-	// - create function bootstrapSDDActionsContentAST
-	// - update AST string() to print out the actions AST content block
-	// - remove ACTIONS-CONTENT mock
+	// - AST struct for it (DONE)
+	// - Mock ACTIONS-STATE-BLOCK (DONE)
+	// - Mock both SYMBOL-ACTIONS-LIST rules (DONE)
+	// - create function bootstrapSDDActionsContentAST (DONE)
+	// - update AST string() to print out the actions AST content block (DONE)
+	// - remove ACTIONS-CONTENT mock (DONE)
+	// - need several NoFlows from Symbol-ACtions-List... or proceed
 	//
 	// ACTIONS-STATE-BLOCK:
 	// - (SYMBOL-ACTIONS-LIST should already be mocked)
@@ -146,6 +128,11 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	// - remove ATTR-REFS mock
 	//
 
+	sdd.SetNoFlow(true, "ACTIONS-CONTENT", []string{"ACTIONS-CONTENT", "ACTIONS-STATE-BLOCK"}, "ast", translation.NodeRelation{}, -1, "ACTIONS-CONTENT")
+	sdd.SetNoFlow(true, "ACTIONS-CONTENT", []string{"ACTIONS-CONTENT", "SYMBOL-ACTIONS-LIST"}, "ast", translation.NodeRelation{}, -1, "ACTIONS-CONTENT")
+	sdd.SetNoFlow(true, "ACTIONS-CONTENT", []string{"ACTIONS-STATE-BLOCK"}, "ast", translation.NodeRelation{}, -1, "ACTIONS-CONTENT")
+	sdd.SetNoFlow(true, "ACTIONS-CONTENT", []string{"SYMBOL-ACTIONS-LIST"}, "ast", translation.NodeRelation{}, -1, "ACTIONS-CONTENT")
+
 	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
 	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
 
@@ -209,15 +196,25 @@ func bootstrapSDDBlockAST(sdd ictiobus.SDTS) {
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "ast"},
 		},
 	)
-	/*
-		sdd.BindSynthesizedAttribute(
-			"BLOCK", []string{"ACTIONS-BLOCK"},
-			"ast",
-			sddFnIdentity,
-			[]translation.AttrRef{
-				{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "ast"},
-			},
-		)*/
+	sdd.BindSynthesizedAttribute(
+		"BLOCK", []string{"ACTIONS-BLOCK"},
+		"ast",
+		sddFnIdentity,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "ast"},
+		},
+	)
+}
+
+func bootstrapSDDActionsBlockAST(sdd ictiobus.SDTS) {
+	sdd.BindSynthesizedAttribute(
+		"ACTIONS-BLOCK", []string{tcHeaderActions.ID(), "ACTIONS-CONTENT"},
+		"ast",
+		sddFnMakeActionsBlock,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "ast"},
+		},
+	)
 }
 
 func bootstrapSDDTokensBlockAST(sdd ictiobus.SDTS) {
@@ -271,7 +268,7 @@ func bootstrapSDDTokensContentAST(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"TOKENS-CONTENT", []string{"TOKENS-CONTENT", "TOKENS-ENTRIES"},
 		"ast",
-		sddFnTokensContentBlocksAppendRuleList,
+		sddFnTokensContentBlocksAppendEntryList,
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "ast"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
@@ -288,7 +285,44 @@ func bootstrapSDDTokensContentAST(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"TOKENS-CONTENT", []string{"TOKENS-ENTRIES"},
 		"ast",
-		sddFnTokensContentBlocksStartRuleList,
+		sddFnTokensContentBlocksStartEntryList,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDDActionsContentAST(sdd ictiobus.SDTS) {
+	sdd.BindSynthesizedAttribute(
+		"ACTIONS-CONTENT", []string{"ACTIONS-CONTENT", "ACTIONS-STATE-BLOCK"},
+		"ast",
+		sddFnActionsContentBlocksAppendStateBlock,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "ast"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+	sdd.BindSynthesizedAttribute(
+		"ACTIONS-CONTENT", []string{"ACTIONS-CONTENT", "SYMBOL-ACTIONS-LIST"},
+		"ast",
+		sddFnActionsContentBlocksAppendSymbolActionsList,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "ast"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+	sdd.BindSynthesizedAttribute(
+		"ACTIONS-CONTENT", []string{"ACTIONS-STATE-BLOCK"},
+		"ast",
+		sddFnTokensContentBlocksStartStateBlock,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+	sdd.BindSynthesizedAttribute(
+		"ACTIONS-CONTENT", []string{"SYMBOL-ACTIONS-LIST"},
+		"ast",
+		sddFnActionsContentBlocksStartSymbolActionsList,
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
 		},
