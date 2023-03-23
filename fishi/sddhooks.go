@@ -271,6 +271,14 @@ func sddFnMakeTokensContentNode(_, _ string, args []interface{}) interface{} {
 	return astTokensContent{entries: entries, state: state}
 }
 
+func sddFnTrimString(_, _ string, args []interface{}) interface{} {
+	str, ok := args[0].(string)
+	if !ok {
+		return SDDErrMsg("argument is not a string")
+	}
+	return strings.TrimSpace(str)
+}
+
 func sddFnIdentity(_, _ string, args []interface{}) interface{} { return args[0] }
 
 func sddFnInterpretEscape(_, _ string, args []interface{}) interface{} {

@@ -173,7 +173,7 @@ func ProcessFishiMd(filename string, mdText []byte, validateSDTS bool) error {
 	}*/
 
 	// now, try to make a parse tree for your own grammar
-	fishiTest := /*`%%actions
+	fishiTest := `%%actions
 
 					%symbol
 
@@ -198,12 +198,12 @@ func ProcessFishiMd(filename string, mdText []byte, validateSDTS bool) error {
 				[somefin]
 
 				%stateshift   someState
-		`*/
-		`%%tokens
+		
+		%%tokens
 
 		%!%[more]%!%bluggleb*shi{2,4}   %stateshift glub
 		%token lovely %human "Something nice"
-` /*
+
 			%%tokens
 
 				glub  %discard
@@ -245,7 +245,7 @@ func ProcessFishiMd(filename string, mdText []byte, validateSDTS bool) error {
 
 			%prod ESCSEQ
 			%action {text-element}.str
-			%hook unescape  %with ESCSEQ.$test		`*/
+			%hook unescape  %with ESCSEQ.$test		`
 
 	frontEnd.Debug = types.DebugInfo{ParseTrees: true}
 	ast, err := frontEnd.AnalyzeString(fishiTest)
@@ -254,7 +254,7 @@ func ProcessFishiMd(filename string, mdText []byte, validateSDTS bool) error {
 	}
 
 	fmt.Printf("AST read from data:\n")
-	fmt.Printf(ast.String() + "\n")
+	fmt.Printf("%s\n", ast.String())
 
 	return nil
 }

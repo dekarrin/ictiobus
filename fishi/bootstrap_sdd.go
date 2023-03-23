@@ -584,7 +584,7 @@ func bootstrapSDDPattern(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"PATTERN", []string{"TEXT"},
 		"value",
-		sddFnIdentity,
+		sddFnTrimString,
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
 		},

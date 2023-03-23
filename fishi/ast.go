@@ -33,7 +33,7 @@ func (ast AST) String() string {
 						r := cont.rules[k]
 						sb.WriteString("      R: " + r.String() + "\n")
 					}
-					sb.WriteString("    >,\n")
+					sb.WriteString("    >\n")
 				}
 				sb.WriteString("  >\n")
 			case blockTypeTokens:
@@ -47,7 +47,7 @@ func (ast AST) String() string {
 						entry := cont.entries[k]
 						sb.WriteString("      E: " + entry.String() + "\n")
 					}
-					sb.WriteString("    >,\n")
+					sb.WriteString("    >\n")
 				}
 				sb.WriteString("  >\n")
 			}
@@ -177,9 +177,8 @@ type astTokenEntry struct {
 func (entry astTokenEntry) String() string {
 	var sb strings.Builder
 
-	sb.WriteString("{\"")
-	sb.WriteString(entry.pattern)
-	sb.WriteString(" -> ")
+	sb.WriteRune('{')
+	sb.WriteString(fmt.Sprintf("%q -> ", entry.pattern))
 	sb.WriteString(fmt.Sprintf("Discard: %v, ", entry.discard))
 	sb.WriteString(fmt.Sprintf("Shift: %q, ", entry.shift))
 	sb.WriteString(fmt.Sprintf("Token: %q, ", entry.token))
