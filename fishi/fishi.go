@@ -148,7 +148,7 @@ func ProcessFishiMd(filename string, mdText []byte, validateSDTS bool) error {
 		}
 	}
 
-	sdd := CreateBootstrapSDD()
+	sdd := CreateBootstrapSDTS()
 
 	// but does the thing work? grab a val producer and the grammar and find out
 	valProd := lx.FakeLexemeProducer(true, "")

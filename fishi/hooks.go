@@ -20,7 +20,7 @@ func SDDErrMsg(msg string, a ...interface{}) string {
 	return fmt.Sprintf(ErrWithMessageString, msg)
 }
 
-func sddFnMakeFishispec(_, _ string, args []interface{}) interface{} {
+func sdtsFnMakeFishispec(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astBlock)
 	if !ok {
 		return AST{}
@@ -29,7 +29,7 @@ func sddFnMakeFishispec(_, _ string, args []interface{}) interface{} {
 	return AST{nodes: list}
 }
 
-func sddFnBlockListAppend(_, _ string, args []interface{}) interface{} {
+func sdtsFnBlockListAppend(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astBlock)
 	if !ok {
 		return []astBlock{}
@@ -45,7 +45,7 @@ func sddFnBlockListAppend(_, _ string, args []interface{}) interface{} {
 	return list
 }
 
-func sddFnBlockListStart(_, _ string, args []interface{}) interface{} {
+func sdtsFnBlockListStart(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(astBlock)
 	if !ok {
 		var errBl astErrorBlock
@@ -55,7 +55,7 @@ func sddFnBlockListStart(_, _ string, args []interface{}) interface{} {
 	return []astBlock{toAppend}
 }
 
-func sddFnMakeGrammarBlock(_, _ string, args []interface{}) interface{} {
+func sdtsFnMakeGrammarBlock(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astGrammarContent)
 	if !ok {
 		list = []astGrammarContent{{state: SDDErrMsg("producing this grammar content list: first argument is not a grammar content list")}}
@@ -64,7 +64,7 @@ func sddFnMakeGrammarBlock(_, _ string, args []interface{}) interface{} {
 	return astGrammarBlock{content: list}
 }
 
-func sddFnMakeTokensBlock(_, _ string, args []interface{}) interface{} {
+func sdtsFnMakeTokensBlock(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astTokensContent)
 	if !ok {
 		list = []astTokensContent{{state: SDDErrMsg("producing this tokens content list: first argument is not a tokens content list")}}
@@ -73,7 +73,7 @@ func sddFnMakeTokensBlock(_, _ string, args []interface{}) interface{} {
 	return astTokensBlock{content: list}
 }
 
-func sddFnMakeActionsBlock(_, _ string, args []interface{}) interface{} {
+func sdtsFnMakeActionsBlock(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astActionsContent)
 	if !ok {
 		list = []astActionsContent{{state: SDDErrMsg("producing this actions content list: first argument is not an actions content list")}}
@@ -82,7 +82,7 @@ func sddFnMakeActionsBlock(_, _ string, args []interface{}) interface{} {
 	return astActionsBlock{content: list}
 }
 
-func sddFnGrammarContentBlocksAppendStateBlock(_, _ string, args []interface{}) interface{} {
+func sdtsFnGrammarContentBlocksAppendStateBlock(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astGrammarContent)
 	if !ok {
 		list = []astGrammarContent{{state: SDDErrMsg("producing this grammar content list: first argument is not a grammar content list")}}
@@ -110,7 +110,7 @@ func sddFnGrammarContentBlocksAppendStateBlock(_, _ string, args []interface{}) 
 	return list
 }
 
-func sddFnActionsContentBlocksAppendStateBlock(_, _ string, args []interface{}) interface{} {
+func sdtsFnActionsContentBlocksAppendStateBlock(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astActionsContent)
 	if !ok {
 		list = []astActionsContent{{state: SDDErrMsg("producing this actions content list: first argument is not an actions content list")}}
@@ -139,7 +139,7 @@ func sddFnActionsContentBlocksAppendStateBlock(_, _ string, args []interface{}) 
 	return list
 }
 
-func sddFnTokensContentBlocksAppendStateBlock(_, _ string, args []interface{}) interface{} {
+func sdtsFnTokensContentBlocksAppendStateBlock(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astTokensContent)
 	if !ok {
 		list = []astTokensContent{{state: SDDErrMsg("producing this tokens content list: first argument is not a tokens content list")}}
@@ -168,7 +168,7 @@ func sddFnTokensContentBlocksAppendStateBlock(_, _ string, args []interface{}) i
 	return list
 }
 
-func sddFnGrammarContentBlocksStartStateBlock(_, _ string, args []interface{}) interface{} {
+func sdtsFnGrammarContentBlocksStartStateBlock(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(astGrammarContent)
 	if !ok {
 		toAppend = astGrammarContent{state: SDDErrMsg("producing this grammar content: first argument is not a grammar content")}
@@ -177,7 +177,7 @@ func sddFnGrammarContentBlocksStartStateBlock(_, _ string, args []interface{}) i
 	return []astGrammarContent{toAppend}
 }
 
-func sddFnTokensContentBlocksStartStateBlock(_, _ string, args []interface{}) interface{} {
+func sdtsFnTokensContentBlocksStartStateBlock(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(astTokensContent)
 	if !ok {
 		toAppend = astTokensContent{state: SDDErrMsg("producing this tokens content: first argument is not a tokens content")}
@@ -186,7 +186,7 @@ func sddFnTokensContentBlocksStartStateBlock(_, _ string, args []interface{}) in
 	return []astTokensContent{toAppend}
 }
 
-func sddFnActionsContentBlocksStartStateBlock(_, _ string, args []interface{}) interface{} {
+func sdtsFnActionsContentBlocksStartStateBlock(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(astActionsContent)
 	if !ok {
 		toAppend = astActionsContent{state: SDDErrMsg("producing this actions content: first argument is not an actions content")}
@@ -195,7 +195,7 @@ func sddFnActionsContentBlocksStartStateBlock(_, _ string, args []interface{}) i
 	return []astActionsContent{toAppend}
 }
 
-func sddFnGrammarContentBlocksAppendRuleList(_, _ string, args []interface{}) interface{} {
+func sdtsFnGrammarContentBlocksAppendRuleList(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astGrammarContent)
 	if !ok {
 		list = []astGrammarContent{{state: SDDErrMsg("producing this grammar content list: first argument is not a grammar content list")}}
@@ -231,7 +231,7 @@ func sddFnGrammarContentBlocksAppendRuleList(_, _ string, args []interface{}) in
 	return list
 }
 
-func sddFnTokensContentBlocksAppendEntryList(_, _ string, args []interface{}) interface{} {
+func sdtsFnTokensContentBlocksAppendEntryList(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astTokensContent)
 	if !ok {
 		list = []astTokensContent{{state: SDDErrMsg("producing this tokens content list: first argument is not a tokens content list")}}
@@ -268,7 +268,7 @@ func sddFnTokensContentBlocksAppendEntryList(_, _ string, args []interface{}) in
 	return list
 }
 
-func sddFnActionsContentBlocksAppendSymbolActionsList(_, _ string, args []interface{}) interface{} {
+func sdtsFnActionsContentBlocksAppendSymbolActionsList(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astActionsContent)
 	if !ok {
 		list = []astActionsContent{{state: SDDErrMsg("producing this actions content list: first argument is not an actions content list")}}
@@ -305,7 +305,7 @@ func sddFnActionsContentBlocksAppendSymbolActionsList(_, _ string, args []interf
 	return list
 }
 
-func sddFnGrammarContentBlocksStartRuleList(_, _ string, args []interface{}) interface{} {
+func sdtsFnGrammarContentBlocksStartRuleList(_, _ string, args []interface{}) interface{} {
 	rules, ok := args[0].([]grammar.Rule)
 	if !ok {
 		rules = []grammar.Rule{{NonTerminal: SDDErrMsg("producing this rule list: first argument is not a rule list")}}
@@ -318,7 +318,7 @@ func sddFnGrammarContentBlocksStartRuleList(_, _ string, args []interface{}) int
 	return []astGrammarContent{toAppend}
 }
 
-func sddFnTokensContentBlocksStartEntryList(_, _ string, args []interface{}) interface{} {
+func sdtsFnTokensContentBlocksStartEntryList(_, _ string, args []interface{}) interface{} {
 	entries, ok := args[0].([]tokenEntry)
 	if !ok {
 		entries = []tokenEntry{{pattern: SDDErrMsg("producing this token entry list: first argument is not a token entry list")}}
@@ -331,7 +331,7 @@ func sddFnTokensContentBlocksStartEntryList(_, _ string, args []interface{}) int
 	return []astTokensContent{toAppend}
 }
 
-func sddFnActionsContentBlocksStartSymbolActionsList(_, _ string, args []interface{}) interface{} {
+func sdtsFnActionsContentBlocksStartSymbolActionsList(_, _ string, args []interface{}) interface{} {
 	actions, ok := args[0].([]symbolActions)
 	if !ok {
 		actions = []symbolActions{{symbol: SDDErrMsg("producing this symbol actions list: first argument is not a symbol actions list")}}
@@ -344,7 +344,7 @@ func sddFnActionsContentBlocksStartSymbolActionsList(_, _ string, args []interfa
 	return []astActionsContent{toAppend}
 }
 
-func sddFnMakeGrammarContentNode(_, _ string, args []interface{}) interface{} {
+func sdtsFnMakeGrammarContentNode(_, _ string, args []interface{}) interface{} {
 	state, ok := args[0].(string)
 	if !ok {
 		state = SDDErrMsg("STATE value is not a string")
@@ -356,7 +356,7 @@ func sddFnMakeGrammarContentNode(_, _ string, args []interface{}) interface{} {
 	return astGrammarContent{rules: rules, state: state}
 }
 
-func sddFnMakeTokensContentNode(_, _ string, args []interface{}) interface{} {
+func sdtsFnMakeTokensContentNode(_, _ string, args []interface{}) interface{} {
 	state, ok := args[0].(string)
 	if !ok {
 		state = SDDErrMsg("STATE value is not a string")
@@ -368,7 +368,7 @@ func sddFnMakeTokensContentNode(_, _ string, args []interface{}) interface{} {
 	return astTokensContent{entries: entries, state: state}
 }
 
-func sddFnTrimString(_, _ string, args []interface{}) interface{} {
+func sdtsFnTrimString(_, _ string, args []interface{}) interface{} {
 	str, ok := args[0].(string)
 	if !ok {
 		return SDDErrMsg("argument is not a string")
@@ -376,11 +376,11 @@ func sddFnTrimString(_, _ string, args []interface{}) interface{} {
 	return strings.TrimSpace(str)
 }
 
-func sddFnMakeDiscardOption(_, _ string, args []interface{}) interface{} {
+func sdtsFnMakeDiscardOption(_, _ string, args []interface{}) interface{} {
 	return astTokenOption{optType: tokenOptDiscard}
 }
 
-func sddFnMakeStateshiftOption(_, _ string, args []interface{}) interface{} {
+func sdtsFnMakeStateshiftOption(_, _ string, args []interface{}) interface{} {
 	state, ok := args[0].(string)
 	if !ok {
 		return SDDErrMsg("argument is not a string")
@@ -389,7 +389,7 @@ func sddFnMakeStateshiftOption(_, _ string, args []interface{}) interface{} {
 	return astTokenOption{optType: tokenOptStateshift, value: state}
 }
 
-func sddFnMakeHumanOption(_, _ string, args []interface{}) interface{} {
+func sdtsFnMakeHumanOption(_, _ string, args []interface{}) interface{} {
 	human, ok := args[0].(string)
 	if !ok {
 		return SDDErrMsg("argument is not a string")
@@ -398,7 +398,7 @@ func sddFnMakeHumanOption(_, _ string, args []interface{}) interface{} {
 	return astTokenOption{optType: tokenOptHuman, value: human}
 }
 
-func sddFnMakeTokenOption(_, _ string, args []interface{}) interface{} {
+func sdtsFnMakeTokenOption(_, _ string, args []interface{}) interface{} {
 	tok, ok := args[0].(string)
 	if !ok {
 		return SDDErrMsg("argument is not a string")
@@ -407,7 +407,7 @@ func sddFnMakeTokenOption(_, _ string, args []interface{}) interface{} {
 	return astTokenOption{optType: tokenOptToken, value: tok}
 }
 
-func sddFnMakePriorityOption(_, _ string, args []interface{}) interface{} {
+func sdtsFnMakePriorityOption(_, _ string, args []interface{}) interface{} {
 	priority, ok := args[0].(string)
 	if !ok {
 		return SDDErrMsg("argument is not a string")
@@ -416,9 +416,9 @@ func sddFnMakePriorityOption(_, _ string, args []interface{}) interface{} {
 	return astTokenOption{optType: tokenOptPriority, value: priority}
 }
 
-func sddFnIdentity(_, _ string, args []interface{}) interface{} { return args[0] }
+func sdtsFnIdentity(_, _ string, args []interface{}) interface{} { return args[0] }
 
-func sddFnInterpretEscape(_, _ string, args []interface{}) interface{} {
+func sdtsFnInterpretEscape(_, _ string, args []interface{}) interface{} {
 	str, ok := args[0].(string)
 	if !ok {
 		return SDDErrMsg("escape sequence $text is not a string")
@@ -432,7 +432,7 @@ func sddFnInterpretEscape(_, _ string, args []interface{}) interface{} {
 	return str[len("%!"):]
 }
 
-func sddFnAppendStrings(_, _ string, args []interface{}) interface{} {
+func sdtsFnAppendStrings(_, _ string, args []interface{}) interface{} {
 	str1, ok := args[0].(string)
 	if !ok {
 		return SDDErrMsg("first argument is not a string")
@@ -445,7 +445,7 @@ func sddFnAppendStrings(_, _ string, args []interface{}) interface{} {
 	return str1 + str2
 }
 
-func sddFnGetNonterminal(_, _ string, args []interface{}) interface{} {
+func sdtsFnGetNonterminal(_, _ string, args []interface{}) interface{} {
 	str, ok := args[0].(string)
 	if !ok {
 		return ErrString
@@ -454,7 +454,7 @@ func sddFnGetNonterminal(_, _ string, args []interface{}) interface{} {
 	return strings.ToUpper(str[1 : len(str)-1])
 }
 
-func sddFnGetTerminal(_, _ string, args []interface{}) interface{} {
+func sdtsFnGetTerminal(_, _ string, args []interface{}) interface{} {
 	str, ok := args[0].(string)
 	if !ok {
 		return ErrString
@@ -463,7 +463,7 @@ func sddFnGetTerminal(_, _ string, args []interface{}) interface{} {
 	return strings.ToLower(str)
 }
 
-func sddFnRuleListAppend(_, _ string, args []interface{}) interface{} {
+func sdtsFnRuleListAppend(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]grammar.Rule)
 	if !ok {
 		list = []grammar.Rule{{NonTerminal: SDDErrMsg("producing this rule list: first argument is not a rule list")}}
@@ -478,7 +478,7 @@ func sddFnRuleListAppend(_, _ string, args []interface{}) interface{} {
 	return list
 }
 
-func sddFnEntryListAppend(_, _ string, args []interface{}) interface{} {
+func sdtsFnEntryListAppend(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]tokenEntry)
 	if !ok {
 		list = []tokenEntry{{pattern: SDDErrMsg("producing this token entry list: first argument is not a token entry list list")}}
@@ -493,7 +493,7 @@ func sddFnEntryListAppend(_, _ string, args []interface{}) interface{} {
 	return list
 }
 
-func sddFnRuleListStart(_, _ string, args []interface{}) interface{} {
+func sdtsFnRuleListStart(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(grammar.Rule)
 	if !ok {
 		toAppend = grammar.Rule{NonTerminal: SDDErrMsg("producing this rule: second argument is not a rule")}
@@ -502,7 +502,7 @@ func sddFnRuleListStart(_, _ string, args []interface{}) interface{} {
 	return []grammar.Rule{toAppend}
 }
 
-func sddFnEntryListStart(_, _ string, args []interface{}) interface{} {
+func sdtsFnEntryListStart(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(tokenEntry)
 	if !ok {
 		toAppend = tokenEntry{pattern: SDDErrMsg("producing this token entry: second argument is not a token entry")}
@@ -511,7 +511,7 @@ func sddFnEntryListStart(_, _ string, args []interface{}) interface{} {
 	return []tokenEntry{toAppend}
 }
 
-func sddFnStringListAppend(_, _ string, args []interface{}) interface{} {
+func sdtsFnStringListAppend(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]string)
 	if !ok {
 		return []string{}
@@ -527,7 +527,7 @@ func sddFnStringListAppend(_, _ string, args []interface{}) interface{} {
 	return list
 }
 
-func sddFnTokenOptListStart(_, _ string, args []interface{}) interface{} {
+func sdtsFnTokenOptListStart(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(astTokenOption)
 	if !ok {
 		toAppend = astTokenOption{value: SDDErrMsg("first argument is not a token option")}
@@ -536,7 +536,7 @@ func sddFnTokenOptListStart(_, _ string, args []interface{}) interface{} {
 	return []astTokenOption{toAppend}
 }
 
-func sddFnTokenOptListAppend(_, _ string, args []interface{}) interface{} {
+func sdtsFnTokenOptListAppend(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]astTokenOption)
 	if !ok {
 		return []astTokenOption{{value: SDDErrMsg("producing this token option list: first argument is not a token option list")}}
@@ -551,7 +551,7 @@ func sddFnTokenOptListAppend(_, _ string, args []interface{}) interface{} {
 	return list
 }
 
-func sddFnStringListStart(_, _ string, args []interface{}) interface{} {
+func sdtsFnStringListStart(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(string)
 	if !ok {
 		toAppend = ErrString
@@ -560,7 +560,7 @@ func sddFnStringListStart(_, _ string, args []interface{}) interface{} {
 	return []string{toAppend}
 }
 
-func sddFnStringListListStart(_, _ string, args []interface{}) interface{} {
+func sdtsFnStringListListStart(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].([]string)
 	if !ok {
 		toAppend = []string{SDDErrMsg("producing this string list: first argument is not a string list")}
@@ -569,7 +569,7 @@ func sddFnStringListListStart(_, _ string, args []interface{}) interface{} {
 	return [][]string{toAppend}
 }
 
-func sddFnStringListListAppend(_, _ string, args []interface{}) interface{} {
+func sdtsFnStringListListAppend(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([][]string)
 	if !ok {
 		return [][]string{{SDDErrMsg("producing this string list list: first argument is not a [][]string")}}
@@ -584,13 +584,13 @@ func sddFnStringListListAppend(_, _ string, args []interface{}) interface{} {
 	return list
 }
 
-func sddFnEpsilonStringList(_, _ string, args []interface{}) interface{} {
+func sdtsFnEpsilonStringList(_, _ string, args []interface{}) interface{} {
 	strList := grammar.Epsilon.Copy()
 	return []string(strList)
 }
 
-func sddFnMakeRule(_, _ string, args []interface{}) interface{} {
-	ntInterface := sddFnGetNonterminal("", "", args[0:1])
+func sdtsFnMakeRule(_, _ string, args []interface{}) interface{} {
+	ntInterface := sdtsFnGetNonterminal("", "", args[0:1])
 
 	nt, ok := ntInterface.(string)
 	if !ok {
@@ -611,7 +611,7 @@ func sddFnMakeRule(_, _ string, args []interface{}) interface{} {
 	return r
 }
 
-func sddFnMakeTokenEntry(_, _ string, args []interface{}) interface{} {
+func sdtsFnMakeTokenEntry(_, _ string, args []interface{}) interface{} {
 	pattern, ok := args[0].(string)
 	if !ok {
 		pattern = SDDErrMsg("first argument (pattern) is not a string")
