@@ -190,7 +190,6 @@ func ProcessFishiMd(filename string, mdText []byte, validateSDTS bool) error {
 					%action {thing}.thing %hook thing
 				%prod {ye}
 
-				%state SOMEFIN
 				%action {thing}.thing %hook thing
 
 						%symbol {yo}%prod + {EAT} ext
@@ -247,7 +246,30 @@ func ProcessFishiMd(filename string, mdText []byte, validateSDTS bool) error {
 
 			%prod ESCSEQ
 			%action {text-element}.str
-			%hook unescape  %with ESCSEQ.$test		`
+			%hook unescape  %with ESCSEQ.$test		
+			
+
+			%symbol {OTHER}
+			%prod EHHH
+			%action {OTHER}.str
+			%hook identity  %with FREEFORM_TEXT.$text
+
+			%prod ESCSEQ
+			%action {text-element}.str
+			%hook unescape  %with ESCSEQ.$test	
+			
+			%state someGoodState
+
+			%symbol {text-element}
+			%prod FREEFORM_TEXT
+			%action {text-element}.str
+			%hook identity  %with FREEFORM_TEXT.$text
+
+			%prod ESCSEQ
+			%action {text-element}.str
+			%hook unescape  %with ESCSEQ.$test		
+			
+			`
 
 	frontEnd.Debug = types.DebugInfo{}
 	ast, err := frontEnd.AnalyzeString(fishiTest)

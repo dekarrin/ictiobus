@@ -47,15 +47,6 @@ func CreateBootstrapSDTS() ictiobus.SDTS {
 
 	// NEXT STEPS:
 	//
-	// ACTIONS-CONTENT:
-	// - AST struct for it (DONE)
-	// - Mock ACTIONS-STATE-BLOCK (DONE)
-	// - Mock both SYMBOL-ACTIONS-LIST rules (DONE)
-	// - create function bootstrapSDDActionsContentAST (DONE)
-	// - update AST string() to print out the actions AST content block (DONE)
-	// - remove ACTIONS-CONTENT mock (DONE)
-	// - need several NoFlows from Symbol-ACtions-List... or proceed
-	//
 	// ACTIONS-STATE-BLOCK:
 	// - (SYMBOL-ACTIONS-LIST should already be mocked)
 	// - create function bootstrapSDDActionsStateBlockAST
@@ -67,6 +58,7 @@ func CreateBootstrapSDTS() ictiobus.SDTS {
 	// - Mock SYMBOL-ACTIONS rule
 	// - create function bootstrapSDDSymbolActionsListValue
 	// - remove SYMBOL-ACTIONS-LIST mock
+	// - remove SYMBOL-ACTIONS-LIST NoFlows
 	//
 	// SYMBOL-ACTIONS:
 	// - Mock both PROD-ACTIONS rules
@@ -128,10 +120,10 @@ func CreateBootstrapSDTS() ictiobus.SDTS {
 	// - remove ATTR-REFS mock
 	//
 
-	sdts.SetNoFlow(true, "ACTIONS-CONTENT", []string{"ACTIONS-CONTENT", "ACTIONS-STATE-BLOCK"}, "ast", translation.NodeRelation{}, -1, "ACTIONS-CONTENT")
-	sdts.SetNoFlow(true, "ACTIONS-CONTENT", []string{"ACTIONS-CONTENT", "SYMBOL-ACTIONS-LIST"}, "ast", translation.NodeRelation{}, -1, "ACTIONS-CONTENT")
-	sdts.SetNoFlow(true, "ACTIONS-CONTENT", []string{"ACTIONS-STATE-BLOCK"}, "ast", translation.NodeRelation{}, -1, "ACTIONS-CONTENT")
-	sdts.SetNoFlow(true, "ACTIONS-CONTENT", []string{"SYMBOL-ACTIONS-LIST"}, "ast", translation.NodeRelation{}, -1, "ACTIONS-CONTENT")
+	sdts.SetNoFlow(true, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS-LIST", "SYMBOL-ACTIONS"}, "value", translation.NodeRelation{}, -1, "SYMBOL-ACTIONS-LIST")
+	sdts.SetNoFlow(true, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS"}, "value", translation.NodeRelation{}, -1, "SYMBOL-ACTIONS-LIST")
+	sdts.SetNoFlow(true, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS-LIST", "SYMBOL-ACTIONS"}, "value", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
+	sdts.SetNoFlow(true, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS"}, "value", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
 
 	sdts.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
 	sdts.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
