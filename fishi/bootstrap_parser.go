@@ -76,25 +76,6 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddRule("SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS-LIST", "SYMBOL-ACTIONS"})
 	bootCfg.AddRule("SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS"})
 
-	type semanticAction struct {
-		attribute attrRef
-		hook      string
-		with      []attrRef
-	}
-
-	type productionAction struct {
-		prodNext    bool
-		prodIndex   int
-		prodLiteral []string
-
-		actions []semanticAction
-	}
-
-	type symbolActions struct {
-		symbol  string
-		actions []productionAction
-	}
-
 	bootCfg.AddRule("SYMBOL-ACTIONS", []string{tcDirSymbol.ID(), tcNonterminal.ID(), "PROD-ACTIONS"})
 
 	bootCfg.AddRule("PROD-ACTIONS", []string{"PROD-ACTIONS", "PROD-ACTION"})

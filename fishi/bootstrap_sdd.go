@@ -59,7 +59,7 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	// NEXT STEPS:
 	//
 	// ACTIONS-BLOCK:
-	// - AST struct for it
+	// - AST struct for it (DONE)
 	// - Mock all 4 ACTIONS-CONTENT rules
 	// - create function bootstrapSDDActionsBlockAST
 	// - update AST string() to print out the actions AST block
