@@ -2,6 +2,7 @@ package fishi
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
@@ -332,6 +333,21 @@ func sddFnRuleListAppend(_, _ string, args []interface{}) interface{} {
 	return list
 }
 
+func sddFnEntryListAppend(_, _ string, args []interface{}) interface{} {
+	list, ok := args[0].([]astTokenEntry)
+	if !ok {
+		list = []astTokenEntry{{pattern: SDDErrMsg("producing this token entry list: first argument is not a token entry list list")}}
+	}
+
+	toAppend, ok := args[1].(astTokenEntry)
+	if !ok {
+		toAppend = astTokenEntry{pattern: SDDErrMsg("producing this token entry: second argument is not a token entry")}
+	}
+
+	list = append(list, toAppend)
+	return list
+}
+
 func sddFnRuleListStart(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(grammar.Rule)
 	if !ok {
@@ -339,6 +355,15 @@ func sddFnRuleListStart(_, _ string, args []interface{}) interface{} {
 	}
 
 	return []grammar.Rule{toAppend}
+}
+
+func sddFnEntryListStart(_, _ string, args []interface{}) interface{} {
+	toAppend, ok := args[0].(astTokenEntry)
+	if !ok {
+		toAppend = astTokenEntry{pattern: SDDErrMsg("producing this token entry: second argument is not a token entry")}
+	}
+
+	return []astTokenEntry{toAppend}
 }
 
 func sddFnStringListAppend(_, _ string, args []interface{}) interface{} {
@@ -415,4 +440,37 @@ func sddFnMakeRule(_, _ string, args []interface{}) interface{} {
 	}
 
 	return r
+}
+
+func sddFnMakeTokenEntry(_, _ string, args []interface{}) interface{} {
+	pattern, ok := args[0].(string)
+	if !ok {
+		pattern = SDDErrMsg("first argument (pattern) is not a string")
+	}
+
+	tokenOpts, ok := args[1].([]astTokenOption)
+	if !ok {
+		tokenOpts = []astTokenOption{{value: SDDErrMsg("producing this token option list: second argument (tokenOpts) is not a token option list")}}
+	}
+
+	t := astTokenEntry{pattern: pattern}
+
+	for _, opt := range tokenOpts {
+		switch opt.optType {
+		case tokenOptDiscard:
+			t.discard = true
+		case tokenOptHuman:
+			t.human = opt.value
+		case tokenOptPriority:
+			prior, err := strconv.Atoi(opt.value)
+			if err == nil {
+				t.priority = prior
+			}
+		case tokenOptStateshift:
+			t.shift = opt.value
+		case tokenOptToken:
+			t.token = opt.value
+		}
+	}
+	return t
 }

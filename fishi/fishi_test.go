@@ -12,7 +12,7 @@ import (
 func Test_CompleteRun(t *testing.T) {
 	assert := assert.New(t)
 
-	actual := ReadFishiMdFile("../fishi.md", true)
+	actual := ReadFishiMdFile("../fishi.md", false)
 
 	assert.NoError(actual)
 

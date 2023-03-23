@@ -47,33 +47,20 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	bootstrapSDDTokensBlockAST(sdd)
 	bootstrapSDDTokensContentAST(sdd)
 	bootstrapSDDTokensStateBlockValue(sdd)
+	bootstrapSDDTokensEntriesValue(sdd)
+	bootstrapSDDTokensEntryValue(sdd)
+	bootstrapSDDPattern(sdd)
 
-	bootstrapSDDFakeSynth(sdd, "TOKENS-ENTRIES", []string{"TOKENS-ENTRIES", "NEWLINES", "TOKENS-ENTRY"}, "value", []astTokenEntry{{pattern: "GLUB"}})
-	bootstrapSDDFakeSynth(sdd, "TOKENS-ENTRIES", []string{"TOKENS-ENTRY"}, "value", []astTokenEntry{{pattern: "GLUB 2.0"}})
-
-	bootCfg.AddRule("TOKENS-ENTRY", []string{"PATTERN", "NEWLINES", "TOKEN-OPTS"})
-	bootCfg.AddRule("TOKENS-ENTRY", []string{"PATTERN", "NEWLINES", "TOKEN-OPTS", "NEWLINES"})
-	bootCfg.AddRule("TOKENS-ENTRY", []string{"PATTERN", "TOKEN-OPTS"})
-	bootCfg.AddRule("TOKENS-ENTRY", []string{"PATTERN", "TOKEN-OPTS", "NEWLINES"})
+	bootstrapSDDFakeSynth(sdd, "TOKEN-OPTS", []string{"TOKEN-OPTS", "NEWLINES", "TOKEN-OPTION"}, "value", []astTokenOption{{value: "TOKEN-OPTION"}})
+	bootstrapSDDFakeSynth(sdd, "TOKEN-OPTS", []string{"TOKEN-OPTS", "TOKEN-OPTION"}, "value", []astTokenOption{{value: "TOKEN-OPTION"}})
+	bootstrapSDDFakeSynth(sdd, "TOKEN-OPTS", []string{"TOKEN-OPTION"}, "value", []astTokenOption{{value: "TOKEN-OPTION"}})
 
 	// NEXT STEPS:
 	//
-	// TOKENS-ENTRIES:
-	// - Mock all four TOKENS-ENTRY rules
-	// - create function bootstrapSDDTokensEntriesValue
-	// - remove TOKENS-ENTRIES mock
-	// - remove NOFLOW TOKENS-ENTRIES -> TOKENS-ENTIRES
-	//
-	// TOKENS-ENTRY:
-	// - Mock PATTERN rule
-	// - Mock all three TOKEN-OPTS rules
-	// - create function bootstrapSDDTokensEntryValue
-	// - remove TOKENS-ENTRY mock
-	//
 	// PATTERN:
-	// - create function bootstrapSDDPatternValue
-	// - remove PATTERN mock
-	// - remove NoFlow TEXT -> PATTERN
+	// - create function bootstrapSDDPatternValue (done)
+	// - remove PATTERN mock (done)
+	// - remove NoFlow TEXT -> PATTERN (done)
 	//
 	// TOKEN-OPTS:
 	// - Mock all five TOKEN-OPTION rules
@@ -203,17 +190,13 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	// - remove ATTR-REFS mock
 	//
 
-	sdd.SetNoFlow(true, "TOKENS-ENTRIES", []string{"TOKENS-ENTRIES", "NEWLINES", "TOKENS-ENTRY"}, "value", translation.NodeRelation{}, -1, "TOKENS-ENTRIES")
-	sdd.SetNoFlow(true, "TOKENS-ENTRIES", []string{"TOKENS-ENTRY"}, "value", translation.NodeRelation{}, -1, "TOKENS-ENTRIES")
-
-	// permanently in place until tokens and actions branches are started.
+	sdd.SetNoFlow(true, "TOKEN-OPTS", []string{"TOKEN-OPTS", "NEWLINES", "TOKEN-OPTION"}, "value", translation.NodeRelation{}, -1, "TOKEN-OPTS")
+	sdd.SetNoFlow(true, "TOKEN-OPTS", []string{"TOKEN-OPTS", "TOKEN-OPTION"}, "value", translation.NodeRelation{}, -1, "TOKEN-OPTS")
+	sdd.SetNoFlow(true, "TOKEN-OPTS", []string{"TOKEN-OPTION"}, "value", translation.NodeRelation{}, -1, "TOKEN-OPTS")
 
 	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
-
 	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
 
-	sdd.SetNoFlow(true, "TEXT", []string{"TEXT", "TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "PATTERN")
-	sdd.SetNoFlow(true, "TEXT", []string{"TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "PATTERN")
 	sdd.SetNoFlow(true, "TEXT", []string{"TEXT", "TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "STATESHIFT")
 	sdd.SetNoFlow(true, "TEXT", []string{"TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "STATESHIFT")
 	sdd.SetNoFlow(true, "TEXT", []string{"TEXT", "TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "TOKEN")
@@ -450,6 +433,65 @@ func bootstrapSDDGrammarRulesValue(sdd ictiobus.SDTS) {
 	)
 }
 
+func bootstrapSDDTokensEntriesValue(sdd ictiobus.SDTS) {
+	sdd.BindSynthesizedAttribute(
+		"TOKENS-ENTRIES", []string{"TOKENS-ENTRIES", "NEWLINES", "TOKENS-ENTRY"},
+		"value",
+		sddFnEntryListAppend,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 2}, Name: "value"},
+		},
+	)
+	sdd.BindSynthesizedAttribute(
+		"TOKENS-ENTRIES", []string{"TOKENS-ENTRY"},
+		"value",
+		sddFnEntryListStart,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDDTokensEntryValue(sdd ictiobus.SDTS) {
+	sdd.BindSynthesizedAttribute(
+		"TOKENS-ENTRY", []string{"PATTERN", "NEWLINES", "TOKEN-OPTS"},
+		"value",
+		sddFnMakeTokenEntry,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 2}, Name: "value"},
+		},
+	)
+	sdd.BindSynthesizedAttribute(
+		"TOKENS-ENTRY", []string{"PATTERN", "NEWLINES", "TOKEN-OPTS", "NEWLINES"},
+		"value",
+		sddFnMakeTokenEntry,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 2}, Name: "value"},
+		},
+	)
+	sdd.BindSynthesizedAttribute(
+		"TOKENS-ENTRY", []string{"PATTERN", "TOKEN-OPTS"},
+		"value",
+		sddFnMakeTokenEntry,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+	sdd.BindSynthesizedAttribute(
+		"TOKENS-ENTRY", []string{"PATTERN", "TOKEN-OPTS", "NEWLINES"},
+		"value",
+		sddFnMakeTokenEntry,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+}
+
 func bootstrapSDDGrammarRuleValue(sdd ictiobus.SDTS) {
 	sdd.BindSynthesizedAttribute(
 		"GRAMMAR-RULE", []string{tcNonterminal.ID(), tcEq.ID(), "ALTERNATIONS"},
@@ -532,6 +574,17 @@ func bootstrapSDDSymbolSequenceValue(sdd ictiobus.SDTS) {
 		"SYMBOL-SEQUENCE", []string{"SYMBOL"},
 		"value",
 		sddFnStringListStart,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDDPattern(sdd ictiobus.SDTS) {
+	sdd.BindSynthesizedAttribute(
+		"PATTERN", []string{"TEXT"},
+		"value",
+		sddFnIdentity,
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
 		},

@@ -173,76 +173,81 @@ func ProcessFishiMd(filename string, mdText []byte, validateSDTS bool) error {
 	}*/
 
 	// now, try to make a parse tree for your own grammar
-	fishiTest := `%%actions
+	fishiTest := /*`%%actions
 
-			%symbol
-
-
-			{hey}
-			%prod  %index 8
-
-		%action {thing}.thing %hook thing
-			%prod {some}
-
-		%action {thing}.thing %hook thing
-			%prod {test}
-
-			%action {thing}.thing %hook thing
-		%prod {ye}
-		%action {thing}.thing %hook thing
-
-				%symbol {yo}%prod + {EAT} ext
-
-		%action {thing}.thing %hook thing
-		%%tokens
-		[somefin]
-
-		%stateshift   someState
-
-		%%tokens
-
-			glub  %discard
+					%symbol
 
 
-			[some]{FREEFORM}idk[^bullshit]text\*
-			%discard
+					{hey}
+					%prod  %index 8
 
-			[more]b*shi{2,4}   %stateshift glub
+				%action {thing}.thing %hook thing
+					%prod {some}
+
+				%action {thing}.thing %hook thing
+					%prod {test}
+
+					%action {thing}.thing %hook thing
+				%prod {ye}
+				%action {thing}.thing %hook thing
+
+						%symbol {yo}%prod + {EAT} ext
+
+				%action {thing}.thing %hook thing
+				%%tokens
+				[somefin]
+
+				%stateshift   someState
+		`*/
+		`%%tokens
+
+		%!%[more]%!%bluggleb*shi{2,4}   %stateshift glub
 		%token lovely %human "Something nice"
-			%priority 1
+` /*
+			%%tokens
 
-		%state this
-
-		[yo] %discard
-		
-		%%grammar
-		%state glub
-		{RULE} =   {SOMEBULLSHIT}
-
-					%%grammar
-					{RULE}=                           {WOAH} | n
-					{R2}				= =+  {DAMN} cool | okaythen + 2 | {}
-					                 | {SOMEFIN ELSE}
-
-					%state someState
-
-					{ANOTHER}=		{HMM}
-	
+				glub  %discard
 
 
+				[some]{FREEFORM}idk[^bullshit]text\*
+				%discard
 
-		%%actions
+				%!%[more]%!%bluggleb*shi{2,4}   %stateshift glub
+			%token lovely %human "Something nice"
+				%priority 1
 
-		%symbol {text-element}
-		%prod FREEFORM_TEXT
-		%action {text-element}.str
-		%hook identity  %with FREEFORM_TEXT.$text
+			%state this
 
-		%prod ESCSEQ
-		%action {text-element}.str
-		%hook unescape  %with ESCSEQ.$test		`
+			[yo] %discard
 
-	frontEnd.Debug = types.DebugInfo{}
+			%%grammar
+			%state glub
+			{RULE} =   {SOMEBULLSHIT}
+
+						%%grammar
+						{RULE}=                           {WOAH} | n
+						{R2}				= =+  {DAMN} cool | okaythen + 2 | {}
+						                 | {SOMEFIN ELSE}
+
+						%state someState
+
+						{ANOTHER}=		{HMM}
+
+
+
+
+			%%actions
+
+			%symbol {text-element}
+			%prod FREEFORM_TEXT
+			%action {text-element}.str
+			%hook identity  %with FREEFORM_TEXT.$text
+
+			%prod ESCSEQ
+			%action {text-element}.str
+			%hook unescape  %with ESCSEQ.$test		`*/
+
+	frontEnd.Debug = types.DebugInfo{ParseTrees: true}
 	ast, err := frontEnd.AnalyzeString(fishiTest)
 	if err != nil {
 		return err

@@ -387,7 +387,7 @@ func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, err error) {
 	}
 
 	if fe.Debug.ParseTrees {
-		fmt.Printf("parse tree:\n%s\n", parseTree.String())
+		fmt.Printf("parse tree:\n%s\n", translation.AddAttributes(parseTree).String())
 	}
 
 	// semantic analysis
