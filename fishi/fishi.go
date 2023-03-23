@@ -202,7 +202,7 @@ func ProcessFishiMd(filename string, mdText []byte, validateSDTS bool) error {
 		%%tokens
 
 		%!%[more]%!%bluggleb*shi{2,4}   %stateshift glub
-		%token lovely %human "Something nice"
+		%token lovely %human Something for this
 
 			%%tokens
 
@@ -213,7 +213,7 @@ func ProcessFishiMd(filename string, mdText []byte, validateSDTS bool) error {
 				%discard
 
 				%!%[more]%!%bluggleb*shi{2,4}   %stateshift glub
-			%token lovely %human "Something nice"
+			%token lovely %human Something nice
 				%priority 1
 
 			%state this
@@ -247,7 +247,7 @@ func ProcessFishiMd(filename string, mdText []byte, validateSDTS bool) error {
 			%action {text-element}.str
 			%hook unescape  %with ESCSEQ.$test		`
 
-	frontEnd.Debug = types.DebugInfo{ParseTrees: true}
+	frontEnd.Debug = types.DebugInfo{}
 	ast, err := frontEnd.AnalyzeString(fishiTest)
 	if err != nil {
 		return err

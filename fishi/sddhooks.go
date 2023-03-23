@@ -279,6 +279,46 @@ func sddFnTrimString(_, _ string, args []interface{}) interface{} {
 	return strings.TrimSpace(str)
 }
 
+func sddFnMakeDiscardOption(_, _ string, args []interface{}) interface{} {
+	return astTokenOption{optType: tokenOptDiscard}
+}
+
+func sddFnMakeStateshiftOption(_, _ string, args []interface{}) interface{} {
+	state, ok := args[0].(string)
+	if !ok {
+		return SDDErrMsg("argument is not a string")
+	}
+
+	return astTokenOption{optType: tokenOptStateshift, value: state}
+}
+
+func sddFnMakeHumanOption(_, _ string, args []interface{}) interface{} {
+	human, ok := args[0].(string)
+	if !ok {
+		return SDDErrMsg("argument is not a string")
+	}
+
+	return astTokenOption{optType: tokenOptHuman, value: human}
+}
+
+func sddFnMakeTokenOption(_, _ string, args []interface{}) interface{} {
+	tok, ok := args[0].(string)
+	if !ok {
+		return SDDErrMsg("argument is not a string")
+	}
+
+	return astTokenOption{optType: tokenOptToken, value: tok}
+}
+
+func sddFnMakePriorityOption(_, _ string, args []interface{}) interface{} {
+	priority, ok := args[0].(string)
+	if !ok {
+		return SDDErrMsg("argument is not a string")
+	}
+
+	return astTokenOption{optType: tokenOptPriority, value: priority}
+}
+
 func sddFnIdentity(_, _ string, args []interface{}) interface{} { return args[0] }
 
 func sddFnInterpretEscape(_, _ string, args []interface{}) interface{} {
@@ -387,6 +427,30 @@ func sddFnStringListAppend(_, _ string, args []interface{}) interface{} {
 
 	list = append(list, toAppend)
 
+	return list
+}
+
+func sddFnTokenOptListStart(_, _ string, args []interface{}) interface{} {
+	toAppend, ok := args[0].(astTokenOption)
+	if !ok {
+		toAppend = astTokenOption{value: SDDErrMsg("first argument is not a token option")}
+	}
+
+	return []astTokenOption{toAppend}
+}
+
+func sddFnTokenOptListAppend(_, _ string, args []interface{}) interface{} {
+	list, ok := args[0].([]astTokenOption)
+	if !ok {
+		return []astTokenOption{{value: SDDErrMsg("producing this token option list: first argument is not a token option list")}}
+	}
+
+	toAppend, ok := args[1].(astTokenOption)
+	if !ok {
+		toAppend = astTokenOption{value: SDDErrMsg("producing this token option: second argument is not a token option")}
+	}
+
+	list = append(list, toAppend)
 	return list
 }
 

@@ -43,64 +43,20 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	bootstrapSDDProductionValue(sdd)
 	bootstrapSDDSymbolSequenceValue(sdd)
 	bootstrapSDDSymbolValue(sdd)
-
 	bootstrapSDDTokensBlockAST(sdd)
 	bootstrapSDDTokensContentAST(sdd)
 	bootstrapSDDTokensStateBlockValue(sdd)
 	bootstrapSDDTokensEntriesValue(sdd)
 	bootstrapSDDTokensEntryValue(sdd)
 	bootstrapSDDPattern(sdd)
-
-	bootstrapSDDFakeSynth(sdd, "TOKEN-OPTS", []string{"TOKEN-OPTS", "NEWLINES", "TOKEN-OPTION"}, "value", []astTokenOption{{value: "TOKEN-OPTION"}})
-	bootstrapSDDFakeSynth(sdd, "TOKEN-OPTS", []string{"TOKEN-OPTS", "TOKEN-OPTION"}, "value", []astTokenOption{{value: "TOKEN-OPTION"}})
-	bootstrapSDDFakeSynth(sdd, "TOKEN-OPTS", []string{"TOKEN-OPTION"}, "value", []astTokenOption{{value: "TOKEN-OPTION"}})
+	bootstrapSDDTokenOptsValue(sdd)
+	bootstrapSDDTokenOptionValue(sdd)
+	bootstrapSDDStateshiftValue(sdd)
+	bootstrapSDDTokenValue(sdd)
+	bootstrapSDDHumanValue(sdd)
+	bootstrapSDDPriorityValue(sdd)
 
 	// NEXT STEPS:
-	//
-	// PATTERN:
-	// - create function bootstrapSDDPatternValue (done)
-	// - remove PATTERN mock (done)
-	// - remove NoFlow TEXT -> PATTERN (done)
-	//
-	// TOKEN-OPTS:
-	// - Mock all five TOKEN-OPTION rules
-	// - create function bootstrapSDDTokenOptsValue
-	// - remove TOKEN-OPTS mock
-	//
-	// TOKEN-OPTION:
-	// - Mock DISCARD rule
-	// - Mock STATESHIFT rule
-	// - Mock TOKEN rule
-	// - Mock HUMAN rule
-	// - Mock PRIORITY rule
-	// - create function bootstrapSDDTokenOptionValue
-	// - remove TOKEN-OPTION mock
-	//
-	// DISCARD:
-	// - create function bootstrapSDDDiscardValue
-	// - remove DISCARD mock
-	//
-	// STATESHIFT:
-	// - create function bootstrapSDDStateShiftValue
-	// - remove STATESHIFT mock
-	// - remove NoFlow TEXT -> STATESHIFT
-	//
-	// TOKEN:
-	// - create function bootstrapSDDTokenValue
-	// - remove TOKEN mock
-	// - remove NoFlow TEXT -> TOKEN
-	//
-	// HUMAN:
-	// - create function bootstrapSDDHumanValue
-	// - remove HUMAN mock
-	// - remove NoFlow TEXT -> HUMAN
-	//
-	// PRIORITY:
-	// - create function bootstrapSDDPriorityValue
-	// - remove PRIORITY mock
-	// - remove NoFlow TEXT -> PRIORITY
-	//
-	// BREAK HERE (done with token branch)
 	//
 	// ACTIONS-BLOCK:
 	// - AST struct for it
@@ -190,21 +146,8 @@ func CreateBootstrapSDD() ictiobus.SDTS {
 	// - remove ATTR-REFS mock
 	//
 
-	sdd.SetNoFlow(true, "TOKEN-OPTS", []string{"TOKEN-OPTS", "NEWLINES", "TOKEN-OPTION"}, "value", translation.NodeRelation{}, -1, "TOKEN-OPTS")
-	sdd.SetNoFlow(true, "TOKEN-OPTS", []string{"TOKEN-OPTS", "TOKEN-OPTION"}, "value", translation.NodeRelation{}, -1, "TOKEN-OPTS")
-	sdd.SetNoFlow(true, "TOKEN-OPTS", []string{"TOKEN-OPTION"}, "value", translation.NodeRelation{}, -1, "TOKEN-OPTS")
-
 	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
 	sdd.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
-
-	sdd.SetNoFlow(true, "TEXT", []string{"TEXT", "TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "STATESHIFT")
-	sdd.SetNoFlow(true, "TEXT", []string{"TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "STATESHIFT")
-	sdd.SetNoFlow(true, "TEXT", []string{"TEXT", "TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "TOKEN")
-	sdd.SetNoFlow(true, "TEXT", []string{"TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "TOKEN")
-	sdd.SetNoFlow(true, "TEXT", []string{"TEXT", "TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "PRIORITY")
-	sdd.SetNoFlow(true, "TEXT", []string{"TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "PRIORITY")
-	sdd.SetNoFlow(true, "TEXT", []string{"TEXT", "TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "HUMAN")
-	sdd.SetNoFlow(true, "TEXT", []string{"TEXT-ELEMENT"}, "value", translation.NodeRelation{}, -1, "HUMAN")
 
 	return sdd
 }
@@ -574,6 +517,120 @@ func bootstrapSDDSymbolSequenceValue(sdd ictiobus.SDTS) {
 		"SYMBOL-SEQUENCE", []string{"SYMBOL"},
 		"value",
 		sddFnStringListStart,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDDPriorityValue(sdd ictiobus.SDTS) {
+	sdd.BindSynthesizedAttribute(
+		"PRIORITY", []string{tcDirPriority.ID(), "TEXT"},
+		"value",
+		sddFnTrimString,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDDHumanValue(sdd ictiobus.SDTS) {
+	sdd.BindSynthesizedAttribute(
+		"HUMAN", []string{tcDirHuman.ID(), "TEXT"},
+		"value",
+		sddFnTrimString,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDDTokenValue(sdd ictiobus.SDTS) {
+	sdd.BindSynthesizedAttribute(
+		"TOKEN", []string{tcDirToken.ID(), "TEXT"},
+		"value",
+		sddFnTrimString,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDDStateshiftValue(sdd ictiobus.SDTS) {
+	sdd.BindSynthesizedAttribute(
+		"STATESHIFT", []string{tcDirShift.ID(), "TEXT"},
+		"value",
+		sddFnTrimString,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDDTokenOptionValue(sdd ictiobus.SDTS) {
+	sdd.BindSynthesizedAttribute(
+		"TOKEN-OPTION", []string{"DISCARD"},
+		"value",
+		sddFnMakeDiscardOption,
+		nil,
+	)
+	sdd.BindSynthesizedAttribute(
+		"TOKEN-OPTION", []string{"STATESHIFT"},
+		"value",
+		sddFnMakeStateshiftOption,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+	sdd.BindSynthesizedAttribute(
+		"TOKEN-OPTION", []string{"TOKEN"},
+		"value",
+		sddFnMakeTokenOption,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+	sdd.BindSynthesizedAttribute(
+		"TOKEN-OPTION", []string{"HUMAN"},
+		"value",
+		sddFnMakeHumanOption,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+	sdd.BindSynthesizedAttribute(
+		"TOKEN-OPTION", []string{"PRIORITY"},
+		"value",
+		sddFnMakePriorityOption,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDDTokenOptsValue(sdd ictiobus.SDTS) {
+	sdd.BindSynthesizedAttribute(
+		"TOKEN-OPTS", []string{"TOKEN-OPTS", "NEWLINES", "TOKEN-OPTION"},
+		"value",
+		sddFnTokenOptListAppend,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 2}, Name: "value"},
+		},
+	)
+	sdd.BindSynthesizedAttribute(
+		"TOKEN-OPTS", []string{"TOKEN-OPTS", "TOKEN-OPTION"},
+		"value",
+		sddFnTokenOptListAppend,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+	sdd.BindSynthesizedAttribute(
+		"TOKEN-OPTS", []string{"TOKEN-OPTION"},
+		"value",
+		sddFnTokenOptListStart,
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
 		},
