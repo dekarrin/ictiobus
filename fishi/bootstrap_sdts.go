@@ -45,9 +45,10 @@ func CreateBootstrapSDTS() ictiobus.SDTS {
 	bootstrapSDTSSymbolActionsValue(sdts)
 	bootstrapSDTSProdActionsValue(sdts)
 	bootstrapSDTSProdActionValue(sdts)
+	bootstrapSDTSProdSpecifierValue(sdts)
 
-	bootstrapSDTSFakeSynth(sdts, "PROD-SPECIFIER", []string{tcDirProd.ID(), "PROD-ADDR"}, "value", box.Pair[string, interface{}]{"INDEX", 2})
-	bootstrapSDTSFakeSynth(sdts, "PROD-SPECIFIER", []string{tcDirProd.ID()}, "value", box.Pair[string, interface{}]{"NEXT", ""})
+	bootstrapSDTSFakeSynth(sdts, "PROD-ADDR", []string{tcDirIndex.ID(), tcInt.ID()}, "value", box.Pair[string, interface{}]{"INDEX", 2})
+	bootstrapSDTSFakeSynth(sdts, "PROD-ADDR", []string{"ACTION-PRODUCTION"}, "value", box.Pair[string, interface{}]{"LITERAL", []string{"1", "+", "seven"}})
 
 	bootstrapSDTSFakeSynth(sdts, "SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTIONS", "SEMANTIC-ACTION"}, "value", []semanticAction{{hook: "FAKE"}})
 	bootstrapSDTSFakeSynth(sdts, "SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTION"}, "value", []semanticAction{{hook: "FAKE-2.0"}})
@@ -58,9 +59,9 @@ func CreateBootstrapSDTS() ictiobus.SDTS {
 	// NEXT STEPS:
 	//
 	// PROD-SPECIFIER:
-	// - Mock both PROD-ADDR rules
-	// - create function bootstrapSDTSProdSpecifierValue
-	// - remove PROD-SPECIFIER mock
+	// - Mock both PROD-ADDR rules DONE
+	// - create function bootstrapSDTSProdSpecifierValue DONE
+	// - remove PROD-SPECIFIER mock DONE
 	//
 	// PROD-ADDR:
 	// - Mock both ACTION-PRODUCTION rules
@@ -373,6 +374,23 @@ func bootstrapSDTSProdActionsValue(sdts ictiobus.SDTS) {
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
 		},
+	)
+}
+
+func bootstrapSDTSProdSpecifierValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"PROD-SPECIFIER", []string{tcDirProd.ID(), "PROD-ADDR"},
+		"value",
+		sdtsFnIdentity,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+	sdts.BindSynthesizedAttribute(
+		"PROD-SPECIFIER", []string{tcDirProd.ID()},
+		"value",
+		sdtsFnMakeProdSpecifierNext,
+		nil,
 	)
 }
 

@@ -581,6 +581,10 @@ func sdtsFnProdActionListAppend(_, _ string, args []interface{}) interface{} {
 	return list
 }
 
+func sdtsFnMakeProdSpecifierNext(_, _ string, args []interface{}) interface{} {
+	return box.PairOf("NEXT", "")
+}
+
 func sdtsFnProdActionListStart(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(productionAction)
 	if !ok {
