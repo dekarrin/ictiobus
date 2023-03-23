@@ -374,6 +374,7 @@ func (pa productionAction) String() string {
 			sb.WriteString("; ")
 		}
 	}
+	sb.WriteRune('}')
 
 	sb.WriteRune(')')
 

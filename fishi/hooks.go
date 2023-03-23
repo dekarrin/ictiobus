@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
+	"github.com/dekarrin/ictiobus/internal/box"
 )
 
 const (
@@ -344,6 +345,51 @@ func sdtsFnActionsContentBlocksStartSymbolActionsList(_, _ string, args []interf
 	return []astActionsContent{toAppend}
 }
 
+func sdtsFnMakeProdAction(_, _ string, args []interface{}) interface{} {
+	prodSpec, ok := args[0].(box.Pair[string, interface{}])
+	if !ok {
+		prodSpec = box.Pair[string, interface{}]{"LITERAL", SDDErrMsg("producing this production action: first argument is not a pair of strings")}
+	}
+
+	semActions, ok := args[1].([]semanticAction)
+	if !ok {
+		semActions = []semanticAction{{hook: SDDErrMsg("producing this production action: second argument is not a semantic action list")}}
+	}
+
+	pa := productionAction{
+		actions: semActions,
+	}
+
+	if prodSpec.First == "LITERAL" {
+		pa.prodLiteral = prodSpec.Second.([]string)
+	} else if prodSpec.First == "INDEX" {
+		pa.prodIndex = prodSpec.Second.(int)
+	} else if prodSpec.First == "NEXT" {
+		pa.prodNext = true
+	} else {
+		pa.prodLiteral = []string{SDDErrMsg("producing this production action: first argument is not a pair of string/interface{}")}
+	}
+
+	return pa
+}
+
+func sdtsFnMakeSymbolActions(_, _ string, args []interface{}) interface{} {
+	nonTermUntyped := sdtsFnGetNonterminal("", "", args[0:1])
+	nonTerm := nonTermUntyped.(string)
+
+	prodActions, ok := args[1].([]productionAction)
+	if !ok {
+		prodActions = []productionAction{{prodLiteral: []string{SDDErrMsg("producing this production action list: second argument is not a production action list")}}}
+	}
+
+	sa := symbolActions{
+		symbol:  nonTerm,
+		actions: prodActions,
+	}
+
+	return sa
+}
+
 func sdtsFnMakeGrammarContentNode(_, _ string, args []interface{}) interface{} {
 	state, ok := args[0].(string)
 	if !ok {
@@ -351,9 +397,21 @@ func sdtsFnMakeGrammarContentNode(_, _ string, args []interface{}) interface{} {
 	}
 	rules, ok := args[1].([]grammar.Rule)
 	if !ok {
-		rules = []grammar.Rule{}
+		rules = []grammar.Rule{{NonTerminal: SDDErrMsg("producing this rule list: second argument is not a rule list")}}
 	}
 	return astGrammarContent{rules: rules, state: state}
+}
+
+func sdtsFnMakeActionsContentNode(_, _ string, args []interface{}) interface{} {
+	state, ok := args[0].(string)
+	if !ok {
+		state = SDDErrMsg("STATE value is not a string")
+	}
+	actions, ok := args[1].([]symbolActions)
+	if !ok {
+		actions = []symbolActions{{symbol: SDDErrMsg("producing this symbol actions list: second argument is not a symbol actions list")}}
+	}
+	return astActionsContent{actions: actions, state: state}
 }
 
 func sdtsFnMakeTokensContentNode(_, _ string, args []interface{}) interface{} {
@@ -481,7 +539,7 @@ func sdtsFnRuleListAppend(_, _ string, args []interface{}) interface{} {
 func sdtsFnEntryListAppend(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]tokenEntry)
 	if !ok {
-		list = []tokenEntry{{pattern: SDDErrMsg("producing this token entry list: first argument is not a token entry list list")}}
+		list = []tokenEntry{{pattern: SDDErrMsg("producing this token entry list: first argument is not a token entry list")}}
 	}
 
 	toAppend, ok := args[1].(tokenEntry)
@@ -493,19 +551,67 @@ func sdtsFnEntryListAppend(_, _ string, args []interface{}) interface{} {
 	return list
 }
 
+func sdtsFnSymbolActionsListAppend(_, _ string, args []interface{}) interface{} {
+	list, ok := args[0].([]symbolActions)
+	if !ok {
+		list = []symbolActions{{symbol: SDDErrMsg("producing this symbol actions list: first argument is not a symbol actions list")}}
+	}
+
+	toAppend, ok := args[1].(symbolActions)
+	if !ok {
+		toAppend = symbolActions{symbol: SDDErrMsg("producing this symbol actions: second argument is not a symbol actions")}
+	}
+
+	list = append(list, toAppend)
+	return list
+}
+
+func sdtsFnProdActionListAppend(_, _ string, args []interface{}) interface{} {
+	list, ok := args[0].([]productionAction)
+	if !ok {
+		list = []productionAction{{prodLiteral: []string{SDDErrMsg("producing this production action list: first argument is not a production actions list")}}}
+	}
+
+	toAppend, ok := args[1].(productionAction)
+	if !ok {
+		toAppend = productionAction{prodLiteral: []string{SDDErrMsg("producing this production action list: first argument is not a production actions list")}}
+	}
+
+	list = append(list, toAppend)
+	return list
+}
+
+func sdtsFnProdActionListStart(_, _ string, args []interface{}) interface{} {
+	toAppend, ok := args[0].(productionAction)
+	if !ok {
+		toAppend = productionAction{prodLiteral: []string{SDDErrMsg("producing this production action list: first argument is not a production actions list")}}
+	}
+
+	return []productionAction{toAppend}
+}
+
 func sdtsFnRuleListStart(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(grammar.Rule)
 	if !ok {
-		toAppend = grammar.Rule{NonTerminal: SDDErrMsg("producing this rule: second argument is not a rule")}
+		toAppend = grammar.Rule{NonTerminal: SDDErrMsg("producing this rule: first argument is not a rule")}
 	}
 
 	return []grammar.Rule{toAppend}
 }
 
+func sdtsFnSymbolActionsListStart(_, _ string, args []interface{}) interface{} {
+	toAppend, ok := args[0].(symbolActions)
+	if !ok {
+		toAppend = symbolActions{symbol: SDDErrMsg("producing this symbol action: first argument is not a rule")}
+	}
+
+	return []symbolActions{toAppend}
+}
+
 func sdtsFnEntryListStart(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(tokenEntry)
 	if !ok {
-		toAppend = tokenEntry{pattern: SDDErrMsg("producing this token entry: second argument is not a token entry")}
+		toAppend = tokenEntry{pattern: SDDErrMsg("producing this token entry: first argument is not a token entry")}
 	}
 
 	return []tokenEntry{toAppend}

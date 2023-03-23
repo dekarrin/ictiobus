@@ -2,6 +2,7 @@ package fishi
 
 import (
 	"github.com/dekarrin/ictiobus"
+	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/translation"
 )
 
@@ -39,45 +40,25 @@ func CreateBootstrapSDTS() ictiobus.SDTS {
 
 	bootstrapSDTSActionsBlockAST(sdts)
 	bootstrapSDTSActionsContentAST(sdts)
+	bootstrapSDTSActionsStateBlockValue(sdts)
+	bootstrapSDTSSymbolActionsListValue(sdts)
+	bootstrapSDTSSymbolActionsValue(sdts)
+	bootstrapSDTSProdActionsValue(sdts)
+	bootstrapSDTSProdActionValue(sdts)
 
-	bootstrapSDTSFakeSynth(sdts, "ACTIONS-STATE-BLOCK", []string{"STATE-INSTRUCTION", "SYMBOL-ACTIONS-LIST"}, "value", astActionsContent{state: "fakeFromSTATEBLOCK"})
+	bootstrapSDTSFakeSynth(sdts, "PROD-SPECIFIER", []string{tcDirProd.ID(), "PROD-ADDR"}, "value", box.Pair[string, interface{}]{"INDEX", 2})
+	bootstrapSDTSFakeSynth(sdts, "PROD-SPECIFIER", []string{tcDirProd.ID()}, "value", box.Pair[string, interface{}]{"NEXT", ""})
 
-	bootstrapSDTSFakeSynth(sdts, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS-LIST", "SYMBOL-ACTIONS"}, "value", []symbolActions{{symbol: "symACTfake"}})
-	bootstrapSDTSFakeSynth(sdts, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS"}, "value", []symbolActions{{symbol: "symACTfake2"}})
+	bootstrapSDTSFakeSynth(sdts, "SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTIONS", "SEMANTIC-ACTION"}, "value", []semanticAction{{hook: "FAKE"}})
+	bootstrapSDTSFakeSynth(sdts, "SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTION"}, "value", []semanticAction{{hook: "FAKE-2.0"}})
+
+	sdts.SetNoFlow(true, "SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTIONS", "SEMANTIC-ACTION"}, "value", translation.NodeRelation{}, -1, "SEMANTIC-ACTIONS")
+	sdts.SetNoFlow(true, "SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTION"}, "value", translation.NodeRelation{}, -1, "SEMANTIC-ACTIONS")
 
 	// NEXT STEPS:
 	//
-	// ACTIONS-STATE-BLOCK:
-	// - (SYMBOL-ACTIONS-LIST should already be mocked)
-	// - create function bootstrapSDTSActionsStateBlockAST
-	// - update AST string() to print out the actions state block
-	// - remove NoFlow STATE-INSTRUCTION -> ACTIONS-STATE-BLOCK
-	// - remove ACTIONS-STATE-BLOCK mock
-	//
-	// SYMBOL-ACTIONS-LIST:
-	// - Mock SYMBOL-ACTIONS rule
-	// - create function bootstrapSDTSSymbolActionsListValue
-	// - remove SYMBOL-ACTIONS-LIST mock
-	// - remove SYMBOL-ACTIONS-LIST NoFlows
-	//
-	// SYMBOL-ACTIONS:
-	// - Mock both PROD-ACTIONS rules
-	// - create function bootstrapSDTSSymbolActionsValue
-	// - remove SYMBOL-ACTIONS mock
-	//
-	// PROD-ACTIONS:
-	// - Mock PROD-ACTION rule
-	// - create function bootstrapSDTSProdActionsValue
-	// - remove PROD-ACTIONS mock
-	//
-	// PROD-ACTION:
-	// - Mock both PROD-SPECIFIER rules
-	// - Mock both SEMANTIC-ACTIONS rules
-	// - create function bootstrapSDTSProdActionValue
-	// - remove PROD-ACTION mock
-	//
 	// PROD-SPECIFIER:
-	// - Mock bot PROD-ADDR rules
+	// - Mock both PROD-ADDR rules
 	// - create function bootstrapSDTSProdSpecifierValue
 	// - remove PROD-SPECIFIER mock
 	//
@@ -104,6 +85,7 @@ func CreateBootstrapSDTS() ictiobus.SDTS {
 	// - Mock both SEMANTIC-ACTION rules
 	// - create function bootstrapSDTSSemanticActionsValue
 	// - remove SEMANTIC-ACTIONS mock
+	// - remove NoFlows for SEMANTIC-ACTIONS
 	//
 	// SEMANTIC-ACTION:
 	// - Mock WITH-CLAUSE rule
@@ -119,14 +101,6 @@ func CreateBootstrapSDTS() ictiobus.SDTS {
 	// - create function bootstrapSDTSAttrRefsValue
 	// - remove ATTR-REFS mock
 	//
-
-	sdts.SetNoFlow(true, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS-LIST", "SYMBOL-ACTIONS"}, "value", translation.NodeRelation{}, -1, "SYMBOL-ACTIONS-LIST")
-	sdts.SetNoFlow(true, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS"}, "value", translation.NodeRelation{}, -1, "SYMBOL-ACTIONS-LIST")
-	sdts.SetNoFlow(true, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS-LIST", "SYMBOL-ACTIONS"}, "value", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
-	sdts.SetNoFlow(true, "SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS"}, "value", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
-
-	sdts.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
-	sdts.SetNoFlow(true, "STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"}, "state", translation.NodeRelation{}, -1, "ACTIONS-STATE-BLOCK")
 
 	return sdts
 }
@@ -306,7 +280,7 @@ func bootstrapSDTSActionsContentAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ACTIONS-CONTENT", []string{"ACTIONS-STATE-BLOCK"},
 		"ast",
-		sdtsFnTokensContentBlocksStartStateBlock,
+		sdtsFnActionsContentBlocksStartStateBlock,
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
 		},
@@ -366,6 +340,82 @@ func bootstrapSDTSGrammarStateBlockValue(sdts ictiobus.SDTS) {
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "state"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 2}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDTSActionsStateBlockValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"ACTIONS-STATE-BLOCK", []string{"STATE-INSTRUCTION", "SYMBOL-ACTIONS-LIST"},
+		"value",
+		sdtsFnMakeActionsContentNode,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "state"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDTSProdActionsValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"PROD-ACTIONS", []string{"PROD-ACTIONS", "PROD-ACTION"},
+		"value",
+		sdtsFnProdActionListAppend,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+	sdts.BindSynthesizedAttribute(
+		"PROD-ACTIONS", []string{"PROD-ACTION"},
+		"value",
+		sdtsFnProdActionListStart,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDTSProdActionValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"PROD-ACTION", []string{"PROD-SPECIFIER", "SEMANTIC-ACTIONS"},
+		"value",
+		sdtsFnMakeProdAction,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDTSSymbolActionsValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"SYMBOL-ACTIONS", []string{tcDirSymbol.ID(), tcNonterminal.ID(), "PROD-ACTIONS"},
+		"value",
+		sdtsFnMakeSymbolActions,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 2}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDTSSymbolActionsListValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS-LIST", "SYMBOL-ACTIONS"},
+		"value",
+		sdtsFnSymbolActionsListAppend,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+	sdts.BindSynthesizedAttribute(
+		"SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS"},
+		"value",
+		sdtsFnSymbolActionsListStart,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
