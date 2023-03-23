@@ -1,6 +1,8 @@
 # vim
 *.swp
 
+icc
+
 # mac
 .DS_Store
 
