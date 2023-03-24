@@ -24,6 +24,10 @@ type SDDBinding struct {
 
 	// Setter is the call to calculate a value of the node by the binding.
 	Setter AttributeSetter
+
+	// NoFlows is the list of parents that this binding is allowed to not flow
+	// up to without causing error.
+	NoFlows []string
 }
 
 func (bind SDDBinding) Copy() SDDBinding {
@@ -34,10 +38,12 @@ func (bind SDDBinding) Copy() SDDBinding {
 		Requirements:        make([]AttrRef, len(bind.Requirements)),
 		Dest:                bind.Dest,
 		Setter:              bind.Setter,
+		NoFlows:             make([]string, len(bind.NoFlows)),
 	}
 
 	copy(newBind.BoundRuleProduction, bind.BoundRuleProduction)
 	copy(newBind.Requirements, bind.Requirements)
+	copy(newBind.NoFlows, bind.NoFlows)
 
 	return newBind
 }

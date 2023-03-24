@@ -134,6 +134,19 @@ type SDTS interface {
 	// to determine the dependency graph for later execution.
 	BindSynthesizedAttribute(head string, prod []string, attrName string, bindFunc translation.AttributeSetter, withArgs []translation.AttrRef) error
 
+	// SetNoFlow sets a binding to be explicitly allowed to not be required to
+	// flow up to a particular parent. This will prevent it from causing an
+	// error if it results in a disconnected dependency graph if the node of
+	// that binding has the given parent.
+	//
+	// - forProd is only used if synth is false. It specifies the production
+	// that the binding to match must apply to.
+	// - which is the index of the binding to set it on, if multiple match the
+	// prior criteria. Set to -1 or less to set it on all matching bindings.
+	// - ifParent is the symbol that the parent of the node must be for no flow
+	// to be considered acceptable.
+	SetNoFlow(synth bool, head string, prod []string, attrName string, forProd translation.NodeRelation, which int, ifParent string) error
+
 	// Bindings returns all bindings defined to apply when at a node in a parse
 	// tree created by the rule production with head as its head symbol and prod
 	// as its produced symbols. They will be returned in the order they were
@@ -162,7 +175,7 @@ type SDTS interface {
 	// values will be used, which may not behave as expected with the SDTS. To
 	// get one that will use the configured regexes of tokens used for lexing,
 	// call FakeLexemeProducer on a Lexer.
-	Validate(grammar grammar.Grammar, attribute string, fakeValProducer ...map[string]func() string) error
+	Validate(grammar grammar.Grammar, attribute string, debug types.DebugInfo, fakeValProducer ...map[string]func() string) error
 }
 
 // NewLexer returns a lexer whose Lex method will immediately lex the entire
@@ -334,10 +347,22 @@ func NewSDTS() SDTS {
 // Frontend is a complete input-to-intermediate representation compiler
 // front-end.
 type Frontend[E any] struct {
+	Debug       types.DebugInfo
 	Lexer       Lexer
 	Parser      Parser
 	SDT         SDTS
 	IRAttribute string
+
+	// Language is the name of the langauge that the frontend is for. It must be
+	// set by the user.
+	Language string
+
+	// Version is the version of the frontend for the language. It must be set
+	// by the user. This does not necessarily indicate the version of the
+	// language itself; its possible that a later frontend may result in the
+	// exact same semantics and syntax of the language whilst using a different
+	// grammar.
+	Version string
 }
 
 // AnalyzeString is the same as Analyze but accepts a string as input. It simply
@@ -370,6 +395,10 @@ func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, err error) {
 	parseTree, err := fe.Parser.Parse(tokStream)
 	if err != nil {
 		return ir, err
+	}
+
+	if fe.Debug.ParseTrees {
+		fmt.Printf("parse tree:\n%s\n", translation.AddAttributes(parseTree).String())
 	}
 
 	// semantic analysis
