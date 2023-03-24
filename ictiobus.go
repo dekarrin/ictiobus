@@ -352,6 +352,17 @@ type Frontend[E any] struct {
 	Parser      Parser
 	SDT         SDTS
 	IRAttribute string
+
+	// Language is the name of the langauge that the frontend is for. It must be
+	// set by the user.
+	Language string
+
+	// Version is the version of the frontend for the language. It must be set
+	// by the user. This does not necessarily indicate the version of the
+	// language itself; its possible that a later frontend may result in the
+	// exact same semantics and syntax of the language whilst using a different
+	// grammar.
+	Version string
 }
 
 // AnalyzeString is the same as Analyze but accepts a string as input. It simply

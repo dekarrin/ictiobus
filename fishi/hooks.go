@@ -609,6 +609,66 @@ func sdtsFnSemanticActionListAppend(_, _ string, args []interface{}) interface{}
 	return list
 }
 
+func sdtsFnAttrRefListAppend(_, _ string, args []interface{}) interface{} {
+	list, ok := args[0].([]AttrRef)
+	if !ok {
+		list = []AttrRef{{symbol: SDDErrMsg("producing this AttrRef list: first argument is not an AttrRef list")}}
+	}
+
+	toAppend := sdtsFnGetAttrRef("", "", args[1:]).(AttrRef)
+
+	list = append(list, toAppend)
+	return list
+}
+
+func sdtsFnAttrRefListStart(_, _ string, args []interface{}) interface{} {
+	toAppend := sdtsFnGetAttrRef("", "", args[0:]).(AttrRef)
+
+	return []AttrRef{toAppend}
+}
+
+func sdtsFnGetAttrRef(_, _ string, args []interface{}) interface{} {
+	var attrRef AttrRef
+
+	str, ok := args[0].(string)
+	if !ok {
+		attrRef = AttrRef{symbol: SDDErrMsg("producing this semantic action: first argument is not a string to be parsed into an AttrRef")}
+	} else {
+		var err error
+		attrRef, err = ParseAttrRef(str)
+		if err != nil {
+			attrRef = AttrRef{symbol: SDDErrMsg("producing this semantic action: first argument is not a valid AttrRef: %v", err.Error())}
+		}
+	}
+
+	return attrRef
+}
+
+func sdtsFnMakeSemanticAction(_, _ string, args []interface{}) interface{} {
+	attrRef := sdtsFnGetAttrRef("", "", args[0:1]).(AttrRef)
+
+	hookId, ok := args[1].(string)
+	if !ok {
+		hookId = SDDErrMsg("producing this semantic action: second argument is not a string")
+	}
+
+	var argRefs []AttrRef
+	if len(args) > 2 {
+		argRefs, ok = args[2].([]AttrRef)
+		if !ok {
+			argRefs = []AttrRef{{symbol: SDDErrMsg("producing this semantic action: third argument is not an attrRef list")}}
+		}
+	}
+
+	sa := semanticAction{
+		lhs:  attrRef,
+		hook: hookId,
+		with: argRefs,
+	}
+
+	return sa
+}
+
 func sdtsFnMakeProdSpecifierNext(_, _ string, args []interface{}) interface{} {
 	// need exact generic-filled type to match later expectations.
 	spec := box.Pair[string, interface{}]{"NEXT", ""}

@@ -50,34 +50,16 @@ func CreateBootstrapSDTS() ictiobus.SDTS {
 	bootstrapSDTSActionSymbolSequenceValue(sdts)
 	bootstrapSDTSActionSymbolValue(sdts)
 	bootstrapSDTSSemanticActionsValue(sdts)
-
-	bootstrapSDTSFakeSynth(sdts, "SEMANTIC-ACTION", []string{tcDirAction.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID()}, "value", semanticAction{hook: "FAKE"})
-	bootstrapSDTSFakeSynth(sdts, "SEMANTIC-ACTION", []string{tcDirAction.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID(), "WITH-CLAUSE"}, "value", semanticAction{hook: "FAKE-2.0"})
-
-	sdts.SetNoFlow(true, "SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTIONS", "SEMANTIC-ACTION"}, "value", translation.NodeRelation{}, -1, "SEMANTIC-ACTIONS")
-	sdts.SetNoFlow(true, "SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTION"}, "value", translation.NodeRelation{}, -1, "SEMANTIC-ACTIONS")
+	bootstrapSDTSSemanticActionValue(sdts)
+	bootstrapSDTSWithClauseValue(sdts)
+	bootstrapSDTSAttrRefsValue(sdts)
 
 	// NEXT STEPS:
-	//
-	// SEMANTIC-ACTIONS:
-	// - Mock both SEMANTIC-ACTION rules DONE
-	// - create function bootstrapSDTSSemanticActionsValue DONE
-	// - remove SEMANTIC-ACTIONS mock DONE
-	// - remove NoFlows for SEMANTIC-ACTIONS
-	//
-	// SEMANTIC-ACTION:
-	// - Mock WITH-CLAUSE rule
-	// - create function bootstrapSDTSSemanticActionValue
-	// - remove SEMANTIC-ACTION mock
-	//
-	// WITH-CLAUSE:
-	// - Mock both ATTR-REFS rules
-	// - create function bootstrapSDTSWithClauseValue
-	// - remove WITH-CLAUSE mock
 	//
 	// ATTR-REFS:
 	// - create function bootstrapSDTSAttrRefsValue
 	// - remove ATTR-REFS mock
+	// - remove ATTR-REFS noflow
 	//
 
 	return sdts
@@ -350,6 +332,60 @@ func bootstrapSDTSProdActionsValue(sdts ictiobus.SDTS) {
 		sdtsFnProdActionListStart,
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDTSAttrRefsValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"ATTR-REFS", []string{"ATTR-REFS", tcAttrRef.ID()},
+		"value",
+		sdtsFnAttrRefListAppend,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$text"},
+		},
+	)
+
+	sdts.BindSynthesizedAttribute(
+		"ATTR-REFS", []string{tcAttrRef.ID()},
+		"value",
+		sdtsFnAttrRefListStart,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$text"},
+		},
+	)
+}
+
+func bootstrapSDTSWithClauseValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"WITH-CLAUSE", []string{tcDirWith.ID(), "ATTR-REFS"},
+		"value",
+		sdtsFnIdentity,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDTSSemanticActionValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"SEMANTIC-ACTION", []string{tcDirAction.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID()},
+		"value",
+		sdtsFnMakeSemanticAction,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 3}, Name: "$text"},
+		},
+	)
+	sdts.BindSynthesizedAttribute(
+		"SEMANTIC-ACTION", []string{tcDirAction.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID(), "WITH-CLAUSE"},
+		"value",
+		sdtsFnMakeSemanticAction,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 3}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 4}, Name: "value"},
 		},
 	)
 }

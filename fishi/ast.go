@@ -2,6 +2,8 @@ package fishi
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
@@ -290,14 +292,59 @@ func (content astActionsContent) String() string {
 	}
 }
 
-type attrRef struct {
+type AttrRef struct {
 	symbol    string
 	terminal  bool
 	occurance int
 	attribute string
 }
 
-func (ar attrRef) String() string {
+var (
+	attrRefPat = regexp.MustCompile(`({[A-Za-z][^}]*}|\S+)(?:\$(\d+))?\.([\$A-Za-z][$A-Za-z0-9_-]*)`)
+)
+
+// ParseAttrRef does a simple parse on an attribute reference from a string that
+// makes it up.
+func ParseAttrRef(s string) (AttrRef, error) {
+	m := attrRefPat.FindStringSubmatch(s)
+
+	if m == nil {
+		return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
+	}
+
+	if len(m) != 4 {
+		// should never happen, but could if the regex is changed
+		panic("invalid match regex for attribute reference")
+	}
+
+	sym, idxStr, attrName := m[1], m[2], m[3]
+
+	var idx int
+	if idxStr != "" {
+		var err error
+		idx, err = strconv.Atoi(idxStr)
+		if err != nil {
+			panic("invalid match regex for attribute reference; index returned non-integer")
+		}
+	}
+
+	var terminal bool
+	if sym[0] == '{' && sym[len(sym)-1] == '}' {
+		sym = sym[1 : len(sym)-1]
+		terminal = false
+	} else {
+		terminal = true
+	}
+
+	return AttrRef{
+		symbol:    sym,
+		terminal:  terminal,
+		occurance: idx,
+		attribute: attrName,
+	}, nil
+}
+
+func (ar AttrRef) String() string {
 	var sb strings.Builder
 
 	if ar.terminal {
@@ -317,9 +364,9 @@ func (ar attrRef) String() string {
 }
 
 type semanticAction struct {
-	lhs  attrRef
+	lhs  AttrRef
 	hook string
-	with []attrRef
+	with []AttrRef
 }
 
 func (sa semanticAction) String() string {

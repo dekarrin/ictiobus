@@ -4,7 +4,7 @@ import "github.com/dekarrin/ictiobus/fishi"
 
 func main() {
 
-	err := fishi.ReadFishiMdFile("fishi.md", false)
+	err := fishi.ExecuteMarkdownFile("fishi.md")
 	if err != nil {
 		panic(err)
 	}

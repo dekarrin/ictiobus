@@ -1,7 +1,7 @@
 package types
 
 // DebugInfo is a struct passed to certain functions that selects the items to
-// be included in error output for debugging purposes.
+// be included in error output for debugging purposes while building a compiler.
 type DebugInfo struct {
 	// ParseTrees is whether to include parse trees in error output.
 	ParseTrees bool
