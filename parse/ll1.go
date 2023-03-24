@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
-	"github.com/dekarrin/ictiobus/icterrors"
 	"github.com/dekarrin/ictiobus/internal/decbin"
 	"github.com/dekarrin/ictiobus/internal/stack"
 	"github.com/dekarrin/ictiobus/types"
@@ -115,14 +114,14 @@ func (ll1 *ll1Parser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 				ptStack.Pop()
 				node = ptStack.Peek()
 			} else {
-				return pt, icterrors.NewSyntaxErrorFromToken(fmt.Sprintf("There should be a %s here, but it was %q!", t.Human(), next.Lexeme()), next)
+				return pt, types.NewSyntaxErrorFromToken(fmt.Sprintf("There should be a %s here, but it was %q!", t.Human(), next.Lexeme()), next)
 			}
 
 			next = stream.Peek()
 		} else {
 			nextProd := ll1.table.Get(X, ll1.g.TermFor(next.Class()))
 			if nextProd.Equal(grammar.Error) {
-				return pt, icterrors.NewSyntaxErrorFromToken(fmt.Sprintf("It doesn't make any sense to put a %q here!", next.Class().Human()), next)
+				return pt, types.NewSyntaxErrorFromToken(fmt.Sprintf("It doesn't make any sense to put a %q here!", next.Class().Human()), next)
 			}
 
 			symStack.Pop()

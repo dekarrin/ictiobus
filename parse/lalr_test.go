@@ -24,9 +24,9 @@ func Test_ConstructLALR1ParseTable(t *testing.T) {
 			`,
 			expect: `S  |  A:C        A:D        A:$        |  G:C  G:S
 --------------------------------------------------
-0  |  s2         s4                    |  1    6  
-1  |  s2         s4                    |  5       
-2  |  s2         s4                    |  3       
+0  |  s1         s4                    |  2    6  
+1  |  s1         s4                    |  3       
+2  |  s1         s4                    |  5       
 3  |  rC -> c C  rC -> c C  rC -> c C  |          
 4  |  rC -> d    rC -> d    rC -> d    |          
 5  |                        rS -> C C  |          

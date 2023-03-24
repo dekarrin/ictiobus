@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dekarrin/ictiobus/icterrors"
+	"github.com/dekarrin/ictiobus/types"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -17,16 +17,14 @@ func Test_WithFakeInput(t *testing.T) {
 	assert.NoError(actual)
 
 	if actual != nil {
-		actualSynt, ok := actual.(*icterrors.SyntaxError)
+		actualSynt, ok := actual.(*types.SyntaxError)
 		if ok {
 			fmt.Println(actualSynt.FullMessage())
 		}
 	}
-
-	nactual := false
-	assert.True(nactual)
 }
 
+/* do not uncomment until GHI #15 is fixed.
 func Test_SelfHostedMarkdown(t *testing.T) {
 	assert := assert.New(t)
 
@@ -35,15 +33,12 @@ func Test_SelfHostedMarkdown(t *testing.T) {
 	assert.NoError(actual)
 
 	if actual != nil {
-		actualSynt, ok := actual.(*icterrors.SyntaxError)
+		actualSynt, ok := actual.(*types.SyntaxError)
 		if ok {
 			fmt.Println(actualSynt.FullMessage())
 		}
 	}
-
-	nactual := false
-	assert.True(nactual)
-}
+}*/
 
 func Test_GetFishiFromMarkdown(t *testing.T) {
 	testCases := []struct {

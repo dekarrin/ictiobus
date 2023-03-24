@@ -88,7 +88,7 @@ func UnmarshalDFABytes[E any](data []byte, conv func([]byte) (E, error)) (DFA[E]
 			}
 			data = data[n:]
 			stateBytes := data[:stateBytesLen]
-			state, err = UnmarshalDFAStateBytes[E](stateBytes, conv)
+			state, err = UnmarshalDFAStateBytes(stateBytes, conv)
 			if err != nil {
 				return dfa, fmt.Errorf(".states[%s]: %w", name, err)
 			}
