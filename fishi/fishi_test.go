@@ -22,9 +22,6 @@ func Test_WithFakeInput(t *testing.T) {
 			fmt.Println(actualSynt.FullMessage())
 		}
 	}
-
-	nactual := false
-	assert.True(nactual)
 }
 
 func Test_SelfHostedMarkdown(t *testing.T) {
@@ -40,9 +37,6 @@ func Test_SelfHostedMarkdown(t *testing.T) {
 			fmt.Println(actualSynt.FullMessage())
 		}
 	}
-
-	nactual := false
-	assert.True(nactual)
 }
 
 func Test_GetFishiFromMarkdown(t *testing.T) {

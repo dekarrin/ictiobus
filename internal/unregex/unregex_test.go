@@ -1,7 +1,6 @@
 package unregex
 
 import (
-	"log"
 	"regexp"
 	"testing"
 
@@ -33,8 +32,6 @@ func Test_Digit_Class(t *testing.T) {
 		if !assert.True(matcher.MatchString(str), "iteration %d: regex '%s' does not match derived %q", i, regex, str) {
 			return
 		}
-
-		log.Printf("iteration %d: %q", i, str)
 	}
 }
 
@@ -58,8 +55,6 @@ func Test_Number(t *testing.T) {
 		if !assert.True(matcher.MatchString(str), "iteration %d: regex '%s' does not match derived %q", i, regex, str) {
 			return
 		}
-
-		log.Printf("iteration %d: %q", i, str)
 	}
 }
 
@@ -83,8 +78,6 @@ func Test_Literal(t *testing.T) {
 		if !assert.True(matcher.MatchString(str), "iteration %d: regex '%s' does not match derived %q", i, regex, str) {
 			return
 		}
-
-		log.Printf("iteration %d: %q", i, str)
 	}
 }
 
@@ -108,8 +101,6 @@ func Test_CharClass_Single(t *testing.T) {
 		if !assert.True(matcher.MatchString(str), "iteration %d: regex '%s' does not match derived %q", i, regex, str) {
 			return
 		}
-
-		log.Printf("iteration %d: %q", i, str)
 	}
 }
 
@@ -133,8 +124,6 @@ func Test_CharClass_MultipleExplicit(t *testing.T) {
 		if !assert.True(matcher.MatchString(str), "iteration %d: regex '%s' does not match derived %q", i, regex, str) {
 			return
 		}
-
-		log.Printf("iteration %d: %q", i, str)
 	}
 }
 
@@ -158,8 +147,6 @@ func Test_CharClass_SingleRange(t *testing.T) {
 		if !assert.True(matcher.MatchString(str), "iteration %d: regex '%s' does not match derived %q", i, regex, str) {
 			return
 		}
-
-		log.Printf("iteration %d: %q", i, str)
 	}
 }
 
@@ -183,8 +170,6 @@ func Test_CharClass_MultipleRanges(t *testing.T) {
 		if !assert.True(matcher.MatchString(str), "iteration %d: regex '%s' does not match derived %q", i, regex, str) {
 			return
 		}
-
-		log.Printf("iteration %d: %q", i, str)
 	}
 }
 
@@ -208,10 +193,7 @@ func Test_CharClass_Mixed(t *testing.T) {
 		if !assert.True(matcher.MatchString(str), "iteration %d: regex '%s' does not match derived %q", i, regex, str) {
 			return
 		}
-
-		log.Printf("iteration %d: %q", i, str)
 	}
-	assert.True(false)
 }
 
 func Test_CharClass_Single_Negated(t *testing.T) {
@@ -237,8 +219,6 @@ func Test_CharClass_Single_Negated(t *testing.T) {
 		if !assert.True(matcher.MatchString(str), "iteration %d: regex '%s' does not match derived %q", i, regex, str) {
 			return
 		}
-
-		log.Printf("iteration %d: %q", i, str)
 	}
 }
 
@@ -267,7 +247,5 @@ func Test_SomeLongRegex_Emails(t *testing.T) {
 		if !assert.True(matcher.MatchString(str), "iteration %d: regex '%s' does not match derived %q", i, regex, str) {
 			return
 		}
-
-		log.Printf("iteration %d: %q", i, str)
 	}
 }
