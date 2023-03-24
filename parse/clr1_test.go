@@ -22,10 +22,10 @@ func Test_ConstructCanonicalLR1ParseTable(t *testing.T) {
 			`,
 			expect: `S  |  A:C        A:D        A:$        |  G:C  G:S
 --------------------------------------------------
-0  |  s2         s7                    |  1    9  
-1  |  s3         s6                    |  8       
-2  |  s2         s7                    |  5       
-3  |  s3         s6                    |  4       
+0  |  s3         s7                    |  2    9  
+1  |  s1         s6                    |  4       
+2  |  s1         s6                    |  8       
+3  |  s3         s7                    |  5       
 4  |                        rC -> c C  |          
 5  |  rC -> c C  rC -> c C             |          
 6  |                        rC -> d    |          

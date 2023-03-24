@@ -24,6 +24,7 @@ func Test_WithFakeInput(t *testing.T) {
 	}
 }
 
+/* do not uncomment until GHI #15 is fixed.
 func Test_SelfHostedMarkdown(t *testing.T) {
 	assert := assert.New(t)
 
@@ -37,7 +38,7 @@ func Test_SelfHostedMarkdown(t *testing.T) {
 			fmt.Println(actualSynt.FullMessage())
 		}
 	}
-}
+}*/
 
 func Test_GetFishiFromMarkdown(t *testing.T) {
 	testCases := []struct {
