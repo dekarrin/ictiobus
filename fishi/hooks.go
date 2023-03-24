@@ -348,7 +348,7 @@ func sdtsFnActionsContentBlocksStartSymbolActionsList(_, _ string, args []interf
 func sdtsFnMakeProdAction(_, _ string, args []interface{}) interface{} {
 	prodSpec, ok := args[0].(box.Pair[string, interface{}])
 	if !ok {
-		prodSpec = box.Pair[string, interface{}]{"LITERAL", []string{SDDErrMsg("producing this production action: first argument is not a pair of string, any")}}
+		prodSpec = box.Pair[string, interface{}]{First: "LITERAL", Second: []string{SDDErrMsg("producing this production action: first argument is not a pair of string, any")}}
 	}
 
 	semActions, ok := args[1].([]semanticAction)
@@ -671,14 +671,14 @@ func sdtsFnMakeSemanticAction(_, _ string, args []interface{}) interface{} {
 
 func sdtsFnMakeProdSpecifierNext(_, _ string, args []interface{}) interface{} {
 	// need exact generic-filled type to match later expectations.
-	spec := box.Pair[string, interface{}]{"NEXT", ""}
+	spec := box.Pair[string, interface{}]{First: "NEXT", Second: ""}
 	return spec
 }
 
 func sdtsFnMakeProdSpecifierIndex(_, _ string, args []interface{}) interface{} {
 	index := sdtsFnGetInt("", "", args)
 	// need exact generic-filled type to match later expectations.
-	spec := box.Pair[string, interface{}]{"INDEX", index}
+	spec := box.Pair[string, interface{}]{First: "INDEX", Second: index}
 	return spec
 }
 
@@ -690,7 +690,7 @@ func sdtsFnMakeProdSpecifierLiteral(_, _ string, args []interface{}) interface{}
 	}
 
 	// need exact generic-filled type to match later expectations.
-	spec := box.Pair[string, interface{}]{"LITERAL", prod}
+	spec := box.Pair[string, interface{}]{First: "LITERAL", Second: prod}
 	return spec
 }
 
