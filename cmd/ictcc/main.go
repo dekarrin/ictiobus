@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/dekarrin/ictiobus/fishi"
-	"github.com/dekarrin/ictiobus/icterrors"
+	"github.com/dekarrin/ictiobus/types"
 )
 
 const (
@@ -57,7 +57,7 @@ func main() {
 	for _, file := range args {
 		err := fishi.ExecuteMarkdownFile(file)
 		if err != nil {
-			if syntaxErr, ok := err.(*icterrors.SyntaxError); ok {
+			if syntaxErr, ok := err.(*types.SyntaxError); ok {
 				fmt.Fprintf(os.Stderr, "%s:\n%s", file, syntaxErr.FullMessage())
 				returnCode = ExitErrSyntax
 			} else {

@@ -36,7 +36,6 @@ func CreateBootstrapSDTS() ictiobus.SDTS {
 	bootstrapSDTSTokenValue(sdts)
 	bootstrapSDTSHumanValue(sdts)
 	bootstrapSDTSPriorityValue(sdts)
-
 	bootstrapSDTSActionsBlockAST(sdts)
 	bootstrapSDTSActionsContentAST(sdts)
 	bootstrapSDTSActionsStateBlockValue(sdts)
@@ -54,24 +53,7 @@ func CreateBootstrapSDTS() ictiobus.SDTS {
 	bootstrapSDTSWithClauseValue(sdts)
 	bootstrapSDTSAttrRefsValue(sdts)
 
-	// NEXT STEPS:
-	//
-	// ATTR-REFS:
-	// - create function bootstrapSDTSAttrRefsValue
-	// - remove ATTR-REFS mock
-	// - remove ATTR-REFS noflow
-	//
-
 	return sdts
-}
-
-func bootstrapSDTSFakeSynth(sdts ictiobus.SDTS, head string, prod []string, name string, value interface{}) {
-	sdts.BindSynthesizedAttribute(
-		head, prod,
-		name,
-		func(_, _ string, args []interface{}) interface{} { return value },
-		nil,
-	)
 }
 
 func bootstrapSDTSFishispecAST(sdts ictiobus.SDTS) {

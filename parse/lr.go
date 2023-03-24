@@ -138,10 +138,6 @@ func (lr lrParser) notifyTrace(fmtStr string, args ...interface{}) {
 	lr.notifyTraceFn(func() string { return fmt.Sprintf(fmtStr, args...) })
 }
 
-func (lr lrParser) notifyStatePeek(s string) {
-	lr.notifyTrace("states.peek(): %s", s)
-}
-
 func (lr lrParser) notifyStatePush(s string) {
 	lr.notifyTrace("states.push(): %s", s)
 }

@@ -19,22 +19,22 @@ func Frontend(useComp ...interface{}) ictiobus.Frontend[AST] {
 	// other type is received, panic. If more than one of the same type is
 	// received, panic. If the type is nil, do nothing.
 	for _, comp := range useComp {
-		switch comp.(type) {
+		switch comp := comp.(type) {
 		case ictiobus.Lexer:
 			if providedLx != nil {
 				panic("more than one lexer provided")
 			}
-			providedLx = comp.(ictiobus.Lexer)
+			providedLx = comp
 		case ictiobus.Parser:
 			if providedParser != nil {
 				panic("more than one parser provided")
 			}
-			providedParser = comp.(ictiobus.Parser)
+			providedParser = comp
 		case ictiobus.SDTS:
 			if providedSDTS != nil {
 				panic("more than one SDTS provided")
 			}
-			providedSDTS = comp.(ictiobus.SDTS)
+			providedSDTS = comp
 		case nil:
 			// do nothing
 		default:

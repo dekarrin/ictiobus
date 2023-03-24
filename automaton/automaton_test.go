@@ -112,11 +112,10 @@ func Test_DFAState_MarshalUnmarshalBinary(t *testing.T) {
 				}
 				data = data[n:]
 
-				d.val2, n, err = decbin.DecInt(data)
+				d.val2, _, err = decbin.DecInt(data)
 				if err != nil {
 					return d, fmt.Errorf(".val2: %w", err)
 				}
-				data = data[n:]
 
 				return d, nil
 			})
