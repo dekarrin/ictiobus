@@ -348,7 +348,7 @@ func sdtsFnActionsContentBlocksStartSymbolActionsList(_, _ string, args []interf
 func sdtsFnMakeProdAction(_, _ string, args []interface{}) interface{} {
 	prodSpec, ok := args[0].(box.Pair[string, interface{}])
 	if !ok {
-		prodSpec = box.Pair[string, interface{}]{"LITERAL", SDDErrMsg("producing this production action: first argument is not a pair of strings")}
+		prodSpec = box.Pair[string, interface{}]{"LITERAL", []string{SDDErrMsg("producing this production action: first argument is not a pair of string, any")}}
 	}
 
 	semActions, ok := args[1].([]semanticAction)
@@ -509,7 +509,20 @@ func sdtsFnGetNonterminal(_, _ string, args []interface{}) interface{} {
 		return ErrString
 	}
 
-	return strings.ToUpper(str[1 : len(str)-1])
+	return str
+}
+
+func sdtsFnGetInt(_, _ string, args []interface{}) interface{} {
+	str, ok := args[0].(string)
+	if !ok {
+		return -1
+	}
+
+	iVal, err := strconv.Atoi(str)
+	if err != nil {
+		iVal = -1
+	}
+	return iVal
 }
 
 func sdtsFnGetTerminal(_, _ string, args []interface{}) interface{} {
@@ -574,7 +587,22 @@ func sdtsFnProdActionListAppend(_, _ string, args []interface{}) interface{} {
 
 	toAppend, ok := args[1].(productionAction)
 	if !ok {
-		toAppend = productionAction{prodLiteral: []string{SDDErrMsg("producing this production action list: first argument is not a production actions list")}}
+		toAppend = productionAction{prodLiteral: []string{SDDErrMsg("producing this production action list: first argument is not a production action")}}
+	}
+
+	list = append(list, toAppend)
+	return list
+}
+
+func sdtsFnSemanticActionListAppend(_, _ string, args []interface{}) interface{} {
+	list, ok := args[0].([]semanticAction)
+	if !ok {
+		list = []semanticAction{{hook: SDDErrMsg("producing this semantic action list: first argument is not a semantic actions list")}}
+	}
+
+	toAppend, ok := args[1].(semanticAction)
+	if !ok {
+		toAppend = semanticAction{hook: SDDErrMsg("producing this semantic action list: first argument is not a semantic action")}
 	}
 
 	list = append(list, toAppend)
@@ -582,16 +610,46 @@ func sdtsFnProdActionListAppend(_, _ string, args []interface{}) interface{} {
 }
 
 func sdtsFnMakeProdSpecifierNext(_, _ string, args []interface{}) interface{} {
-	return box.PairOf("NEXT", "")
+	// need exact generic-filled type to match later expectations.
+	spec := box.Pair[string, interface{}]{"NEXT", ""}
+	return spec
+}
+
+func sdtsFnMakeProdSpecifierIndex(_, _ string, args []interface{}) interface{} {
+	index := sdtsFnGetInt("", "", args)
+	// need exact generic-filled type to match later expectations.
+	spec := box.Pair[string, interface{}]{"INDEX", index}
+	return spec
+}
+
+func sdtsFnMakeProdSpecifierLiteral(_, _ string, args []interface{}) interface{} {
+	prod, ok := args[0].([]string)
+
+	if !ok {
+		prod = []string{SDDErrMsg("producing this production specifier: first argument is not an action production")}
+	}
+
+	// need exact generic-filled type to match later expectations.
+	spec := box.Pair[string, interface{}]{"LITERAL", prod}
+	return spec
 }
 
 func sdtsFnProdActionListStart(_, _ string, args []interface{}) interface{} {
 	toAppend, ok := args[0].(productionAction)
 	if !ok {
-		toAppend = productionAction{prodLiteral: []string{SDDErrMsg("producing this production action list: first argument is not a production actions list")}}
+		toAppend = productionAction{prodLiteral: []string{SDDErrMsg("producing this production action list: first argument is not a production action")}}
 	}
 
 	return []productionAction{toAppend}
+}
+
+func sdtsFnSemanticActionListStart(_, _ string, args []interface{}) interface{} {
+	toAppend, ok := args[0].(semanticAction)
+	if !ok {
+		toAppend = semanticAction{hook: SDDErrMsg("producing this semantic action list: first argument is not a semantic actions")}
+	}
+
+	return []semanticAction{toAppend}
 }
 
 func sdtsFnRuleListStart(_, _ string, args []interface{}) interface{} {

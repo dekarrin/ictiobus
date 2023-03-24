@@ -2,7 +2,6 @@ package fishi
 
 import (
 	"github.com/dekarrin/ictiobus"
-	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/translation"
 )
 
@@ -46,46 +45,24 @@ func CreateBootstrapSDTS() ictiobus.SDTS {
 	bootstrapSDTSProdActionsValue(sdts)
 	bootstrapSDTSProdActionValue(sdts)
 	bootstrapSDTSProdSpecifierValue(sdts)
+	bootstrapSDTSProdAddrValue(sdts)
+	bootstrapSDTSActionProductionValue(sdts)
+	bootstrapSDTSActionSymbolSequenceValue(sdts)
+	bootstrapSDTSActionSymbolValue(sdts)
+	bootstrapSDTSSemanticActionsValue(sdts)
 
-	bootstrapSDTSFakeSynth(sdts, "PROD-ADDR", []string{tcDirIndex.ID(), tcInt.ID()}, "value", box.Pair[string, interface{}]{"INDEX", 2})
-	bootstrapSDTSFakeSynth(sdts, "PROD-ADDR", []string{"ACTION-PRODUCTION"}, "value", box.Pair[string, interface{}]{"LITERAL", []string{"1", "+", "seven"}})
-
-	bootstrapSDTSFakeSynth(sdts, "SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTIONS", "SEMANTIC-ACTION"}, "value", []semanticAction{{hook: "FAKE"}})
-	bootstrapSDTSFakeSynth(sdts, "SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTION"}, "value", []semanticAction{{hook: "FAKE-2.0"}})
+	bootstrapSDTSFakeSynth(sdts, "SEMANTIC-ACTION", []string{tcDirAction.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID()}, "value", semanticAction{hook: "FAKE"})
+	bootstrapSDTSFakeSynth(sdts, "SEMANTIC-ACTION", []string{tcDirAction.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID(), "WITH-CLAUSE"}, "value", semanticAction{hook: "FAKE-2.0"})
 
 	sdts.SetNoFlow(true, "SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTIONS", "SEMANTIC-ACTION"}, "value", translation.NodeRelation{}, -1, "SEMANTIC-ACTIONS")
 	sdts.SetNoFlow(true, "SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTION"}, "value", translation.NodeRelation{}, -1, "SEMANTIC-ACTIONS")
 
 	// NEXT STEPS:
 	//
-	// PROD-SPECIFIER:
-	// - Mock both PROD-ADDR rules DONE
-	// - create function bootstrapSDTSProdSpecifierValue DONE
-	// - remove PROD-SPECIFIER mock DONE
-	//
-	// PROD-ADDR:
-	// - Mock both ACTION-PRODUCTION rules
-	// - create function bootstrapSDTSProdAddrValue
-	// - remove PROD-ADDR mock
-	//
-	// ACTION-PRODUCTION:
-	// - Mock both ACTION-SYMBOL-SEQUENCE rules
-	// - create function bootstrapSDTSActionProductionValue
-	// - remove ACTION-PRODUCTION mock
-	//
-	// ACTION-SYMBOL-SEQUENCE:
-	// - Mock all four ACTION-SYMBOL rules
-	// - create function bootstrapSDTSActionSymbolSequenceValue
-	// - remove ACTION-SYMBOL-SEQUENCE mock
-	//
-	// ACTION-SYMBOL:
-	// - create function bootstrapSDTSActionSymbolValue
-	// - remove ACTION-SYMBOL mock
-	//
 	// SEMANTIC-ACTIONS:
-	// - Mock both SEMANTIC-ACTION rules
-	// - create function bootstrapSDTSSemanticActionsValue
-	// - remove SEMANTIC-ACTIONS mock
+	// - Mock both SEMANTIC-ACTION rules DONE
+	// - create function bootstrapSDTSSemanticActionsValue DONE
+	// - remove SEMANTIC-ACTIONS mock DONE
 	// - remove NoFlows for SEMANTIC-ACTIONS
 	//
 	// SEMANTIC-ACTION:
@@ -377,6 +354,117 @@ func bootstrapSDTSProdActionsValue(sdts ictiobus.SDTS) {
 	)
 }
 
+func bootstrapSDTSSemanticActionsValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTIONS", "SEMANTIC-ACTION"},
+		"value",
+		sdtsFnSemanticActionListAppend,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+	sdts.BindSynthesizedAttribute(
+		"SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTION"},
+		"value",
+		sdtsFnSemanticActionListStart,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDTSActionSymbolValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"ACTION-SYMBOL", []string{tcNonterminal.ID()},
+		"value",
+		sdtsFnGetNonterminal,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$text"},
+		},
+	)
+	sdts.BindSynthesizedAttribute(
+		"ACTION-SYMBOL", []string{tcTerminal.ID()},
+		"value",
+		sdtsFnGetTerminal,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$text"},
+		},
+	)
+	sdts.BindSynthesizedAttribute(
+		"ACTION-SYMBOL", []string{tcInt.ID()},
+		"value",
+		sdtsFnGetInt,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$text"},
+		},
+	)
+	sdts.BindSynthesizedAttribute(
+		"ACTION-SYMBOL", []string{tcId.ID()},
+		"value",
+		sdtsFnIdentity,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$text"},
+		},
+	)
+}
+
+func bootstrapSDTSActionSymbolSequenceValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"ACTION-SYMBOL-SEQUENCE", []string{"ACTION-SYMBOL-SEQUENCE", "ACTION-SYMBOL"},
+		"value",
+		sdtsFnStringListAppend,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+	sdts.BindSynthesizedAttribute(
+		"ACTION-SYMBOL-SEQUENCE", []string{"ACTION-SYMBOL"},
+		"value",
+		sdtsFnStringListStart,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDTSActionProductionValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"ACTION-PRODUCTION", []string{"ACTION-SYMBOL-SEQUENCE"},
+		"value",
+		sdtsFnIdentity,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+	sdts.BindSynthesizedAttribute(
+		"ACTION-PRODUCTION", []string{tcEpsilon.ID()},
+		"value",
+		sdtsFnEpsilonStringList,
+		nil,
+	)
+}
+
+func bootstrapSDTSProdAddrValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"PROD-ADDR", []string{tcDirIndex.ID(), tcInt.ID()},
+		"value",
+		sdtsFnMakeProdSpecifierIndex,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$text"},
+		},
+	)
+	sdts.BindSynthesizedAttribute(
+		"PROD-ADDR", []string{"ACTION-PRODUCTION"},
+		"value",
+		sdtsFnMakeProdSpecifierLiteral,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+}
+
 func bootstrapSDTSProdSpecifierValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"PROD-SPECIFIER", []string{tcDirProd.ID(), "PROD-ADDR"},
@@ -592,7 +680,7 @@ func bootstrapSDTSProductionValue(sdts ictiobus.SDTS) {
 		"PRODUCTION", []string{tcEpsilon.ID()},
 		"value",
 		sdtsFnEpsilonStringList,
-		[]translation.AttrRef{},
+		nil,
 	)
 }
 

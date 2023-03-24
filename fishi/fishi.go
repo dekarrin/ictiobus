@@ -182,13 +182,13 @@ func ProcessFishiMd(filename string, mdText []byte, validateSDTS bool) error {
 					%prod  %index 8
 
 				%action {thing}.thing %hook thing
-					%prod {some}
+					%prod {}
 
 				%action {thing}.thing %hook thing
-					%prod {test}
+					%prod {test} this {THING}
 
 					%action {thing}.thing %hook thing
-				%prod {ye}
+				%prod {ye} + {A}
 
 				%action {thing}.thing %hook thing
 

@@ -356,13 +356,13 @@ func (pa productionAction) String() string {
 	if pa.prodNext {
 		sb.WriteString("(next)")
 	} else if pa.prodLiteral != nil {
-		sb.WriteRune('{')
+		sb.WriteRune('[')
 		if len(pa.prodLiteral) == 1 && pa.prodLiteral[0] == grammar.Epsilon[0] {
 			sb.WriteString("ε")
 		} else {
 			sb.WriteString(strings.Join(pa.prodLiteral, " "))
 		}
-		sb.WriteRune('}')
+		sb.WriteRune(']')
 	} else {
 		sb.WriteString(fmt.Sprintf("(index %d)", pa.prodIndex))
 	}

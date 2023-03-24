@@ -75,6 +75,7 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.RegisterClass(tcDirIndex, "actions")
 	bootLx.RegisterClass(tcId, "actions")
 	bootLx.RegisterClass(tcTerminal, "actions")
+	bootLx.RegisterClass(tcEpsilon, "actions")
 
 	// actions patterns
 	bootLx.AddPattern(`\s+`, lex.Discard(), "actions", 0)
@@ -88,6 +89,7 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.AddPattern(`%[Aa][Cc][Tt][Ii][Oo][Nn]`, lex.LexAs(tcDirAction.ID()), "actions", 0)
 	bootLx.AddPattern(`%[Ii][Nn][Dd][Ee][Xx]`, lex.LexAs(tcDirIndex.ID()), "actions", 0)
 	bootLx.AddPattern(`[A-Za-z][A-Za-z0-9_-]*`, lex.LexAs(tcId.ID()), "actions", 0)
+	bootLx.AddPattern(`{}`, lex.LexAs(tcEpsilon.ID()), "actions", 0)
 	bootLx.AddPattern(`\S+`, lex.LexAs(tcTerminal.ID()), "actions", 0)
 
 	return bootLx
