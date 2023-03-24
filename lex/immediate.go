@@ -3,7 +3,6 @@ package lex
 import (
 	"io"
 
-	"github.com/dekarrin/ictiobus/icterrors"
 	"github.com/dekarrin/ictiobus/types"
 )
 
@@ -41,7 +40,7 @@ func (lx *lexerTemplate) ImmediatelyLex(input io.Reader) (types.TokenStream, err
 				lineNum: tok.Line(),
 			}
 
-			return nil, icterrors.NewSyntaxErrorFromToken(tok.Lexeme(), tokWrap)
+			return nil, types.NewSyntaxErrorFromToken(tok.Lexeme(), tokWrap)
 		}
 
 		lexedTokens = append(lexedTokens, tok)

@@ -1,10 +1,8 @@
-package icterrors
+package types
 
 import (
 	"fmt"
 	"strings"
-
-	"github.com/dekarrin/ictiobus/types"
 )
 
 type SyntaxError struct {
@@ -82,7 +80,7 @@ func (se SyntaxError) SourceLineWithCursor() string {
 	return strings.ReplaceAll(se.sourceLine, "\t", "    ") + "\n" + cursorLine + "^"
 }
 
-func NewSyntaxErrorFromToken(msg string, tok types.Token) *SyntaxError {
+func NewSyntaxErrorFromToken(msg string, tok Token) *SyntaxError {
 	return &SyntaxError{
 		message:    msg,
 		sourceLine: tok.FullLine(),

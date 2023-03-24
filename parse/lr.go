@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
-	"github.com/dekarrin/ictiobus/icterrors"
 	"github.com/dekarrin/ictiobus/internal/decbin"
 	"github.com/dekarrin/ictiobus/internal/stack"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
@@ -271,7 +270,7 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 			// push GOTO[t, A] onto the stack
 			toPush, err := lr.table.Goto(t, A)
 			if err != nil {
-				return types.ParseTree{}, icterrors.NewSyntaxErrorFromToken(fmt.Sprintf("LR parsing error; DFA has no valid transition from here on %q", A), a)
+				return types.ParseTree{}, types.NewSyntaxErrorFromToken(fmt.Sprintf("LR parsing error; DFA has no valid transition from here on %q", A), a)
 			}
 			stateStack.Push(toPush)
 			lr.notifyTrace("Transition %s =(%q)=> %s", t, strings.ToLower(A), toPush)
@@ -287,7 +286,7 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 			// call error-recovery routine
 			// TODO: error recovery, for now, just report it
 			expMessage := lr.getExpectedString(s)
-			return types.ParseTree{}, icterrors.NewSyntaxErrorFromToken(fmt.Sprintf("unexpected %s; %s", a.Class().Human(), expMessage), a)
+			return types.ParseTree{}, types.NewSyntaxErrorFromToken(fmt.Sprintf("unexpected %s; %s", a.Class().Human(), expMessage), a)
 		}
 		lr.notifyTrace("-----------------")
 	}

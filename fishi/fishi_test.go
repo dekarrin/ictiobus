@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dekarrin/ictiobus/icterrors"
+	"github.com/dekarrin/ictiobus/types"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +17,7 @@ func Test_WithFakeInput(t *testing.T) {
 	assert.NoError(actual)
 
 	if actual != nil {
-		actualSynt, ok := actual.(*icterrors.SyntaxError)
+		actualSynt, ok := actual.(*types.SyntaxError)
 		if ok {
 			fmt.Println(actualSynt.FullMessage())
 		}
@@ -35,7 +35,7 @@ func Test_SelfHostedMarkdown(t *testing.T) {
 	assert.NoError(actual)
 
 	if actual != nil {
-		actualSynt, ok := actual.(*icterrors.SyntaxError)
+		actualSynt, ok := actual.(*types.SyntaxError)
 		if ok {
 			fmt.Println(actualSynt.FullMessage())
 		}
