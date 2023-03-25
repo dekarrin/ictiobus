@@ -648,7 +648,7 @@ func bootstrapSDTSTokensEntryValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSGrammarRuleValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"GRAMMAR-RULE", []string{tcNonterminal.ID(), tcEq.ID(), "ALTERNATIONS"},
+		"GRAMMAR-RULE", []string{tcLineStartNonterminal.ID(), tcEq.ID(), "ALTERNATIONS"},
 		"value",
 		sdtsFnMakeRule,
 		[]translation.AttrRef{

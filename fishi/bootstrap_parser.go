@@ -164,7 +164,7 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddRule("GRAMMAR-RULES", []string{"GRAMMAR-RULES", "GRAMMAR-RULE"})
 	bootCfg.AddRule("GRAMMAR-RULES", []string{"GRAMMAR-RULE"})
 
-	bootCfg.AddRule("GRAMMAR-RULE", []string{tcNonterminal.ID(), tcEq.ID(), "ALTERNATIONS"})
+	bootCfg.AddRule("GRAMMAR-RULE", []string{tcLineStartNonterminal.ID(), tcEq.ID(), "ALTERNATIONS"})
 
 	bootCfg.AddRule("ALTERNATIONS", []string{"PRODUCTION"})
 	bootCfg.AddRule("ALTERNATIONS", []string{"ALTERNATIONS", tcAlt.ID(), "PRODUCTION"})
