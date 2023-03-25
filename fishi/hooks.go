@@ -123,7 +123,7 @@ func sdtsFnActionsContentBlocksStartSymbolActionsList(_, _ string, args []interf
 	return []astActionsContent{toAppend}
 }
 
-func sdtsFnActionsContentBlocksAppend(_, _ string, args []interface{}) interface{} {
+func sdtsFnActionsContentBlocksPrepend(_, _ string, args []interface{}) interface{} {
 	// state blocks
 	list, ok := args[0].([]astActionsContent)
 	if !ok {
@@ -140,7 +140,7 @@ func sdtsFnActionsContentBlocksAppend(_, _ string, args []interface{}) interface
 		state:   "",
 	}
 
-	list = append(list, toAppend)
+	list = append([]astActionsContent{toAppend}, list...)
 
 	return list
 }
@@ -167,7 +167,7 @@ func sdtsFnTokensContentBlocksPrepend(_, _ string, args []interface{}) interface
 	return list
 }
 
-func sdtsFnGrammarContentBlocksAppend(_, _ string, args []interface{}) interface{} {
+func sdtsFnGrammarContentBlocksPrepend(_, _ string, args []interface{}) interface{} {
 	// state blocks
 	list, ok := args[0].([]astGrammarContent)
 	if !ok {
@@ -184,7 +184,7 @@ func sdtsFnGrammarContentBlocksAppend(_, _ string, args []interface{}) interface
 		state: "",
 	}
 
-	list = append(list, toAppend)
+	list = append([]astGrammarContent{toAppend}, list...)
 
 	return list
 }

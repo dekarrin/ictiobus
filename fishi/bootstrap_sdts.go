@@ -216,7 +216,7 @@ func bootstrapSDTSActionsContentAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ACTIONS-CONTENT", []string{"SYMBOL-ACTIONS-LIST", "ACTIONS-STATE-BLOCK-LIST"},
 		"ast",
-		sdtsFnActionsContentBlocksAppend,
+		sdtsFnActionsContentBlocksPrepend,
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
@@ -244,7 +244,7 @@ func bootstrapSDTSGrammarContentAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GRAMMAR-CONTENT", []string{"GRAMMAR-RULES", "GRAMMAR-STATE-BLOCK-LIST"},
 		"ast",
-		sdtsFnGrammarContentBlocksAppend,
+		sdtsFnGrammarContentBlocksPrepend,
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "list"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
