@@ -47,6 +47,23 @@ Flags:
 		Enable debug mode for the parser and print each step of the parse to
 		stdout, including the symbol stack, manipulations of the stack, ACTION
 		selected in DFA based on the stack, and other information.
+
+Each markdown file given is scanned for fishi codeblocks. They are all combined
+into a single fishi code block and parsed. Each markdown file is parsed
+separately but their resulting ASTs are combined into a single list of FISHI
+specs for a language.
+
+If there are any errors, they are displayed and the program exits with a
+non-zero exit code. If there are multiple files, they are all attempted to be
+parsed, even if a prior one failed, so that as many errors as possible are
+shown at once. Note that when multiple files are given, each problem may end up
+setting the exit code separately, so if any interpretation of the exit code is
+done besides checking for non-zero, it should be noted that it will only be the
+correct exit code for the last file parsed.
+
+Once the input has been successfully parsed, the parser is generated using the
+options provided, unless the -n flag is set, in which case ictcc will
+immediately exit with a success code after parsing the input.
 */
 package main
 
