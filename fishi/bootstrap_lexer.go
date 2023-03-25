@@ -34,7 +34,7 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.AddPattern(`\s+`, lex.Discard(), "state-g", 0)
 	bootLx.AddPattern(`[A-Za-z][A-Za-z0-9_-]*`, lex.LexAndSwapState(tcId.ID(), "tokens"), "state-t", 0)
 	bootLx.AddPattern(`[A-Za-z][A-Za-z0-9_-]*`, lex.LexAndSwapState(tcId.ID(), "actions"), "state-a", 0)
-	bootLx.AddPattern(`[A-Za-z][A-Za-z0-9_-]*`, lex.LexAndSwapState(tcId.ID(), "tokens"), "state-g", 0)
+	bootLx.AddPattern(`[A-Za-z][A-Za-z0-9_-]*`, lex.LexAndSwapState(tcId.ID(), "grammar"), "state-g", 0)
 
 	// tokens classes
 	bootLx.RegisterClass(tcFreeformText, "tokens")
@@ -103,7 +103,7 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.AddPattern(`(?:{\*}|{[A-Za-z][^}]*}|\S+)(?:\$\d+)?\.[\$A-Za-z][$A-Za-z0-9_-]*`, lex.LexAs(tcAttrRef.ID()), "actions", 0)
 	bootLx.AddPattern(`[0-9]+`, lex.LexAs(tcInt.ID()), "actions", 0)
 	bootLx.AddPattern(`{[A-Za-z][^}]*}`, lex.LexAs(tcNonterminal.ID()), "actions", 0)
-	bootLx.AddPattern(`%[Ss][Tt][Aa][Tt][Ee]`, lex.LexAndSwapState(tcDirState.ID(), "state-a"), "grammar", 0)
+	bootLx.AddPattern(`%[Ss][Tt][Aa][Tt][Ee]`, lex.LexAndSwapState(tcDirState.ID(), "state-a"), "actions", 0)
 	bootLx.AddPattern(`%[Ss][Yy][Mm][Bb][Oo][Ll]`, lex.LexAs(tcDirSymbol.ID()), "actions", 0)
 	bootLx.AddPattern(`%[Pp][Rr][Oo][Dd]`, lex.LexAs(tcDirProd.ID()), "actions", 0)
 	bootLx.AddPattern(`%[Ww][Ii][Tt][Hh]`, lex.LexAs(tcDirWith.ID()), "actions", 0)

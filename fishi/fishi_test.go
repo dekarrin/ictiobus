@@ -37,8 +37,6 @@ func Test_SelfHostedMarkdown(t *testing.T) {
 			fmt.Println(actualSynt.FullMessage())
 		}
 	}
-
-	assert.False(true)
 }
 
 func Test_GetFishiFromMarkdown(t *testing.T) {
