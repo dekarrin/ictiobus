@@ -115,10 +115,10 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddRule("TOKENS-BLOCK", []string{tcHeaderTokens.ID(), "TOKENS-CONTENT"})
 	bootCfg.AddRule("TOKENS-BLOCK", []string{tcHeaderTokens.ID(), "NEWLINES", "TOKENS-CONTENT"})
 
-	bootCfg.AddRule("TOKENS-CONTENT", []string{"TOKENS-CONTENT", "TOKENS-STATE-BLOCK"})
-	bootCfg.AddRule("TOKENS-CONTENT", []string{"TOKENS-CONTENT", "TOKENS-ENTRIES"})
-	bootCfg.AddRule("TOKENS-CONTENT", []string{"TOKENS-STATE-BLOCK"})
 	bootCfg.AddRule("TOKENS-CONTENT", []string{"TOKENS-ENTRIES"})
+	bootCfg.AddRule("TOKENS-CONTENT", []string{"TOKENS-STATE-BLOCK"})
+	bootCfg.AddRule("TOKENS-CONTENT", []string{"TOKENS-STATE-BLOCK", "TOKENS-CONTENT"})
+	bootCfg.AddRule("TOKENS-CONTENT", []string{"TOKENS-ENTRIES", "TOKENS-CONTENT"})
 
 	bootCfg.AddRule("TOKENS-STATE-BLOCK", []string{"STATE-INSTRUCTION", "NEWLINES", "TOKENS-ENTRIES"})
 

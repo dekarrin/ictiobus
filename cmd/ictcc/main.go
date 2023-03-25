@@ -21,6 +21,9 @@ Flags:
 		Do not generate the parser. If this flag is set, the fishi is parsed and
 		checked for errors but no other action is taken (unless specified by
 		other flags).
+
+	-no-cache
+		Do not use any cached frontend components, even if available.
 */
 package main
 
@@ -59,6 +62,7 @@ var (
 	noGen   bool
 	genAST  bool
 	genTree bool
+	noCache *bool = flag.Bool("no-cache", false, "Do not use any cached frontend components, even if available")
 )
 
 func init() {
@@ -98,7 +102,7 @@ func main() {
 
 	for _, file := range args {
 
-		res, err := fishi.ExecuteMarkdownFile(file)
+		res, err := fishi.ExecuteMarkdownFile(file, !*noCache)
 
 		// results may be valid even if there is an error
 		if res.AST != nil && genAST {

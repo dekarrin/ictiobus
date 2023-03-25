@@ -35,7 +35,7 @@ The following gives the lexical specification for the FISHI language.
 
 For all states:
 
-```fishi
+```
 %%tokens
 
 %!%!.                                  %token escseq
@@ -57,6 +57,7 @@ For all states:
 For tokens state:
 
 ```fishi
+%%tokens
 %state TOKENS
 
 %!%[Hh][Uu][Mm][Aa][Nn]                            %token dir-human

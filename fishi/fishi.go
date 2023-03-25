@@ -72,13 +72,13 @@ func (fs fishiScanner) RenderNode(w io.Writer, node mkast.Node, entering bool) m
 func (fs fishiScanner) RenderHeader(w io.Writer, ast mkast.Node) {}
 func (fs fishiScanner) RenderFooter(w io.Writer, ast mkast.Node) {}
 
-func ExecuteMarkdownFile(filename string) (Results, error) {
+func ExecuteMarkdownFile(filename string, useCache bool) (Results, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return Results{}, err
 	}
 
-	res, err := ExecuteMarkdown(data)
+	res, err := ExecuteMarkdown(data, useCache)
 	if err != nil {
 		return res, err
 	}
@@ -86,7 +86,7 @@ func ExecuteMarkdownFile(filename string) (Results, error) {
 	return res, nil
 }
 
-func ExecuteMarkdown(mdText []byte) (Results, error) {
+func ExecuteMarkdown(mdText []byte, useCache bool) (Results, error) {
 
 	// TODO: read in filename, based on it check for cached version
 
@@ -96,13 +96,13 @@ func ExecuteMarkdown(mdText []byte) (Results, error) {
 	// output parser table and type
 
 	source := GetFishiFromMarkdown(mdText)
-	return Execute(source, "fishi-parser.cff")
+	return Execute(source, "fishi-parser.cff", useCache)
 }
 
 // Execute executes the fishi source code provided.
-func Execute(source []byte, compiledParserFilename string) (Results, error) {
+func Execute(source []byte, compiledParserFilename string, useCache bool) (Results, error) {
 	// get the frontend
-	fishiFront, err := GetFrontend(compiledParserFilename, true)
+	fishiFront, err := GetFrontend(compiledParserFilename, true, useCache)
 	if err != nil {
 		return Results{}, fmt.Errorf("could not get frontend: %w", err)
 	}
@@ -124,10 +124,10 @@ func Execute(source []byte, compiledParserFilename string) (Results, error) {
 // GetFrontend gets the frontend for the fishi compiler-compiler. If cffFile is
 // provided, it is used to load the cached parser from disk. Otherwise, a new
 // frontend is created.
-func GetFrontend(cffFile string, validateSDTS bool) (ictiobus.Frontend[AST], error) {
+func GetFrontend(cffFile string, validateSDTS bool, useCff bool) (ictiobus.Frontend[AST], error) {
 	// check for preload
 	var preloadedParser ictiobus.Parser
-	if cffFile != "" {
+	if cffFile != "" && useCff {
 		var err error
 		preloadedParser, err = ictiobus.GetParserFromDisk(cffFile)
 		if err != nil {
