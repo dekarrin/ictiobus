@@ -22,10 +22,13 @@ type Results struct {
 }
 
 type Options struct {
-	ParserCFF    string
-	UseCache     bool
-	ValidateSDTS bool
-	LexerTrace   bool
+	ParserCFF      string
+	UseCache       bool
+	ValidateSDTS   bool
+	ShowSDTSTrees  bool
+	ShowSDTSGraphs bool
+	LexerTrace     bool
+	ParserTrace    bool
 }
 
 func GetFishiFromMarkdown(mdText []byte) []byte {
@@ -146,7 +149,12 @@ func GetFrontend(opts Options) (ictiobus.Frontend[AST], error) {
 		}
 	}
 
-	fishiFront := Frontend(FrontendOptions{LexerTrace: opts.LexerTrace}, preloadedParser)
+	feOpts := FrontendOptions{
+		LexerTrace:  opts.LexerTrace,
+		ParserTrace: opts.ParserTrace,
+	}
+
+	fishiFront := Frontend(feOpts, preloadedParser)
 
 	// check the parser encoding if we generated a new one:
 	if preloadedParser == nil {
@@ -169,7 +177,13 @@ func GetFrontend(opts Options) (ictiobus.Frontend[AST], error) {
 	// validate our SDTS if we were asked to
 	if opts.ValidateSDTS {
 		valProd := fishiFront.Lexer.FakeLexemeProducer(true, "")
-		sddErr := fishiFront.SDT.Validate(fishiFront.Parser.Grammar(), fishiFront.IRAttribute, types.DebugInfo{}, valProd)
+
+		di := types.DebugInfo{
+			ParseTrees:    opts.ShowSDTSTrees,
+			FullDepGraphs: opts.ShowSDTSGraphs,
+		}
+
+		sddErr := fishiFront.SDT.Validate(fishiFront.Parser.Grammar(), fishiFront.IRAttribute, di, valProd)
 		if sddErr != nil {
 			return ictiobus.Frontend[AST]{}, fmt.Errorf("sdd validation error: %w", sddErr)
 		}

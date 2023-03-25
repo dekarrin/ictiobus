@@ -76,6 +76,12 @@ func Frontend(opts FrontendOptions, useComp ...interface{}) ictiobus.Frontend[AS
 		fe.Parser, _ = CreateBootstrapParser()
 	}
 
+	if opts.ParserTrace {
+		fe.Parser.RegisterTraceListener(func(s string) {
+			fmt.Printf("Parser: %s\n", s)
+		})
+	}
+
 	if providedSDTS != nil {
 		fe.SDT = providedSDTS
 	} else {

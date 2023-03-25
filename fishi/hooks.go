@@ -345,6 +345,72 @@ func sdtsFnActionsContentBlocksStartSymbolActionsList(_, _ string, args []interf
 	return []astActionsContent{toAppend}
 }
 
+func sdtsFnActionsContentBlocksAppend(_, _ string, args []interface{}) interface{} {
+	// state blocks
+	list, ok := args[0].([]astActionsContent)
+	if !ok {
+		list = []astActionsContent{{state: SDDErrMsg("producing this actions content list: first argument is not an actions content list")}}
+	}
+
+	// stateless block
+	actions, ok := args[0].([]symbolActions)
+	if !ok {
+		actions = []symbolActions{{symbol: SDDErrMsg("producing this actions content list: second argument is not a symbol actions list")}}
+	}
+	toAppend := astActionsContent{
+		actions: actions,
+		state:   "",
+	}
+
+	list = append(list, toAppend)
+
+	return list
+}
+
+func sdtsFnTokensContentBlocksAppend(_, _ string, args []interface{}) interface{} {
+	// state blocks
+	list, ok := args[0].([]astTokensContent)
+	if !ok {
+		list = []astTokensContent{{state: SDDErrMsg("producing this tokens content list: first argument is not a tokens content list")}}
+	}
+
+	// stateless block
+	tokens, ok := args[0].([]tokenEntry)
+	if !ok {
+		tokens = []tokenEntry{{pattern: SDDErrMsg("producing this tokens content list: second argument is not a token entry list")}}
+	}
+	toAppend := astTokensContent{
+		entries: tokens,
+		state:   "",
+	}
+
+	list = append(list, toAppend)
+
+	return list
+}
+
+func sdtsFnGrammarContentBlocksAppend(_, _ string, args []interface{}) interface{} {
+	// state blocks
+	list, ok := args[0].([]astGrammarContent)
+	if !ok {
+		list = []astGrammarContent{{state: SDDErrMsg("producing this grammar content list: first argument is not a grammar content list")}}
+	}
+
+	// stateless block
+	rules, ok := args[0].([]grammar.Rule)
+	if !ok {
+		rules = []grammar.Rule{{NonTerminal: SDDErrMsg("producing this grammar content list: second argument is not a grammar rule list")}}
+	}
+	toAppend := astGrammarContent{
+		rules: rules,
+		state: "",
+	}
+
+	list = append(list, toAppend)
+
+	return list
+}
+
 func sdtsFnMakeProdAction(_, _ string, args []interface{}) interface{} {
 	prodSpec, ok := args[0].(box.Pair[string, interface{}])
 	if !ok {
@@ -564,6 +630,51 @@ func sdtsFnEntryListAppend(_, _ string, args []interface{}) interface{} {
 	return list
 }
 
+func sdtsFnActionsStateBlockListAppend(_, _ string, args []interface{}) interface{} {
+	list, ok := args[0].([]astActionsContent)
+	if !ok {
+		list = []astActionsContent{{state: SDDErrMsg("producing this actions content list: first argument is not an actions content list")}}
+	}
+
+	toAppend, ok := args[1].(astActionsContent)
+	if !ok {
+		toAppend = astActionsContent{state: SDDErrMsg("producing this actions content list: second argument is not an actions content")}
+	}
+
+	list = append(list, toAppend)
+	return list
+}
+
+func sdtsFnTokensStateBlockListAppend(_, _ string, args []interface{}) interface{} {
+	list, ok := args[0].([]astTokensContent)
+	if !ok {
+		list = []astTokensContent{{state: SDDErrMsg("producing this tokens content list: first argument is not a tokens content list")}}
+	}
+
+	toAppend, ok := args[1].(astTokensContent)
+	if !ok {
+		toAppend = astTokensContent{state: SDDErrMsg("producing this tokens content list: second argument is not a tokens content")}
+	}
+
+	list = append(list, toAppend)
+	return list
+}
+
+func sdtsFnGrammarStateBlockListAppend(_, _ string, args []interface{}) interface{} {
+	list, ok := args[0].([]astGrammarContent)
+	if !ok {
+		list = []astGrammarContent{{state: SDDErrMsg("producing this grammar content list: first argument is not a grammar content list")}}
+	}
+
+	toAppend, ok := args[1].(astGrammarContent)
+	if !ok {
+		toAppend = astGrammarContent{state: SDDErrMsg("producing this grammar content list: second argument is not a grammar content")}
+	}
+
+	list = append(list, toAppend)
+	return list
+}
+
 func sdtsFnSymbolActionsListAppend(_, _ string, args []interface{}) interface{} {
 	list, ok := args[0].([]symbolActions)
 	if !ok {
@@ -719,6 +830,33 @@ func sdtsFnRuleListStart(_, _ string, args []interface{}) interface{} {
 	}
 
 	return []grammar.Rule{toAppend}
+}
+
+func sdtsFnGrammarStateBlockListStart(_, _ string, args []interface{}) interface{} {
+	toAppend, ok := args[0].(astGrammarContent)
+	if !ok {
+		toAppend = astGrammarContent{state: SDDErrMsg("producing this grammar content list: first argument is not a grammar content")}
+	}
+
+	return []astGrammarContent{toAppend}
+}
+
+func sdtsFnTokensStateBlockListStart(_, _ string, args []interface{}) interface{} {
+	toAppend, ok := args[0].(astTokensContent)
+	if !ok {
+		toAppend = astTokensContent{state: SDDErrMsg("producing this tokens content list: first argument is not a tokens content")}
+	}
+
+	return []astTokensContent{toAppend}
+}
+
+func sdtsFnActionsStateBlockListStart(_, _ string, args []interface{}) interface{} {
+	toAppend, ok := args[0].(astActionsContent)
+	if !ok {
+		toAppend = astActionsContent{state: SDDErrMsg("producing this actions content list: first argument is not an actions content")}
+	}
+
+	return []astActionsContent{toAppend}
 }
 
 func sdtsFnSymbolActionsListStart(_, _ string, args []interface{}) interface{} {

@@ -22,11 +22,31 @@ Flags:
 		checked for errors but no other action is taken (unless specified by
 		other flags).
 
-	-no-cache
-		Do not use any cached frontend components, even if available.
+	-cache-off
+		Disable use of any cached frontend components, even if available.
 
-	-no-val-sdts
-		Do not validate the SDTs of the resulting fishi.
+	-val-sdts-off
+		Disable validatione of the SDTS of the resulting fishi.
+
+	-val-sdts-trees
+		If problems are detected with the SDTS of the resulting fishi during
+		SDTS validation, show the parse tree(s) that caused the problem.
+
+	-val-sdts-graphs
+		If problems are detected with the SDTS of the resulting fishi during
+		SDTS validation, show the full resulting dependency graph(s) that caused
+		the issue (if any).
+
+	-debug-lexer
+		Enable debug mode for the lexer and print each token to standard out as
+		it is lexed. Note that if the lexer is not in lazy mode, all tokens will
+		be lexed before any parsing begins, and so with debug-lexer enabled will
+		all be printed to stdout before any parsing begins.
+
+	-debug-parser
+		Enable debug mode for the parser and print each step of the parse to
+		stdout, including the symbol stack, manipulations of the stack, ACTION
+		selected in DFA based on the stack, and other information.
 */
 package main
 
@@ -62,12 +82,15 @@ var (
 )
 
 var (
-	noGen          bool
-	genAST         bool
-	genTree        bool
-	noCache        *bool = flag.Bool("no-cache", false, "Do not use any cached frontend components, even if available")
-	noValidateSDTS *bool = flag.Bool("no-val-sdts", false, "Do not validate the SDTs of the resulting fishi")
-	lexerTrace     *bool = flag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
+	noGen             bool
+	genAST            bool
+	genTree           bool
+	noCache           *bool = flag.Bool("cache-off", false, "Disable use of cached frontend components, even if available")
+	noValidateSDTS    *bool = flag.Bool("val-sdts-off", false, "Disable validation of the SDTS of the resulting fishi")
+	showSDTSValTrees  *bool = flag.Bool("val-sdts-trees", false, "Show trees that caused SDTS validation errors")
+	showSDTSValGraphs *bool = flag.Bool("val-sdts-graphs", false, "Show full generated dependency graph output for parse trees that caused SDTS validation errors")
+	lexerTrace        *bool = flag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
+	parserTrace       *bool = flag.Bool("debug-parser", false, "Print the parser trace to stdout")
 )
 
 func init() {
@@ -106,10 +129,13 @@ func main() {
 	}
 
 	fo := fishi.Options{
-		ParserCFF:    "fishi-parser.cff",
-		UseCache:     !*noCache,
-		ValidateSDTS: !*noValidateSDTS,
-		LexerTrace:   *lexerTrace,
+		ParserCFF:      "fishi-parser.cff",
+		UseCache:       !*noCache,
+		ValidateSDTS:   !*noValidateSDTS,
+		ShowSDTSTrees:  *showSDTSValTrees,
+		ShowSDTSGraphs: *showSDTSValGraphs,
+		LexerTrace:     *lexerTrace,
+		ParserTrace:    *parserTrace,
 	}
 
 	for _, file := range args {
