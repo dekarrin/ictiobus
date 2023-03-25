@@ -169,8 +169,8 @@ func init() {
 	flag.BoolVar(&genAST, "a", false, genASTUsage+" (shorthand)")
 	flag.BoolVar(&genTree, "tree", false, genTreeUsage)
 	flag.BoolVar(&genTree, "t", false, genTreeUsage+" (shorthand)")
-	flag.StringVar(&parserCff, "parser", parserCffUsage, parserCffDefault)
-	flag.StringVar(&parserCff, "p", parserCffUsage, parserCffDefault+" (shorthand)")
+	flag.StringVar(&parserCff, "parser", parserCffDefault, parserCffUsage)
+	flag.StringVar(&parserCff, "p", parserCffDefault, parserCffUsage+" (shorthand)")
 }
 
 func main() {
