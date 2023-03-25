@@ -56,8 +56,8 @@ For tokens state:
 ```fishi
 %state TOKENS
 
-\n\s*%!%!.                                         %token line-start-escseq
-%human escape sequence on next line
+\n\s*%!%!.                                         %token nl-escseq
+%human escape sequence after this line
 
 %!%[Ss][Tt][Aa][Tt][Ee]                            %token dir-state
 %human %!%state directive                          %stateshift STATE-T
@@ -77,21 +77,80 @@ For tokens state:
 %!%[Pp][Rr][Ii][Oo][Rr][Ii][Tt][Yy]                %token dir-priority
 %human %!%priority directive
 
-[^\S\n]+        %discard
+[^\S\n]+                                           %discard
 
+\n\s*[^%!%\s]+[^%!%\n]*                            %token nl-freeform-text
+%human freeform text after this line
 
+\n                                                 %discard
 
-
+[^%!%\s]+[^%!%\n]*                                 %token freeform-text
+%human freeform text
 ```
 
 For grammar state:
 
 ```fishi
+%state GRAMMAR
+
+%!%[Ss][Tt][Aa][Tt][Ee]  %token dir-state  %stateshift STATE-G
+%human %!%state directive     
+
+\n\s*{[A-Za-z][^}]*}     %token nl-nonterm
+%human non-terminal symbol literal after this line
+
+\s+                      %discard
+\|                       %token alt     %human alternations bar '|'
+{}                       %token epsilon %human epsilon production '{}'
+{[A-Za-z][^}]*}          %token nonterm %human non-terminal symbol literal
+[^=\s]\S*|\S\S+          %token term    %human terminal symbol literal
+=                        %token eq      %human rule production operator '='
 ```
 
 For actions state:
 ```fishi
+%state ACTIONS
 
+\s+                      %discard
+
+(?:{[A-Za-z][^}]*}|\S+)(?:\$\d+)?\.[\$A-Za-z][$A-Za-z0-9_-]*
+%token attrRef     %human attribute reference literal
+
+[0-9]+
+%token int         %human integer literal
+
+{[A-Za-z][^}]*}
+%token nonterm   # human already defined so should be able to skip it
+
+%!%[Ss][Tt][Aa][Tt][Ee]
+%token dir-state   %stateshift STATE-A
+
+%!%[Ss][Yy][Mm][Bb][Oo][Ll]
+%token dir-symbol  %human %!%symbol directive
+
+%!%[Pp][Rr][Oo][Dd]
+%token dir-prod    %human %!%prod directive
+
+%!%[Ww][Ii][Tt][Hh]
+%token dir-with    %human %!%with directive
+
+%!%[Hh][Oo][Oo][Kk]
+%token dir-hook    %human %!%hook directive
+
+%!%[Aa][Cc][Tt][Ii][Oo][Nn]
+%token dir-action  %human %!%action directive
+
+%!%[Ii][Nn][Dd][Ee][Xx]
+%token dir-index   %human %!%index directive
+
+[A-Za-z][A-Za-z0-9_-]*
+%token id          %human identifier
+
+{}
+%token epsilon
+
+\S+
+%token term
 ```
 
 Because we don't have a state stack yet:

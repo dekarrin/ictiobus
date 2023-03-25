@@ -30,13 +30,13 @@ func (ast AST) String() string {
 				for j := range gram.content {
 					cont := gram.content[j]
 					if cont.state != "" {
-						sb.WriteString("    <RULE-SET FOR STATE: " + fmt.Sprintf("%q\n", cont.state))
+						sb.WriteString("    <RULE-SET FOR STATE " + fmt.Sprintf("%q\n", cont.state))
 					} else {
 						sb.WriteString("    <RULE-SET FOR ALL STATES\n")
 					}
 					for k := range cont.rules {
 						r := cont.rules[k]
-						sb.WriteString("      R: " + r.String() + "\n")
+						sb.WriteString("      * " + r.String() + "\n")
 					}
 					sb.WriteString("    >\n")
 				}
@@ -47,13 +47,13 @@ func (ast AST) String() string {
 				for j := range toks.content {
 					cont := toks.content[j]
 					if cont.state != "" {
-						sb.WriteString("    <ENTRY-SET FOR STATE: " + fmt.Sprintf("%q\n", cont.state))
+						sb.WriteString("    <ENTRY-SET FOR STATE " + fmt.Sprintf("%q\n", cont.state))
 					} else {
 						sb.WriteString("    <ENTRY-SET FOR ALL STATES\n")
 					}
 					for k := range cont.entries {
 						entry := cont.entries[k]
-						sb.WriteString("      E: " + entry.String() + "\n")
+						sb.WriteString("      * " + entry.String() + "\n")
 					}
 					sb.WriteString("    >\n")
 				}
@@ -64,13 +64,13 @@ func (ast AST) String() string {
 				for j := range acts.content {
 					cont := acts.content[j]
 					if cont.state != "" {
-						sb.WriteString("    <ACTION-SET FOR STATE: " + fmt.Sprintf("%q\n", cont.state))
+						sb.WriteString("    <ACTION-SET FOR STATE " + fmt.Sprintf("%q\n", cont.state))
 					} else {
 						sb.WriteString("    <ACTION-SET FOR ALL STATES\n")
 					}
 					for k := range cont.actions {
 						action := cont.actions[k]
-						sb.WriteString("      A: " + action.String() + "\n")
+						sb.WriteString("      * " + action.String() + "\n")
 					}
 					sb.WriteString("    >\n")
 				}
@@ -250,14 +250,12 @@ type tokenEntry struct {
 func (entry tokenEntry) String() string {
 	var sb strings.Builder
 
-	sb.WriteRune('{')
 	sb.WriteString(fmt.Sprintf("%s -> ", entry.pattern))
 	sb.WriteString(fmt.Sprintf("Discard: %v, ", entry.discard))
 	sb.WriteString(fmt.Sprintf("Shift: %q, ", entry.shift))
 	sb.WriteString(fmt.Sprintf("Token: %q, ", entry.token))
 	sb.WriteString(fmt.Sprintf("Human: %q, ", entry.human))
 	sb.WriteString(fmt.Sprintf("Priority: %d", entry.priority))
-	sb.WriteRune('}')
 
 	return sb.String()
 }
