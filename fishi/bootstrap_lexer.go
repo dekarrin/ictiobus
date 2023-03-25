@@ -46,8 +46,11 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.RegisterClass(tcDirPriority, "tokens")
 	bootLx.RegisterClass(tcInt, "tokens")
 	bootLx.RegisterClass(tcDirState, "tokens")
+	bootLx.RegisterClass(tcLineStartFreeformText, "tokens")
+	bootLx.RegisterClass(tcLineStartEscseq, "tokens")
 
 	// tokens patterns
+	bootLx.AddPattern(`\n\s*%!.`, lex.LexAs(tcLineStartEscseq.ID()), "tokens", 0)
 	bootLx.AddPattern(`%[Ss][Tt][Aa][Tt][Ee]`, lex.LexAndSwapState(tcDirState.ID(), "state-t"), "tokens", 0)
 	bootLx.AddPattern(`%[Ss][Tt][Aa][Tt][Ee][Ss][Hh][Ii][Ff][Tt]`, lex.LexAs(tcDirShift.ID()), "tokens", 1)
 	bootLx.AddPattern(`%[Hh][Uu][Mm][Aa][Nn]`, lex.LexAs(tcDirHuman.ID()), "tokens", 0)
@@ -55,8 +58,10 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.AddPattern(`%[Dd][Ii][Ss][Cc][Aa][Rr][Dd]`, lex.LexAs(tcDirDiscard.ID()), "tokens", 0)
 	bootLx.AddPattern(`%[Pp][Rr][Ii][Oo][Rr][Ii][Tt][Yy]`, lex.LexAs(tcDirPriority.ID()), "tokens", 0)
 	bootLx.AddPattern(`[^\S\n]+`, lex.Discard(), "tokens", 0)
-	bootLx.AddPattern(`(?:\n\s*)?[^%\s]+[^%\n]*`, lex.LexAs(tcFreeformText.ID()), "tokens", 0)
+	bootLx.AddPattern(`%[Ee][Oo][Ll]`, lex.LexAs(tcLineStartFreeformText.ID()), "tokens", 0)
+	bootLx.AddPattern(`\n\s*[^%\s]+[^%\n]*`, lex.LexAs(tcLineStartFreeformText.ID()), "tokens", 0)
 	bootLx.AddPattern(`\n`, lex.Discard(), "tokens", 0)
+	bootLx.AddPattern(`[^%\s]+[^%\n]*`, lex.LexAs(tcFreeformText.ID()), "tokens", 0)
 	//bootLx.AddPattern(`%[Dd][Ee][Ff][Aa][Uu][Ll][Tt]`, lex.LexAs(tcDirDefault.ID()), "tokens")
 
 	// grammar classes
@@ -66,11 +71,12 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.RegisterClass(tcTerminal, "grammar")
 	bootLx.RegisterClass(tcEpsilon, "grammar")
 	bootLx.RegisterClass(tcDirState, "grammar")
+	bootLx.RegisterClass(tcLineStartNonterminal, "grammar")
 
 	// grammar patterns
 	bootLx.AddPattern(`%[Ss][Tt][Aa][Tt][Ee]`, lex.LexAndSwapState(tcDirState.ID(), "state-g"), "grammar", 0)
 	bootLx.AddPattern(`[^\S\n]+`, lex.Discard(), "grammar", 0)
-	bootLx.AddPattern(`(?:\n\s*)?{A-Za-z][^}]*}`, lex.LexAs(tcNonterminal.ID()), "grammar", 0)
+	bootLx.AddPattern(`\n\s*{A-Za-z][^}]*}`, lex.LexAs(tcLineStartNonterminal.ID()), "grammar", 0)
 	bootLx.AddPattern(`\s+`, lex.Discard(), "grammar", 0)
 	bootLx.AddPattern(`\|`, lex.LexAs(tcAlt.ID()), "grammar", 0)
 	bootLx.AddPattern(`{}`, lex.LexAs(tcEpsilon.ID()), "grammar", 0)

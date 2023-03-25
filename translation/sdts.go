@@ -162,7 +162,8 @@ func (sdts *sdtsImpl) Bindings(head string, prod []string) []SDDBinding {
 		return nil
 	}
 
-	forProd, ok := forHead[strings.Join(prod, " ")]
+	symStr := strings.Join(prod, " ")
+	forProd, ok := forHead[symStr]
 	if !ok {
 		return nil
 	}

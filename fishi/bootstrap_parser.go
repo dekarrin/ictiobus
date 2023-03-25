@@ -54,6 +54,9 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddTerm(tcEpsilon.ID(), tcEpsilon)
 	bootCfg.AddTerm(tcDirDiscard.ID(), tcDirDiscard)
 	bootCfg.AddTerm(tcDirPriority.ID(), tcDirPriority)
+	bootCfg.AddTerm(tcLineStartFreeformText.ID(), tcLineStartFreeformText)
+	bootCfg.AddTerm(tcLineStartEscseq.ID(), tcLineStartEscseq)
+	bootCfg.AddTerm(tcLineStartNonterminal.ID(), tcLineStartNonterminal)
 
 	bootCfg.AddRule("FISHISPEC", []string{"BLOCKS"})
 
@@ -180,8 +183,19 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddRule("ID-EXPR", []string{tcId.ID()})
 	bootCfg.AddRule("ID-EXPR", []string{tcTerminal.ID()})
 
-	bootCfg.AddRule("TEXT", []string{"TEXT", "TEXT-ELEMENT"})
-	bootCfg.AddRule("TEXT", []string{"TEXT-ELEMENT"})
+	// Needed SDTS updates:
+	// - update TEXT it's completely changed *done*
+	// - add LINE-START-TEXT-ELEMENT *done*
+	// - add TEXT-ELEMENTS
+	bootCfg.AddRule("TEXT", []string{"LINE-START-TEXT-ELEMENT", "TEXT-ELEMENTS"})
+	bootCfg.AddRule("TEXT", []string{"TEXT-ELEMENTS"})
+	bootCfg.AddRule("TEXT", []string{"LINE-START-TEXT-ELEMENT"})
+
+	bootCfg.AddRule("TEXT-ELEMENTS", []string{"TEXT-ELEMENTS", "TEXT-ELEMENT"})
+	bootCfg.AddRule("TEXT-ELEMENTS", []string{"TEXT-ELEMENT"})
+
+	bootCfg.AddRule("LINE-START-TEXT-ELEMENT", []string{tcLineStartEscseq.ID()})
+	bootCfg.AddRule("LINE-START-TEXT-ELEMENT", []string{tcLineStartFreeformText.ID()})
 
 	bootCfg.AddRule("TEXT-ELEMENT", []string{tcFreeformText.ID()})
 	bootCfg.AddRule("TEXT-ELEMENT", []string{tcEscseq.ID()})

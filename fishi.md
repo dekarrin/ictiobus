@@ -35,7 +35,7 @@ The following gives the lexical specification for the FISHI language.
 
 For all states:
 
-```
+```fishi
 %%tokens
 
 %!%!.                                  %token escseq

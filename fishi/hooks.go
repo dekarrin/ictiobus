@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
@@ -548,6 +549,7 @@ func sdtsFnInterpretEscape(_, _ string, args []interface{}) interface{} {
 		return SDDErrMsg("escape sequence $text is not a string")
 	}
 
+	str = strings.TrimLeftFunc(str, unicode.IsSpace) // lets us handle startLineEscseq as well, glub!
 	if len(str) < len("%!") {
 		return SDDErrMsg("escape sequence $text does not appear to have enough characters: %q", str)
 	}
@@ -569,13 +571,26 @@ func sdtsFnAppendStrings(_, _ string, args []interface{}) interface{} {
 	return str1 + str2
 }
 
+func sdtsFnAppendStringsTrimmed(_, _ string, args []interface{}) interface{} {
+	str1, ok := args[0].(string)
+	if !ok {
+		return SDDErrMsg("first argument is not a string")
+	}
+	str2, ok := args[1].(string)
+	if !ok {
+		return SDDErrMsg("second argument is not a string")
+	}
+
+	return strings.TrimSpace(str1 + str2)
+}
+
 func sdtsFnGetNonterminal(_, _ string, args []interface{}) interface{} {
 	str, ok := args[0].(string)
 	if !ok {
 		return ErrString
 	}
 
-	return str
+	return strings.TrimSpace(str)
 }
 
 func sdtsFnGetInt(_, _ string, args []interface{}) interface{} {

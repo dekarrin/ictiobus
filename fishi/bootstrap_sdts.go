@@ -20,7 +20,9 @@ func CreateBootstrapSDTS() ictiobus.SDTS {
 	bootstrapSDTSStateInstructionState(sdts)
 	bootstrapSDTSIDExprValue(sdts)
 	bootstrapSDTSTextValue(sdts)
+	bootstrapSDTSTextElementsValue(sdts)
 	bootstrapSDTSTextElementValue(sdts)
+	bootstrapSDTSLineStartTextElementValue(sdts)
 	bootstrapSDTSAlternationsValue(sdts)
 	bootstrapSDTSProductionValue(sdts)
 	bootstrapSDTSSymbolSequenceValue(sdts)
@@ -236,7 +238,7 @@ func bootstrapSDTSGrammarContentAST(sdts ictiobus.SDTS) {
 		"ast",
 		sdtsFnIdentity,
 		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "list"},
 		},
 	)
 	sdts.BindSynthesizedAttribute(
@@ -244,7 +246,7 @@ func bootstrapSDTSGrammarContentAST(sdts ictiobus.SDTS) {
 		"ast",
 		sdtsFnGrammarContentBlocksAppend,
 		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "list"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
@@ -562,17 +564,17 @@ func bootstrapSDTSTokensStateBlockListValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSGrammarStateBlockListValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"GRAMMAR-STATE-BLOCK-LIST", []string{"GRAMMAR-STATE-BLOCK-LIST", "GRAMMER-STATE-BLOCK"},
-		"value",
+		"GRAMMAR-STATE-BLOCK-LIST", []string{"GRAMMAR-STATE-BLOCK-LIST", "GRAMMAR-STATE-BLOCK"},
+		"list",
 		sdtsFnGrammarStateBlockListAppend,
 		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "list"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 	sdts.BindSynthesizedAttribute(
 		"GRAMMAR-STATE-BLOCK-LIST", []string{"GRAMMAR-STATE-BLOCK"},
-		"value",
+		"list",
 		sdtsFnGrammarStateBlockListStart,
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
@@ -901,21 +903,66 @@ func bootstrapSDTSIDExprValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSTextValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"TEXT", []string{"TEXT-ELEMENT"},
+		"TEXT", []string{"LINE-START-TEXT-ELEMENT", "TEXT-ELEMENTS"},
+		"value",
+		sdtsFnAppendStringsTrimmed,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+	sdts.BindSynthesizedAttribute(
+		"TEXT", []string{"TEXT-ELEMENTS"},
 		"value",
 		sdtsFnIdentity,
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
-
 	sdts.BindSynthesizedAttribute(
-		"TEXT", []string{"TEXT", "TEXT-ELEMENT"},
+		"TEXT", []string{"LINE-START-TEXT-ELEMENT"},
+		"value",
+		sdtsFnIdentity,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+}
+func bootstrapSDTSTextElementsValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"TEXT-ELEMENTS", []string{"TEXT-ELEMENTS", "TEXT-ELEMENT"},
 		"value",
 		sdtsFnAppendStrings,
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+	sdts.BindSynthesizedAttribute(
+		"TEXT-ELEMENTS", []string{"TEXT-ELEMENT"},
+		"value",
+		sdtsFnIdentity,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
+		},
+	)
+}
+
+func bootstrapSDTSLineStartTextElementValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"LINE-START-TEXT-ELEMENT", []string{tcLineStartFreeformText.ID()},
+		"value",
+		sdtsFnIdentity,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$text"},
+		},
+	)
+	sdts.BindSynthesizedAttribute(
+		"LINE-START-TEXT-ELEMENT", []string{tcLineStartEscseq.ID()},
+		"value",
+		sdtsFnInterpretEscape,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
 }
