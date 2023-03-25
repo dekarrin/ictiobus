@@ -1,8 +1,16 @@
 package fishi
 
 import (
+	"fmt"
+
 	"github.com/dekarrin/ictiobus"
+	"github.com/dekarrin/ictiobus/types"
 )
+
+type FrontendOptions struct {
+	LexerTrace  bool
+	ParserTrace bool
+}
 
 // Frontend returns the created frontend for the fishi langauge. If any of the
 // properties are non-nil, that will be used as that component of the parser;
@@ -10,7 +18,7 @@ import (
 // possibly built from scratch). Up to one Lexer, up to one Parser, and up to
 // one SDTS are allowed to be provided; doing so will replace the bootstrap
 // version of that component with the provided one.
-func Frontend(useComp ...interface{}) ictiobus.Frontend[AST] {
+func Frontend(opts FrontendOptions, useComp ...interface{}) ictiobus.Frontend[AST] {
 	var providedLx ictiobus.Lexer
 	var providedParser ictiobus.Parser
 	var providedSDTS ictiobus.SDTS
@@ -54,12 +62,24 @@ func Frontend(useComp ...interface{}) ictiobus.Frontend[AST] {
 		fe.Lexer = CreateBootstrapLexer()
 	}
 
+	if opts.LexerTrace {
+		fe.Lexer.RegisterTokenListener(func(t types.Token) {
+			fmt.Printf("Token: %s\n", t)
+		})
+	}
+
 	if providedParser != nil {
 		fe.Parser = providedParser
 	} else {
 		// TODO: fishi should run analaysis on a grammar and parser when it is
 		// building the frontend and also report ambigs.
 		fe.Parser, _ = CreateBootstrapParser()
+	}
+
+	if opts.ParserTrace {
+		fe.Parser.RegisterTraceListener(func(s string) {
+			fmt.Printf("Parser: %s\n", s)
+		})
 	}
 
 	if providedSDTS != nil {

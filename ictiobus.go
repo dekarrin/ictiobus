@@ -175,7 +175,7 @@ type SDTS interface {
 	// values will be used, which may not behave as expected with the SDTS. To
 	// get one that will use the configured regexes of tokens used for lexing,
 	// call FakeLexemeProducer on a Lexer.
-	Validate(grammar grammar.Grammar, attribute string, debug types.DebugInfo, fakeValProducer ...map[string]func() string) error
+	Validate(grammar grammar.Grammar, attribute string, debug translation.ValidationOptions, fakeValProducer ...map[string]func() string) error
 }
 
 // NewLexer returns a lexer whose Lex method will immediately lex the entire
@@ -347,7 +347,6 @@ func NewSDTS() SDTS {
 // Frontend is a complete input-to-intermediate representation compiler
 // front-end.
 type Frontend[E any] struct {
-	Debug       types.DebugInfo
 	Lexer       Lexer
 	Parser      Parser
 	SDT         SDTS
@@ -368,7 +367,10 @@ type Frontend[E any] struct {
 // AnalyzeString is the same as Analyze but accepts a string as input. It simply
 // creates a Reader on s and passes it to Analyze; this method is provided for
 // convenience.
-func (fe *Frontend[E]) AnalyzeString(s string) (ir E, err error) {
+//
+// The parse tree may be valid even if there is an error, in which case pt will
+// be non-nil.
+func (fe *Frontend[E]) AnalyzeString(s string) (ir E, pt *types.ParseTree, err error) {
 	r := strings.NewReader(s)
 	return fe.Analyze(r)
 }
@@ -384,32 +386,31 @@ func (fe *Frontend[E]) AnalyzeString(s string) (ir E, err error) {
 // If there is a problem with the input, it will be returned in a SyntaxError
 // containing information about the location where it occured in the source text
 // s.
-func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, err error) {
+//
+// The parse tree may be valid even if there is an error, in which case pt will
+// be non-nil.
+func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, pt *types.ParseTree, err error) {
 	// lexical analysis
 	tokStream, err := fe.Lexer.Lex(r)
 	if err != nil {
-		return ir, err
+		return ir, nil, err
 	}
 
 	// syntactic analysis
 	parseTree, err := fe.Parser.Parse(tokStream)
 	if err != nil {
-		return ir, err
-	}
-
-	if fe.Debug.ParseTrees {
-		fmt.Printf("parse tree:\n%s\n", translation.AddAttributes(parseTree).String())
+		return ir, &parseTree, err
 	}
 
 	// semantic analysis
 	attrVals, err := fe.SDT.Evaluate(parseTree, fe.IRAttribute)
 	if err != nil {
-		return ir, err
+		return ir, &parseTree, err
 	}
 
 	// all analysis complete, now retrieve the result
 	if len(attrVals) != 1 {
-		return ir, fmt.Errorf("requested final IR attribute %q from root node but got %d values back", fe.IRAttribute, len(attrVals))
+		return ir, &parseTree, fmt.Errorf("requested final IR attribute %q from root node but got %d values back", fe.IRAttribute, len(attrVals))
 	}
 	irUncast := attrVals[0]
 	ir, ok := irUncast.(E)
@@ -417,8 +418,8 @@ func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, err error) {
 		// type mismatch; use reflections to collect type for err reporting
 		irType := reflect.TypeOf(ir).Name()
 		actualType := reflect.TypeOf(irUncast).Name()
-		return ir, fmt.Errorf("expected final IR attribute %q to be of type %q at the root node, but result was of type %q", fe.IRAttribute, irType, actualType)
+		return ir, &parseTree, fmt.Errorf("expected final IR attribute %q to be of type %q at the root node, but result was of type %q", fe.IRAttribute, irType, actualType)
 	}
 
-	return ir, nil
+	return ir, &parseTree, nil
 }

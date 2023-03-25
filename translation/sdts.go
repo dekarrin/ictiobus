@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/types"
@@ -163,7 +162,8 @@ func (sdts *sdtsImpl) Bindings(head string, prod []string) []SDDBinding {
 		return nil
 	}
 
-	forProd, ok := forHead[strings.Join(prod, " ")]
+	symStr := strings.Join(prod, " ")
+	forProd, ok := forHead[symStr]
 	if !ok {
 		return nil
 	}
@@ -365,105 +365,9 @@ func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName
 	return nil
 }
 
-// Validate runs the SDTS on a fake parse tree derived from the grammar. The
-// given attribute will be attempted to be evaluated on the root node.
-//
-// It will use fake value producer, if provided, to generate lexemes for
-// terminals in the tree; otherwise contrived values will be used.
-func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug types.DebugInfo, fakeValProducer ...map[string]func() string) error {
-	pts, err := g.DeriveFullTree(fakeValProducer...)
-	if err != nil {
-		return fmt.Errorf("deriving fake parse tree: %w", err)
-	}
-
-	// TODO: one day, maybe trees can be merged, but that's a lot of work
-	treeErrs := []box.Pair[error, *types.ParseTree]{}
-
-	for i := range pts {
-		_, err = sdts.Evaluate(pts[i], attribute)
-		localPT := pts[i]
-
-		evalErr, ok := err.(evalError)
-		if !ok {
-			if err != nil {
-				treeErrs = append(treeErrs, box.PairOf(err, &localPT))
-			}
-			continue
-		}
-
-		// TODO: betta explanation of what happened using the info in the error
-		if len(evalErr.depGraphs) > 0 {
-			// disconnected depgraph error
-
-			fullMsg := "translation on fake parse tree resulted in disconnected dependency graphs:"
-
-			for i := range evalErr.unexpectedBreaks {
-				br := evalErr.unexpectedBreaks[i]
-				fullMsg += fmt.Sprintf("\n* at least one %s.%q in production of (%s -> %s) is unused", br[2], br[3], br[0], br[1])
-			}
-
-			if debug.FullDepGraphs {
-				for i := range evalErr.depGraphs {
-					fullMsg += fmt.Sprintf("\nDepGraph #%d:\n %s", i, DepGraphString(evalErr.depGraphs[i]))
-				}
-			}
-
-			treeErrs = append(treeErrs, box.PairOf(fmt.Errorf(fullMsg), &localPT))
-			continue
-		}
-
-		// TODO: betta message for kahn sort error
-
-		if err != nil {
-			treeErrs = append(treeErrs, box.PairOf(err, &localPT))
-		}
-	}
-
-	var finalErr error
-
-	if len(treeErrs) > 0 {
-		fullErrStr := "Running on fake parse tree(s) got errors:"
-		for i := range treeErrs {
-			if debug.ParseTrees {
-				fullErrStr += fmt.Sprintf("\n\nTree %d: \n%s\n%s", i+1, AddAttributes(*treeErrs[i].Second).String(), treeErrs[i].First.Error())
-			} else {
-				fullErrStr += fmt.Sprintf("\n\nTree %d: %s", i+1, treeErrs[i].First.Error())
-			}
-		}
-		finalErr = fmt.Errorf(fullErrStr)
-	}
-
-	return finalErr
-}
-
 func NewSDTS() *sdtsImpl {
 	impl := sdtsImpl{
 		map[string]map[string][]SDDBinding{},
 	}
 	return &impl
-}
-
-// highly populated error struct for examination by validation code and internal
-// routines. may make this betta and exported later.
-type evalError struct {
-	// if this is a disconnected dep graph segments error, this slice will be
-	// non-nil and contain the issue nodes.
-	depGraphs []*DirectedGraph[DepNode]
-
-	// if this is a disconnected dep graph segments error, this slice will be
-	// non-nil and contain the important features of each break. Each element is
-	// a string triple containing: the symbol of the parent of the node that
-	// caused the break, the production the parent node was made from as a
-	// string, the symbol of the node that caused the break, and the name of the
-	// attribute that caused the break.
-	unexpectedBreaks [][4]string
-
-	// if this is a sort error, this will be true
-	sortError bool
-
-	msg string
-}
-
-func (ee evalError) Error() string {
-	return ee.msg
 }

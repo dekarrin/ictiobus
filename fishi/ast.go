@@ -29,11 +29,14 @@ func (ast AST) String() string {
 				sb.WriteString("  <GRAMMAR:\n")
 				for j := range gram.content {
 					cont := gram.content[j]
-					sb.WriteString("    <CONTENT:\n")
-					sb.WriteString("      STATE: " + fmt.Sprintf("%q\n", cont.state))
+					if cont.state != "" {
+						sb.WriteString("    <RULE-SET FOR STATE " + fmt.Sprintf("%q\n", cont.state))
+					} else {
+						sb.WriteString("    <RULE-SET FOR ALL STATES\n")
+					}
 					for k := range cont.rules {
 						r := cont.rules[k]
-						sb.WriteString("      R: " + r.String() + "\n")
+						sb.WriteString("      * " + r.String() + "\n")
 					}
 					sb.WriteString("    >\n")
 				}
@@ -43,11 +46,14 @@ func (ast AST) String() string {
 				sb.WriteString("  <TOKENS:\n")
 				for j := range toks.content {
 					cont := toks.content[j]
-					sb.WriteString("    <CONTENT:\n")
-					sb.WriteString("      STATE: " + fmt.Sprintf("%q\n", cont.state))
+					if cont.state != "" {
+						sb.WriteString("    <ENTRY-SET FOR STATE " + fmt.Sprintf("%q\n", cont.state))
+					} else {
+						sb.WriteString("    <ENTRY-SET FOR ALL STATES\n")
+					}
 					for k := range cont.entries {
 						entry := cont.entries[k]
-						sb.WriteString("      E: " + entry.String() + "\n")
+						sb.WriteString("      * " + entry.String() + "\n")
 					}
 					sb.WriteString("    >\n")
 				}
@@ -57,11 +63,14 @@ func (ast AST) String() string {
 				sb.WriteString("  <ACTIONS:\n")
 				for j := range acts.content {
 					cont := acts.content[j]
-					sb.WriteString("    <CONTENT:\n")
-					sb.WriteString("      STATE: " + fmt.Sprintf("%q\n", cont.state))
+					if cont.state != "" {
+						sb.WriteString("    <ACTION-SET FOR STATE " + fmt.Sprintf("%q\n", cont.state))
+					} else {
+						sb.WriteString("    <ACTION-SET FOR ALL STATES\n")
+					}
 					for k := range cont.actions {
 						action := cont.actions[k]
-						sb.WriteString("      A: " + action.String() + "\n")
+						sb.WriteString("      * " + action.String() + "\n")
 					}
 					sb.WriteString("    >\n")
 				}
@@ -241,14 +250,12 @@ type tokenEntry struct {
 func (entry tokenEntry) String() string {
 	var sb strings.Builder
 
-	sb.WriteRune('{')
-	sb.WriteString(fmt.Sprintf("%q -> ", entry.pattern))
+	sb.WriteString(fmt.Sprintf("%s -> ", entry.pattern))
 	sb.WriteString(fmt.Sprintf("Discard: %v, ", entry.discard))
 	sb.WriteString(fmt.Sprintf("Shift: %q, ", entry.shift))
 	sb.WriteString(fmt.Sprintf("Token: %q, ", entry.token))
 	sb.WriteString(fmt.Sprintf("Human: %q, ", entry.human))
 	sb.WriteString(fmt.Sprintf("Priority: %d", entry.priority))
-	sb.WriteRune('}')
 
 	return sb.String()
 }
@@ -294,13 +301,14 @@ func (content astActionsContent) String() string {
 
 type AttrRef struct {
 	symbol    string
+	wildcard  bool
 	terminal  bool
 	occurance int
 	attribute string
 }
 
 var (
-	attrRefPat = regexp.MustCompile(`({[A-Za-z][^}]*}|\S+)(?:\$(\d+))?\.([\$A-Za-z][$A-Za-z0-9_-]*)`)
+	attrRefPat = regexp.MustCompile(`({\*}|{[A-Za-z][^}]*}|\S+)(?:\$(\d+))?\.([\$A-Za-z][$A-Za-z0-9_-]*)`)
 )
 
 // ParseAttrRef does a simple parse on an attribute reference from a string that
@@ -328,26 +336,31 @@ func ParseAttrRef(s string) (AttrRef, error) {
 		}
 	}
 
-	var terminal bool
-	if sym[0] == '{' && sym[len(sym)-1] == '}' {
-		sym = sym[1 : len(sym)-1]
-		terminal = false
-	} else {
-		terminal = true
-	}
-
-	return AttrRef{
-		symbol:    sym,
-		terminal:  terminal,
+	ar := AttrRef{
 		occurance: idx,
 		attribute: attrName,
-	}, nil
+	}
+
+	if sym == "{*}" {
+		ar.wildcard = true
+	} else {
+		if sym[0] == '{' && sym[len(sym)-1] == '}' {
+			ar.symbol = sym[1 : len(sym)-1]
+		} else {
+			ar.symbol = sym
+			ar.terminal = true
+		}
+	}
+
+	return ar, nil
 }
 
 func (ar AttrRef) String() string {
 	var sb strings.Builder
 
-	if ar.terminal {
+	if ar.wildcard {
+		sb.WriteString("{*}")
+	} else if ar.terminal {
 		sb.WriteString(ar.symbol)
 	} else {
 		sb.WriteRune('{')
@@ -399,7 +412,7 @@ type productionAction struct {
 func (pa productionAction) String() string {
 	var sb strings.Builder
 
-	sb.WriteString("(prod ")
+	sb.WriteString("prod ")
 	if pa.prodNext {
 		sb.WriteString("(next)")
 	} else if pa.prodLiteral != nil {
@@ -414,17 +427,13 @@ func (pa productionAction) String() string {
 		sb.WriteString(fmt.Sprintf("(index %d)", pa.prodIndex))
 	}
 
-	sb.WriteString(": {")
+	sb.WriteString(": ")
 	for i := range pa.actions {
 		sb.WriteString(pa.actions[i].String())
 		if i+1 < len(pa.actions) {
 			sb.WriteString("; ")
 		}
 	}
-	sb.WriteRune('}')
-
-	sb.WriteRune(')')
-
 	return sb.String()
 }
 
@@ -436,9 +445,8 @@ type symbolActions struct {
 func (sa symbolActions) String() string {
 	var sb strings.Builder
 
-	sb.WriteRune('{')
 	sb.WriteString(sa.symbol)
-	sb.WriteString("}: [")
+	sb.WriteString(": [")
 
 	for i := range sa.actions {
 		sb.WriteString(sa.actions[i].String())

@@ -29,212 +29,262 @@ This is the context-free grammar for FISHI, glub.
 ```fishi
 %%grammar
 
-{fishispec}            = {blocks}
+{FISHISPEC}        =  {BLOCKS}
 
-{blocks}               = {blocks} {block}
-                       | {block}
+{BLOCKS}           =  {BLOCKS} {BLOCK} | {BLOCK}
 
-{block}                = {tokens-block} | {grammar-block} | {actions-block}
+{BLOCK}            =  {GBLOCK} | {TBLOCK} | {ABLOCK}
 
-{actions-block}        = ACTIONS_HEADER {actions-content}
+# actions branch:
 
-{actions-content}      = {actions-state-block}
-                       | {actions-content} {actions-state-block}
+{ABLOCK}           =  hdr-actions {ACONTENT}
 
-# actions does not include NEWLINES because that mode of lexer does not lex
-# newlines as they have no semantic meaning in %%action blocks
+{ACONTENT}         =  {SYM-ACTIONS-LIST} {ASTATE-SET-LIST}
+                   |  {SYM-ACTIONS-LIST}
+                   |  {ASTATE-SET-LIST}
 
-{actions-state-block}  = {state-ins} {symbol-actions}
-                       | {symbol-actions}
+{ASTATE-SET-LIST}  =  {ASTATE-SET-LIST} {ASTATE-SET} | {ASTATE-SET}
 
-{symbol-actions}       = SYMBOL_DIR NONTERMINAL {prod-actions}
+{ASTATE-SET}       =  {STATE-INS} {SYM-ACTIONS-LIST}
 
-{prod-actions}         = {prod-actions} {prod-action}
-                       | {prod-action}
+{SYM-ACTIONS-LIST} =  {SYM-ACTIONS-LIST} {SYM-ACTIONS} | {SYM-ACTIONS}
 
-{prod-action}          = {prod-specifier} {semantic-actions}
+{SYM-ACTIONS}      =  dir-symbol nonterm {PROD-ACTION-LIST}
 
-{prod-specifier}       = PROD_DIR {prod-addr}
+{PROD-ACTION-LIST} =  {PROD-ACTION-LIST} {PROD-ACTION} | {PROD-ACTION}
 
-{prod-addr}            = INDEX_DIR INT
-                       | {actions-production}
-                       | {}
+{PROD-ACTION}      =  {PROD-SPEC} {SEM-ACTION-LIST}
 
-{actions-production}   = {actions-production} {symbol}
-                       | {symbol}
+{SEM-ACTION-LIST}  =  {SEM-ACTION-LIST} {SEM-ACTION} | {SEM-ACTION}
 
-{semantic-actions}     = {semantic-actions} {semantic-action}
-                       | {semantic-action}
+{SEM-ACTION}       =  dir-action attr-ref dir-hook id
+                   |  dir-action attr-ref dir-hook id {WITH}
 
-{semantic-action}      = ACTION_DIR ATTR_REF HOOK_DIR ID {with-clause}
+{WITH}             =  dir-with ATTR-REF-LIST
 
-{with-clause}          = {explicit-with} {implicit-withs}
-                       | {explicit-with}
-                       | {}
+{ATTR-REF-LIST}    =  {ATTR-REF-LIST} attr-ref
+                   |  attr-ref
 
-{explicit-with}        = WITH_DIR ATTR_REF
+{PROD-SPEC}        =  dir-prod {PROD-ADDR}
+                   |  dir-prod
 
-{implicit-withs}       = {implicit-withs} {implicit-with}
-                       | {implicit-with}
+{PROD-ADDR}        =  dir-index int
+                   |  {APRODUCTION}
 
-{implicit-with}        = {explicit-with}
-                       | ATTR_REF
+{APRODUCTION}      =  {ASYM-LIST} | epsilon
 
-{grammar-block}        = GRAMMAR_HEADER {opt-newlines} {grammar-content}
+{ASYM-LIST}        =  {ASYM-LIST} {ASYM} | {ASYM}
 
-{grammar-content}      = {grammar-state-block}
-                       | {grammar-content} {grammar-state-block}
+{ASYM}             =  nonterm | term | int | id
 
-{grammar-state-block}  = {state-ins} {newlines} {grammar-rules}
-                       | {grammar-rules}
+# tokens branch:
 
-{grammar-rules}        = {grammar-rules} {newlines} {grammar-rule}
-                       | {grammar-rule}
+{TBLOCK}           = hdr-tokens {TCONTENT}
 
-{grammar-rule}         = NONTERMINAL EQ {opt-newlines} {alternations}
+{TCONTENT}         =  {TENTRY-LIST} {TSTATE-SET-LIST}
+                   |  {TENTRY-LIST}
+                   |  {TSTATE-SET-LIST}
 
-{alternations}         = {production}
-                       | {alternations} {opt-newlines} ALT {production}
+{TSTATE-SET-LIST}  =  {TSTATE-SET-LIST} {TSTATE-SET} | {TSTATE-SET}
 
-{production}           = {production} {symbol}
-                       | {symbol}
-                       | # empty string for epsilon
+{TSTATE-SET}       =  {STATE-INS} {TENTRY-LIST}
 
-{symbol}               = NONTERMINAL
-                       | TERMINAL
-                       | EQ
+{TENTRY-LIST}      =  {TENTRY-LIST} {TENTRY} | {TENTRY}
 
-                       # need to include EQ above bc lexer cannot distinguish
-                       # between 'eq operator at start' and "=" used as
-                       # production symbol. we will treat it as a normal
-                       # non-term if it's in the productions.
+{TENTRY}           =  {PATTERN} {TOPTION-LIST}
 
-{tokens-block}         = TOKENS_HEADER {tokens-content}
+{TOPTION-LIST}     =  {TOPTION-LIST} {TOPTION} | {TOPTION}
 
-{state-ins}            = STATE_DIR {state-expr}
+{TOPTION}          =  {DISCARD} | {STATESHIFT} | {TOKEN} | {HUMAN} | {PRIORITY}
+{DISCARD}          =  dir-discard
+{STATESHIFT}       =  dir-shift {TEXT}
+{TOKEN}            =  dir-token {TEXT}
+{HUMAN}            =  dir-human {TEXT}
+{PRIORITY}         =  dir-priority {TEXT}  # TODO: shouldn't this be int?
 
-{state-expr}           = {id-expr}
-                       | {newlines} {id-expr}
+{PATTERN}          =  {TEXT}
 
-# any of these COULD be an ID, the lexer's weird multi-state thing makes this
-# difficult atm:
-{id-expr}              = ID | TERMINAL | {text}
+# grammar branch:
 
-{opt-newlines}         = {newlines}
-                       | {}
+{GBLOCK}           =  hdr-grammar {GCONTENT}
 
-{newlines}             = NEWLINE
-                       | {newlines} NEWLINE
+{GCONTENT}         =  {GRULE-LIST} {GSTATE-SET-LIST}
+                   |  {GRULE-LIST}
+                   |  {GSTATE-SET-LIST}
 
-{tokens-content}       = {tokens-state-block}
-                       | {tokens-content} {tokens-state-block}
+{GSTATE-SET-LIST}  =  {GSTATE-SET-LIST} {GSTATE-SET} | {GSTATE-SET}
 
-{tokens-state-block}   = {state-ins} {newlines} {tokens-entries}
-                       | {tokens-entries}
+{GSTATE-SET}       =  {STATE-INS} {GRULE-LIST}
 
-{tokens-entries}       = {tokens-entries} {newlines} {tokens-entry}
-                       | {tokens-entry}
+{GRULE-LIST}       =  {GRULE-LIST} {GRULE} | {GRULE}
 
-{tokens-entry}         = {pattern} {opt-newlines} {token-entry-opts}
+{GRULE}            =  nl-nonterm eq {ATERNATIONS}
 
-{token-entry-opts}     = {token-entry-opts} {opt-newlines} {token-option}
-                       | {token-option}
+{ALTERNATIONS}     =  {PRODUCTION}
+                   |  {ALTERNATIONS} alt {GPRODUCTION}
 
-{token-option}         = {stateshift}
-                       | {token}
-                       | {human}
+{GPRODUCTION}      =  {GSYM-LIST} | epsilon
 
-{pattern}              = {text}
-{stateshift}           = SHIFT_DIR {text}
-{token}                = TOKEN_DIR {text}
-{human}                = HUMAN_DIR {text}
-{text}                 = {text} {text-element} | {text-element}
-{text-element}         = FREEFORM_TEXT | ESCSEQ
+{GSYM-LIST}        =  {GSYM-LIST} {GSYM} | {GSYM}
+
+{GSYM}             =  nonterm | term
+
+# state instruction def
+
+{STATE-INS}        =  dir-state {ID-EXPR}
+{ID-EXPR}          =  id | term
+
+# text block glueing and ensuring it only goes until end of line unless escaped:
+
+{TEXT}             =  {NL-TEXT-ELEM} {TEXT-ELEM-LIST}
+                   |  {TEXT-ELEM-LIST}
+                   |  {NL-TEXT-ELEM}
+{TEXT-ELEM-LIST}   =  {TEXT-ELEM-LIST} {TEXT-ELEM} | {TEXT-ELEM}
+
+{NL-TEXT-ELEM}     =  nl-escseq | nl-freeform-text
+{TEXT-ELEM}        =  escseq    | freeform-text
+
 ```
 
 ## Lexer
 The following gives the lexical specification for the FISHI language.
 
+For all states:
+
 ```fishi
 %%tokens
 
-%!%!.                               %token escseq
-%human escape sequence
+%!%!.                                  %token escseq
+%human Escape Sequence
 
-%!%%!%[Tt][Oo][Kk][Ee][Nn][Ss]      %token tokens_header
-%human Token header mark            %stateshift tokens
+%!%%!%[Tt][Oo][Kk][Ee][Nn][Ss]         %token hdr-tokens
+%human %!%%!%tokens header             %stateshift TOKENS
 
-%!%%!%[Gg][Rr][Aa][Mm][Mm][Aa][Rr]  %token grammar_header  
-%human Grammar header mark          %stateshift grammar
+%!%%!%[Gg][Rr][Aa][Mm][Mm][Ee][Rr]     %token hdr-grammar
+%human %!%%!%grammar header            %stateshift GRAMMAR
 
-%!%%!%[Aa][Cc][Tt][Ii][Oo][Nn][Ss]  %token actions_header
-%human Action header mark           %stateshift actions
-
-#not in use at this time, for future version
-#%!%[Ss][Tt][Aa][Rr][Tt]             %token start_dir
-#%human start directive
-
-%!%[Ss][Tt][Aa][Tt][Ee]             %token state_dir
-%human state directive
+%!%%!%[Aa][Cc][Tt][Ii][Oo][Nn][Ss]     %token hdr-actions 
+%human %!%%!%actions header            %stateshift ACTIONS
 ```
 
 For tokens state:
 
 ```fishi
-%state tokens
+%state TOKENS
 
+\n\s*%!%!.                                         %token nl-escseq
+%human escape sequence after this line
 
-%!%[Sa][Tt][Aa][Tt][Ee][Ss][Hh][Ii][Ff][Tt]
-                                 %token shift_dir    %human state-shift directive
-%!%[Hh][Uu][Mm][Aa][Nn]          %token human_dir    %human human directive
-%!%[Tt][Oo][Kk][Ee][Nn]          %token token_dir    %human token directive
+%!%[Ss][Tt][Aa][Tt][Ee]                            %token dir-state
+%human %!%state directive                          %stateshift STATE-T
 
-#not in use at this time, for future version
-#%!%[Dd][Ee][Ff][Aa][Uu][Ll][Tt]  %token default_dir  %human default directive
+%!%[Ss][Tt][Aa][Tt][Ee][Ss][Hh][Ii][Ff][Tt]        %token dir-shift
+%human %!%stateshift directive                     %priority 1
 
-\n                               %token newline      %human new line
+%!%[Hh][Uu][Mm][Aa][Nn]                            %token dir-human
+%human %!%human directive
 
-[^%!%\n]+                        %token freeform_text  %human freeform-text value
+%!%[Tt][Oo][Kk][Ee][Nn]                            %token dir-token
+%human %!%token directive
+
+%!%![Dd][Ii][Ss][Cc][Aa][Rr][Dd]                   %token dir-discard
+%human %!%discard directive
+
+%!%[Pp][Rr][Ii][Oo][Rr][Ii][Tt][Yy]                %token dir-priority
+%human %!%priority directive
+
+[^\S\n]+                                           %discard
+
+\n\s*[^%!%\s]+[^%!%\n]*                            %token nl-freeform-text
+%human freeform text after this line
+
+\n                                                 %discard
+
+[^%!%\s]+[^%!%\n]*                                 %token freeform-text
+%human freeform text
 ```
 
 For grammar state:
 
 ```fishi
-%state grammar
+%state GRAMMAR
 
-\n                          %token newline       %human new line
-[^\S\n]+                    # discard other whitespace
+%!%[Ss][Tt][Aa][Tt][Ee]  %token dir-state  %stateshift STATE-G
+%human %!%state directive     
 
+[^\S\n]+                 %discard
 
+\n\s*{[A-Za-z][^}]*}     %token nl-nonterm
+%human non-terminal symbol literal after this line
 
-# this will result in needing to escape equals which may be used. oh well.
-# somefin to fix in later versions
-
-=                           %token eq            %human '='
-\|                          %token alt           %human '|'
-{[A-Za-z][^}]*}             %token nonterminal   %human non-terminal
-\S+                         %token terminal      %human terminal
+\n                       %discard
+\|                       %token alt     %human alternations bar '|'
+{}                       %token epsilon %human epsilon production '{}'
+{[A-Za-z][^}]*}          %token nonterm %human non-terminal symbol literal
+[^=\s]\S*|\S\S+          %token term    %human terminal symbol literal
+=                        %token eq      %human rule production operator '='
 ```
 
 For actions state:
 ```fishi
-%state action
+%state ACTIONS
 
-\s+                         # discard all whitespace
+\s+                      %discard
 
-(?:{[A-Za-z][^}]*}|\S+)(?:\$\d+)?\.[\$A-Za-z][$A-Za-z0-9_-]*
-                             %token attr_ref      %human attribute reference
-[0-9]+                       %token int           %human integer
-{[A-Za-z][^}]*}              %token nonterminal   %human non-terminal
-%!%[Ss][Yy][Mm][Bb][Oo][Ll]  %token symbol_dir    %human symbol directive
-%!%[Pp][Rr][Oo][Dd]          %token prod_dir      %human prod directive
-%!%[Ww][Ii][Tt][Hh]          %token with_dir      %human with directive
-%!%[Hh][Oo][Oo][Kk]          %token hook_dir      %human hook directive
-%!%[Aa][Cc][Tt][Ii][Oo][Nn]  %token action_dir    %human action directive
-%!%[Ii][Nn][Dd][Ee][Xx]      %token index_dir     %human index directive
-[A-Za-z][A-Za-z0-9_-]*       %token id            %human identifier
-\S+                          %token terminal      %human terminal
+(?:{\*}|{[A-Za-z][^}]*}|\S+)(?:\$\d+)?\.[\$A-Za-z][$A-Za-z0-9_-]*
+%token attr-ref    %human attribute reference literal
 
+[0-9]+
+%token int         %human integer literal
+
+{[A-Za-z][^}]*}
+%token nonterm   # human already defined so should be able to skip it
+
+%!%[Ss][Tt][Aa][Tt][Ee]
+%token dir-state   %stateshift STATE-A
+
+%!%[Ss][Yy][Mm][Bb][Oo][Ll]
+%token dir-symbol  %human %!%symbol directive
+
+%!%[Pp][Rr][Oo][Dd]
+%token dir-prod    %human %!%prod directive
+
+%!%[Ww][Ii][Tt][Hh]
+%token dir-with    %human %!%with directive
+
+%!%[Hh][Oo][Oo][Kk]
+%token dir-hook    %human %!%hook directive
+
+%!%[Aa][Cc][Tt][Ii][Oo][Nn]
+%token dir-action  %human %!%action directive
+
+%!%[Ii][Nn][Dd][Ee][Xx]
+%token dir-index   %human %!%index directive
+
+[A-Za-z][A-Za-z0-9_-]*
+%token id          %human identifier
+
+{}
+%token epsilon
+
+\S+
+%token term
+```
+
+Because we don't have a state stack yet:
+
+```fishi
+%state STATE-T
+\s+        %discard
+[A-Za-z][A-Za-z0-9_-]*      %token id     %stateshift TOKENS
+
+%state STATE-A
+\s+        %discard
+[A-Za-z][A-Za-z0-9_-]*      %token id     %stateshift ACTIONS
+
+%state STATE-G
+\s+        %discard
+[A-Za-z][A-Za-z0-9_-]*      %token id     %stateshift GRAMMAR
 ```
 
 ## Translation Scheme
@@ -243,14 +293,81 @@ The following gives the Syntax-directed translations for the FISHI language.
 ```fishi
 %%actions
 
-%symbol {text-element}
-%prod FREEFORM_TEXT
-%action {text-element}.str
-%hook identity  %with FREEFORM_TEXT.$text
+%symbol {FISHISPEC}
+%prod  %action {FISHISPEC}.ast  %hook make_fishispec  %with  {BLOCKS}.value
 
-%prod ESCSEQ
-%action {text-element}.str
-%hook unescape  %with ESCSEQ.$test
+%symbol {BLOCKS}
+    %prod {BLOCKS} {BLOCK}         %action {BLOCKS}.value
+    %hook block_list_append
+    %with {BLOCKS}$1.value {BLOCK}.ast
+
+    %prod %index 1                 %action {BLOCKS}.value
+    %hook block_list_start
+    %with {BLOCK}$1.value
+
+# TODO: add %prod %all selection.
+%symbol {BLOCK}
+%prod  %action {BLOCK}.ast  %hook ident  %with {*}$0.ast
+%prod  %action {BLOCK}.ast  %hook ident  %with {*}$0.ast
+%prod  %action {BLOCK}.ast  %hook ident  %with {*}$0.ast
+
+
+%symbol {ABLOCK}
+%prod  %action {ABLOCK}.ast  %hook make_ablock  %with {*}$1.ast
+
+%symbol {TBLOCK}
+%prod  %action {TBLOCK}.ast  %hook make_tblock  %with {*}$1.ast
+
+%symbol {GBLOCK}
+%prod  %action {GBLOCK}.ast  %hook make_gblock  %with {*}$1.ast
+
+%symbol {TCONTENT}
+%prod
+    %action {TCONTENT}.ast
+    %hook tokens_content_blocks_start_entry_list
+    %with {*}.value
+%prod
+    %action {TCONTENT}.ast
+    %hook ident
+    %with {*}.value
+%prod
+    %action {TCONTENT}.ast
+    %hook tokens_content_blocks_prepend
+    %with {TSTATE-SET-LIST}.value
+          {TENTRY-LIST}.value
+
+%symbol {ACONTENT}
+%prod
+    %action {ACONTENT}.ast
+    %hook actions_content_blocks_start_sym_actions
+    %with {*}.value
+%prod
+    %action {ACONTENT}.ast
+    %hook ident
+    %with {*}.value
+%prod
+    %action {ACONTENT}.ast
+    %hook actions_content_blocks_prepend
+    %with {ASTATE-SET-LIST}.value
+          {SYM-ACTIONS-LIST}.value
+
+%symbol {GCONTENT}
+%prod
+    %action {GCONTENT}.ast
+    %hook grammar_content_blocks_start_rule_list
+    %with {*}.value
+%prod
+    %action {GCONTENT}.ast
+    %hook ident
+    %with {*}.value
+%prod
+    %action {GCONTENT}.ast
+    %hook grammar_content_blocks_prepend
+    %with {GSTATE-SET-LIST}.value
+          {GRULE-LIST}.value
+
+
+
 
 
 ```
