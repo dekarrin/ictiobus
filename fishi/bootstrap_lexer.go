@@ -75,8 +75,8 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	// grammar patterns
 	bootLx.AddPattern(`%[Ss][Tt][Aa][Tt][Ee]`, lex.LexAndSwapState(tcDirState.ID(), "state-g"), "grammar", 0)
 	bootLx.AddPattern(`[^\S\n]+`, lex.Discard(), "grammar", 0)
-	bootLx.AddPattern(`\n\s*{A-Za-z][^}]*}`, lex.LexAs(tcLineStartNonterminal.ID()), "grammar", 0)
-	bootLx.AddPattern(`\s+`, lex.Discard(), "grammar", 0)
+	bootLx.AddPattern(`\n\s*{[A-Za-z][^}]*}`, lex.LexAs(tcLineStartNonterminal.ID()), "grammar", 1)
+	bootLx.AddPattern(`\n`, lex.Discard(), "grammar", 0)
 	bootLx.AddPattern(`\|`, lex.LexAs(tcAlt.ID()), "grammar", 0)
 	bootLx.AddPattern(`{}`, lex.LexAs(tcEpsilon.ID()), "grammar", 0)
 	bootLx.AddPattern(`{[A-Za-z][^}]*}`, lex.LexAs(tcNonterminal.ID()), "grammar", 0)

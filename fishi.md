@@ -26,7 +26,123 @@ to create the full source that is parsed.
 ## Parser
 This is the context-free grammar for FISHI, glub.
 
-```
+```fishi
+%%grammar
+
+{FISHISPEC}        =  {BLOCKS}
+
+{BLOCKS}           =  {BLOCKS} {BLOCK} | {BLOCK}
+
+{BLOCK}            =  {GBLOCK} | {TBLOCK} | {ABLOCK}
+
+# actions branch:
+
+{ABLOCK}           =  hdr-actions {ACONTENT}
+
+{ACONTENT}         =  {SYM-ACTIONS-LIST} {ASTATE-SET-LIST}
+                   |  {SYM-ACTIONS-LIST}
+                   |  {ASTATE-SET-LIST}
+
+{ASTATE-SET-LIST}  =  {ASTATE-SET-LIST} {ASTATE-SET} | {ASTATE-SET}
+
+{ASTATE-SET}       =  {STATE-INS} {SYM-ACTIONS-LIST}
+
+{SYM-ACTIONS-LIST} =  {SYM-ACTIONS-LIST} {SYM-ACTIONS} | {SYM-ACTIONS}
+
+{SYM-ACTIONS}      =  dir-symbol nonterm {PROD-ACTION-LIST}
+
+{PROD-ACTION-LIST} =  {PROD-ACTION-LIST} {PROD-ACTION} | {PROD-ACTION}
+
+{PROD-ACTION}      =  {PROD-SPEC} {SEM-ACTION-LIST}
+
+{SEM-ACTION-LIST}  =  {SEM-ACTION-LIST} {SEM-ACTION} | {SEM-ACTION}
+
+{SEM-ACTION}       =  dir-action attr-ref dir-hook id
+                   |  dir-action attr-ref dir-hook id {WITH}
+
+{WITH}             =  dir-with ATTR-REF-LIST
+
+{ATTR-REF-LIST}    =  {ATTR-REF-LIST} attr-ref
+                   |  attr-ref
+
+{PROD-SPEC}        =  dir-prod {PROD-ADDR}
+                   |  dir-prod
+
+{PROD-ADDR}        =  dir-index int
+                   |  {APRODUCTION}
+
+{APRODUCTION}      =  {ASYM-LIST} | epsilon
+
+{ASYM-LIST}        =  {ASYM-LIST} {ASYM} | {ASYM}
+
+{ASYM}             =  nonterm | term | int | id
+
+# tokens branch:
+
+{TBLOCK}           = hdr-tokens {TCONTENT}
+
+{TCONTENT}         =  {TENTRY-LIST} {TSTATE-SET-LIST}
+                   |  {TENTRY-LIST}
+                   |  {TSTATE-SET-LIST}
+
+{TSTATE-SET-LIST}  =  {TSTATE-SET-LIST} {TSTATE-SET} | {TSTATE-SET}
+
+{TSTATE-SET}       =  {STATE-INS} {TENTRY-LIST}
+
+{TENTRY-LIST}      =  {TENTRY-LIST} {TENTRY} | {TENTRY}
+
+{TENTRY}           =  {PATTERN} {TOPTION-LIST}
+
+{TOPTION-LIST}     =  {TOPTION-LIST} {TOPTION} | {TOPTION}
+
+{TOPTION}          =  {DISCARD} | {STATESHIFT} | {TOKEN} | {HUMAN} | {PRIORITY}
+{DISCARD}          =  dir-discard
+{STATESHIFT}       =  dir-shift {TEXT}
+{TOKEN}            =  dir-token {TEXT}
+{HUMAN}            =  dir-human {TEXT}
+{PRIORITY}         =  dir-priority {TEXT}  # TODO: shouldn't this be int?
+
+{PATTERN}          =  {TEXT}
+
+# grammar branch:
+
+{GBLOCK}           =  hdr-grammar {GCONTENT}
+
+{GCONTENT}         =  {GRULE-LIST} {GSTATE-SET-LIST}
+                   |  {GRULE-LIST}
+                   |  {GSTATE-SET-LIST}
+
+{GSTATE-SET-LIST}  =  {GSTATE-SET-LIST} {GSTATE-SET} | {GSTATE-SET}
+
+{GSTATE-SET}       =  {STATE-INS} {GRULE-LIST}
+
+{GRULE-LIST}       =  {GRULE-LIST} {GRULE} | {GRULE}
+
+{GRULE}            =  nl-nonterm eq {ATERNATIONS}
+
+{ALTERNATIONS}     =  {PRODUCTION}
+                   |  {ALTERNATIONS} alt {GPRODUCTION}
+
+{GPRODUCTION}      =  {GSYM-LIST} | epsilon
+
+{GSYM-LIST}        =  {GSYM-LIST} {GSYM} | {GSYM}
+
+{GSYM}             =  nonterm | term
+
+# state instruction def
+
+{STATE-INS}        =  dir-state {ID-EXPR}
+{ID-EXPR}          =  id | term
+
+# text block glueing and ensuring it only goes until end of line unless escaped:
+
+{TEXT}             =  {NL-TEXT-ELEM} {TEXT-ELEM-LIST}
+                   |  {TEXT-ELEM-LIST}
+                   |  {NL-TEXT-ELEM}
+{TEXT-ELEM-LIST}   =  {TEXT-ELEM-LIST} {TEXT-ELEM} | {TEXT-ELEM}
+
+{NL-TEXT-ELEM}     =  nl-escseq | nl-freeform-text
+{TEXT-ELEM}        =  escseq    | freeform-text
 
 ```
 
@@ -96,10 +212,12 @@ For grammar state:
 %!%[Ss][Tt][Aa][Tt][Ee]  %token dir-state  %stateshift STATE-G
 %human %!%state directive     
 
+[^\S\n]+                 %discard
+
 \n\s*{[A-Za-z][^}]*}     %token nl-nonterm
 %human non-terminal symbol literal after this line
 
-\s+                      %discard
+\n                       %discard
 \|                       %token alt     %human alternations bar '|'
 {}                       %token epsilon %human epsilon production '{}'
 {[A-Za-z][^}]*}          %token nonterm %human non-terminal symbol literal
@@ -114,7 +232,7 @@ For actions state:
 \s+                      %discard
 
 (?:{[A-Za-z][^}]*}|\S+)(?:\$\d+)?\.[\$A-Za-z][$A-Za-z0-9_-]*
-%token attrRef     %human attribute reference literal
+%token attr-ref    %human attribute reference literal
 
 [0-9]+
 %token int         %human integer literal
