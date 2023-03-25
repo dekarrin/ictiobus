@@ -169,8 +169,8 @@ func bootstrapSDTSTokensContentAST(sdts ictiobus.SDTS) {
 		"ast",
 		sdtsFnTokensContentBlocksAppendStateBlock,
 		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "ast"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "ast"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 	sdts.BindSynthesizedAttribute(
@@ -178,8 +178,8 @@ func bootstrapSDTSTokensContentAST(sdts ictiobus.SDTS) {
 		"ast",
 		sdtsFnTokensContentBlocksAppendEntryList,
 		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "ast"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "ast"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 	sdts.BindSynthesizedAttribute(

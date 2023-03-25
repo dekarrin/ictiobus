@@ -30,7 +30,6 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.RegisterClass(tcDirHuman, "tokens")
 	bootLx.RegisterClass(tcDirToken, "tokens")
 	//bootLx.RegisterClass(tcDirDefault, "tokens")
-	bootLx.RegisterClass(tcNewline, "tokens")
 	bootLx.RegisterClass(tcDirDiscard, "tokens")
 	bootLx.RegisterClass(tcDirPriority, "tokens")
 	bootLx.RegisterClass(tcInt, "tokens")
@@ -41,22 +40,21 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.AddPattern(`%[Tt][Oo][Kk][Ee][Nn]`, lex.LexAs(tcDirToken.ID()), "tokens", 0)
 	bootLx.AddPattern(`%[Dd][Ii][Ss][Cc][Aa][Rr][Dd]`, lex.LexAs(tcDirDiscard.ID()), "tokens", 0)
 	bootLx.AddPattern(`%[Pp][Rr][Ii][Oo][Rr][Ii][Tt][Yy]`, lex.LexAs(tcDirPriority.ID()), "tokens", 0)
-	//bootLx.AddPattern(`%[Dd][Ee][Ff][Aa][Uu][Ll][Tt]`, lex.LexAs(tcDirDefault.ID()), "tokens")
-	bootLx.AddPattern(`\n`, lex.LexAs(tcNewline.ID()), "tokens", 0)
-	bootLx.AddPattern(`[^%\s]+[^%\n]*`, lex.LexAs(tcFreeformText.ID()), "tokens", 0)
 	bootLx.AddPattern(`[^\S\n]+`, lex.Discard(), "tokens", 0)
+	bootLx.AddPattern(`(?:\n\s*)?[^%\s]+[^%\n]*`, lex.LexAs(tcFreeformText.ID()), "tokens", 0)
+	//bootLx.AddPattern(`%[Dd][Ee][Ff][Aa][Uu][Ll][Tt]`, lex.LexAs(tcDirDefault.ID()), "tokens")
 
 	// grammar classes
-	bootLx.RegisterClass(tcNewline, "grammar")
 	bootLx.RegisterClass(tcEq, "grammar")
 	bootLx.RegisterClass(tcAlt, "grammar")
 	bootLx.RegisterClass(tcNonterminal, "grammar")
 	bootLx.RegisterClass(tcTerminal, "grammar")
 	bootLx.RegisterClass(tcEpsilon, "grammar")
 
-	// gramamr patterns
-	bootLx.AddPattern(`\n`, lex.LexAs(tcNewline.ID()), "grammar", 0)
+	// grammar patterns
 	bootLx.AddPattern(`[^\S\n]+`, lex.Discard(), "grammar", 0)
+	bootLx.AddPattern(`(?:\n\s*)?{A-Za-z][^}]*}`, lex.LexAs(tcNonterminal.ID()), "grammar", 0)
+	bootLx.AddPattern(`\s+`, lex.Discard(), "grammar", 0)
 	bootLx.AddPattern(`\|`, lex.LexAs(tcAlt.ID()), "grammar", 0)
 	bootLx.AddPattern(`{}`, lex.LexAs(tcEpsilon.ID()), "grammar", 0)
 	bootLx.AddPattern(`{[A-Za-z][^}]*}`, lex.LexAs(tcNonterminal.ID()), "grammar", 0)

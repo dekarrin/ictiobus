@@ -24,6 +24,9 @@ Flags:
 
 	-no-cache
 		Do not use any cached frontend components, even if available.
+
+	-no-val-sdts
+		Do not validate the SDTs of the resulting fishi.
 */
 package main
 
@@ -59,10 +62,12 @@ var (
 )
 
 var (
-	noGen   bool
-	genAST  bool
-	genTree bool
-	noCache *bool = flag.Bool("no-cache", false, "Do not use any cached frontend components, even if available")
+	noGen          bool
+	genAST         bool
+	genTree        bool
+	noCache        *bool = flag.Bool("no-cache", false, "Do not use any cached frontend components, even if available")
+	noValidateSDTS *bool = flag.Bool("no-val-sdts", false, "Do not validate the SDTs of the resulting fishi")
+	lexerTrace     *bool = flag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
 )
 
 func init() {
@@ -100,9 +105,16 @@ func main() {
 		return
 	}
 
+	fo := fishi.Options{
+		ParserCFF:    "fishi-parser.cff",
+		UseCache:     !*noCache,
+		ValidateSDTS: !*noValidateSDTS,
+		LexerTrace:   *lexerTrace,
+	}
+
 	for _, file := range args {
 
-		res, err := fishi.ExecuteMarkdownFile(file, !*noCache)
+		res, err := fishi.ExecuteMarkdownFile(file, fo)
 
 		// results may be valid even if there is an error
 		if res.AST != nil && genAST {

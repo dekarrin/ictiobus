@@ -12,7 +12,7 @@ import (
 func Test_WithFakeInput(t *testing.T) {
 	assert := assert.New(t)
 
-	_, actual := Execute([]byte(testInput), "../fishi-parser.cff", true)
+	_, actual := Execute([]byte(testInput), Options{ParserCFF: "../fishi-parser.cff", UseCache: true, ValidateSDTS: true})
 
 	assert.NoError(actual)
 
@@ -27,7 +27,7 @@ func Test_WithFakeInput(t *testing.T) {
 func Test_SelfHostedMarkdown(t *testing.T) {
 	assert := assert.New(t)
 
-	_, actual := ExecuteMarkdownFile("../fishi.md", true)
+	_, actual := ExecuteMarkdownFile("../fishi.md", Options{ParserCFF: "../fishi-parser.cff", UseCache: true, ValidateSDTS: true})
 
 	assert.NoError(actual)
 

@@ -21,6 +21,13 @@ type Results struct {
 	Tree *types.ParseTree
 }
 
+type Options struct {
+	ParserCFF    string
+	UseCache     bool
+	ValidateSDTS bool
+	LexerTrace   bool
+}
+
 func GetFishiFromMarkdown(mdText []byte) []byte {
 	doc := markdown.Parse(mdText, mkparser.New())
 	var scanner fishiScanner
@@ -72,13 +79,13 @@ func (fs fishiScanner) RenderNode(w io.Writer, node mkast.Node, entering bool) m
 func (fs fishiScanner) RenderHeader(w io.Writer, ast mkast.Node) {}
 func (fs fishiScanner) RenderFooter(w io.Writer, ast mkast.Node) {}
 
-func ExecuteMarkdownFile(filename string, useCache bool) (Results, error) {
+func ExecuteMarkdownFile(filename string, opts Options) (Results, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return Results{}, err
 	}
 
-	res, err := ExecuteMarkdown(data, useCache)
+	res, err := ExecuteMarkdown(data, opts)
 	if err != nil {
 		return res, err
 	}
@@ -86,7 +93,7 @@ func ExecuteMarkdownFile(filename string, useCache bool) (Results, error) {
 	return res, nil
 }
 
-func ExecuteMarkdown(mdText []byte, useCache bool) (Results, error) {
+func ExecuteMarkdown(mdText []byte, opts Options) (Results, error) {
 
 	// TODO: read in filename, based on it check for cached version
 
@@ -96,13 +103,13 @@ func ExecuteMarkdown(mdText []byte, useCache bool) (Results, error) {
 	// output parser table and type
 
 	source := GetFishiFromMarkdown(mdText)
-	return Execute(source, "fishi-parser.cff", useCache)
+	return Execute(source, opts)
 }
 
 // Execute executes the fishi source code provided.
-func Execute(source []byte, compiledParserFilename string, useCache bool) (Results, error) {
+func Execute(source []byte, opts Options) (Results, error) {
 	// get the frontend
-	fishiFront, err := GetFrontend(compiledParserFilename, true, useCache)
+	fishiFront, err := GetFrontend(opts)
 	if err != nil {
 		return Results{}, fmt.Errorf("could not get frontend: %w", err)
 	}
@@ -124,22 +131,22 @@ func Execute(source []byte, compiledParserFilename string, useCache bool) (Resul
 // GetFrontend gets the frontend for the fishi compiler-compiler. If cffFile is
 // provided, it is used to load the cached parser from disk. Otherwise, a new
 // frontend is created.
-func GetFrontend(cffFile string, validateSDTS bool, useCff bool) (ictiobus.Frontend[AST], error) {
+func GetFrontend(opts Options) (ictiobus.Frontend[AST], error) {
 	// check for preload
 	var preloadedParser ictiobus.Parser
-	if cffFile != "" && useCff {
+	if opts.ParserCFF != "" && opts.UseCache {
 		var err error
-		preloadedParser, err = ictiobus.GetParserFromDisk(cffFile)
+		preloadedParser, err = ictiobus.GetParserFromDisk(opts.ParserCFF)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				preloadedParser = nil
 			} else {
-				return ictiobus.Frontend[AST]{}, fmt.Errorf("loading cachefile %q: %w", cffFile, err)
+				return ictiobus.Frontend[AST]{}, fmt.Errorf("loading cachefile %q: %w", opts.ParserCFF, err)
 			}
 		}
 	}
 
-	fishiFront := Frontend(preloadedParser)
+	fishiFront := Frontend(FrontendOptions{LexerTrace: opts.LexerTrace}, preloadedParser)
 
 	// check the parser encoding if we generated a new one:
 	if preloadedParser == nil {
@@ -149,18 +156,18 @@ func GetFrontend(cffFile string, validateSDTS bool, useCff bool) (ictiobus.Front
 			fmt.Printf("FAILED TO DECODE IMMEDIATELY: %s\n", err.Error())
 		}
 
-		if cffFile != "" {
-			err := ictiobus.SaveParserToDisk(fishiFront.Parser, cffFile)
+		if opts.ParserCFF != "" {
+			err := ictiobus.SaveParserToDisk(fishiFront.Parser, opts.ParserCFF)
 			if err != nil {
 				fmt.Printf("writing parser to disk: %s\n", err.Error())
 			} else {
-				fmt.Printf("wrote parser to %q\n", cffFile)
+				fmt.Printf("wrote parser to %q\n", opts.ParserCFF)
 			}
 		}
 	}
 
 	// validate our SDTS if we were asked to
-	if validateSDTS {
+	if opts.ValidateSDTS {
 		valProd := fishiFront.Lexer.FakeLexemeProducer(true, "")
 		sddErr := fishiFront.SDT.Validate(fishiFront.Parser.Grammar(), fishiFront.IRAttribute, types.DebugInfo{}, valProd)
 		if sddErr != nil {
