@@ -124,7 +124,7 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 
 		fullErrStr = fmt.Sprintf("Running SDTS on %ssimulated parse tree%s got %serror%s:", treeCountStr, treeCountS, errCountStr, errCountS) + fullErrStr
 
-		finalErr = fmt.Errorf(fullErrStr)
+		finalErr = fmt.Errorf("%s", fullErrStr)
 	}
 
 	return finalErr
