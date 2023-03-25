@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus"
+	"github.com/dekarrin/ictiobus/translation"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/gomarkdown/markdown"
 	mkast "github.com/gomarkdown/markdown/ast"
@@ -22,13 +23,16 @@ type Results struct {
 }
 
 type Options struct {
-	ParserCFF      string
-	UseCache       bool
-	ValidateSDTS   bool
-	ShowSDTSTrees  bool
-	ShowSDTSGraphs bool
-	LexerTrace     bool
-	ParserTrace    bool
+	ParserCFF         string
+	ReadCache         bool
+	WriteCache        bool
+	SDTSValidate      bool
+	SDTSValShowTrees  bool
+	SDTSValShowGraphs bool
+	SDTSValAllTrees   bool
+	SDTSValSkipTrees  int
+	LexerTrace        bool
+	ParserTrace       bool
 }
 
 func GetFishiFromMarkdown(mdText []byte) []byte {
@@ -137,7 +141,7 @@ func Execute(source []byte, opts Options) (Results, error) {
 func GetFrontend(opts Options) (ictiobus.Frontend[AST], error) {
 	// check for preload
 	var preloadedParser ictiobus.Parser
-	if opts.ParserCFF != "" && opts.UseCache {
+	if opts.ParserCFF != "" && opts.ReadCache {
 		var err error
 		preloadedParser, err = ictiobus.GetParserFromDisk(opts.ParserCFF)
 		if err != nil {
@@ -157,30 +161,24 @@ func GetFrontend(opts Options) (ictiobus.Frontend[AST], error) {
 	fishiFront := Frontend(feOpts, preloadedParser)
 
 	// check the parser encoding if we generated a new one:
-	if preloadedParser == nil {
-		parserBytes := ictiobus.EncodeParserBytes(fishiFront.Parser)
-		_, err := ictiobus.DecodeParserBytes(parserBytes)
+	if preloadedParser == nil && opts.ParserCFF != "" && opts.WriteCache {
+		err := ictiobus.SaveParserToDisk(fishiFront.Parser, opts.ParserCFF)
 		if err != nil {
-			fmt.Printf("FAILED TO DECODE IMMEDIATELY: %s\n", err.Error())
-		}
-
-		if opts.ParserCFF != "" {
-			err := ictiobus.SaveParserToDisk(fishiFront.Parser, opts.ParserCFF)
-			if err != nil {
-				fmt.Printf("writing parser to disk: %s\n", err.Error())
-			} else {
-				fmt.Printf("wrote parser to %q\n", opts.ParserCFF)
-			}
+			fmt.Fprintf(os.Stderr, "writing parser to disk: %s\n", err.Error())
+		} else {
+			fmt.Printf("wrote parser to %q\n", opts.ParserCFF)
 		}
 	}
 
 	// validate our SDTS if we were asked to
-	if opts.ValidateSDTS {
+	if opts.SDTSValidate {
 		valProd := fishiFront.Lexer.FakeLexemeProducer(true, "")
 
-		di := types.DebugInfo{
-			ParseTrees:    opts.ShowSDTSTrees,
-			FullDepGraphs: opts.ShowSDTSGraphs,
+		di := translation.ValidationOptions{
+			ParseTrees:    opts.SDTSValShowTrees,
+			FullDepGraphs: opts.SDTSValShowGraphs,
+			ShowAllErrors: opts.SDTSValAllTrees,
+			SkipErrors:    opts.SDTSValSkipTrees,
 		}
 
 		sddErr := fishiFront.SDT.Validate(fishiFront.Parser.Grammar(), fishiFront.IRAttribute, di, valProd)

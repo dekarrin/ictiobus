@@ -175,7 +175,7 @@ type SDTS interface {
 	// values will be used, which may not behave as expected with the SDTS. To
 	// get one that will use the configured regexes of tokens used for lexing,
 	// call FakeLexemeProducer on a Lexer.
-	Validate(grammar grammar.Grammar, attribute string, debug types.DebugInfo, fakeValProducer ...map[string]func() string) error
+	Validate(grammar grammar.Grammar, attribute string, debug translation.ValidationOptions, fakeValProducer ...map[string]func() string) error
 }
 
 // NewLexer returns a lexer whose Lex method will immediately lex the entire
@@ -347,7 +347,6 @@ func NewSDTS() SDTS {
 // Frontend is a complete input-to-intermediate representation compiler
 // front-end.
 type Frontend[E any] struct {
-	Debug       types.DebugInfo
 	Lexer       Lexer
 	Parser      Parser
 	SDT         SDTS
@@ -401,10 +400,6 @@ func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, pt *types.ParseTree, err erro
 	parseTree, err := fe.Parser.Parse(tokStream)
 	if err != nil {
 		return ir, &parseTree, err
-	}
-
-	if fe.Debug.ParseTrees {
-		fmt.Printf("parse tree:\n%s\n", translation.AddAttributes(parseTree).String())
 	}
 
 	// semantic analysis

@@ -22,8 +22,17 @@ Flags:
 		checked for errors but no other action is taken (unless specified by
 		other flags).
 
-	-cache-off
-		Disable use of any cached frontend components, even if available.
+	-p/-parser FILE
+		Set the location of the pre-compiled parser cache to the given CFF
+		format file as opposed to the default of './parser.cff'.
+
+	-no-cache
+		Disable the loading of any cached frontend components, even if a
+		pre-built one is available.
+
+	-no-cache-out
+		Disable writing of any frontend components cache, even if a component
+		was built by the invocation.
 
 	-val-sdts-off
 		Disable validatione of the SDTS of the resulting fishi.
@@ -32,10 +41,28 @@ Flags:
 		If problems are detected with the SDTS of the resulting fishi during
 		SDTS validation, show the parse tree(s) that caused the problem.
 
+		Has no effect if -val-sdts-off is set.
+
 	-val-sdts-graphs
 		If problems are detected with the SDTS of the resulting fishi during
 		SDTS validation, show the full resulting dependency graph(s) that caused
 		the issue (if any).
+
+		Has no effect if -val-sdts-off is set.
+
+	-val-sdts-first
+		If problems are detected with the SDTS of the resulting fishi during
+		SDTS validation, show only the problem(s) found in the first simulated
+		parse tree (after any skipped by -val-sdts-skip) and then stop.
+
+		Has no effect if -val-sdts-off is set.
+
+	-val-sdts-skip N
+		If problems are detected with the SDTS of the resulting fishi during
+		SDTS validation, skip the first N simulated parse trees in the output.
+		Combine with -val-sdts-first to view a specific parse tree.
+
+		Has no effect if -val-sdts-off is set.
 
 	-debug-lexer
 		Enable debug mode for the lexer and print each token to standard out as
@@ -60,6 +87,18 @@ shown at once. Note that when multiple files are given, each problem may end up
 setting the exit code separately, so if any interpretation of the exit code is
 done besides checking for non-zero, it should be noted that it will only be the
 correct exit code for the last file parsed.
+
+If files containing cached pre-built components of the frontend are available,
+they will be loaded and used unless -no-cache is set. The files are named
+'fishi-parser.cff' by default, and the names can be changed with the -parser/-p
+flag if desired. Cache invalidation is non-sophisticated and cannot be
+automatically detected at this time. To force it to occur, the -no-cache flag
+must be manually used (or the file deleted).
+
+If new frontend components are generated from scratch, they will be cached by
+saving them to the files mentioned above unless -no-cache-out is set. Note that
+if the frontend components are loaded from cache files, they will not be output
+to cache files again regardless of whether -no-cache-out is present.
 
 Once the input has been successfully parsed, the parser is generated using the
 options provided, unless the -n flag is set, in which case ictcc will
@@ -99,29 +138,39 @@ var (
 )
 
 var (
-	noGen             bool
-	genAST            bool
-	genTree           bool
-	noCache           *bool = flag.Bool("cache-off", false, "Disable use of cached frontend components, even if available")
-	noValidateSDTS    *bool = flag.Bool("val-sdts-off", false, "Disable validation of the SDTS of the resulting fishi")
-	showSDTSValTrees  *bool = flag.Bool("val-sdts-trees", false, "Show trees that caused SDTS validation errors")
-	showSDTSValGraphs *bool = flag.Bool("val-sdts-graphs", false, "Show full generated dependency graph output for parse trees that caused SDTS validation errors")
-	lexerTrace        *bool = flag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
-	parserTrace       *bool = flag.Bool("debug-parser", false, "Print the parser trace to stdout")
+	noGen         bool
+	genAST        bool
+	genTree       bool
+	parserCff     string
+	noCache       *bool = flag.Bool("no-cache", false, "Disable use of cached frontend components, even if available")
+	noCacheOutput *bool = flag.Bool("no-cache-out", false, "Disable writing of cached frontend components, even if one was generated")
+
+	valSDTSOff        *bool = flag.Bool("val-sdts-off", false, "Disable validation of the SDTS of the resulting fishi")
+	valSDTSShowTrees  *bool = flag.Bool("val-sdts-trees", false, "Show trees that caused SDTS validation errors")
+	valSDTSShowGraphs *bool = flag.Bool("val-sdts-graphs", false, "Show full generated dependency graph output for parse trees that caused SDTS validation errors")
+	valSDTSFirstOnly  *bool = flag.Bool("val-sdts-first", false, "Show only the first error found in SDTS validation")
+	valSDTSSkip       *int  = flag.Int("val-sdts-skip", 0, "Skip the first N errors found in SDTS validation in output")
+
+	lexerTrace  *bool = flag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
+	parserTrace *bool = flag.Bool("debug-parser", false, "Print the parser trace to stdout")
 )
 
 func init() {
 	const (
-		noGenUsage   = "Do not generate the parser"
-		genASTUsage  = "Print the AST of the analyzed fishi"
-		genTreeUsage = "Print the parse tree of the analyzed fishi"
+		noGenUsage       = "Do not generate the parser"
+		genASTUsage      = "Print the AST of the analyzed fishi"
+		genTreeUsage     = "Print the parse tree of the analyzed fishi"
+		parserCffUsage   = "Use the specified parser CFF cache file instead of default"
+		parserCffDefault = "fishi-parser.cff"
 	)
 	flag.BoolVar(&noGen, "no-gen", false, noGenUsage)
-	flag.BoolVar(&noGen, "n", false, noGenUsage)
+	flag.BoolVar(&noGen, "n", false, noGenUsage+" (shorthand)")
 	flag.BoolVar(&genAST, "ast", false, genASTUsage)
-	flag.BoolVar(&genAST, "a", false, genASTUsage)
+	flag.BoolVar(&genAST, "a", false, genASTUsage+" (shorthand)")
 	flag.BoolVar(&genTree, "tree", false, genTreeUsage)
-	flag.BoolVar(&genTree, "t", false, genTreeUsage)
+	flag.BoolVar(&genTree, "t", false, genTreeUsage+" (shorthand)")
+	flag.StringVar(&parserCff, "parser", parserCffUsage, parserCffDefault)
+	flag.StringVar(&parserCff, "p", parserCffUsage, parserCffDefault+" (shorthand)")
 }
 
 func main() {
@@ -146,13 +195,16 @@ func main() {
 	}
 
 	fo := fishi.Options{
-		ParserCFF:      "fishi-parser.cff",
-		UseCache:       !*noCache,
-		ValidateSDTS:   !*noValidateSDTS,
-		ShowSDTSTrees:  *showSDTSValTrees,
-		ShowSDTSGraphs: *showSDTSValGraphs,
-		LexerTrace:     *lexerTrace,
-		ParserTrace:    *parserTrace,
+		ParserCFF:         parserCff,
+		ReadCache:         !*noCache,
+		WriteCache:        !*noCacheOutput,
+		SDTSValidate:      !*valSDTSOff,
+		SDTSValShowTrees:  *valSDTSShowTrees,
+		SDTSValShowGraphs: *valSDTSShowGraphs,
+		SDTSValAllTrees:   !*valSDTSFirstOnly,
+		SDTSValSkipTrees:  *valSDTSSkip,
+		LexerTrace:        *lexerTrace,
+		ParserTrace:       *parserTrace,
 	}
 
 	for _, file := range args {
