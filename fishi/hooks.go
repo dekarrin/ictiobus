@@ -131,7 +131,7 @@ func sdtsFnActionsContentBlocksAppend(_, _ string, args []interface{}) interface
 	}
 
 	// stateless block
-	actions, ok := args[0].([]symbolActions)
+	actions, ok := args[1].([]symbolActions)
 	if !ok {
 		actions = []symbolActions{{symbol: SDDErrMsg("producing this actions content list: second argument is not a symbol actions list")}}
 	}
@@ -145,7 +145,7 @@ func sdtsFnActionsContentBlocksAppend(_, _ string, args []interface{}) interface
 	return list
 }
 
-func sdtsFnTokensContentBlocksAppend(_, _ string, args []interface{}) interface{} {
+func sdtsFnTokensContentBlocksPrepend(_, _ string, args []interface{}) interface{} {
 	// state blocks
 	list, ok := args[0].([]astTokensContent)
 	if !ok {
@@ -153,7 +153,7 @@ func sdtsFnTokensContentBlocksAppend(_, _ string, args []interface{}) interface{
 	}
 
 	// stateless block
-	tokens, ok := args[0].([]tokenEntry)
+	tokens, ok := args[1].([]tokenEntry)
 	if !ok {
 		tokens = []tokenEntry{{pattern: SDDErrMsg("producing this tokens content list: second argument is not a token entry list")}}
 	}
@@ -162,7 +162,7 @@ func sdtsFnTokensContentBlocksAppend(_, _ string, args []interface{}) interface{
 		state:   "",
 	}
 
-	list = append(list, toAppend)
+	list = append([]astTokensContent{toAppend}, list...)
 
 	return list
 }
@@ -175,7 +175,7 @@ func sdtsFnGrammarContentBlocksAppend(_, _ string, args []interface{}) interface
 	}
 
 	// stateless block
-	rules, ok := args[0].([]grammar.Rule)
+	rules, ok := args[1].([]grammar.Rule)
 	if !ok {
 		rules = []grammar.Rule{{NonTerminal: SDDErrMsg("producing this grammar content list: second argument is not a grammar rule list")}}
 	}

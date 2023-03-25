@@ -29,8 +29,11 @@ func (ast AST) String() string {
 				sb.WriteString("  <GRAMMAR:\n")
 				for j := range gram.content {
 					cont := gram.content[j]
-					sb.WriteString("    <CONTENT:\n")
-					sb.WriteString("      STATE: " + fmt.Sprintf("%q\n", cont.state))
+					if cont.state != "" {
+						sb.WriteString("    <RULE-SET FOR STATE: " + fmt.Sprintf("%q\n", cont.state))
+					} else {
+						sb.WriteString("    <RULE-SET FOR ALL STATES\n")
+					}
 					for k := range cont.rules {
 						r := cont.rules[k]
 						sb.WriteString("      R: " + r.String() + "\n")
@@ -43,8 +46,11 @@ func (ast AST) String() string {
 				sb.WriteString("  <TOKENS:\n")
 				for j := range toks.content {
 					cont := toks.content[j]
-					sb.WriteString("    <CONTENT:\n")
-					sb.WriteString("      STATE: " + fmt.Sprintf("%q\n", cont.state))
+					if cont.state != "" {
+						sb.WriteString("    <ENTRY-SET FOR STATE: " + fmt.Sprintf("%q\n", cont.state))
+					} else {
+						sb.WriteString("    <ENTRY-SET FOR ALL STATES\n")
+					}
 					for k := range cont.entries {
 						entry := cont.entries[k]
 						sb.WriteString("      E: " + entry.String() + "\n")
@@ -57,8 +63,11 @@ func (ast AST) String() string {
 				sb.WriteString("  <ACTIONS:\n")
 				for j := range acts.content {
 					cont := acts.content[j]
-					sb.WriteString("    <CONTENT:\n")
-					sb.WriteString("      STATE: " + fmt.Sprintf("%q\n", cont.state))
+					if cont.state != "" {
+						sb.WriteString("    <ACTION-SET FOR STATE: " + fmt.Sprintf("%q\n", cont.state))
+					} else {
+						sb.WriteString("    <ACTION-SET FOR ALL STATES\n")
+					}
 					for k := range cont.actions {
 						action := cont.actions[k]
 						sb.WriteString("      A: " + action.String() + "\n")
@@ -242,7 +251,7 @@ func (entry tokenEntry) String() string {
 	var sb strings.Builder
 
 	sb.WriteRune('{')
-	sb.WriteString(fmt.Sprintf("%q -> ", entry.pattern))
+	sb.WriteString(fmt.Sprintf("%s -> ", entry.pattern))
 	sb.WriteString(fmt.Sprintf("Discard: %v, ", entry.discard))
 	sb.WriteString(fmt.Sprintf("Shift: %q, ", entry.shift))
 	sb.WriteString(fmt.Sprintf("Token: %q, ", entry.token))

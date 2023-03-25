@@ -49,22 +49,37 @@ For all states:
 
 %!%%!%[Aa][Cc][Tt][Ii][Oo][Nn][Ss]     %token hdr-actions 
 %human %!%%!%actions header            %stateshift ACTIONS
-
-%!%[Ss][Tt][Aa][Tt][Ee]                %token dir-state
-%human %!%state directive
 ```
 
 For tokens state:
 
 ```fishi
-%%tokens
 %state TOKENS
+
+\n\s*%!%!.                                         %token line-start-escseq
+%human escape sequence on next line
+
+%!%[Ss][Tt][Aa][Tt][Ee]                            %token dir-state
+%human %!%state directive                          %stateshift STATE-T
+
+%!%[Ss][Tt][Aa][Tt][Ee][Ss][Hh][Ii][Ff][Tt]        %token dir-shift
+%human %!%stateshift directive                     %priority 1
 
 %!%[Hh][Uu][Mm][Aa][Nn]                            %token dir-human
 %human %!%human directive
 
-%!%[Ss][Tt][Aa][Tt][Ee][Ss][Hh][Ii][Ff][Tt]        %token dir-shift
-%human %!%stateshift directive                     %priority 1
+%!%[Tt][Oo][Kk][Ee][Nn]                            %token dir-token
+%human %!%token directive
+
+%!%![Dd][Ii][Ss][Cc][Aa][Rr][Dd]                   %token dir-discard
+%human %!%discard directive
+
+%!%[Pp][Rr][Ii][Oo][Rr][Ii][Tt][Yy]                %token dir-priority
+%human %!%priority directive
+
+[^\S\n]+        %discard
+
+
 
 
 ```
@@ -77,6 +92,22 @@ For grammar state:
 For actions state:
 ```fishi
 
+```
+
+Because we don't have a state stack yet:
+
+```fishi
+%state STATE-T
+\s+        %discard
+[A-Za-z][A-Za-z0-9_-]*      %token id     %stateshift TOKENS
+
+%state STATE-A
+\s+        %discard
+[A-Za-z][A-Za-z0-9_-]*      %token id     %stateshift ACTIONS
+
+%state STATE-G
+\s+        %discard
+[A-Za-z][A-Za-z0-9_-]*      %token id     %stateshift GRAMMAR
 ```
 
 ## Translation Scheme

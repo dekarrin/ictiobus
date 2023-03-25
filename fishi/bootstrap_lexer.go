@@ -58,7 +58,6 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.AddPattern(`%[Dd][Ii][Ss][Cc][Aa][Rr][Dd]`, lex.LexAs(tcDirDiscard.ID()), "tokens", 0)
 	bootLx.AddPattern(`%[Pp][Rr][Ii][Oo][Rr][Ii][Tt][Yy]`, lex.LexAs(tcDirPriority.ID()), "tokens", 0)
 	bootLx.AddPattern(`[^\S\n]+`, lex.Discard(), "tokens", 0)
-	bootLx.AddPattern(`%[Ee][Oo][Ll]`, lex.LexAs(tcLineStartFreeformText.ID()), "tokens", 0)
 	bootLx.AddPattern(`\n\s*[^%\s]+[^%\n]*`, lex.LexAs(tcLineStartFreeformText.ID()), "tokens", 0)
 	bootLx.AddPattern(`\n`, lex.Discard(), "tokens", 0)
 	bootLx.AddPattern(`[^%\s]+[^%\n]*`, lex.LexAs(tcFreeformText.ID()), "tokens", 0)

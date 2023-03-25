@@ -188,7 +188,7 @@ func bootstrapSDTSTokensContentAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TOKENS-CONTENT", []string{"TOKENS-ENTRIES", "TOKENS-STATE-BLOCK-LIST"},
 		"ast",
-		sdtsFnTokensContentBlocksAppend,
+		sdtsFnTokensContentBlocksPrepend,
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
