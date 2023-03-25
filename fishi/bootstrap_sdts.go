@@ -139,25 +139,9 @@ func bootstrapSDTSTokensBlockAST(sdts ictiobus.SDTS) {
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "ast"},
 		},
 	)
-	sdts.BindSynthesizedAttribute(
-		"TOKENS-BLOCK", []string{tcHeaderTokens.ID(), "TOKENS-CONTENT"},
-		"ast",
-		sdtsFnMakeTokensBlock,
-		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "ast"},
-		},
-	)
 }
 
 func bootstrapSDTSGrammarBlockAST(sdts ictiobus.SDTS) {
-	sdts.BindSynthesizedAttribute(
-		"GRAMMAR-BLOCK", []string{tcHeaderGrammar.ID(), "GRAMMAR-CONTENT"},
-		"ast",
-		sdtsFnMakeGrammarBlock,
-		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "ast"},
-		},
-	)
 	sdts.BindSynthesizedAttribute(
 		"GRAMMAR-BLOCK", []string{tcHeaderGrammar.ID(), "GRAMMAR-CONTENT"},
 		"ast",

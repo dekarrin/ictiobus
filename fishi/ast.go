@@ -301,13 +301,14 @@ func (content astActionsContent) String() string {
 
 type AttrRef struct {
 	symbol    string
+	wildcard  bool
 	terminal  bool
 	occurance int
 	attribute string
 }
 
 var (
-	attrRefPat = regexp.MustCompile(`({[A-Za-z][^}]*}|\S+)(?:\$(\d+))?\.([\$A-Za-z][$A-Za-z0-9_-]*)`)
+	attrRefPat = regexp.MustCompile(`({\*}|{[A-Za-z][^}]*}|\S+)(?:\$(\d+))?\.([\$A-Za-z][$A-Za-z0-9_-]*)`)
 )
 
 // ParseAttrRef does a simple parse on an attribute reference from a string that
@@ -335,26 +336,31 @@ func ParseAttrRef(s string) (AttrRef, error) {
 		}
 	}
 
-	var terminal bool
-	if sym[0] == '{' && sym[len(sym)-1] == '}' {
-		sym = sym[1 : len(sym)-1]
-		terminal = false
-	} else {
-		terminal = true
-	}
-
-	return AttrRef{
-		symbol:    sym,
-		terminal:  terminal,
+	ar := AttrRef{
 		occurance: idx,
 		attribute: attrName,
-	}, nil
+	}
+
+	if sym == "{*}" {
+		ar.wildcard = true
+	} else {
+		if sym[0] == '{' && sym[len(sym)-1] == '}' {
+			ar.symbol = sym[1 : len(sym)-1]
+		} else {
+			ar.symbol = sym
+			ar.terminal = true
+		}
+	}
+
+	return ar, nil
 }
 
 func (ar AttrRef) String() string {
 	var sb strings.Builder
 
-	if ar.terminal {
+	if ar.wildcard {
+		sb.WriteString("{*}")
+	} else if ar.terminal {
 		sb.WriteString(ar.symbol)
 	} else {
 		sb.WriteRune('{')
@@ -406,7 +412,7 @@ type productionAction struct {
 func (pa productionAction) String() string {
 	var sb strings.Builder
 
-	sb.WriteString("(prod ")
+	sb.WriteString("prod ")
 	if pa.prodNext {
 		sb.WriteString("(next)")
 	} else if pa.prodLiteral != nil {
@@ -421,17 +427,13 @@ func (pa productionAction) String() string {
 		sb.WriteString(fmt.Sprintf("(index %d)", pa.prodIndex))
 	}
 
-	sb.WriteString(": {")
+	sb.WriteString(": ")
 	for i := range pa.actions {
 		sb.WriteString(pa.actions[i].String())
 		if i+1 < len(pa.actions) {
 			sb.WriteString("; ")
 		}
 	}
-	sb.WriteRune('}')
-
-	sb.WriteRune(')')
-
 	return sb.String()
 }
 
@@ -443,9 +445,8 @@ type symbolActions struct {
 func (sa symbolActions) String() string {
 	var sb strings.Builder
 
-	sb.WriteRune('{')
 	sb.WriteString(sa.symbol)
-	sb.WriteString("}: [")
+	sb.WriteString(": [")
 
 	for i := range sa.actions {
 		sb.WriteString(sa.actions[i].String())

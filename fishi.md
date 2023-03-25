@@ -231,7 +231,7 @@ For actions state:
 
 \s+                      %discard
 
-(?:{[A-Za-z][^}]*}|\S+)(?:\$\d+)?\.[\$A-Za-z][$A-Za-z0-9_-]*
+(?:{\*}|{[A-Za-z][^}]*}|\S+)(?:\$\d+)?\.[\$A-Za-z][$A-Za-z0-9_-]*
 %token attr-ref    %human attribute reference literal
 
 [0-9]+
@@ -291,4 +291,83 @@ Because we don't have a state stack yet:
 The following gives the Syntax-directed translations for the FISHI language.
 
 ```fishi
+%%actions
+
+%symbol {FISHISPEC}
+%prod  %action {FISHISPEC}.ast  %hook make_fishispec  %with  {BLOCKS}.value
+
+%symbol {BLOCKS}
+    %prod {BLOCKS} {BLOCK}         %action {BLOCKS}.value
+    %hook block_list_append
+    %with {BLOCKS}$1.value {BLOCK}.ast
+
+    %prod %index 1                 %action {BLOCKS}.value
+    %hook block_list_start
+    %with {BLOCK}$1.value
+
+# TODO: add %prod %all selection.
+%symbol {BLOCK}
+%prod  %action {BLOCK}.ast  %hook ident  %with {*}$0.ast
+%prod  %action {BLOCK}.ast  %hook ident  %with {*}$0.ast
+%prod  %action {BLOCK}.ast  %hook ident  %with {*}$0.ast
+
+
+%symbol {ABLOCK}
+%prod  %action {ABLOCK}.ast  %hook make_ablock  %with {*}$1.ast
+
+%symbol {TBLOCK}
+%prod  %action {TBLOCK}.ast  %hook make_tblock  %with {*}$1.ast
+
+%symbol {GBLOCK}
+%prod  %action {GBLOCK}.ast  %hook make_gblock  %with {*}$1.ast
+
+%symbol {TCONTENT}
+%prod
+    %action {TCONTENT}.ast
+    %hook tokens_content_blocks_start_entry_list
+    %with {*}.value
+%prod
+    %action {TCONTENT}.ast
+    %hook ident
+    %with {*}.value
+%prod
+    %action {TCONTENT}.ast
+    %hook tokens_content_blocks_prepend
+    %with {TSTATE-SET-LIST}.value
+          {TENTRY-LIST}.value
+
+%symbol {ACONTENT}
+%prod
+    %action {ACONTENT}.ast
+    %hook actions_content_blocks_start_sym_actions
+    %with {*}.value
+%prod
+    %action {ACONTENT}.ast
+    %hook ident
+    %with {*}.value
+%prod
+    %action {ACONTENT}.ast
+    %hook actions_content_blocks_prepend
+    %with {ASTATE-SET-LIST}.value
+          {SYM-ACTIONS-LIST}.value
+
+%symbol {GCONTENT}
+%prod
+    %action {GCONTENT}.ast
+    %hook grammar_content_blocks_start_rule_list
+    %with {*}.value
+%prod
+    %action {GCONTENT}.ast
+    %hook ident
+    %with {*}.value
+%prod
+    %action {GCONTENT}.ast
+    %hook grammar_content_blocks_prepend
+    %with {GSTATE-SET-LIST}.value
+          {GRULE-LIST}.value
+
+
+
+
+
 ```
