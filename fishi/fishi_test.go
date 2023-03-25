@@ -12,7 +12,7 @@ import (
 func Test_WithFakeInput(t *testing.T) {
 	assert := assert.New(t)
 
-	actual := Execute([]byte(testInput), "../fishi-parser.cff")
+	_, actual := Execute([]byte(testInput), "../fishi-parser.cff")
 
 	assert.NoError(actual)
 
@@ -24,11 +24,10 @@ func Test_WithFakeInput(t *testing.T) {
 	}
 }
 
-/* do not uncomment until GHI #15 is fixed.
 func Test_SelfHostedMarkdown(t *testing.T) {
 	assert := assert.New(t)
 
-	actual := ExecuteMarkdownFile("../fishi.md")
+	_, actual := ExecuteMarkdownFile("../fishi.md")
 
 	assert.NoError(actual)
 
@@ -38,7 +37,9 @@ func Test_SelfHostedMarkdown(t *testing.T) {
 			fmt.Println(actualSynt.FullMessage())
 		}
 	}
-}*/
+
+	assert.False(true)
+}
 
 func Test_GetFishiFromMarkdown(t *testing.T) {
 	testCases := []struct {

@@ -16,6 +16,11 @@ import (
 	mkparser "github.com/gomarkdown/markdown/parser"
 )
 
+type Results struct {
+	AST  *AST
+	Tree *types.ParseTree
+}
+
 func GetFishiFromMarkdown(mdText []byte) []byte {
 	doc := markdown.Parse(mdText, mkparser.New())
 	var scanner fishiScanner
@@ -67,18 +72,53 @@ func (fs fishiScanner) RenderNode(w io.Writer, node mkast.Node, entering bool) m
 func (fs fishiScanner) RenderHeader(w io.Writer, ast mkast.Node) {}
 func (fs fishiScanner) RenderFooter(w io.Writer, ast mkast.Node) {}
 
-func ExecuteMarkdownFile(filename string) error {
+func ExecuteMarkdownFile(filename string) (Results, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return err
+		return Results{}, err
 	}
 
-	err = ExecuteMarkdown(data)
+	res, err := ExecuteMarkdown(data)
 	if err != nil {
-		return err
+		return res, err
 	}
 
-	return nil
+	return res, nil
+}
+
+func ExecuteMarkdown(mdText []byte) (Results, error) {
+
+	// TODO: read in filename, based on it check for cached version
+
+	// debug steps: output source after preprocess
+	// output token stream
+	// output grammar constructed
+	// output parser table and type
+
+	source := GetFishiFromMarkdown(mdText)
+	return Execute(source, "fishi-parser.cff")
+}
+
+// Execute executes the fishi source code provided.
+func Execute(source []byte, compiledParserFilename string) (Results, error) {
+	// get the frontend
+	fishiFront, err := GetFrontend(compiledParserFilename, true)
+	if err != nil {
+		return Results{}, fmt.Errorf("could not get frontend: %w", err)
+	}
+
+	preprocessedSource := Preprocess(source)
+
+	r := Results{}
+	// now, try to make a parse tree
+	ast, pt, err := fishiFront.AnalyzeString(string(preprocessedSource))
+	r.Tree = pt // need to do this before we return
+	if err != nil {
+		return r, err
+	}
+	r.AST = &ast
+
+	return r, nil
 }
 
 // GetFrontend gets the frontend for the fishi compiler-compiler. If cffFile is
@@ -129,39 +169,4 @@ func GetFrontend(cffFile string, validateSDTS bool) (ictiobus.Frontend[AST], err
 	}
 
 	return fishiFront, nil
-}
-
-func ExecuteMarkdown(mdText []byte) error {
-
-	// TODO: read in filename, based on it check for cached version
-
-	// debug steps: output source after preprocess
-	// output token stream
-	// output grammar constructed
-	// output parser table and type
-
-	source := GetFishiFromMarkdown(mdText)
-	return Execute(source, "fishi-parser.cff")
-}
-
-// Execute executes the fishi source code provided.
-func Execute(source []byte, compiledParserFilename string) error {
-	// get the frontend
-	fishiFront, err := GetFrontend(compiledParserFilename, true)
-	if err != nil {
-		return fmt.Errorf("could not get frontend: %w", err)
-	}
-
-	preprocessedSource := Preprocess(source)
-
-	// now, try to make a parse tree for your own grammar
-	ast, err := fishiFront.AnalyzeString(string(preprocessedSource))
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("AST read from data:\n")
-	fmt.Printf("%s\n", ast.String())
-
-	return nil
 }
