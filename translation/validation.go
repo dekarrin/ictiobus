@@ -41,7 +41,7 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 		if len(evalErr.depGraphs) > 0 {
 			// disconnected depgraph error
 
-			fullMsg := "translation on fake parse tree resulted in disconnected dependency graphs:"
+			fullMsg := "translation on parse tree resulted in disconnected dependency graphs:"
 
 			for i := range evalErr.unexpectedBreaks {
 				br := evalErr.unexpectedBreaks[i]
@@ -49,6 +49,7 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 			}
 
 			if debug.FullDepGraphs {
+				fullMsg += "\nDepGraphs:"
 				for i := range evalErr.depGraphs {
 					dgStr := DepGraphString(evalErr.depGraphs[i])
 					dgStr = rosed.Edit(dgStr).
@@ -94,11 +95,7 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 			}
 			if debug.ParseTrees {
 				treeStr := AddAttributes(*treeErrs[i].Second).String()
-				treeStr = rosed.Edit(treeStr).
-					IndentOpts(1, rosed.Options{IndentStr: errIndentStr}).
-					String()
-
-				fullErrStr += fmt.Sprintf("\n\nFailed Tree %d:\n%s\n"+errIndentStr+"%s", i+1, treeStr, treeErrs[i].First.Error())
+				fullErrStr += fmt.Sprintf("\n\nFailed Tree %d:\n%s\nParse Tree:\n%s", i+1, treeErrs[i].First.Error(), treeStr)
 			} else {
 				fullErrStr += fmt.Sprintf("\n\nFailed Tree %d: %s", i+1, treeErrs[i].First.Error())
 			}
