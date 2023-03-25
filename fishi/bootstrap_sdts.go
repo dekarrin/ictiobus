@@ -260,6 +260,19 @@ func bootstrapSDTSActionsStateBlockValue(sdts ictiobus.SDTS) {
 	)
 }
 
+func bootstrapSDTSTokensStateBlockValue(sdts ictiobus.SDTS) {
+	sdts.BindSynthesizedAttribute(
+		"TOKENS-STATE-BLOCK", []string{"STATE-INSTRUCTION", "TOKENS-ENTRIES"},
+		"value",
+		sdtsFnMakeTokensContentNode,
+		[]translation.AttrRef{
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "state"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+		},
+	)
+}
+
+// WE ARE HERE
 func bootstrapSDTSProdActionsValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"PROD-ACTIONS", []string{"PROD-ACTIONS", "PROD-ACTION"},
@@ -562,18 +575,6 @@ func bootstrapSDTSGrammarStateBlockListValue(sdts ictiobus.SDTS) {
 		sdtsFnGrammarStateBlockListStart,
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
-		},
-	)
-}
-
-func bootstrapSDTSTokensStateBlockValue(sdts ictiobus.SDTS) {
-	sdts.BindSynthesizedAttribute(
-		"TOKENS-STATE-BLOCK", []string{"STATE-INSTRUCTION", "TOKENS-ENTRIES"},
-		"value",
-		sdtsFnMakeTokensContentNode,
-		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "state"},
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 }

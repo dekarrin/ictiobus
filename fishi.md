@@ -367,6 +367,26 @@ The following gives the Syntax-directed translations for the FISHI language.
           {GRULE-LIST}.value
 
 
+%symbol {GSTATE-SET}
+%prod
+    %action {GSTATE-SET}.value
+    %hook make_grammar_content_node
+    %with   {STATE-INS}.state
+            {GRULE-LIST}.value
+
+%symbol {ASTATE-SET}
+%prod
+    %action {ASTATE-SET}.value
+    %hook make_actions_content_node
+    %with   {STATE-INS}.state
+            {SYM-ACTIONS-LIST}.value
+
+%symbol {TSTATE-SET}
+%prod
+    %action {TSTATE-SET}.value
+    %hook make_tokens_content_node
+    %with   {STATE-INS}.state
+            {TENTRY-LIST}.value
 
 
 
