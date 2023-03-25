@@ -34,6 +34,9 @@ Flags:
 		Disable writing of any frontend components cache, even if a component
 		was built by the invocation.
 
+	-version
+		Print the version of the ictiobus compiler-compiler and exit.
+
 	-val-sdts-off
 		Disable validatione of the SDTS of the resulting fishi.
 
@@ -153,6 +156,8 @@ var (
 
 	lexerTrace  *bool = flag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
 	parserTrace *bool = flag.Bool("debug-parser", false, "Print the parser trace to stdout")
+
+	version *bool = flag.Bool("version", false, "Print the version of ictcc and exit")
 )
 
 func init() {
@@ -185,6 +190,11 @@ func main() {
 	}()
 
 	flag.Parse()
+
+	if *version {
+		fmt.Println(GetVersionString())
+		return
+	}
 
 	args := flag.Args()
 

@@ -17,4 +17,4 @@ ext=
 for_windows=
 [ "$(go env GOOS)" = "windows" ] && for_windows=1 && ext=".exe"
 
-env CGO_ENABLED=0 go build -o ictcc$ext cmd/ictcc/main.go
+env CGO_ENABLED=0 go build -o ictcc$ext cmd/ictcc/*.go
