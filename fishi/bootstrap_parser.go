@@ -42,7 +42,7 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddTerm(tcDirToken.ID(), tcDirToken)
 	bootCfg.AddTerm(tcDirWith.ID(), tcDirWith)
 	bootCfg.AddTerm(tcFreeformText.ID(), tcFreeformText)
-	bootCfg.AddTerm(tcNewline.ID(), tcNewline)
+	//bootCfg.AddTerm(tcNewline.ID(), tcNewline)
 	bootCfg.AddTerm(tcTerminal.ID(), tcTerminal)
 	bootCfg.AddTerm(tcNonterminal.ID(), tcNonterminal)
 	bootCfg.AddTerm(tcEq.ID(), tcEq)
@@ -66,10 +66,12 @@ func CreateBootstrapGrammar() grammar.Grammar {
 
 	bootCfg.AddRule("ACTIONS-BLOCK", []string{tcHeaderActions.ID(), "ACTIONS-CONTENT"})
 
-	bootCfg.AddRule("ACTIONS-CONTENT", []string{"ACTIONS-CONTENT", "ACTIONS-STATE-BLOCK"})
-	bootCfg.AddRule("ACTIONS-CONTENT", []string{"ACTIONS-CONTENT", "SYMBOL-ACTIONS-LIST"})
-	bootCfg.AddRule("ACTIONS-CONTENT", []string{"ACTIONS-STATE-BLOCK"})
+	bootCfg.AddRule("ACTIONS-CONTENT", []string{"SYMBOL-ACTIONS-LIST", "ACTIONS-STATE-BLOCK-LIST"})
 	bootCfg.AddRule("ACTIONS-CONTENT", []string{"SYMBOL-ACTIONS-LIST"})
+	bootCfg.AddRule("ACTIONS-CONTENT", []string{"ACTIONS-STATE-BLOCK-LIST"})
+
+	bootCfg.AddRule("ACTIONS-STATE-BLOCK-LIST", []string{"ACTIONS-STATE-BLOCK-LIST", "ACTIONS-STATE-BLOCK"})
+	bootCfg.AddRule("ACTIONS-STATE-BLOCK-LIST", []string{"ACTIONS-STATE-BLOCK"})
 
 	bootCfg.AddRule("ACTIONS-STATE-BLOCK", []string{"STATE-INSTRUCTION", "SYMBOL-ACTIONS-LIST"})
 
@@ -113,28 +115,21 @@ func CreateBootstrapGrammar() grammar.Grammar {
 
 	// tokens
 	bootCfg.AddRule("TOKENS-BLOCK", []string{tcHeaderTokens.ID(), "TOKENS-CONTENT"})
-	bootCfg.AddRule("TOKENS-BLOCK", []string{tcHeaderTokens.ID(), "NEWLINES", "TOKENS-CONTENT"})
 
-	bootCfg.AddRule("TOKENS-CONTENT", []string{"TOKENS-ENTRIES", "NEWLINES", "TOKENS-STATE-BLOCK-LIST"})
 	bootCfg.AddRule("TOKENS-CONTENT", []string{"TOKENS-ENTRIES", "TOKENS-STATE-BLOCK-LIST"})
 	bootCfg.AddRule("TOKENS-CONTENT", []string{"TOKENS-ENTRIES"})
 	bootCfg.AddRule("TOKENS-CONTENT", []string{"TOKENS-STATE-BLOCK-LIST"})
 
-	bootCfg.AddRule("TOKENS-STATE-BLOCK-LIST", []string{"TOKENS-STATE-BLOCK-LIST", "NEWLINES", "TOKENS-STATE-BLOCK"})
 	bootCfg.AddRule("TOKENS-STATE-BLOCK-LIST", []string{"TOKENS-STATE-BLOCK-LIST", "TOKENS-STATE-BLOCK"})
 	bootCfg.AddRule("TOKENS-STATE-BLOCK-LIST", []string{"TOKENS-STATE-BLOCK"})
 
-	bootCfg.AddRule("TOKENS-STATE-BLOCK", []string{"STATE-INSTRUCTION", "NEWLINES", "TOKENS-ENTRIES"})
+	bootCfg.AddRule("TOKENS-STATE-BLOCK", []string{"STATE-INSTRUCTION", "TOKENS-ENTRIES"})
 
-	bootCfg.AddRule("TOKENS-ENTRIES", []string{"TOKENS-ENTRIES", "NEWLINES", "TOKENS-ENTRY"})
+	bootCfg.AddRule("TOKENS-ENTRIES", []string{"TOKENS-ENTRIES", "TOKENS-ENTRY"})
 	bootCfg.AddRule("TOKENS-ENTRIES", []string{"TOKENS-ENTRY"})
 
-	bootCfg.AddRule("TOKENS-ENTRY", []string{"PATTERN", "NEWLINES", "TOKEN-OPTS"})
-	bootCfg.AddRule("TOKENS-ENTRY", []string{"PATTERN", "NEWLINES", "TOKEN-OPTS", "NEWLINES"})
 	bootCfg.AddRule("TOKENS-ENTRY", []string{"PATTERN", "TOKEN-OPTS"})
-	bootCfg.AddRule("TOKENS-ENTRY", []string{"PATTERN", "TOKEN-OPTS", "NEWLINES"})
 
-	bootCfg.AddRule("TOKEN-OPTS", []string{"TOKEN-OPTS", "NEWLINES", "TOKEN-OPTION"})
 	bootCfg.AddRule("TOKEN-OPTS", []string{"TOKEN-OPTS", "TOKEN-OPTION"})
 	bootCfg.AddRule("TOKEN-OPTS", []string{"TOKEN-OPTION"})
 
@@ -153,24 +148,23 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddRule("PATTERN", []string{"TEXT"})
 
 	bootCfg.AddRule("GRAMMAR-BLOCK", []string{tcHeaderGrammar.ID(), "GRAMMAR-CONTENT"})
-	bootCfg.AddRule("GRAMMAR-BLOCK", []string{tcHeaderGrammar.ID(), "NEWLINES", "GRAMMAR-CONTENT"})
 
-	bootCfg.AddRule("GRAMMAR-CONTENT", []string{"GRAMMAR-CONTENT", "GRAMMAR-STATE-BLOCK"})
-	bootCfg.AddRule("GRAMMAR-CONTENT", []string{"GRAMMAR-CONTENT", "GRAMMAR-RULES"})
-	bootCfg.AddRule("GRAMMAR-CONTENT", []string{"GRAMMAR-STATE-BLOCK"})
+	bootCfg.AddRule("GRAMMAR-CONTENT", []string{"GRAMMAR-RULES", "GRAMMAR-STATE-BLOCK-LIST"})
 	bootCfg.AddRule("GRAMMAR-CONTENT", []string{"GRAMMAR-RULES"})
+	bootCfg.AddRule("GRAMMAR-CONTENT", []string{"GRAMMAR-STATE-BLOCK-LIST"})
 
-	bootCfg.AddRule("GRAMMAR-STATE-BLOCK", []string{"STATE-INSTRUCTION", "NEWLINES", "GRAMMAR-RULES"})
+	bootCfg.AddRule("GRAMMAR-STATE-BLOCK-LIST", []string{"GRAMMAR-STATE-BLOCK-LIST", "GRAMMAR-STATE-BLOCK"})
+	bootCfg.AddRule("GRAMMAR-STATE-BLOCK-LIST", []string{"GRAMMAR-STATE-BLOCK"})
 
-	bootCfg.AddRule("GRAMMAR-RULES", []string{"GRAMMAR-RULES", "NEWLINES", "GRAMMAR-RULE"})
+	bootCfg.AddRule("GRAMMAR-STATE-BLOCK", []string{"STATE-INSTRUCTION", "GRAMMAR-RULES"})
+
+	bootCfg.AddRule("GRAMMAR-RULES", []string{"GRAMMAR-RULES", "GRAMMAR-RULE"})
 	bootCfg.AddRule("GRAMMAR-RULES", []string{"GRAMMAR-RULE"})
 
 	bootCfg.AddRule("GRAMMAR-RULE", []string{tcNonterminal.ID(), tcEq.ID(), "ALTERNATIONS"})
-	bootCfg.AddRule("GRAMMAR-RULE", []string{tcNonterminal.ID(), tcEq.ID(), "ALTERNATIONS", "NEWLINES"})
 
 	bootCfg.AddRule("ALTERNATIONS", []string{"PRODUCTION"})
 	bootCfg.AddRule("ALTERNATIONS", []string{"ALTERNATIONS", tcAlt.ID(), "PRODUCTION"})
-	bootCfg.AddRule("ALTERNATIONS", []string{"ALTERNATIONS", "NEWLINES", tcAlt.ID(), "PRODUCTION"})
 
 	bootCfg.AddRule("PRODUCTION", []string{"SYMBOL-SEQUENCE"})
 	bootCfg.AddRule("PRODUCTION", []string{tcEpsilon.ID()})
@@ -181,15 +175,10 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddRule("SYMBOL", []string{tcNonterminal.ID()})
 	bootCfg.AddRule("SYMBOL", []string{tcTerminal.ID()})
 
-	bootCfg.AddRule("NEWLINES", []string{"NEWLINES", tcNewline.ID()})
-	bootCfg.AddRule("NEWLINES", []string{tcNewline.ID()})
-
-	bootCfg.AddRule("STATE-INSTRUCTION", []string{tcDirState.ID(), "NEWLINES", "ID-EXPR"})
 	bootCfg.AddRule("STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"})
 
 	bootCfg.AddRule("ID-EXPR", []string{tcId.ID()})
 	bootCfg.AddRule("ID-EXPR", []string{tcTerminal.ID()})
-	bootCfg.AddRule("ID-EXPR", []string{"TEXT"})
 
 	bootCfg.AddRule("TEXT", []string{"TEXT", "TEXT-ELEMENT"})
 	bootCfg.AddRule("TEXT", []string{"TEXT-ELEMENT"})

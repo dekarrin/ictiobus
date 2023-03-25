@@ -6,7 +6,7 @@ import (
 )
 
 func CreateBootstrapLexer() ictiobus.Lexer {
-	bootLx := ictiobus.NewLexer()
+	bootLx := ictiobus.NewLazyLexer()
 
 	// default state, shared by all
 	bootLx.RegisterClass(tcEscseq, "")
@@ -14,7 +14,6 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.RegisterClass(tcHeaderGrammar, "")
 	bootLx.RegisterClass(tcHeaderActions, "")
 	//bootLx.RegisterClass(tcDirStart, "")
-	bootLx.RegisterClass(tcDirState, "")
 
 	// default patterns and defs
 	bootLx.AddPattern(`%!.`, lex.LexAs(tcEscseq.ID()), "", 0)
@@ -22,7 +21,20 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.AddPattern(`%%[Gg][Rr][Aa][Mm][Mm][Aa][Rr]`, lex.LexAndSwapState(tcHeaderGrammar.ID(), "grammar"), "", 0)
 	bootLx.AddPattern(`%%[Aa][Cc][Tt][Ii][Oo][Nn][Ss]`, lex.LexAndSwapState(tcHeaderActions.ID(), "actions"), "", 0)
 	//bootLx.AddPattern(`%[Ss][Tt][Aa][Rr][Tt]`, lex.LexAs(tcDirStart.ID()), "")
-	bootLx.AddPattern(`%[Ss][Tt][Aa][Tt][Ee]`, lex.LexAs(tcDirState.ID()), "", 0)
+
+	// t-a-g, you're it, glub glub glubglubglub glub 38D
+
+	// Sure would 8e gr8 if we had a st8 stack ::::/
+
+	bootLx.RegisterClass(tcId, "state-t")
+	bootLx.RegisterClass(tcId, "state-a")
+	bootLx.RegisterClass(tcId, "state-g")
+	bootLx.AddPattern(`\s+`, lex.Discard(), "state-t", 0)
+	bootLx.AddPattern(`\s+`, lex.Discard(), "state-a", 0)
+	bootLx.AddPattern(`\s+`, lex.Discard(), "state-g", 0)
+	bootLx.AddPattern(`[A-Za-z][A-Za-z0-9_-]*`, lex.LexAndSwapState(tcId.ID(), "tokens"), "state-t", 0)
+	bootLx.AddPattern(`[A-Za-z][A-Za-z0-9_-]*`, lex.LexAndSwapState(tcId.ID(), "actions"), "state-a", 0)
+	bootLx.AddPattern(`[A-Za-z][A-Za-z0-9_-]*`, lex.LexAndSwapState(tcId.ID(), "tokens"), "state-g", 0)
 
 	// tokens classes
 	bootLx.RegisterClass(tcFreeformText, "tokens")
@@ -33,8 +45,10 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.RegisterClass(tcDirDiscard, "tokens")
 	bootLx.RegisterClass(tcDirPriority, "tokens")
 	bootLx.RegisterClass(tcInt, "tokens")
+	bootLx.RegisterClass(tcDirState, "tokens")
 
 	// tokens patterns
+	bootLx.AddPattern(`%[Ss][Tt][Aa][Tt][Ee]`, lex.LexAndSwapState(tcDirState.ID(), "state-t"), "tokens", 0)
 	bootLx.AddPattern(`%[Ss][Tt][Aa][Tt][Ee][Ss][Hh][Ii][Ff][Tt]`, lex.LexAs(tcDirShift.ID()), "tokens", 1)
 	bootLx.AddPattern(`%[Hh][Uu][Mm][Aa][Nn]`, lex.LexAs(tcDirHuman.ID()), "tokens", 0)
 	bootLx.AddPattern(`%[Tt][Oo][Kk][Ee][Nn]`, lex.LexAs(tcDirToken.ID()), "tokens", 0)
@@ -42,6 +56,7 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.AddPattern(`%[Pp][Rr][Ii][Oo][Rr][Ii][Tt][Yy]`, lex.LexAs(tcDirPriority.ID()), "tokens", 0)
 	bootLx.AddPattern(`[^\S\n]+`, lex.Discard(), "tokens", 0)
 	bootLx.AddPattern(`(?:\n\s*)?[^%\s]+[^%\n]*`, lex.LexAs(tcFreeformText.ID()), "tokens", 0)
+	bootLx.AddPattern(`\n`, lex.Discard(), "tokens", 0)
 	//bootLx.AddPattern(`%[Dd][Ee][Ff][Aa][Uu][Ll][Tt]`, lex.LexAs(tcDirDefault.ID()), "tokens")
 
 	// grammar classes
@@ -50,8 +65,10 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.RegisterClass(tcNonterminal, "grammar")
 	bootLx.RegisterClass(tcTerminal, "grammar")
 	bootLx.RegisterClass(tcEpsilon, "grammar")
+	bootLx.RegisterClass(tcDirState, "grammar")
 
 	// grammar patterns
+	bootLx.AddPattern(`%[Ss][Tt][Aa][Tt][Ee]`, lex.LexAndSwapState(tcDirState.ID(), "state-g"), "grammar", 0)
 	bootLx.AddPattern(`[^\S\n]+`, lex.Discard(), "grammar", 0)
 	bootLx.AddPattern(`(?:\n\s*)?{A-Za-z][^}]*}`, lex.LexAs(tcNonterminal.ID()), "grammar", 0)
 	bootLx.AddPattern(`\s+`, lex.Discard(), "grammar", 0)
@@ -74,12 +91,14 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.RegisterClass(tcId, "actions")
 	bootLx.RegisterClass(tcTerminal, "actions")
 	bootLx.RegisterClass(tcEpsilon, "actions")
+	bootLx.RegisterClass(tcDirState, "actions")
 
 	// actions patterns
 	bootLx.AddPattern(`\s+`, lex.Discard(), "actions", 0)
 	bootLx.AddPattern(`(?:{[A-Za-z][^}]*}|\S+)(?:\$\d+)?\.[\$A-Za-z][$A-Za-z0-9_-]*`, lex.LexAs(tcAttrRef.ID()), "actions", 0)
 	bootLx.AddPattern(`[0-9]+`, lex.LexAs(tcInt.ID()), "actions", 0)
 	bootLx.AddPattern(`{[A-Za-z][^}]*}`, lex.LexAs(tcNonterminal.ID()), "actions", 0)
+	bootLx.AddPattern(`%[Ss][Tt][Aa][Tt][Ee]`, lex.LexAndSwapState(tcDirState.ID(), "state-a"), "grammar", 0)
 	bootLx.AddPattern(`%[Ss][Yy][Mm][Bb][Oo][Ll]`, lex.LexAs(tcDirSymbol.ID()), "actions", 0)
 	bootLx.AddPattern(`%[Pp][Rr][Oo][Dd]`, lex.LexAs(tcDirProd.ID()), "actions", 0)
 	bootLx.AddPattern(`%[Ww][Ii][Tt][Hh]`, lex.LexAs(tcDirWith.ID()), "actions", 0)
