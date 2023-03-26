@@ -846,15 +846,6 @@ func bootstrapSDTSStateInstructionState(sdts ictiobus.SDTS) {
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
-
-	sdts.BindSynthesizedAttribute(
-		"STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"},
-		"state",
-		"identity",
-		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
-		},
-	)
 }
 
 func bootstrapSDTSIDExprValue(sdts ictiobus.SDTS) {
@@ -873,15 +864,6 @@ func bootstrapSDTSIDExprValue(sdts ictiobus.SDTS) {
 		"identity",
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$text"},
-		},
-	)
-
-	sdts.BindSynthesizedAttribute(
-		"ID-EXPR", []string{"TEXT"},
-		"value",
-		"identity",
-		[]translation.AttrRef{
-			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
