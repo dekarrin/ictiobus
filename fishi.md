@@ -374,7 +374,7 @@ The following gives the Syntax-directed translations for the FISHI language.
 
 
 %symbol {ATTR-REF-LIST}
-%prod %set {^}.value = attr_ref_list_append({*}$0.value, {*}$1.$text)
+%prod %set {^}.value = attr_ref_list_append({*}.value, {*}$1.$text)
 %prod %set {^}.value = attr_ref_list_start({*}.value)
 
 %symbol {WITH}
@@ -384,5 +384,15 @@ The following gives the Syntax-directed translations for the FISHI language.
 %prod %set {^}.value = make_semantic_action({*}$1.$text, {*}$3.$text)
 %prod %set {^}.value = make_semantic_action
                         ({*}$1.$text, {*}$3.$text, {*}$4.value)
+
+%symbol {SEM-ACTION-LIST}
+%prod %set {^}.value = attr_ref_list_append({*}.value, {*}$1.value)
+%prod %set {^}.value = attr_ref_list_start({*}.value)
+
+%symbol {ASYM}
+%prod %set {^}.value = get_nonterminal({*}.$text)
+%prod %set {^}.value = get_terminal({*}.$text)
+%prod %set {^}.value = get_int({*}.$text)
+%prod %set {^}.value = ident({*}.$text)
 
 ```
