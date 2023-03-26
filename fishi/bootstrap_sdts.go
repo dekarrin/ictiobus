@@ -272,7 +272,6 @@ func bootstrapSDTSTokensStateBlockValue(sdts ictiobus.SDTS) {
 	)
 }
 
-// WE ARE HERE
 func bootstrapSDTSProdActionsValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"PROD-ACTIONS", []string{"PROD-ACTIONS", "PROD-ACTION"},
@@ -327,7 +326,7 @@ func bootstrapSDTSWithClauseValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSSemanticActionValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"SEMANTIC-ACTION", []string{tcDirAction.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID()},
+		"SEMANTIC-ACTION", []string{tcDirSet.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID()},
 		"value",
 		sdtsFnMakeSemanticAction,
 		[]translation.AttrRef{
@@ -336,7 +335,7 @@ func bootstrapSDTSSemanticActionValue(sdts ictiobus.SDTS) {
 		},
 	)
 	sdts.BindSynthesizedAttribute(
-		"SEMANTIC-ACTION", []string{tcDirAction.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID(), "WITH-CLAUSE"},
+		"SEMANTIC-ACTION", []string{tcDirSet.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID(), "WITH-CLAUSE"},
 		"value",
 		sdtsFnMakeSemanticAction,
 		[]translation.AttrRef{

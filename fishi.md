@@ -57,8 +57,8 @@ This is the context-free grammar for FISHI, glub.
 
 {SEM-ACTION-LIST}  =  {SEM-ACTION-LIST} {SEM-ACTION} | {SEM-ACTION}
 
-{SEM-ACTION}       =  dir-action attr-ref dir-hook id
-                   |  dir-action attr-ref dir-hook id {WITH}
+{SEM-ACTION}       =  dir-set attr-ref dir-hook id
+                   |  dir-set attr-ref dir-hook id {WITH}
 
 {WITH}             =  dir-with ATTR-REF-LIST
 
@@ -231,7 +231,7 @@ For actions state:
 
 \s+                      %discard
 
-(?:{\*}|{[A-Za-z][^}]*}|\S+)(?:\$\d+)?\.[\$A-Za-z][$A-Za-z0-9_-]*
+(?:{\^}|{\*}|{[A-Za-z][^{}]*}|[^\s{}]+)(?:\$\d+)?\.[\$A-Za-z][$A-Za-z0-9_-]*
 %token attr-ref    %human attribute reference literal
 
 [0-9]+
@@ -249,14 +249,17 @@ For actions state:
 %!%[Pp][Rr][Oo][Dd]
 %token dir-prod    %human %!%prod directive
 
-%!%[Ww][Ii][Tt][Hh]
-%token dir-with    %human %!%with directive
+(?:\(|%!%[Ww][Ii][Tt][Hh])
+%token dir-with    %human %!%with directive '('
 
-%!%[Hh][Oo][Oo][Kk]
-%token dir-hook    %human %!%hook directive
+(?:=|%!%[Hh][Oo][Oo][Kk])
+%token dir-hook    %human %!%hook directive '='
 
-%!%[Aa][Cc][Tt][Ii][Oo][Nn]
-%token dir-action  %human %!%action directive
+\)                 %discard
+,                  %discard
+
+%!%[Ss][Ee][Tt]
+%token dir-set     %human %!%set directive
 
 %!%[Ii][Nn][Dd][Ee][Xx]
 %token dir-index   %human %!%index directive
@@ -294,100 +297,92 @@ The following gives the Syntax-directed translations for the FISHI language.
 %%actions
 
 %symbol {FISHISPEC}
-%prod  %action {FISHISPEC}.ast  %hook make_fishispec  %with  {BLOCKS}.value
+%prod %set      {^}.ast = make_fishispec({BLOCKS}.value)
 
 %symbol {BLOCKS}
-    %prod {BLOCKS} {BLOCK}         %action {BLOCKS}.value
-    %hook block_list_append
-    %with {BLOCKS}$1.value {BLOCK}.ast
+%prod {BLOCKS} {BLOCK}
+%set {^}.value = block_list_append({BLOCKS}$1.value, {BLOCK}.ast)
 
-    %prod %index 1                 %action {BLOCKS}.value
-    %hook block_list_start
-    %with {BLOCK}$1.value
+%prod %index 1
+%set {^}.value = block_list_start({BLOCK}$1.value)
 
 # TODO: add %prod %all selection.
 %symbol {BLOCK}
-%prod  %action {BLOCK}.ast  %hook ident  %with {*}$0.ast
-%prod  %action {BLOCK}.ast  %hook ident  %with {*}$0.ast
-%prod  %action {BLOCK}.ast  %hook ident  %with {*}$0.ast
+%prod %set {^}.ast = ident({*}.ast)
+%prod %set {^}.ast = ident({*}.ast)
+%prod %set {^}.ast = ident({*}.ast)
 
 
 %symbol {ABLOCK}
-%prod  %action {ABLOCK}.ast  %hook make_ablock  %with {*}$1.ast
+%prod %set {^}.ast = make_ablock({*}$1.ast)
 
 %symbol {TBLOCK}
-%prod  %action {TBLOCK}.ast  %hook make_tblock  %with {*}$1.ast
+%prod %set {^}.ast = make_tblock({*}$1.ast
 
 %symbol {GBLOCK}
-%prod  %action {GBLOCK}.ast  %hook make_gblock  %with {*}$1.ast
+%prod %set {^}.ast = make_gblock({*}$1.ast)
 
 %symbol {TCONTENT}
-%prod
-    %action {TCONTENT}.ast
-    %hook tokens_content_blocks_start_entry_list
-    %with {*}.value
-%prod
-    %action {TCONTENT}.ast
-    %hook ident
-    %with {*}.value
-%prod
-    %action {TCONTENT}.ast
-    %hook tokens_content_blocks_prepend
-    %with {TSTATE-SET-LIST}.value
-          {TENTRY-LIST}.value
+%prod %set {^}.ast = tokens_content_blocks_start_entry_list({*}.value)
+%prod %set {^}.ast = ident({*}.value)
+%prod %set {^}.ast = tokens_content_blocks_prepend(
+                        {TSTATE-SET-LIST}.value,
+                        {TENTRY-LIST}.value
+                     )
 
 %symbol {ACONTENT}
-%prod
-    %action {ACONTENT}.ast
-    %hook actions_content_blocks_start_sym_actions
-    %with {*}.value
-%prod
-    %action {ACONTENT}.ast
-    %hook ident
-    %with {*}.value
-%prod
-    %action {ACONTENT}.ast
-    %hook actions_content_blocks_prepend
-    %with {ASTATE-SET-LIST}.value
-          {SYM-ACTIONS-LIST}.value
+%prod %set {^}.ast = actions_content_blocks_start_sym_actions({*}.value)
+%prod %set {^}.ast = ident({*}.value)
+%prod %set {^}.ast = actions_content_blocks_prepend(
+                        {ASTATE-SET-LIST}.value,
+                        {SYM-ACTIONS-LIST}.value
+                     )
 
 %symbol {GCONTENT}
-%prod
-    %action {GCONTENT}.ast
-    %hook grammar_content_blocks_start_rule_list
-    %with {*}.value
-%prod
-    %action {GCONTENT}.ast
-    %hook ident
-    %with {*}.value
-%prod
-    %action {GCONTENT}.ast
-    %hook grammar_content_blocks_prepend
-    %with {GSTATE-SET-LIST}.value
-          {GRULE-LIST}.value
+%prod %set {^}.ast = grammar_content_blocks_start_rule_list({*}.value)
+%prod %set {^}.ast = ident({*}.value)
+%prod %set {^}.ast = grammar_content_blocks_prepend(
+                        {GSTATE-SET-LIST}.value
+                        {GRULE-LIST}.value
+                     )
 
 
 %symbol {GSTATE-SET}
-%prod
-    %action {GSTATE-SET}.value
-    %hook make_grammar_content_node
-    %with   {STATE-INS}.state
-            {GRULE-LIST}.value
+%prod %set {^}.value = make_grammar_content_node(
+                        {STATE-INS}.state
+                        {GRULE-LIST}.value
+                     )
 
 %symbol {ASTATE-SET}
-%prod
-    %action {ASTATE-SET}.value
-    %hook make_actions_content_node
-    %with   {STATE-INS}.state
-            {SYM-ACTIONS-LIST}.value
+%prod %set {^}.value = make_actions_content_node(
+                        {STATE-INS}.state
+                        {SYM-ACTIONS-LIST}.value
+                     )
 
 %symbol {TSTATE-SET}
-%prod
-    %action {TSTATE-SET}.value
-    %hook make_tokens_content_node
-    %with   {STATE-INS}.state
-            {TENTRY-LIST}.value
+%prod %set {^}.value = make_tokens_content_node(
+                        {STATE-INS}.state
+                        {TENTRY-LIST}.value
+                       )
+
+%symbol {PROD-ACTION-LIST}
+%prod %set {^}.value = prod_actions_list_append(
+                        {PROD-ACTION-LIST}.value
+                        {PROD-ACTION}.value
+                       )
+%prod %set {^}.value = prod_action_list_start({PROD-ACTION}.value)
 
 
+%symbol {ATTR-REF-LIST}
+%prod %set {^}.value = attr_ref_list_append({*}$0.value, {*}$1.$text)
+%prod %set {^}.value = attr_ref_list_start({*}.value)
+
+%symbol {WITH}
+%prod %set {^}.value = ident({*}$1.value)
+
+%symbol {SEM-ACTION}
+%prod %set {^}.value = make_semantic_action({*}$1.$text, {*}$3.$text)
+%prod %set {^}.value = make_semantic_action
+                        ({*}$1.$text, {*}$3.$text, {*}$4.value)
 
 ```

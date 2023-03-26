@@ -13,7 +13,7 @@ var (
 	tcHeaderTokens          = lex.NewTokenClass("tokens_header", "'tokens' header")
 	tcHeaderGrammar         = lex.NewTokenClass("grammar_header", "'grammar' header")
 	tcHeaderActions         = lex.NewTokenClass("actions_header", "'actions' header")
-	tcDirAction             = lex.NewTokenClass("action_dir", "'action' directive")
+	tcDirSet                = lex.NewTokenClass("set_dir", "'set' directive")
 	tcDirDiscard            = lex.NewTokenClass("discard", "%discard")
 	tcDirHook               = lex.NewTokenClass("hook_dir", "'hook' directive")
 	tcDirHuman              = lex.NewTokenClass("human_dir", "'human' directive")

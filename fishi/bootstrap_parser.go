@@ -29,7 +29,7 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddTerm(tcHeaderTokens.ID(), tcHeaderTokens)
 	bootCfg.AddTerm(tcHeaderGrammar.ID(), tcHeaderGrammar)
 	bootCfg.AddTerm(tcHeaderActions.ID(), tcHeaderActions)
-	bootCfg.AddTerm(tcDirAction.ID(), tcDirAction)
+	bootCfg.AddTerm(tcDirSet.ID(), tcDirSet)
 	//bootCfg.AddTerm(tcDirDefault.ID(), tcDirDefault)
 	bootCfg.AddTerm(tcDirHook.ID(), tcDirHook)
 	bootCfg.AddTerm(tcDirHuman.ID(), tcDirHuman)
@@ -91,8 +91,8 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddRule("SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTIONS", "SEMANTIC-ACTION"})
 	bootCfg.AddRule("SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTION"})
 
-	bootCfg.AddRule("SEMANTIC-ACTION", []string{tcDirAction.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID()})
-	bootCfg.AddRule("SEMANTIC-ACTION", []string{tcDirAction.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID(), "WITH-CLAUSE"})
+	bootCfg.AddRule("SEMANTIC-ACTION", []string{tcDirSet.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID()})
+	bootCfg.AddRule("SEMANTIC-ACTION", []string{tcDirSet.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID(), "WITH-CLAUSE"})
 
 	bootCfg.AddRule("WITH-CLAUSE", []string{tcDirWith.ID(), "ATTR-REFS"})
 

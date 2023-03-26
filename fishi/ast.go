@@ -301,6 +301,7 @@ func (content astActionsContent) String() string {
 
 type AttrRef struct {
 	symbol    string
+	head      bool
 	wildcard  bool
 	terminal  bool
 	occurance int
@@ -308,7 +309,7 @@ type AttrRef struct {
 }
 
 var (
-	attrRefPat = regexp.MustCompile(`({\*}|{[A-Za-z][^}]*}|\S+)(?:\$(\d+))?\.([\$A-Za-z][$A-Za-z0-9_-]*)`)
+	attrRefPat = regexp.MustCompile(`({\^}|{\*}|{[A-Za-z][^{}]*}|[^\s{}]+)(?:\$(\d+))?\.([\$A-Za-z][$A-Za-z0-9_-]*)`)
 )
 
 // ParseAttrRef does a simple parse on an attribute reference from a string that
@@ -343,6 +344,8 @@ func ParseAttrRef(s string) (AttrRef, error) {
 
 	if sym == "{*}" {
 		ar.wildcard = true
+	} else if sym == "{^}" {
+		ar.head = true
 	} else {
 		if sym[0] == '{' && sym[len(sym)-1] == '}' {
 			ar.symbol = sym[1 : len(sym)-1]
@@ -360,6 +363,8 @@ func (ar AttrRef) String() string {
 
 	if ar.wildcard {
 		sb.WriteString("{*}")
+	} else if ar.head {
+		sb.WriteString("{^}")
 	} else if ar.terminal {
 		sb.WriteString(ar.symbol)
 	} else {
