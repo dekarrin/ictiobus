@@ -107,6 +107,7 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	bootLx.AddPattern(`%[Ss][Tt][Aa][Tt][Ee]`, lex.LexAndSwapState(tcDirState.ID(), "state-a"), "actions", 0)
 	bootLx.AddPattern(`%[Ss][Yy][Mm][Bb][Oo][Ll]`, lex.LexAs(tcDirSymbol.ID()), "actions", 0)
 	bootLx.AddPattern(`%[Pp][Rr][Oo][Dd]`, lex.LexAs(tcDirProd.ID()), "actions", 0)
+	bootLx.AddPattern(`\(\)`, lex.Discard(), "actions", 0)
 	bootLx.AddPattern(`(?:\(|%[Ww][Ii][Tt][Hh])`, lex.LexAs(tcDirWith.ID()), "actions", 0)
 	bootLx.AddPattern(`(?:=|%[Hh][Oo][Oo][Kk])`, lex.LexAs(tcDirHook.ID()), "actions", 0)
 	bootLx.AddPattern(`\)`, lex.Discard(), "actions", 0)

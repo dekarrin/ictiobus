@@ -256,6 +256,7 @@ For actions state:
 %token dir-hook    %human %!%hook directive '='
 
 \)                 %discard
+\(\)               %discard
 ,                  %discard
 
 %!%[Ss][Ee][Tt]
@@ -394,5 +395,74 @@ The following gives the Syntax-directed translations for the FISHI language.
 %prod %set {^}.value = get_terminal({*}.$text)
 %prod %set {^}.value = get_int({*}.$text)
 %prod %set {^}.value = ident({*}.$text)
+
+%symbol {ASYM-LIST}
+%prod %set {^}.value = string_list_append({*}.value, {*}$1.value)
+%prod %set {^}.value = string_list_start({*}.value)
+
+%symbol {APRODUCTION}
+%prod %set {^}.value = ident({*}.value)
+%prod %set {^}.value = epsilon_string_list
+
+%symbol {PROD-ADDR}
+%prod %set {^}.value = make_prod_specifier_index({*}$1.$text)
+%prod %set {^}.value = make_prod_specifier_literal({*}.value)
+
+%symbol {PROD-SPEC}
+%prod %set {^}.value = ident({*}.value)
+%prod %set {^}.value = make_prod_specifier_next()
+
+%symbol {PROD-ACTION}
+%prod %set {^}.value = make_prod_action({*}$0.value, {*}$1.value)
+
+%symbol {SYM-ACTIONS}
+%prod %set {^}.value = make_symbol_actions({*}$1.$text, {*}$2.value)
+
+%symbol {SYM-ACTIONS-LIST}
+%prod %set {^}.value = symbol_actions_list_append({*}.value, {*}$1.value)
+%prod %set {^}.value = symbol_actions_list_start({*}.value)
+
+%symbol {ASTATE-SET-LIST}
+%prod %set {^}.value = actions_state_block_list_append({*}.value, {*}$1.value)
+%prod %set {^}.value = actions_state_block_list_start({*}.value)
+
+%symbol {TSTATE-SET-LIST}
+%prod %set {^}.value = tokens_state_block_list_append({*}.value, {*}$1.value)
+%prod %set {^}.value = tokens_state_block_list_start({*}.value)
+
+%symbol {GSTATE-SET-LIST}
+%prod %set {^}.value = grammar_state_block_list_append({*}.value, {*}$1.value)
+%prod %set {^}.value = grammar_state_block_list_start({*}.value)
+
+%symbol {GRULE-LIST}
+%prod %set {^}.value = rule_list_append({*}.value, {*}$1.value)
+%prod %set {^}.value = rule_list_start({*}.value)
+
+%symbol {TENTRY-LIST}
+%prod %set {^}.value = entry_list_append({*}.value, {*}$1.value)
+%prod %set {^}.value = entry_list_start({*}.value)
+
+%symbol {TENTRY}
+%prod %set {^}.value = make_token_entry({*}.value, {*}$1.value)
+
+%symbol {GRULE}
+%prod %set {^}.value = make_rule({*}$0.$text, {*}$2.value)
+
+%symbol {ALTERNATIONS}
+%prod %set {^}.value = string_list_list_start({*}.value)
+%prod %set {^}.value = string_list_list_append({*}.value, {*}$2.value)
+
+%symbol {GPRODUCTION}
+%prod %set {^}.value = ident({*}.value)
+%prod %set {^}.value = epsilon_string_list()
+
+%symbol {GSYM-LIST}
+%prod %set {^}.value = string_list_append({*}.value, {*}$1.value)
+%prod %set {^}.value = string_list_start({*}.value)
+
+%symbol {PRIORITY}
+%prod %set {^}.value = trim_string({*}$1.value)
+
+
 
 ```
