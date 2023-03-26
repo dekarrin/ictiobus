@@ -99,6 +99,20 @@ type Parser interface {
 //
 // Strictly speaking, this is closer to an Attribute grammar.
 type SDTS interface {
+	// SetHooks sets the hook table for mapping SDTS hook names as used in a
+	// call to BindSynthesizedAttribute or BindInheritedAttribute to their
+	// actual implementations.
+	//
+	// Because the map from strings to function pointers, this hook map must be
+	// set at least once before the SDTS is used, even if the SDTS is read from
+	// a CFF cache file instead of built from scratch, because function pointers
+	// cannot be saved. It is recommended to set it every time the SDTS is
+	// loaded as soon as it is loaded.
+	//
+	// Calling it multiple times will add to the existing hook table, not
+	// replace it entirely. If there are any duplicate hook names, the last one
+	// set will be the one that is used.
+	SetHooks(hooks map[string]translation.AttributeSetter)
 
 	// BindInheritedAttribute creates a new SDD binding for setting the value of
 	// an inherited attribute with name attrName. The production that the

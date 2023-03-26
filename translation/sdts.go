@@ -13,7 +13,20 @@ import (
 // TODO: update terminology to match SDTS; we use SDD improperly here.
 
 type sdtsImpl struct {
+	hooks    map[string]AttributeSetter
 	bindings map[string]map[string][]SDDBinding
+}
+
+func (sdts *sdtsImpl) SetHooks(hooks map[string]AttributeSetter) {
+	// only create a new map if we don't already have one
+	if sdts.hooks == nil {
+		sdts.hooks = map[string]AttributeSetter{}
+	}
+
+	// add each hook to the map
+	for k, v := range hooks {
+		sdts.hooks[k] = v
+	}
 }
 
 func (sdts *sdtsImpl) BindingsFor(head string, prod []string, attrRef AttrRef) []SDDBinding {
@@ -367,7 +380,7 @@ func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName
 
 func NewSDTS() *sdtsImpl {
 	impl := sdtsImpl{
-		map[string]map[string][]SDDBinding{},
+		bindings: map[string]map[string][]SDDBinding{},
 	}
 	return &impl
 }
