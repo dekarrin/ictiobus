@@ -463,6 +463,25 @@ The following gives the Syntax-directed translations for the FISHI language.
 %symbol {PRIORITY}
 %prod %set {^}.value = trim_string({*}$1.value)
 
+%symbol {HUMAN}
+%prod %set {^}.value = trim_string({*}$1.value)
+
+%symbol {TOKEN}
+%prod %set {^}.value = trim_string({*}$1.value)
+
+%symbol {STATESHIFT}
+%prod %set {^}.value = trim_string({*}$1.value)
+
+%symbol {TOPTION}
+%prod %set {^}.value = make_discard_option()
+%prod %set {^}.value = make_stateshift_option({*}.value)
+%prod %set {^}.value = make_token_option({*}.value)
+%prod %set {^}.value = make_human_option({*}.value)
+%prod %set {^}.value = make_priority_option({*}.value)
+
+%symbol {TOPTION-LIST}
+%prod %set {^}.value = token_opt_list_append({*}.value, {*}$1.value)
+%prod %set {^}.value = token_opt_list_start({*}.value)
 
 
 ```
