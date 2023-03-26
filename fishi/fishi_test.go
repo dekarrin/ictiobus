@@ -73,7 +73,7 @@ func Test_GetFishiFromMarkdown(t *testing.T) {
 				"%token 7\n" +
 				"%%actions\n" +
 				"\n" +
-				"%action go\n" +
+				"%set go\n" +
 				"```\n" +
 				"other text\n",
 			expect: "%%tokens\n" +
@@ -83,7 +83,7 @@ func Test_GetFishiFromMarkdown(t *testing.T) {
 				"%token 7\n" +
 				"%%actions\n" +
 				"\n" +
-				"%action go\n",
+				"%set go\n",
 		},
 	}
 
@@ -107,20 +107,20 @@ const (
 						{hey}
 						%prod  %index 8
 	
-					%action {thing}.thing %hook thing
+					%set {thing}.thing %hook thing
 						%prod {}
 	
-					%action {thing}.thing %hook thing
+					%set {thing}.thing %hook thing
 						%prod {test} this {THING}
 	
-						%action {thing}.thing %hook thing
+						%set {thing}.thing %hook thing
 					%prod {ye} + {A}
 	
-					%action {thing}.thing %hook thing
+					%set {thing}.thing %hook thing
 	
 							%symbol {yo}%prod + {EAT} ext
 	
-					%action {thing}.thing %hook thing
+					%set {thing}.thing %hook thing
 					%%tokens
 					[somefin]
 	
@@ -167,33 +167,33 @@ const (
 	
 				%symbol {text-element}
 				%prod FREEFORM_TEXT
-				%action {text-element}.str
-				%hook identity  %with FREEFORM_TEXT.$text
+				%set {text-element}.str
+				%hook identity  %with {0}.$text
 	
 				%prod ESCSEQ
-				%action {text-element}.str
-				%hook unescape  %with ESCSEQ.$test
+				%set {text-element}.str
+				%hook unescape  %with {.}.$test
 	
 	
 				%symbol {OTHER}
 				%prod EHHH
-				%action {OTHER}.str
-				%hook identity  %with FREEFORM_TEXT.$text
+				%set {OTHER}.str
+				%hook identity  %with {9}.$text
 	
 				%prod ESCSEQ
-				%action {text-element}$12.str
-				%hook unescape  %with ESCSEQ.$test
+				%set {text-element$12}.str
+				%hook unescape  %with {^}.$test
 	
 				%state someGoodState
 	
 				%symbol {text-element}
 				%prod FREEFORM_TEXT
-				%action {text-element}.str
-				%hook identity  %with FREEFORM_TEXT.$text
+				%set {text-element}.str
+				%hook identity  %with {ANON$12}.$text
 	
 				%prod ESCSEQ
-				%action {text-element}.str
-				%hook unescape  %with ESCSEQ.$test
+				%set {text-element}.str
+				%hook unescape  %with {ESCSEQ}.$test
 	
 				`
 )

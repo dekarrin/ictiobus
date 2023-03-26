@@ -148,6 +148,10 @@ type evalError struct {
 	// if this is a sort error, this will be true
 	sortError bool
 
+	// if this was created due to a missing hook function, this will be set to
+	// the name of the hook it is looking for.
+	missingHook string
+
 	msg string
 }
 

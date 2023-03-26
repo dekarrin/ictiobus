@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/dekarrin/ictiobus"
+	"github.com/dekarrin/ictiobus/translation"
 	"github.com/dekarrin/ictiobus/types"
 )
 
@@ -18,7 +19,7 @@ type FrontendOptions struct {
 // possibly built from scratch). Up to one Lexer, up to one Parser, and up to
 // one SDTS are allowed to be provided; doing so will replace the bootstrap
 // version of that component with the provided one.
-func Frontend(opts FrontendOptions, useComp ...interface{}) ictiobus.Frontend[AST] {
+func Frontend(hooks map[string]translation.AttributeSetter, opts FrontendOptions, useComp ...interface{}) ictiobus.Frontend[AST] {
 	var providedLx ictiobus.Lexer
 	var providedParser ictiobus.Parser
 	var providedSDTS ictiobus.SDTS
@@ -87,6 +88,8 @@ func Frontend(opts FrontendOptions, useComp ...interface{}) ictiobus.Frontend[AS
 	} else {
 		fe.SDT = CreateBootstrapSDTS()
 	}
+
+	fe.SDT.SetHooks(hooks)
 
 	return fe
 }

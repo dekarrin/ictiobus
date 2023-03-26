@@ -13,7 +13,30 @@ import (
 // TODO: update terminology to match SDTS; we use SDD improperly here.
 
 type sdtsImpl struct {
+	hooks    map[string]AttributeSetter
 	bindings map[string]map[string][]SDDBinding
+}
+
+func (sdts *sdtsImpl) SetHooks(hooks map[string]AttributeSetter) {
+	// only create a new map if we don't already have one
+	if sdts.hooks == nil {
+		sdts.hooks = map[string]AttributeSetter{}
+	}
+
+	// add each hook to the map
+	for k, v := range hooks {
+		if v == nil {
+			// do not add a nil mapping.
+
+			// but if we already have a non-nil mapping and were given a nil
+			// one, remove it
+			if _, ok := sdts.hooks[k]; ok {
+				delete(sdts.hooks, k)
+			}
+		} else {
+			sdts.hooks[k] = v
+		}
+	}
 }
 
 func (sdts *sdtsImpl) BindingsFor(head string, prod []string, attrRef AttrRef) []SDDBinding {
@@ -31,6 +54,10 @@ func (sdts *sdtsImpl) BindingsFor(head string, prod []string, attrRef AttrRef) [
 }
 
 func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]interface{}, error) {
+	// don't check for no hooks being set because it's possible we are going to
+	// be handed an empty parse tree, which will fail for other reasons first
+	// or perhaps will not fail at all.
+
 	// first get an annotated parse tree
 	root := AddAttributes(tree)
 	// TODO: allow the annotated parse tree to be printed for debug output
@@ -133,7 +160,42 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 		bindingsToExec := sdts.BindingsFor(nodeRuleHead, nodeRuleProd, depNode.Dest)
 		for j := range bindingsToExec {
 			binding := bindingsToExec[j]
-			value := binding.Invoke(invokeOn)
+			value, err := binding.Invoke(invokeOn, sdts.hooks)
+
+			if err != nil {
+				attrTypeStr := "synthetic"
+				if !synthetic {
+					attrTypeStr = "inherited"
+				}
+				if hookErr, ok := err.(hookError); ok {
+					hName := hookErr.name
+					if hookErr.name == "" {
+						hName = "?"
+					}
+
+					errMsg := fmt.Sprintf("%s binding %s = %s(", attrTypeStr, binding.Dest.String(), hName)
+					for k := range binding.Requirements {
+						errMsg += binding.Requirements[k].String()
+						if k+1 < len(binding.Requirements) {
+							errMsg += ", "
+						}
+					}
+					errMsg += fmt.Sprintf(") for rule %s -> %s: ", nodeRuleHead, nodeRuleProd)
+
+					if hookErr.name == "" {
+						return nil, evalError{
+							msg: fmt.Sprintf("%s: no hook set on binding", errMsg),
+						}
+					} else {
+						return nil, evalError{
+							missingHook: hName,
+							msg:         fmt.Sprintf("%s: '%s' is not in the provided hooks table", errMsg, hookErr.name),
+						}
+					}
+				} else {
+					return nil, err
+				}
+			}
 
 			// now actually set the value on the attribute
 			nodeTree.Attributes[depNode.Dest.Name] = value
@@ -174,10 +236,10 @@ func (sdts *sdtsImpl) Bindings(head string, prod []string) []SDDBinding {
 	return targetBindings
 }
 
-func (sdts *sdtsImpl) BindSynthesizedAttribute(head string, prod []string, attrName string, bindFunc AttributeSetter, withArgs []AttrRef) error {
+func (sdts *sdtsImpl) BindSynthesizedAttribute(head string, prod []string, attrName string, hook string, withArgs []AttrRef) error {
 	// sanity checks; can we even call this?
-	if bindFunc == nil {
-		return fmt.Errorf("cannot bind nil bindFunc")
+	if hook == "" {
+		return fmt.Errorf("cannot bind to empty hook")
 	}
 
 	// check args
@@ -212,7 +274,7 @@ func (sdts *sdtsImpl) BindSynthesizedAttribute(head string, prod []string, attrN
 		BoundRuleSymbol:     head,
 		BoundRuleProduction: make([]string, len(prod)),
 		Requirements:        make([]AttrRef, len(withArgs)),
-		Setter:              bindFunc,
+		Setter:              hook,
 		Dest:                AttrRef{Relation: NodeRelation{Type: RelHead}, Name: attrName},
 	}
 
@@ -225,10 +287,10 @@ func (sdts *sdtsImpl) BindSynthesizedAttribute(head string, prod []string, attrN
 	return nil
 }
 
-func (sdts *sdtsImpl) BindInheritedAttribute(head string, prod []string, attrName string, bindFunc AttributeSetter, withArgs []AttrRef, forProd NodeRelation) error {
+func (sdts *sdtsImpl) BindInheritedAttribute(head string, prod []string, attrName string, hook string, withArgs []AttrRef, forProd NodeRelation) error {
 	// sanity checks; can we even call this?
-	if bindFunc == nil {
-		return fmt.Errorf("cannot bind nil bindFunc")
+	if hook == "" {
+		return fmt.Errorf("cannot bind to empty hook")
 	}
 
 	// check forProd
@@ -271,7 +333,7 @@ func (sdts *sdtsImpl) BindInheritedAttribute(head string, prod []string, attrNam
 		BoundRuleSymbol:     head,
 		BoundRuleProduction: make([]string, len(prod)),
 		Requirements:        make([]AttrRef, len(withArgs)),
-		Setter:              bindFunc,
+		Setter:              hook,
 		Dest:                AttrRef{Relation: forProd, Name: attrName},
 	}
 
@@ -367,7 +429,7 @@ func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName
 
 func NewSDTS() *sdtsImpl {
 	impl := sdtsImpl{
-		map[string]map[string][]SDDBinding{},
+		bindings: map[string]map[string][]SDDBinding{},
 	}
 	return &impl
 }

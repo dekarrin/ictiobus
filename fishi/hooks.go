@@ -8,11 +8,79 @@ import (
 
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/translation"
 )
 
 const (
 	ErrString            = "<ERR>"
 	ErrWithMessageString = "<ERR: %s>"
+)
+
+var (
+	HooksTable = map[string]translation.AttributeSetter{
+		"make_fishispec":                                   sdtsFnMakeFishispec,
+		"block_list_append":                                sdtsFnBlockListAppend,
+		"block_list_start":                                 sdtsFnBlockListStart,
+		"make_grammar_block":                               sdtsFnMakeGrammarBlock,
+		"make_tokens_block":                                sdtsFnMakeTokensBlock,
+		"make_actions_block":                               sdtsFnMakeActionsBlock,
+		"grammar_content_blocks_start_rule_list":           sdtsFnGrammarContentBlocksStartRuleList,
+		"tokens_content_blocks_start_entry_list":           sdtsFnTokensContentBlocksStartEntryList,
+		"actions_content_blocks_start_symbol_actions_list": sdtsFnActionsContentBlocksStartSymbolActionsList,
+		"actions_content_blocks_prepend":                   sdtsFnActionsContentBlocksPrepend,
+		"tokens_content_blocks_prepend":                    sdtsFnTokensContentBlocksPrepend,
+		"grammar_content_blocks_prepend":                   sdtsFnGrammarContentBlocksPrepend,
+		"make_prod_action":                                 sdtsFnMakeProdAction,
+		"make_symbol_actions":                              sdtsFnMakeSymbolActions,
+		"make_grammar_content_node":                        sdtsFnMakeGrammarContentNode,
+		"make_actions_content_node":                        sdtsFnMakeActionsContentNode,
+		"make_tokens_content_node":                         sdtsFnMakeTokensContentNode,
+		"trim_string":                                      sdtsFnTrimString,
+		"make_discard_option":                              sdtsFnMakeDiscardOption,
+		"make_stateshift_option":                           sdtsFnMakeStateshiftOption,
+		"make_human_option":                                sdtsFnMakeHumanOption,
+		"make_token_option":                                sdtsFnMakeTokenOption,
+		"make_priority_option":                             sdtsFnMakePriorityOption,
+		"identity":                                         sdtsFnIdentity,
+		"interpret_escape":                                 sdtsFnInterpretEscape,
+		"append_strings":                                   sdtsFnAppendStrings,
+		"append_strings_trimmed":                           sdtsFnAppendStringsTrimmed,
+		"get_nonterminal":                                  sdtsFnGetNonterminal,
+		"get_int":                                          sdtsFnGetInt,
+		"get_terminal":                                     sdtsFnGetTerminal,
+		"rule_list_append":                                 sdtsFnRuleListAppend,
+		"entry_list_append":                                sdtsFnEntryListAppend,
+		"actions_state_block_list_append":                  sdtsFnActionsStateBlockListAppend,
+		"tokens_state_block_list_append":                   sdtsFnTokensStateBlockListAppend,
+		"grammar_state_block_list_append":                  sdtsFnGrammarStateBlockListAppend,
+		"symbol_actions_list_append":                       sdtsFnSymbolActionsListAppend,
+		"prod_action_list_append":                          sdtsFnProdActionListAppend,
+		"semantic_action_list_append":                      sdtsFnSemanticActionListAppend,
+		"attr_ref_list_append":                             sdtsFnAttrRefListAppend,
+		"attr_ref_list_start":                              sdtsFnAttrRefListStart,
+		"get_attr_ref":                                     sdtsFnGetAttrRef,
+		"make_semantic_action":                             sdtsFnMakeSemanticAction,
+		"make_prod_specifier_next":                         sdtsFnMakeProdSpecifierNext,
+		"make_prod_specifier_index":                        sdtsFnMakeProdSpecifierIndex,
+		"make_prod_specifier_literal":                      sdtsFnMakeProdSpecifierLiteral,
+		"prod_action_list_start":                           sdtsFnProdActionListStart,
+		"semantic_action_list_start":                       sdtsFnSemanticActionListStart,
+		"rule_list_start":                                  sdtsFnRuleListStart,
+		"grammar_state_block_list_start":                   sdtsFnGrammarStateBlockListStart,
+		"tokens_state_block_list_start":                    sdtsFnTokensStateBlockListStart,
+		"actions_state_block_list_start":                   sdtsFnActionsStateBlockListStart,
+		"symbol_actions_list_start":                        sdtsFnSymbolActionsListStart,
+		"entry_list_start":                                 sdtsFnEntryListStart,
+		"string_list_append":                               sdtsFnStringListAppend,
+		"token_opt_list_start":                             sdtsFnTokenOptListStart,
+		"token_opt_list_append":                            sdtsFnTokenOptListAppend,
+		"string_list_start":                                sdtsFnStringListStart,
+		"string_list_list_start":                           sdtsFnStringListListStart,
+		"string_list_list_append":                          sdtsFnStringListListAppend,
+		"epsilon_string_list":                              sdtsFnEpsilonStringList,
+		"make_rule":                                        sdtsFnMakeRule,
+		"make_token_entry":                                 sdtsFnMakeTokenEntry,
+	}
 )
 
 func SDDErrMsg(msg string, a ...interface{}) string {

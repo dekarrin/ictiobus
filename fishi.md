@@ -57,8 +57,8 @@ This is the context-free grammar for FISHI, glub.
 
 {SEM-ACTION-LIST}  =  {SEM-ACTION-LIST} {SEM-ACTION} | {SEM-ACTION}
 
-{SEM-ACTION}       =  dir-action attr-ref dir-hook id
-                   |  dir-action attr-ref dir-hook id {WITH}
+{SEM-ACTION}       =  dir-set attr-ref dir-hook id
+                   |  dir-set attr-ref dir-hook id {WITH}
 
 {WITH}             =  dir-with ATTR-REF-LIST
 
@@ -231,7 +231,7 @@ For actions state:
 
 \s+                      %discard
 
-(?:{\*}|{[A-Za-z][^}]*}|\S+)(?:\$\d+)?\.[\$A-Za-z][$A-Za-z0-9_-]*
+(?:{(?:&|\.)(?:[0-9]+)?}|{[0-9]+}|{\^}|{[A-Za-z][^{}]*}|[\s{}]+)\.[\$A-Za-z][\$A-Za-z0-9_]*
 %token attr-ref    %human attribute reference literal
 
 [0-9]+
@@ -246,17 +246,21 @@ For actions state:
 %!%[Ss][Yy][Mm][Bb][Oo][Ll]
 %token dir-symbol  %human %!%symbol directive
 
-%!%[Pp][Rr][Oo][Dd]
-%token dir-prod    %human %!%prod directive
+(?:->|%!%[Pp][Rr][Oo][Dd])
+%token dir-prod    %human %!%prod directive '->'
 
-%!%[Ww][Ii][Tt][Hh]
-%token dir-with    %human %!%with directive
+(?:\(|%!%[Ww][Ii][Tt][Hh])
+%token dir-with    %human %!%with directive '('
 
-%!%[Hh][Oo][Oo][Kk]
-%token dir-hook    %human %!%hook directive
+(?:=|%!%[Hh][Oo][Oo][Kk])
+%token dir-hook    %human %!%hook directive '='
 
-%!%[Aa][Cc][Tt][Ii][Oo][Nn]
-%token dir-action  %human %!%action directive
+\)                 %discard
+\(\)               %discard
+,                  %discard
+
+(?::|%!%[Ss][Ee][Tt])
+%token dir-set     %human %!%set directive ':'
 
 %!%[Ii][Nn][Dd][Ee][Xx]
 %token dir-index   %human %!%index directive
@@ -294,80 +298,213 @@ The following gives the Syntax-directed translations for the FISHI language.
 %%actions
 
 %symbol {FISHISPEC}
-%prod  %action {FISHISPEC}.ast  %hook make_fishispec  %with  {BLOCKS}.value
+%prod %set      {^}.ast = make_fishispec({BLOCKS}.value)
 
-%symbol {BLOCKS}
-    %prod {BLOCKS} {BLOCK}         %action {BLOCKS}.value
-    %hook block_list_append
-    %with {BLOCKS}$1.value {BLOCK}.ast
+%symbol
+{BLOCKS} -> {BLOCKS} {BLOCK}
+: {^}.value = block_list_append({BLOCKS$1}.value, {BLOCK}.ast)
 
-    %prod %index 1                 %action {BLOCKS}.value
-    %hook block_list_start
-    %with {BLOCK}$1.value
+         -> %index 1
+: {^}.value = block_list_start({BLOCK$1}.value)
+
 
 # TODO: add %prod %all selection.
 %symbol {BLOCK}
-%prod  %action {BLOCK}.ast  %hook ident  %with {*}$0.ast
-%prod  %action {BLOCK}.ast  %hook ident  %with {*}$0.ast
-%prod  %action {BLOCK}.ast  %hook ident  %with {*}$0.ast
+->: {^}.ast = ident({0}.ast)
+->: {^}.ast = ident({0}.ast)
+->: {^}.ast = ident({0}.ast)
 
 
 %symbol {ABLOCK}
-%prod  %action {ABLOCK}.ast  %hook make_ablock  %with {*}$1.ast
+->: {^}.ast = make_ablock({1}.ast)
 
 %symbol {TBLOCK}
-%prod  %action {TBLOCK}.ast  %hook make_tblock  %with {*}$1.ast
+->: {^}.ast = make_tblock({1}.ast)
 
 %symbol {GBLOCK}
-%prod  %action {GBLOCK}.ast  %hook make_gblock  %with {*}$1.ast
+->: {^}.ast = make_gblock({1}.ast)
 
 %symbol {TCONTENT}
-%prod
-    %action {TCONTENT}.ast
-    %hook tokens_content_blocks_start_entry_list
-    %with {*}.value
-%prod
-    %action {TCONTENT}.ast
-    %hook ident
-    %with {*}.value
-%prod
-    %action {TCONTENT}.ast
-    %hook tokens_content_blocks_prepend
-    %with {TSTATE-SET-LIST}.value
-          {TENTRY-LIST}.value
+->: {^}.ast = tokens_content_blocks_start_entry_list({0}.value)
+->: {^}.ast = ident({0}.value)
+->: {^}.ast = tokens_content_blocks_prepend(
+                        {TSTATE-SET-LIST}.value,
+                        {TENTRY-LIST}.value
+                     )
 
 %symbol {ACONTENT}
-%prod
-    %action {ACONTENT}.ast
-    %hook actions_content_blocks_start_sym_actions
-    %with {*}.value
-%prod
-    %action {ACONTENT}.ast
-    %hook ident
-    %with {*}.value
-%prod
-    %action {ACONTENT}.ast
-    %hook actions_content_blocks_prepend
-    %with {ASTATE-SET-LIST}.value
-          {SYM-ACTIONS-LIST}.value
+->: {^}.ast = actions_content_blocks_start_sym_actions({0}.value)
+->: {^}.ast = ident({0}.value)
+->: {^}.ast = actions_content_blocks_prepend(
+                        {ASTATE-SET-LIST}.value,
+                        {SYM-ACTIONS-LIST}.value
+                     )
 
 %symbol {GCONTENT}
-%prod
-    %action {GCONTENT}.ast
-    %hook grammar_content_blocks_start_rule_list
-    %with {*}.value
-%prod
-    %action {GCONTENT}.ast
-    %hook ident
-    %with {*}.value
-%prod
-    %action {GCONTENT}.ast
-    %hook grammar_content_blocks_prepend
-    %with {GSTATE-SET-LIST}.value
-          {GRULE-LIST}.value
+->: {^}.ast = grammar_content_blocks_start_rule_list({0}.value)
+->: {^}.ast = ident({0}.value)
+->: {^}.ast = grammar_content_blocks_prepend(
+                        {GSTATE-SET-LIST}.value
+                        {GRULE-LIST}.value
+                     )
 
 
+%symbol {GSTATE-SET}
+->: {^}.value = make_grammar_content_node(
+                        {STATE-INS}.state
+                        {GRULE-LIST}.value
+                     )
+
+%symbol {ASTATE-SET}
+->: {^}.value = make_actions_content_node(
+                        {STATE-INS}.state
+                        {SYM-ACTIONS-LIST}.value
+                     )
+
+%symbol {TSTATE-SET}
+->: {^}.value = make_tokens_content_node(
+                        {STATE-INS}.state
+                        {TENTRY-LIST}.value
+                       )
+
+%symbol {PROD-ACTION-LIST}
+->: {^}.value = prod_actions_list_append(
+                        {PROD-ACTION-LIST}.value
+                        {PROD-ACTION}.value
+                       )
+->: {^}.value = prod_action_list_start({PROD-ACTION}.value)
 
 
+%symbol {ATTR-REF-LIST}
+->: {^}.value = attr_ref_list_append({0}.value, {1}.$text)
+->: {^}.value = attr_ref_list_start({0}.value)
+
+%symbol {WITH}
+->: {^}.value = ident({1}.value)
+
+%symbol {SEM-ACTION}
+->: {^}.value = make_semantic_action({1}.$text, {3}.$text)
+->: {^}.value = make_semantic_action({1}.$text, {3}.$text, {4}.value)
+
+%symbol {SEM-ACTION-LIST}
+->: {^}.value = attr_ref_list_append({0}.value, {1}.value)
+->: {^}.value = attr_ref_list_start({0}.value)
+
+%symbol {ASYM}
+->: {^}.value = get_nonterminal({0}.$text)
+->: {^}.value = get_terminal({0}.$text)
+->: {^}.value = get_int({0}.$text)
+->: {^}.value = ident({0}.$text)
+
+%symbol {ASYM-LIST}
+->: {^}.value = string_list_append({0}.value, {1}.value)
+->: {^}.value = string_list_start({0}.value)
+
+%symbol {APRODUCTION}
+->: {^}.value = ident({0}.value)
+->: {^}.value = epsilon_string_list
+
+%symbol {PROD-ADDR}
+->: {^}.value = make_prod_specifier_index({1}.$text)
+->: {^}.value = make_prod_specifier_literal({0}.value)
+
+%symbol {PROD-SPEC}
+->: {^}.value = ident({0}.value)
+->: {^}.value = make_prod_specifier_next()
+
+%symbol {PROD-ACTION}
+->: {^}.value = make_prod_action({0}.value, {1}.value)
+
+%symbol {SYM-ACTIONS}
+->: {^}.value = make_symbol_actions({1}.$text, {2}.value)
+
+%symbol {SYM-ACTIONS-LIST}
+->: {^}.value = symbol_actions_list_append({0}.value, {1}.value)
+->: {^}.value = symbol_actions_list_start({0}.value)
+
+%symbol {ASTATE-SET-LIST}
+->: {^}.value = actions_state_block_list_append({0}.value, {1}.value)
+->: {^}.value = actions_state_block_list_start({0}.value)
+
+%symbol {TSTATE-SET-LIST}
+->: {^}.value = tokens_state_block_list_append({0}.value, {1}.value)
+->: {^}.value = tokens_state_block_list_start({0}.value)
+
+%symbol {GSTATE-SET-LIST}
+->: {^}.value = grammar_state_block_list_append({0}.value, {1}.value)
+->: {^}.value = grammar_state_block_list_start({0}.value)
+
+%symbol {GRULE-LIST}
+->: {^}.value = rule_list_append({0}.value, {1}.value)
+->: {^}.value = rule_list_start({0}.value)
+
+%symbol {TENTRY-LIST}
+->: {^}.value = entry_list_append({0}.value, {1}.value)
+->: {^}.value = entry_list_start({0}.value)
+
+%symbol {TENTRY}
+->: {^}.value = make_token_entry({0}.value, {1}.value)
+
+%symbol {GRULE}
+->: {^}.value = make_rule({0}.$text, {2}.value)
+
+%symbol {ALTERNATIONS}
+->: {^}.value = string_list_list_start({0}.value)
+->: {^}.value = string_list_list_append({0}.value, {2}.value)
+
+%symbol {GPRODUCTION}
+->: {^}.value = ident({0}.value)
+->: {^}.value = epsilon_string_list()
+
+%symbol {GSYM-LIST}
+->: {^}.value = string_list_append({0}.value, {1}.value)
+->: {^}.value = string_list_start({0}.value)
+
+%symbol {PRIORITY}   ->: {^}.value = trim_string({1}.value)
+%symbol {HUMAN}      ->: {^}.value = trim_string({1}.value)
+%symbol {TOKEN}      ->: {^}.value = trim_string({1}.value)
+%symbol {STATESHIFT} ->: {^}.value = trim_string({1}.value)
+
+%symbol {TOPTION}
+->: {^}.value = make_discard_option()
+->: {^}.value = make_stateshift_option({0}.value)
+->: {^}.value = make_token_option({0}.value)
+->: {^}.value = make_human_option({0}.value)
+->: {^}.value = make_priority_option({0}.value)
+
+%symbol {TOPTION-LIST}
+->: {^}.value = token_opt_list_append({0}.value, {1}.value)
+->: {^}.value = token_opt_list_start({0}.value)
+
+%symbol {PATTERN}
+->: {^}.value = trim_string({0}.value)
+
+%symbol {GSYM}
+->: {^}.value = get_nonterminal({0}.value)
+->: {^}.value = get_terminal({0}.value)
+
+%symbol {STATE-INS}
+->: {^}.state = identity({1}.value)
+
+%symbol {ID-EXPR}
+->: {^}.value = identity({0}.value)
+->: {^}.value = identity({0}.value)
+
+%symbol {TEXT}
+->: {^}.value = append_strings_trimmed({0}.value, {1}.value)
+->: {^}.value = identity({0}.value)
+->: {^}.value = identity({0}.value)
+
+%symbol {TEXT-ELEM-LIST}
+->: {^}.value = append_strings({0}.value, {1}.value)
+->: {^}.value = identity({0}.value)
+
+%symbol {NL-TEXT-ELEM}
+->: {^}.value = identity({0}.$text)
+->: {^}.value = interpret_escape({0}.$text)
+
+%symbol {TEXT-ELEM}
+->: {^}.value = identity({0}.$text)
+->: {^}.value = interpret_escape({0}.$text)
 
 ```

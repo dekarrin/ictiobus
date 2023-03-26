@@ -2,7 +2,6 @@ package fishi
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -300,76 +299,148 @@ func (content astActionsContent) String() string {
 }
 
 type AttrRef struct {
-	symbol    string
-	wildcard  bool
-	terminal  bool
+	symbol   string
+	terminal bool
+
+	head          bool
+	termInProd    bool
+	nontermInProd bool
+	symInProd     bool
+
 	occurance int
 	attribute string
 }
 
-var (
-	attrRefPat = regexp.MustCompile(`({\*}|{[A-Za-z][^}]*}|\S+)(?:\$(\d+))?\.([\$A-Za-z][$A-Za-z0-9_-]*)`)
-)
-
 // ParseAttrRef does a simple parse on an attribute reference from a string that
 // makes it up.
 func ParseAttrRef(s string) (AttrRef, error) {
-	m := attrRefPat.FindStringSubmatch(s)
-
-	if m == nil {
+	dotSpl := strings.Split(s, ".")
+	if len(dotSpl) < 2 {
 		return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
 	}
 
-	if len(m) != 4 {
-		// should never happen, but could if the regex is changed
-		panic("invalid match regex for attribute reference")
-	}
+	attrName := dotSpl[len(dotSpl)-1]
+	nodeRefStr := strings.Join(dotSpl[:len(dotSpl)-1], ".")
 
-	sym, idxStr, attrName := m[1], m[2], m[3]
+	ar := AttrRef{attribute: attrName}
 
-	var idx int
-	if idxStr != "" {
-		var err error
-		idx, err = strconv.Atoi(idxStr)
-		if err != nil {
-			panic("invalid match regex for attribute reference; index returned non-integer")
-		}
-	}
+	if nodeRefStr[0] == '{' && nodeRefStr[len(nodeRefStr)-1] == '}' {
+		str := nodeRefStr[1 : len(nodeRefStr)-1]
+		if (str[0] >= 'A' && str[0] <= 'Z') || (str[0] >= 'a' && str[0] <= 'z') {
+			// nonterminal-by-name reference
+			ar.symbol = str
 
-	ar := AttrRef{
-		occurance: idx,
-		attribute: attrName,
-	}
+			// get index from $num... sequence at end of ref str
+			allSplits := strings.Split(nodeRefStr, "$")
+			if len(allSplits) > 1 {
+				lastSplit := allSplits[len(allSplits)-1]
+				firstSplits := strings.Join(allSplits[:len(allSplits)-1], "$")
 
-	if sym == "{*}" {
-		ar.wildcard = true
-	} else {
-		if sym[0] == '{' && sym[len(sym)-1] == '}' {
-			ar.symbol = sym[1 : len(sym)-1]
+				var err error
+				ar.occurance, err = strconv.Atoi(lastSplit)
+				if err != nil {
+					// not an error, it's optional
+					ar.occurance = 0
+				} else {
+					ar.symbol = firstSplits
+				}
+			}
+			return ar, nil
+		} else if str == "^" {
+			ar.head = true
+			return ar, nil
+		} else if strings.HasPrefix(str, ".") {
+			ar.termInProd = true
+			if len(str) > 1 {
+				str = str[1:]
+				num, err := strconv.Atoi(str)
+				if err != nil {
+					return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
+				}
+				ar.occurance = num
+			}
+			return ar, nil
+		} else if strings.HasPrefix(str, "&") {
+			ar.nontermInProd = true
+			if len(str) > 1 {
+				str = str[1:]
+				num, err := strconv.Atoi(str)
+				if err != nil {
+					return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
+				}
+				ar.occurance = num
+			}
+			return ar, nil
 		} else {
-			ar.symbol = sym
-			ar.terminal = true
+			// then it has to be a parsable number
+			num, err := strconv.Atoi(str)
+			if err != nil {
+				return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
+			}
+			ar.occurance = num
+			ar.symInProd = true
+			return ar, nil
 		}
-	}
+	} else {
+		// terminal-by-name reference
+		ar.terminal = true
+		ar.symbol = nodeRefStr
 
-	return ar, nil
+		// get index from $num... sequence at end of ref str
+		allSplits := strings.Split(nodeRefStr, "$")
+		if len(allSplits) > 1 {
+			lastSplit := allSplits[len(allSplits)-1]
+			firstSplits := strings.Join(allSplits[:len(allSplits)-1], "$")
+
+			var err error
+			ar.occurance, err = strconv.Atoi(lastSplit)
+			if err != nil {
+				// not an error, it's optional
+				ar.occurance = 0
+			} else {
+				ar.symbol = firstSplits
+			}
+		}
+
+		return ar, nil
+	}
 }
 
 func (ar AttrRef) String() string {
 	var sb strings.Builder
 
-	if ar.wildcard {
-		sb.WriteString("{*}")
+	if ar.head {
+		sb.WriteString("{^}")
+	} else if ar.termInProd {
+		sb.WriteString("{.")
+		if ar.occurance > 0 {
+			sb.WriteString(fmt.Sprintf("%d", ar.occurance))
+		}
+		sb.WriteString("}")
+	} else if ar.nontermInProd {
+		sb.WriteString("{&")
+		if ar.occurance > 0 {
+			sb.WriteString(fmt.Sprintf("%d", ar.occurance))
+		}
+		sb.WriteString("}")
+	} else if ar.symInProd {
+		sb.WriteString("{")
+		sb.WriteString(fmt.Sprintf("%d", ar.occurance))
+		sb.WriteString("}")
 	} else if ar.terminal {
 		sb.WriteString(ar.symbol)
+		if ar.occurance > 0 {
+			sb.WriteString(fmt.Sprintf("$%d", ar.occurance))
+		}
 	} else {
-		sb.WriteRune('{')
+		sb.WriteString("{")
 		sb.WriteString(ar.symbol)
-		sb.WriteRune('}')
+		if ar.occurance > 0 {
+			sb.WriteString(fmt.Sprintf("$%d", ar.occurance))
+		}
+		sb.WriteString("}")
 	}
 
-	sb.WriteRune('$')
-	sb.WriteString(fmt.Sprintf("%d", ar.occurance))
 	sb.WriteRune('.')
 	sb.WriteString(ar.attribute)
 

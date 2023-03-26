@@ -22,8 +22,10 @@ type SDDBinding struct {
 	// Dest is the destination.
 	Dest AttrRef
 
-	// Setter is the call to calculate a value of the node by the binding.
-	Setter AttributeSetter
+	// Setter is name of the hook to call to calculate a value of the node by
+	// the binding. A hooks table is used to look up the hook function and call
+	// it, when needed.
+	Setter string
 
 	// NoFlows is the list of parents that this binding is allowed to not flow
 	// up to without causing error.
@@ -49,11 +51,16 @@ func (bind SDDBinding) Copy() SDDBinding {
 }
 
 // Invoke calls the given binding while visiting an annotated parse tree node.
-func (bind SDDBinding) Invoke(apt *AnnotatedParseTree) interface{} {
+func (bind SDDBinding) Invoke(apt *AnnotatedParseTree, hooksTable map[string]AttributeSetter) (interface{}, error) {
 	// sanity checks; can we even call this?
-	if bind.Setter == nil {
-		panic("attempt to invoke nil attribute setter func")
+	if bind.Setter == "" {
+		return nil, hookError{msg: "binding has no setter hook defined"}
 	}
+	hookFn := hooksTable[bind.Setter]
+	if hookFn == nil {
+		return nil, hookError{name: bind.Setter, msg: fmt.Sprintf("no implementation for hook function '%s' was provided", bind.Setter)}
+	}
+
 	if bind.Dest.Relation.Type == RelHead && !bind.Synthesized {
 		panic("cannot invoke inherited attribute SDD binding on head of rule")
 	} else if bind.Dest.Relation.Type != RelHead && bind.Synthesized {
@@ -87,7 +94,24 @@ func (bind SDDBinding) Invoke(apt *AnnotatedParseTree) interface{} {
 	}
 
 	// call func
-	val := bind.Setter(forSymbol, bind.Dest.Name, args)
+	val := hookFn(forSymbol, bind.Dest.Name, args)
 
-	return val
+	return val, nil
+}
+
+// highly-populated error struct containing inform8ion about an error that
+// occured during invocation of a binding due to a problem with the associated
+// hook function. hook func could be missing, not set, or could have returned an
+// error. if name is empty, then the error is that the hook was set to an empty
+// string or never set. if name is non-empty, then the error is that the hook
+// was not found in the hooks table.
+type hookError struct {
+	// the name of the hook function.
+	name string
+
+	msg string
+}
+
+func (he hookError) Error() string {
+	return he.msg
 }
