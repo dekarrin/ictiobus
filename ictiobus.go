@@ -124,13 +124,13 @@ type SDTS interface {
 	// the grammar rule productions with head symbol head and production symbols
 	// prod.
 	//
-	// The AttributeSetter bindFunc is called when the inherited value attrName
-	// is to be set, in order to calculate the new value. Attribute values to
-	// pass in as arguments are specified by passing references to the node and
-	// attribute name whose value to retrieve in the withArgs slice. Explicitly
-	// giving the referenced attributes in this fashion makes it easy to
-	// determine the dependency graph for later execution.
-	BindInheritedAttribute(head string, prod []string, attrName string, bindFunc translation.AttributeSetter, withArgs []translation.AttrRef, forProd translation.NodeRelation) error
+	// The AttributeSetter bound to hook is called when the inherited value
+	// attrName is to be set, in order to calculate the new value. Attribute
+	// values to pass in as arguments are specified by passing references to the
+	// node and attribute name whose value to retrieve in the withArgs slice.
+	// Explicitlygiving the referenced attributes in this fashion makes it easy
+	// to determine the dependency graph for later execution.
+	BindInheritedAttribute(head string, prod []string, attrName string, hook string, withArgs []translation.AttrRef, forProd translation.NodeRelation) error
 
 	// BindSynthesizedAttribute creates a new SDD binding for setting the value
 	// of a synthesized attribute with name attrName. The attribute is set on
@@ -140,13 +140,13 @@ type SDTS interface {
 	// the grammar rule productions with head symbol head and production symbols
 	// prod.
 	//
-	// The AttributeSetter bindFunc is called when the synthesized value
+	// The AttributeSetter bound to hook is called when the synthesized value
 	// attrName is to be set, in order to calculate the new value. Attribute
 	// values to pass in as arguments are specified by passing references to the
 	// node and attribute name whose value to retrieve in the withArgs slice.
 	// Explicitly giving the referenced attributes in this fashion makes it easy
 	// to determine the dependency graph for later execution.
-	BindSynthesizedAttribute(head string, prod []string, attrName string, bindFunc translation.AttributeSetter, withArgs []translation.AttrRef) error
+	BindSynthesizedAttribute(head string, prod []string, attrName string, hook string, withArgs []translation.AttrRef) error
 
 	// SetNoFlow sets a binding to be explicitly allowed to not be required to
 	// flow up to a particular parent. This will prevent it from causing an
