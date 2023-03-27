@@ -1,29 +1,78 @@
-# Frontend Instruction Specification for self-Hosting Ictiobus (FISHI), v1.0
-This is a grammar for the Frontend Instruction Specification for
-(self-)Hosting Ictiobus (FISHI). It is for version 1.0 and this version was
-started on 2/18/23 by Jello! Glubglu8glub 38D
+# FISHI v1.0 Language Specification
 
-## Escape Sequence
-To escape something that would otherwise have special meaning in FISHI, use the
-escape sequence directly before it, `%!`.
+This file describes and specifies the FISHI language, which is the language used
+to specify languages that ictiobus is to create compilers for. So, this file is
+both the manual for use and the self-description used by Ictiobus to generate
+its own frontend.
 
-## Format Use
-Languages that describe themselves in the FISHI language are taken from
-definitions described with FISHI for the frontend of Ictiobus and used to
-produce a compiler frontend.
+FISHI stands for the  Frontend Instruction Specification for (self-)Hosting
+Ictiobus. The name is a little contrived but that was the best way to get it to
+spell out something ocean-related, which was considered of paramount importance
+by the initial creators of this language, and also maintains consistency with
+the naming of `ictiobus` after the buffalofish.
 
-These definitions are to be embedded in Markdown-formatted text in special code
-blocks delimited with the triple-tick that are marked with the special syntax
-tag `fishi`, as in the following:
+This specification is for version 1.0 of FISHI.
+
+## Version History
+* 2/18/23 - (v1.0, first draft) - The initial version of this document, started
+by Jello! Glubglu8glub 38D. This was an initial version that changed somewhat
+rapidly as the language developed, and was never really 'completed' in the sense
+of being published at a specific version.
+* 3/27/23 - (v1.0, second draft) - The second version of this document which was
+produced after a bootstrap frontend was created manually. This frontend was able
+to read in Fishi code and display the AST of it. Therefore, this document was
+updated to reflect that frontend, adjusting both it and the frontend as
+necessary to ensure it could continue to read it.
+
+## Overview
+
+FISHI is embedded in Markdown files to allow natural language descriptions of
+the languages they describe as well as particular FISHI blocks themselves. FISHI
+is read from code blocks (blocks delimited with the triple-tick) whose syntax
+tag is set to `fishi`, as in the following example:
 
     ```fishi
     (FISHI directives would go here)
     ```
 
-Multiple consecutive `fishi` code blocks in the same file are appended together
-to create the full source that is parsed.
+Multiple `fishi` code blocks are concatenated together and the resulting block
+of FISHI source code is then compiled to a compiler for the language it
+describes.
 
-## Parser
+### Escape Sequences
+
+To escape something that would otherwise have special meaning in FISHI, use the
+escape sequence directly before it, `%!`. This does not work in all situations,
+and is exclusively used in blocks of free-form text to do things such as mark a
+percent as a literal one and escape the end-of-line.
+
+If a terminal name would confict with a built-in FISHI operator, a different
+terminal name that does not conflict should be used instead of trying to escape
+it.
+
+The backslash was avoided as the escape character due to its common use in
+regular expressions, which are used heavily in FISHI lexical specifications.
+This allows the backslash to be used in regular expressions without having to
+escape it every time.
+
+### Case-Sensitivity
+
+With few exceptions, most things in FISHI are case-sensitive. However,
+non-terminals will be converted to all uppercase and terminal names will be
+converted to all lowercase in the built grammar.
+
+### Basic Layout
+
+This section needs to be expanded; for now, see the below section for an example
+spec written in FISHI, which describes the FISHI language.
+
+## Specification
+
+This section contains the formal specification for the FISHI language. It can be
+parsed by `ictcc` to create a new FISHI frontend, although do note that a very
+particular invocation is required to completely replace the existing one.
+
+### Parser
 This is the context-free grammar for FISHI, glub.
 
 ```fishi
@@ -100,7 +149,7 @@ This is the context-free grammar for FISHI, glub.
 {STATESHIFT}       =  dir-shift {TEXT}
 {TOKEN}            =  dir-token {TEXT}
 {HUMAN}            =  dir-human {TEXT}
-{PRIORITY}         =  dir-priority {TEXT}  # TODO: shouldn't this be int?
+{PRIORITY}         =  dir-priority {TEXT}
 
 {PATTERN}          =  {TEXT}
 
@@ -120,7 +169,7 @@ This is the context-free grammar for FISHI, glub.
 
 {GRULE}            =  nl-nonterm eq {ATERNATIONS}
 
-{ALTERNATIONS}     =  {PRODUCTION}
+{ALTERNATIONS}     =  {GPRODUCTION}
                    |  {ALTERNATIONS} alt {GPRODUCTION}
 
 {GPRODUCTION}      =  {GSYM-LIST} | epsilon
@@ -143,10 +192,9 @@ This is the context-free grammar for FISHI, glub.
 
 {NL-TEXT-ELEM}     =  nl-escseq | nl-freeform-text
 {TEXT-ELEM}        =  escseq    | freeform-text
-
 ```
 
-## Lexer
+### Lexer
 The following gives the lexical specification for the FISHI language.
 
 For all states:
@@ -160,7 +208,7 @@ For all states:
 %!%%!%[Tt][Oo][Kk][Ee][Nn][Ss]         %token hdr-tokens
 %human %!%%!%tokens header             %stateshift TOKENS
 
-%!%%!%[Gg][Rr][Aa][Mm][Mm][Ee][Rr]     %token hdr-grammar
+%!%%!%[Gg][Rr][Aa][Mm][Mm][Aa][Rr]     %token hdr-grammar
 %human %!%%!%grammar header            %stateshift GRAMMAR
 
 %!%%!%[Aa][Cc][Tt][Ii][Oo][Nn][Ss]     %token hdr-actions 
@@ -291,21 +339,20 @@ Because we don't have a state stack yet:
 [A-Za-z][A-Za-z0-9_-]*      %token id     %stateshift GRAMMAR
 ```
 
-## Translation Scheme
+### Syntax-Directed Translation Scheme
 The following gives the Syntax-directed translations for the FISHI language.
 
 ```fishi
 %%actions
 
-%symbol {FISHISPEC}
-%prod %set      {^}.ast = make_fishispec({BLOCKS}.value)
+%symbol {FISHISPEC} ->: {^}.ast = make_fishispec({BLOCKS}.value)
 
 %symbol
 {BLOCKS} -> {BLOCKS} {BLOCK}
-: {^}.value = block_list_append({BLOCKS$1}.value, {BLOCK}.ast)
+: {^}.value = block_list_append({BLOCKS}.value, {BLOCK}.ast)
 
          -> %index 1
-: {^}.value = block_list_start({BLOCK$1}.value)
+: {^}.value = block_list_start({BLOCK}.value)
 
 
 # TODO: add %prod %all selection.
@@ -325,28 +372,28 @@ The following gives the Syntax-directed translations for the FISHI language.
 ->: {^}.ast = make_gblock({1}.ast)
 
 %symbol {TCONTENT}
-->: {^}.ast = tokens_content_blocks_start_entry_list({0}.value)
-->: {^}.ast = ident({0}.value)
 ->: {^}.ast = tokens_content_blocks_prepend(
                         {TSTATE-SET-LIST}.value,
                         {TENTRY-LIST}.value
                      )
+->: {^}.ast = tokens_content_blocks_start_entry_list({0}.value)
+->: {^}.ast = ident({0}.value)
 
 %symbol {ACONTENT}
-->: {^}.ast = actions_content_blocks_start_sym_actions({0}.value)
-->: {^}.ast = ident({0}.value)
 ->: {^}.ast = actions_content_blocks_prepend(
                         {ASTATE-SET-LIST}.value,
                         {SYM-ACTIONS-LIST}.value
                      )
+->: {^}.ast = actions_content_blocks_start_sym_actions({0}.value)
+->: {^}.ast = ident({0}.value)
 
 %symbol {GCONTENT}
-->: {^}.ast = grammar_content_blocks_start_rule_list({0}.value)
-->: {^}.ast = ident({0}.value)
 ->: {^}.ast = grammar_content_blocks_prepend(
                         {GSTATE-SET-LIST}.value
                         {GRULE-LIST}.value
                      )
+->: {^}.ast = grammar_content_blocks_start_rule_list({0}.value)
+->: {^}.ast = ident({0}.value)
 
 
 %symbol {GSTATE-SET}
@@ -377,7 +424,7 @@ The following gives the Syntax-directed translations for the FISHI language.
 
 %symbol {ATTR-REF-LIST}
 ->: {^}.value = attr_ref_list_append({0}.value, {1}.$text)
-->: {^}.value = attr_ref_list_start({0}.value)
+->: {^}.value = attr_ref_list_start({0}.$text)
 
 %symbol {WITH}
 ->: {^}.value = ident({1}.value)
@@ -480,15 +527,15 @@ The following gives the Syntax-directed translations for the FISHI language.
 ->: {^}.value = trim_string({0}.value)
 
 %symbol {GSYM}
-->: {^}.value = get_nonterminal({0}.value)
-->: {^}.value = get_terminal({0}.value)
+->: {^}.value = get_nonterminal({0}.$text)
+->: {^}.value = get_terminal({0}.$text)
 
 %symbol {STATE-INS}
 ->: {^}.state = identity({1}.value)
 
 %symbol {ID-EXPR}
-->: {^}.value = identity({0}.value)
-->: {^}.value = identity({0}.value)
+->: {^}.value = identity({0}.$text)
+->: {^}.value = identity({0}.$text)
 
 %symbol {TEXT}
 ->: {^}.value = append_strings_trimmed({0}.value, {1}.value)
@@ -500,11 +547,10 @@ The following gives the Syntax-directed translations for the FISHI language.
 ->: {^}.value = identity({0}.value)
 
 %symbol {NL-TEXT-ELEM}
-->: {^}.value = identity({0}.$text)
 ->: {^}.value = interpret_escape({0}.$text)
+->: {^}.value = identity({0}.$text)
 
 %symbol {TEXT-ELEM}
-->: {^}.value = identity({0}.$text)
 ->: {^}.value = interpret_escape({0}.$text)
-
+->: {^}.value = identity({0}.$text)
 ```
