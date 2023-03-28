@@ -334,10 +334,12 @@ type AttrRef struct {
 
 	occurance int
 	attribute string
+
+	tok types.Token
 }
 
 // ParseAttrRef does a simple parse on an attribute reference from a string that
-// makes it up.
+// makes it up. Does not set tok; caller must do so if needed.
 func ParseAttrRef(s string) (AttrRef, error) {
 	dotSpl := strings.Split(s, ".")
 	if len(dotSpl) < 2 {

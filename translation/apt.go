@@ -91,6 +91,10 @@ func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 	// attribute to normal parse treee and build it up at parse time.
 	// Yeah it makes more sense to make $ft a property passed to an attribute
 	// setter, from the parse tree.
+	// 8ut we still need to keep it set as an APT property because caller might
+	// want to access the first token of something besides just the thing that
+	// is 8eing set, *in particular* for terminal nodes where SDDs cannot be
+	// set.
 	annotatedStack = stack.Stack[*AnnotatedParseTree]{Of: []*AnnotatedParseTree{&annoRoot}}
 	for annotatedStack.Len() > 0 {
 		curAnnoNode := annotatedStack.Pop()

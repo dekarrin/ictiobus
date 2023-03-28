@@ -301,6 +301,7 @@ func bootstrapSDTSAttrRefsValue(sdts ictiobus.SDTS) {
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$ft"},
 		},
 	)
 
@@ -310,6 +311,7 @@ func bootstrapSDTSAttrRefsValue(sdts ictiobus.SDTS) {
 		"attr_ref_list_start",
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$ft"},
 		},
 	)
 }
@@ -332,6 +334,7 @@ func bootstrapSDTSSemanticActionValue(sdts ictiobus.SDTS) {
 		"make_semantic_action",
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$ft"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 3}, Name: "$text"},
 		},
 	)
@@ -341,6 +344,7 @@ func bootstrapSDTSSemanticActionValue(sdts ictiobus.SDTS) {
 		"make_semantic_action",
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$ft"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 3}, Name: "$text"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 4}, Name: "value"},
 		},

@@ -423,15 +423,15 @@ The following gives the Syntax-directed translations for the FISHI language.
 
 
 %symbol {ATTR-REF-LIST}
-->: {^}.value = attr_ref_list_append({0}.value, {1}.$text)
-->: {^}.value = attr_ref_list_start({0}.$text)
+->: {^}.value = attr_ref_list_append({0}.value, {1}.$text, {1}.$ft)
+->: {^}.value = attr_ref_list_start({0}.$text, {0}.$ft)
 
 %symbol {WITH}
 ->: {^}.value = ident({1}.value)
 
 %symbol {SEM-ACTION}
-->: {^}.value = make_semantic_action({1}.$text, {3}.$text)
-->: {^}.value = make_semantic_action({1}.$text, {3}.$text, {4}.value)
+->: {^}.value = make_semantic_action({1}.$text, {1}.$ft, {3}.$text)
+->: {^}.value = make_semantic_action({1}.$text, {1}.$ft, {3}.$text, {4}.value)
 
 %symbol {SEM-ACTION-LIST}
 ->: {^}.value = attr_ref_list_append({0}.value, {1}.value)

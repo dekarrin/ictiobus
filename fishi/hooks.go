@@ -8,7 +8,9 @@ import (
 
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/translation"
+	"github.com/dekarrin/ictiobus/types"
 )
 
 const (
@@ -586,19 +588,23 @@ func sdtsFnAttrRefListAppend(_ translation.SetterInfo, args []interface{}) inter
 		list = []AttrRef{{symbol: SDDErrMsg("producing this AttrRef list: first argument is not an AttrRef list")}}
 	}
 
-	toAppend := sdtsFnGetAttrRef(translation.SetterInfo{}, args[1:]).(AttrRef)
+	// get token of attr ref to build fake info object to pass to sdtsFnGetAttrRef's info.
+	fakeInfo := makeFakeInfo(args[2], tcAttrRef.ID(), "value")
+	toAppend := sdtsFnGetAttrRef(fakeInfo, args[1:]).(AttrRef)
 
 	list = append(list, toAppend)
 	return list
 }
 
 func sdtsFnAttrRefListStart(_ translation.SetterInfo, args []interface{}) interface{} {
-	toAppend := sdtsFnGetAttrRef(translation.SetterInfo{}, args[0:]).(AttrRef)
+	// get token of attr ref to build fake info object to pass to sdtsFnGetAttrRef's info.
+	fakeInfo := makeFakeInfo(args[1], tcAttrRef.ID(), "value")
+	toAppend := sdtsFnGetAttrRef(fakeInfo, args[0:]).(AttrRef)
 
 	return []AttrRef{toAppend}
 }
 
-func sdtsFnGetAttrRef(_ translation.SetterInfo, args []interface{}) interface{} {
+func sdtsFnGetAttrRef(info translation.SetterInfo, args []interface{}) interface{} {
 	var attrRef AttrRef
 
 	str, ok := args[0].(string)
@@ -612,22 +618,25 @@ func sdtsFnGetAttrRef(_ translation.SetterInfo, args []interface{}) interface{} 
 		}
 	}
 
+	attrRef.tok = info.FirstToken
+
 	return attrRef
 }
 
 func sdtsFnMakeSemanticAction(_ translation.SetterInfo, args []interface{}) interface{} {
-	attrRef := sdtsFnGetAttrRef(translation.SetterInfo{}, args[0:1]).(AttrRef)
+	fakeInfo := makeFakeInfo(args[1], tcAttrRef.ID(), "value")
+	attrRef := sdtsFnGetAttrRef(fakeInfo, args[0:1]).(AttrRef)
 
-	hookId, ok := args[1].(string)
+	hookId, ok := args[2].(string)
 	if !ok {
-		hookId = SDDErrMsg("producing this semantic action: second argument is not a string")
+		hookId = SDDErrMsg("producing this semantic action: third argument is not a string")
 	}
 
 	var argRefs []AttrRef
-	if len(args) > 2 {
-		argRefs, ok = args[2].([]AttrRef)
+	if len(args) > 3 {
+		argRefs, ok = args[3].([]AttrRef)
 		if !ok {
-			argRefs = []AttrRef{{symbol: SDDErrMsg("producing this semantic action: third argument is not an attrRef list")}}
+			argRefs = []AttrRef{{symbol: SDDErrMsg("producing this semantic action: fourth argument is not an attrRef list")}}
 		}
 	}
 
@@ -878,4 +887,26 @@ func sdtsFnMakeTokenEntry(info translation.SetterInfo, args []interface{}) inter
 		}
 	}
 	return t
+}
+
+// for hooks to generate fake info object when needed. Sym and name can be blank
+// if desired. Returned SetterInfo will always have synthetic set to true.
+func makeFakeInfo(from interface{}, sym, name string) translation.SetterInfo {
+	tok, ok := from.(types.Token)
+	if !ok {
+		tok = lex.NewToken(
+			types.TokenError,
+			SDDErrMsg("argument is not a token"),
+			0, 0, "",
+		)
+	}
+
+	info := translation.SetterInfo{
+		GrammarSymbol: sym,
+		Synthetic:     true,
+		Name:          name,
+		FirstToken:    tok,
+	}
+
+	return info
 }
