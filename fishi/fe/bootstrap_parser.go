@@ -1,4 +1,4 @@
-package fishi
+package fe
 
 import (
 	"fmt"
@@ -26,37 +26,37 @@ func CreateBootstrapParser() (ictiobus.Parser, []string) {
 func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg := grammar.Grammar{}
 
-	bootCfg.AddTerm(tcHeaderTokens.ID(), tcHeaderTokens)
-	bootCfg.AddTerm(tcHeaderGrammar.ID(), tcHeaderGrammar)
-	bootCfg.AddTerm(tcHeaderActions.ID(), tcHeaderActions)
-	bootCfg.AddTerm(tcDirSet.ID(), tcDirSet)
+	bootCfg.AddTerm(TCHeaderTokens.ID(), TCHeaderTokens)
+	bootCfg.AddTerm(TCHeaderGrammar.ID(), TCHeaderGrammar)
+	bootCfg.AddTerm(TCHeaderActions.ID(), TCHeaderActions)
+	bootCfg.AddTerm(TCDirSet.ID(), TCDirSet)
 	//bootCfg.AddTerm(tcDirDefault.ID(), tcDirDefault)
-	bootCfg.AddTerm(tcDirHook.ID(), tcDirHook)
-	bootCfg.AddTerm(tcDirHuman.ID(), tcDirHuman)
-	bootCfg.AddTerm(tcDirIndex.ID(), tcDirIndex)
-	bootCfg.AddTerm(tcDirProd.ID(), tcDirProd)
-	bootCfg.AddTerm(tcDirShift.ID(), tcDirShift)
+	bootCfg.AddTerm(TCDirHook.ID(), TCDirHook)
+	bootCfg.AddTerm(TCDirHuman.ID(), TCDirHuman)
+	bootCfg.AddTerm(TCDirIndex.ID(), TCDirIndex)
+	bootCfg.AddTerm(TCDirProd.ID(), TCDirProd)
+	bootCfg.AddTerm(TCDirShift.ID(), TCDirShift)
 	//bootCfg.AddTerm(tcDirStart.ID(), tcDirStart)
-	bootCfg.AddTerm(tcDirState.ID(), tcDirState)
-	bootCfg.AddTerm(tcDirSymbol.ID(), tcDirSymbol)
-	bootCfg.AddTerm(tcDirToken.ID(), tcDirToken)
-	bootCfg.AddTerm(tcDirWith.ID(), tcDirWith)
-	bootCfg.AddTerm(tcFreeformText.ID(), tcFreeformText)
+	bootCfg.AddTerm(TCDirState.ID(), TCDirState)
+	bootCfg.AddTerm(TCDirSymbol.ID(), TCDirSymbol)
+	bootCfg.AddTerm(TCDirToken.ID(), TCDirToken)
+	bootCfg.AddTerm(TCDirWith.ID(), TCDirWith)
+	bootCfg.AddTerm(TCFreeformText.ID(), TCFreeformText)
 	//bootCfg.AddTerm(tcNewline.ID(), tcNewline)
-	bootCfg.AddTerm(tcTerminal.ID(), tcTerminal)
-	bootCfg.AddTerm(tcNonterminal.ID(), tcNonterminal)
-	bootCfg.AddTerm(tcEq.ID(), tcEq)
-	bootCfg.AddTerm(tcAlt.ID(), tcAlt)
-	bootCfg.AddTerm(tcAttrRef.ID(), tcAttrRef)
-	bootCfg.AddTerm(tcInt.ID(), tcInt)
-	bootCfg.AddTerm(tcId.ID(), tcId)
-	bootCfg.AddTerm(tcEscseq.ID(), tcEscseq)
-	bootCfg.AddTerm(tcEpsilon.ID(), tcEpsilon)
-	bootCfg.AddTerm(tcDirDiscard.ID(), tcDirDiscard)
-	bootCfg.AddTerm(tcDirPriority.ID(), tcDirPriority)
-	bootCfg.AddTerm(tcLineStartFreeformText.ID(), tcLineStartFreeformText)
-	bootCfg.AddTerm(tcLineStartEscseq.ID(), tcLineStartEscseq)
-	bootCfg.AddTerm(tcLineStartNonterminal.ID(), tcLineStartNonterminal)
+	bootCfg.AddTerm(TCTerminal.ID(), TCTerminal)
+	bootCfg.AddTerm(TCNonterminal.ID(), TCNonterminal)
+	bootCfg.AddTerm(TCEq.ID(), TCEq)
+	bootCfg.AddTerm(TCAlt.ID(), TCAlt)
+	bootCfg.AddTerm(TCAttrRef.ID(), TCAttrRef)
+	bootCfg.AddTerm(TCInt.ID(), TCInt)
+	bootCfg.AddTerm(TCId.ID(), TCId)
+	bootCfg.AddTerm(TCEscseq.ID(), TCEscseq)
+	bootCfg.AddTerm(TCEpsilon.ID(), TCEpsilon)
+	bootCfg.AddTerm(TCDirDiscard.ID(), TCDirDiscard)
+	bootCfg.AddTerm(TCDirPriority.ID(), TCDirPriority)
+	bootCfg.AddTerm(TCLineStartFreeformText.ID(), TCLineStartFreeformText)
+	bootCfg.AddTerm(TCLineStartEscseq.ID(), TCLineStartEscseq)
+	bootCfg.AddTerm(TCLineStartNonterminal.ID(), TCLineStartNonterminal)
 
 	bootCfg.AddRule("FISHISPEC", []string{"BLOCKS"})
 
@@ -67,7 +67,7 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddRule("BLOCK", []string{"TOKENS-BLOCK"})
 	bootCfg.AddRule("BLOCK", []string{"ACTIONS-BLOCK"})
 
-	bootCfg.AddRule("ACTIONS-BLOCK", []string{tcHeaderActions.ID(), "ACTIONS-CONTENT"})
+	bootCfg.AddRule("ACTIONS-BLOCK", []string{TCHeaderActions.ID(), "ACTIONS-CONTENT"})
 
 	bootCfg.AddRule("ACTIONS-CONTENT", []string{"SYMBOL-ACTIONS-LIST", "ACTIONS-STATE-BLOCK-LIST"})
 	bootCfg.AddRule("ACTIONS-CONTENT", []string{"SYMBOL-ACTIONS-LIST"})
@@ -81,7 +81,7 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddRule("SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS-LIST", "SYMBOL-ACTIONS"})
 	bootCfg.AddRule("SYMBOL-ACTIONS-LIST", []string{"SYMBOL-ACTIONS"})
 
-	bootCfg.AddRule("SYMBOL-ACTIONS", []string{tcDirSymbol.ID(), tcNonterminal.ID(), "PROD-ACTIONS"})
+	bootCfg.AddRule("SYMBOL-ACTIONS", []string{TCDirSymbol.ID(), TCNonterminal.ID(), "PROD-ACTIONS"})
 
 	bootCfg.AddRule("PROD-ACTIONS", []string{"PROD-ACTIONS", "PROD-ACTION"})
 	bootCfg.AddRule("PROD-ACTIONS", []string{"PROD-ACTION"})
@@ -91,33 +91,33 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddRule("SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTIONS", "SEMANTIC-ACTION"})
 	bootCfg.AddRule("SEMANTIC-ACTIONS", []string{"SEMANTIC-ACTION"})
 
-	bootCfg.AddRule("SEMANTIC-ACTION", []string{tcDirSet.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID()})
-	bootCfg.AddRule("SEMANTIC-ACTION", []string{tcDirSet.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID(), "WITH-CLAUSE"})
+	bootCfg.AddRule("SEMANTIC-ACTION", []string{TCDirSet.ID(), TCAttrRef.ID(), TCDirHook.ID(), TCId.ID()})
+	bootCfg.AddRule("SEMANTIC-ACTION", []string{TCDirSet.ID(), TCAttrRef.ID(), TCDirHook.ID(), TCId.ID(), "WITH-CLAUSE"})
 
-	bootCfg.AddRule("WITH-CLAUSE", []string{tcDirWith.ID(), "ATTR-REFS"})
+	bootCfg.AddRule("WITH-CLAUSE", []string{TCDirWith.ID(), "ATTR-REFS"})
 
-	bootCfg.AddRule("ATTR-REFS", []string{"ATTR-REFS", tcAttrRef.ID()})
-	bootCfg.AddRule("ATTR-REFS", []string{tcAttrRef.ID()})
+	bootCfg.AddRule("ATTR-REFS", []string{"ATTR-REFS", TCAttrRef.ID()})
+	bootCfg.AddRule("ATTR-REFS", []string{TCAttrRef.ID()})
 
-	bootCfg.AddRule("PROD-SPECIFIER", []string{tcDirProd.ID(), "PROD-ADDR"})
-	bootCfg.AddRule("PROD-SPECIFIER", []string{tcDirProd.ID()})
+	bootCfg.AddRule("PROD-SPECIFIER", []string{TCDirProd.ID(), "PROD-ADDR"})
+	bootCfg.AddRule("PROD-SPECIFIER", []string{TCDirProd.ID()})
 
-	bootCfg.AddRule("PROD-ADDR", []string{tcDirIndex.ID(), tcInt.ID()})
+	bootCfg.AddRule("PROD-ADDR", []string{TCDirIndex.ID(), TCInt.ID()})
 	bootCfg.AddRule("PROD-ADDR", []string{"ACTION-PRODUCTION"})
 
 	bootCfg.AddRule("ACTION-PRODUCTION", []string{"ACTION-SYMBOL-SEQUENCE"})
-	bootCfg.AddRule("ACTION-PRODUCTION", []string{tcEpsilon.ID()})
+	bootCfg.AddRule("ACTION-PRODUCTION", []string{TCEpsilon.ID()})
 
 	bootCfg.AddRule("ACTION-SYMBOL-SEQUENCE", []string{"ACTION-SYMBOL-SEQUENCE", "ACTION-SYMBOL"})
 	bootCfg.AddRule("ACTION-SYMBOL-SEQUENCE", []string{"ACTION-SYMBOL"})
 
-	bootCfg.AddRule("ACTION-SYMBOL", []string{tcNonterminal.ID()})
-	bootCfg.AddRule("ACTION-SYMBOL", []string{tcTerminal.ID()})
-	bootCfg.AddRule("ACTION-SYMBOL", []string{tcInt.ID()})
-	bootCfg.AddRule("ACTION-SYMBOL", []string{tcId.ID()})
+	bootCfg.AddRule("ACTION-SYMBOL", []string{TCNonterminal.ID()})
+	bootCfg.AddRule("ACTION-SYMBOL", []string{TCTerminal.ID()})
+	bootCfg.AddRule("ACTION-SYMBOL", []string{TCInt.ID()})
+	bootCfg.AddRule("ACTION-SYMBOL", []string{TCId.ID()})
 
 	// tokens
-	bootCfg.AddRule("TOKENS-BLOCK", []string{tcHeaderTokens.ID(), "TOKENS-CONTENT"})
+	bootCfg.AddRule("TOKENS-BLOCK", []string{TCHeaderTokens.ID(), "TOKENS-CONTENT"})
 
 	bootCfg.AddRule("TOKENS-CONTENT", []string{"TOKENS-ENTRIES", "TOKENS-STATE-BLOCK-LIST"})
 	bootCfg.AddRule("TOKENS-CONTENT", []string{"TOKENS-ENTRIES"})
@@ -142,15 +142,15 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddRule("TOKEN-OPTION", []string{"HUMAN"})
 	bootCfg.AddRule("TOKEN-OPTION", []string{"PRIORITY"})
 
-	bootCfg.AddRule("DISCARD", []string{tcDirDiscard.ID()})
-	bootCfg.AddRule("STATESHIFT", []string{tcDirShift.ID(), "TEXT"})
-	bootCfg.AddRule("TOKEN", []string{tcDirToken.ID(), "TEXT"})
-	bootCfg.AddRule("HUMAN", []string{tcDirHuman.ID(), "TEXT"})
-	bootCfg.AddRule("PRIORITY", []string{tcDirPriority.ID(), "TEXT"})
+	bootCfg.AddRule("DISCARD", []string{TCDirDiscard.ID()})
+	bootCfg.AddRule("STATESHIFT", []string{TCDirShift.ID(), "TEXT"})
+	bootCfg.AddRule("TOKEN", []string{TCDirToken.ID(), "TEXT"})
+	bootCfg.AddRule("HUMAN", []string{TCDirHuman.ID(), "TEXT"})
+	bootCfg.AddRule("PRIORITY", []string{TCDirPriority.ID(), "TEXT"})
 
 	bootCfg.AddRule("PATTERN", []string{"TEXT"})
 
-	bootCfg.AddRule("GRAMMAR-BLOCK", []string{tcHeaderGrammar.ID(), "GRAMMAR-CONTENT"})
+	bootCfg.AddRule("GRAMMAR-BLOCK", []string{TCHeaderGrammar.ID(), "GRAMMAR-CONTENT"})
 
 	bootCfg.AddRule("GRAMMAR-CONTENT", []string{"GRAMMAR-RULES", "GRAMMAR-STATE-BLOCK-LIST"})
 	bootCfg.AddRule("GRAMMAR-CONTENT", []string{"GRAMMAR-RULES"})
@@ -164,24 +164,24 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddRule("GRAMMAR-RULES", []string{"GRAMMAR-RULES", "GRAMMAR-RULE"})
 	bootCfg.AddRule("GRAMMAR-RULES", []string{"GRAMMAR-RULE"})
 
-	bootCfg.AddRule("GRAMMAR-RULE", []string{tcLineStartNonterminal.ID(), tcEq.ID(), "ALTERNATIONS"})
+	bootCfg.AddRule("GRAMMAR-RULE", []string{TCLineStartNonterminal.ID(), TCEq.ID(), "ALTERNATIONS"})
 
 	bootCfg.AddRule("ALTERNATIONS", []string{"PRODUCTION"})
-	bootCfg.AddRule("ALTERNATIONS", []string{"ALTERNATIONS", tcAlt.ID(), "PRODUCTION"})
+	bootCfg.AddRule("ALTERNATIONS", []string{"ALTERNATIONS", TCAlt.ID(), "PRODUCTION"})
 
 	bootCfg.AddRule("PRODUCTION", []string{"SYMBOL-SEQUENCE"})
-	bootCfg.AddRule("PRODUCTION", []string{tcEpsilon.ID()})
+	bootCfg.AddRule("PRODUCTION", []string{TCEpsilon.ID()})
 
 	bootCfg.AddRule("SYMBOL-SEQUENCE", []string{"SYMBOL-SEQUENCE", "SYMBOL"})
 	bootCfg.AddRule("SYMBOL-SEQUENCE", []string{"SYMBOL"})
 
-	bootCfg.AddRule("SYMBOL", []string{tcNonterminal.ID()})
-	bootCfg.AddRule("SYMBOL", []string{tcTerminal.ID()})
+	bootCfg.AddRule("SYMBOL", []string{TCNonterminal.ID()})
+	bootCfg.AddRule("SYMBOL", []string{TCTerminal.ID()})
 
-	bootCfg.AddRule("STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"})
+	bootCfg.AddRule("STATE-INSTRUCTION", []string{TCDirState.ID(), "ID-EXPR"})
 
-	bootCfg.AddRule("ID-EXPR", []string{tcId.ID()})
-	bootCfg.AddRule("ID-EXPR", []string{tcTerminal.ID()})
+	bootCfg.AddRule("ID-EXPR", []string{TCId.ID()})
+	bootCfg.AddRule("ID-EXPR", []string{TCTerminal.ID()})
 
 	// Needed SDTS updates:
 	// - update TEXT it's completely changed *done*
@@ -194,11 +194,11 @@ func CreateBootstrapGrammar() grammar.Grammar {
 	bootCfg.AddRule("TEXT-ELEMENTS", []string{"TEXT-ELEMENTS", "TEXT-ELEMENT"})
 	bootCfg.AddRule("TEXT-ELEMENTS", []string{"TEXT-ELEMENT"})
 
-	bootCfg.AddRule("LINE-START-TEXT-ELEMENT", []string{tcLineStartEscseq.ID()})
-	bootCfg.AddRule("LINE-START-TEXT-ELEMENT", []string{tcLineStartFreeformText.ID()})
+	bootCfg.AddRule("LINE-START-TEXT-ELEMENT", []string{TCLineStartEscseq.ID()})
+	bootCfg.AddRule("LINE-START-TEXT-ELEMENT", []string{TCLineStartFreeformText.ID()})
 
-	bootCfg.AddRule("TEXT-ELEMENT", []string{tcFreeformText.ID()})
-	bootCfg.AddRule("TEXT-ELEMENT", []string{tcEscseq.ID()})
+	bootCfg.AddRule("TEXT-ELEMENT", []string{TCFreeformText.ID()})
+	bootCfg.AddRule("TEXT-ELEMENT", []string{TCEscseq.ID()})
 
 	bootCfg.Start = "FISHISPEC"
 	bootCfg.RemoveUnusedTerminals()

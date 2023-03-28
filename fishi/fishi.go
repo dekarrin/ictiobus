@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus"
+	"github.com/dekarrin/ictiobus/fishi/fe"
 	"github.com/dekarrin/ictiobus/translation"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/gomarkdown/markdown"
@@ -153,12 +154,12 @@ func GetFrontend(opts Options) (ictiobus.Frontend[AST], error) {
 		}
 	}
 
-	feOpts := FrontendOptions{
+	feOpts := fe.FrontendOptions{
 		LexerTrace:  opts.LexerTrace,
 		ParserTrace: opts.ParserTrace,
 	}
 
-	fishiFront := Frontend(HooksTable, feOpts, preloadedParser)
+	fishiFront := fe.Frontend[AST](HooksTable, feOpts, preloadedParser)
 
 	// check the parser encoding if we generated a new one:
 	if preloadedParser == nil && opts.ParserCFF != "" && opts.WriteCache {

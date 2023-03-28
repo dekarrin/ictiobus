@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/dekarrin/ictiobus/fishi/fe"
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/lex"
@@ -630,7 +631,7 @@ func sdtsFnAttrRefListAppend(_ translation.SetterInfo, args []interface{}) inter
 	}
 
 	// get token of attr ref to build fake info object to pass to sdtsFnGetAttrRef's info.
-	fakeInfo := makeFakeInfo(args[2], tcAttrRef.ID(), "value")
+	fakeInfo := makeFakeInfo(args[2], fe.TCAttrRef.ID(), "value")
 	toAppend := sdtsFnGetAttrRef(fakeInfo, args[1:]).(AttrRef)
 
 	list = append(list, toAppend)
@@ -639,7 +640,7 @@ func sdtsFnAttrRefListAppend(_ translation.SetterInfo, args []interface{}) inter
 
 func sdtsFnAttrRefListStart(_ translation.SetterInfo, args []interface{}) interface{} {
 	// get token of attr ref to build fake info object to pass to sdtsFnGetAttrRef's info.
-	fakeInfo := makeFakeInfo(args[1], tcAttrRef.ID(), "value")
+	fakeInfo := makeFakeInfo(args[1], fe.TCAttrRef.ID(), "value")
 	toAppend := sdtsFnGetAttrRef(fakeInfo, args[0:]).(AttrRef)
 
 	return []AttrRef{toAppend}
@@ -665,7 +666,7 @@ func sdtsFnGetAttrRef(info translation.SetterInfo, args []interface{}) interface
 }
 
 func sdtsFnMakeSemanticAction(info translation.SetterInfo, args []interface{}) interface{} {
-	fakeInfo := makeFakeInfo(args[1], tcAttrRef.ID(), "value")
+	fakeInfo := makeFakeInfo(args[1], fe.TCAttrRef.ID(), "value")
 	attrRef := sdtsFnGetAttrRef(fakeInfo, args[0:1]).(AttrRef)
 
 	hookId, ok := args[2].(string)
