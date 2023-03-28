@@ -632,18 +632,28 @@ func sdtsFnMakeSemanticAction(_ translation.SetterInfo, args []interface{}) inte
 		hookId = SDDErrMsg("producing this semantic action: third argument is not a string")
 	}
 
+	hookTok, ok := args[3].(types.Token)
+	if !ok {
+		hookTok = lex.NewToken(
+			types.TokenError,
+			SDDErrMsg("producing this semantic action: argument is not a token"),
+			0, 0, "",
+		)
+	}
+
 	var argRefs []AttrRef
-	if len(args) > 3 {
-		argRefs, ok = args[3].([]AttrRef)
+	if len(args) > 4 {
+		argRefs, ok = args[4].([]AttrRef)
 		if !ok {
-			argRefs = []AttrRef{{symbol: SDDErrMsg("producing this semantic action: fourth argument is not an attrRef list")}}
+			argRefs = []AttrRef{{symbol: SDDErrMsg("producing this semantic action: fifth argument is not an attrRef list")}}
 		}
 	}
 
 	sa := semanticAction{
-		lhs:  attrRef,
-		hook: hookId,
-		with: argRefs,
+		lhs:     attrRef,
+		hook:    hookId,
+		with:    argRefs,
+		hookTok: hookTok,
 	}
 
 	return sa

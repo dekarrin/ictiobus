@@ -336,6 +336,7 @@ func bootstrapSDTSSemanticActionValue(sdts ictiobus.SDTS) {
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$text"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$ft"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 3}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 3}, Name: "$ft"},
 		},
 	)
 	sdts.BindSynthesizedAttribute(
@@ -346,6 +347,7 @@ func bootstrapSDTSSemanticActionValue(sdts ictiobus.SDTS) {
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$text"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$ft"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 3}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 3}, Name: "$ft"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 4}, Name: "value"},
 		},
 	)

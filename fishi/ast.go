@@ -478,6 +478,8 @@ type semanticAction struct {
 	lhs  AttrRef
 	hook string
 	with []AttrRef
+
+	hookTok types.Token
 }
 
 func (sa semanticAction) String() string {

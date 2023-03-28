@@ -430,8 +430,8 @@ The following gives the Syntax-directed translations for the FISHI language.
 ->: {^}.value = ident({1}.value)
 
 %symbol {SEM-ACTION}
-->: {^}.value = make_semantic_action({1}.$text, {1}.$ft, {3}.$text)
-->: {^}.value = make_semantic_action({1}.$text, {1}.$ft, {3}.$text, {4}.value)
+->: {^}.value = make_semantic_action({1}.$text, {1}.$ft, {3}.$text, {3}.$ft)
+->: {^}.value = make_semantic_action({1}.$text, {1}.$ft, {3}.$text, {3}.$ft, {4}.value)
 
 %symbol {SEM-ACTION-LIST}
 ->: {^}.value = attr_ref_list_append({0}.value, {1}.value)
