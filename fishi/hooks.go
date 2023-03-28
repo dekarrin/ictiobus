@@ -34,6 +34,7 @@ var (
 		"grammar_content_blocks_prepend":                   sdtsFnGrammarContentBlocksPrepend,
 		"make_prod_action":                                 sdtsFnMakeProdAction,
 		"make_symbol_actions":                              sdtsFnMakeSymbolActions,
+		"make_state_ins":                                   sdtsFnMakeStateIns,
 		"make_grammar_content_node":                        sdtsFnMakeGrammarContentNode,
 		"make_actions_content_node":                        sdtsFnMakeActionsContentNode,
 		"make_tokens_content_node":                         sdtsFnMakeTokensContentNode,
@@ -259,10 +260,13 @@ func sdtsFnGrammarContentBlocksPrepend(_ translation.SetterInfo, args []interfac
 	return list
 }
 
-func sdtsFnMakeProdAction(_ translation.SetterInfo, args []interface{}) interface{} {
-	prodSpec, ok := args[0].(box.Pair[string, interface{}])
+func sdtsFnMakeProdAction(info translation.SetterInfo, args []interface{}) interface{} {
+	prodSpec, ok := args[0].(box.Triple[string, interface{}, types.Token])
 	if !ok {
-		prodSpec = box.Pair[string, interface{}]{First: "LITERAL", Second: []string{SDDErrMsg("producing this production action: first argument is not a pair of string, any")}}
+		prodSpec = box.Triple[string, interface{}, types.Token]{
+			First:  "LITERAL",
+			Second: []string{SDDErrMsg("producing this production action: first argument is not a pair of string, any")},
+		}
 	}
 
 	semActions, ok := args[1].([]semanticAction)
@@ -272,6 +276,8 @@ func sdtsFnMakeProdAction(_ translation.SetterInfo, args []interface{}) interfac
 
 	pa := productionAction{
 		actions: semActions,
+		tok:     info.FirstToken,
+		valTok:  prodSpec.Third,
 	}
 
 	if prodSpec.First == "LITERAL" {
@@ -287,57 +293,92 @@ func sdtsFnMakeProdAction(_ translation.SetterInfo, args []interface{}) interfac
 	return pa
 }
 
-func sdtsFnMakeSymbolActions(_ translation.SetterInfo, args []interface{}) interface{} {
+func sdtsFnMakeSymbolActions(info translation.SetterInfo, args []interface{}) interface{} {
 	nonTermUntyped := sdtsFnGetNonterminal(translation.SetterInfo{}, args[0:1])
 	nonTerm := nonTermUntyped.(string)
 
-	prodActions, ok := args[1].([]productionAction)
+	// also grab the nonTerm's token from args
+	ntTok, ok := args[1].(types.Token)
 	if !ok {
-		prodActions = []productionAction{{prodLiteral: []string{SDDErrMsg("producing this production action list: second argument is not a production action list")}}}
+		ntTok = lex.NewToken(
+			types.TokenError,
+			SDDErrMsg("producing this symbol actions: second argument is not a token"),
+			0, 0, "",
+		)
+	}
+
+	prodActions, ok := args[2].([]productionAction)
+	if !ok {
+		prodActions = []productionAction{{prodLiteral: []string{SDDErrMsg("producing this production action list: third argument is not a production action list")}}}
 	}
 
 	sa := symbolActions{
 		symbol:  nonTerm,
 		actions: prodActions,
+
+		tok:    info.FirstToken,
+		symTok: ntTok,
 	}
 
 	return sa
 }
 
-func sdtsFnMakeGrammarContentNode(_ translation.SetterInfo, args []interface{}) interface{} {
+func sdtsFnMakeStateIns(info translation.SetterInfo, args []interface{}) interface{} {
 	state, ok := args[0].(string)
 	if !ok {
-		state = SDDErrMsg("STATE value is not a string")
+		state = SDDErrMsg("state ID is not a string")
 	}
+
+	// also grab the state ID's token from args
+	stateTok, ok := args[1].(types.Token)
+	if !ok {
+		stateTok = lex.NewToken(
+			types.TokenError,
+			SDDErrMsg("producing this state ID: second argument is not a token"),
+			0, 0, "",
+		)
+	}
+
+	return box.Pair[string, types.Token]{First: state, Second: stateTok}
+}
+
+func sdtsFnMakeGrammarContentNode(info translation.SetterInfo, args []interface{}) interface{} {
+	state, ok := args[0].(box.Pair[string, types.Token])
+	if !ok {
+		state = box.Pair[string, types.Token]{First: SDDErrMsg("STATE value is not a string/token pair")}
+	}
+
 	rules, ok := args[1].([]astGrammarRule)
 	if !ok {
 		rules = []astGrammarRule{{rule: grammar.Rule{NonTerminal: SDDErrMsg("producing this rule list: second argument is not a rule list")}}}
 	}
-	return astGrammarContent{rules: rules, state: state}
+	return astGrammarContent{rules: rules, state: state.First, tokState: state.Second, tok: info.FirstToken}
 }
 
-func sdtsFnMakeActionsContentNode(_ translation.SetterInfo, args []interface{}) interface{} {
-	state, ok := args[0].(string)
+func sdtsFnMakeActionsContentNode(info translation.SetterInfo, args []interface{}) interface{} {
+	state, ok := args[0].(box.Pair[string, types.Token])
 	if !ok {
-		state = SDDErrMsg("STATE value is not a string")
+		state = box.Pair[string, types.Token]{First: SDDErrMsg("STATE value is not a string")}
 	}
 	actions, ok := args[1].([]symbolActions)
 	if !ok {
 		actions = []symbolActions{{symbol: SDDErrMsg("producing this symbol actions list: second argument is not a symbol actions list")}}
 	}
-	return astActionsContent{actions: actions, state: state}
+	return astActionsContent{actions: actions, state: state.First, tokState: state.Second, tok: info.FirstToken}
 }
 
-func sdtsFnMakeTokensContentNode(_ translation.SetterInfo, args []interface{}) interface{} {
-	state, ok := args[0].(string)
+func sdtsFnMakeTokensContentNode(info translation.SetterInfo, args []interface{}) interface{} {
+	state, ok := args[0].(box.Pair[string, types.Token])
 	if !ok {
-		state = SDDErrMsg("STATE value is not a string")
+		state = box.Pair[string, types.Token]{First: SDDErrMsg("STATE value is not a string")}
 	}
+
 	entries, ok := args[1].([]tokenEntry)
 	if !ok {
 		entries = []tokenEntry{{pattern: SDDErrMsg("producing this token entry list: first argument is not a token entry list")}}
 	}
-	return astTokensContent{entries: entries, state: state}
+
+	return astTokensContent{entries: entries, state: state.First, tokState: state.Second, tok: info.FirstToken}
 }
 
 func sdtsFnTrimString(_ translation.SetterInfo, args []interface{}) interface{} {
@@ -623,7 +664,7 @@ func sdtsFnGetAttrRef(info translation.SetterInfo, args []interface{}) interface
 	return attrRef
 }
 
-func sdtsFnMakeSemanticAction(_ translation.SetterInfo, args []interface{}) interface{} {
+func sdtsFnMakeSemanticAction(info translation.SetterInfo, args []interface{}) interface{} {
 	fakeInfo := makeFakeInfo(args[1], tcAttrRef.ID(), "value")
 	attrRef := sdtsFnGetAttrRef(fakeInfo, args[0:1]).(AttrRef)
 
@@ -654,25 +695,26 @@ func sdtsFnMakeSemanticAction(_ translation.SetterInfo, args []interface{}) inte
 		hook:    hookId,
 		with:    argRefs,
 		hookTok: hookTok,
+		tok:     info.FirstToken,
 	}
 
 	return sa
 }
 
-func sdtsFnMakeProdSpecifierNext(_ translation.SetterInfo, args []interface{}) interface{} {
+func sdtsFnMakeProdSpecifierNext(info translation.SetterInfo, args []interface{}) interface{} {
 	// need exact generic-filled type to match later expectations.
-	spec := box.Pair[string, interface{}]{First: "NEXT", Second: ""}
+	spec := box.Triple[string, interface{}, types.Token]{First: "NEXT", Second: "", Third: info.FirstToken}
 	return spec
 }
 
-func sdtsFnMakeProdSpecifierIndex(_ translation.SetterInfo, args []interface{}) interface{} {
+func sdtsFnMakeProdSpecifierIndex(info translation.SetterInfo, args []interface{}) interface{} {
 	index := sdtsFnGetInt(translation.SetterInfo{}, args)
 	// need exact generic-filled type to match later expectations.
-	spec := box.Pair[string, interface{}]{First: "INDEX", Second: index}
+	spec := box.Triple[string, interface{}, types.Token]{First: "INDEX", Second: index, Third: info.FirstToken}
 	return spec
 }
 
-func sdtsFnMakeProdSpecifierLiteral(_ translation.SetterInfo, args []interface{}) interface{} {
+func sdtsFnMakeProdSpecifierLiteral(info translation.SetterInfo, args []interface{}) interface{} {
 	prod, ok := args[0].([]string)
 
 	if !ok {
@@ -680,7 +722,7 @@ func sdtsFnMakeProdSpecifierLiteral(_ translation.SetterInfo, args []interface{}
 	}
 
 	// need exact generic-filled type to match later expectations.
-	spec := box.Pair[string, interface{}]{First: "LITERAL", Second: prod}
+	spec := box.Triple[string, interface{}, types.Token]{First: "LITERAL", Second: prod, Third: info.FirstToken}
 	return spec
 }
 

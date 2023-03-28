@@ -500,6 +500,7 @@ func bootstrapSDTSSymbolActionsValue(sdts ictiobus.SDTS) {
 		"make_symbol_actions",
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$ft"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 2}, Name: "value"},
 		},
 	)
@@ -847,9 +848,10 @@ func bootstrapSDTSStateInstructionState(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"},
 		"state",
-		"identity",
+		"make_state_ins",
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$ft"},
 		},
 	)
 }

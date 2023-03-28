@@ -287,6 +287,9 @@ func (agr astGrammarRule) String() string {
 type astTokensContent struct {
 	entries []tokenEntry
 	state   string
+
+	tok      types.Token
+	tokState types.Token
 }
 
 func (content astTokensContent) String() string {
@@ -300,6 +303,9 @@ func (content astTokensContent) String() string {
 type astGrammarContent struct {
 	rules []astGrammarRule
 	state string
+
+	tok      types.Token
+	tokState types.Token
 }
 
 func (content astGrammarContent) String() string {
@@ -313,6 +319,9 @@ func (content astGrammarContent) String() string {
 type astActionsContent struct {
 	actions []symbolActions
 	state   string
+
+	tok      types.Token
+	tokState types.Token
 }
 
 func (content astActionsContent) String() string {
@@ -480,6 +489,7 @@ type semanticAction struct {
 	with []AttrRef
 
 	hookTok types.Token
+	tok     types.Token
 }
 
 func (sa semanticAction) String() string {
@@ -507,6 +517,12 @@ type productionAction struct {
 	prodLiteral []string
 
 	actions []semanticAction
+
+	tok types.Token
+
+	// valTok is where the production action "value" is set; that is, the index
+	// or production. It will be nil if it is simply a prodNext.
+	valTok types.Token
 }
 
 func (pa productionAction) String() string {
@@ -540,6 +556,9 @@ func (pa productionAction) String() string {
 type symbolActions struct {
 	symbol  string
 	actions []productionAction
+
+	tok    types.Token
+	symTok types.Token
 }
 
 func (sa symbolActions) String() string {

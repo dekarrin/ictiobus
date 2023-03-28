@@ -463,7 +463,7 @@ The following gives the Syntax-directed translations for the FISHI language.
 ->: {^}.value = make_prod_action({0}.value, {1}.value)
 
 %symbol {SYM-ACTIONS}
-->: {^}.value = make_symbol_actions({1}.$text, {2}.value)
+->: {^}.value = make_symbol_actions({1}.$text, {1}.$ft, {2}.value)
 
 %symbol {SYM-ACTIONS-LIST}
 ->: {^}.value = symbol_actions_list_append({0}.value, {1}.value)
@@ -531,7 +531,7 @@ The following gives the Syntax-directed translations for the FISHI language.
 ->: {^}.value = get_terminal({0}.$text)
 
 %symbol {STATE-INS}
-->: {^}.state = identity({1}.value)
+->: {^}.state = make_state_ins({1}.value, {1}.$ft)
 
 %symbol {ID-EXPR}
 ->: {^}.value = identity({0}.$text)
