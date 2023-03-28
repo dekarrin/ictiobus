@@ -236,6 +236,7 @@ const (
 type astTokenOption struct {
 	optType astTokenOptionType
 	value   string
+	tok     types.Token
 }
 
 type tokenEntry struct {
@@ -245,7 +246,20 @@ type tokenEntry struct {
 	token    string
 	human    string
 	priority int
-	tok      types.Token
+
+	tok types.Token
+
+	// in theory may be multiple options for the same option type; while it
+	// is not allowed semantically, it is allowed syntactically, so track it so
+	// we can do proper error reporting later.
+	discardTok  []types.Token
+	shiftTok    []types.Token
+	tokenTok    []types.Token
+	humanTok    []types.Token
+	priorityTok []types.Token
+
+	// (don't need a patternTok because that pattern is the first symbol and
+	// there can only be one; tok will be the same as patternTok)
 }
 
 func (entry tokenEntry) String() string {
@@ -259,6 +273,15 @@ func (entry tokenEntry) String() string {
 	sb.WriteString(fmt.Sprintf("Priority: %d", entry.priority))
 
 	return sb.String()
+}
+
+type astGrammarRule struct {
+	rule grammar.Rule
+	tok  types.Token
+}
+
+func (agr astGrammarRule) String() string {
+	return agr.rule.String()
 }
 
 type astTokensContent struct {
@@ -275,7 +298,7 @@ func (content astTokensContent) String() string {
 }
 
 type astGrammarContent struct {
-	rules []grammar.Rule
+	rules []astGrammarRule
 	state string
 }
 

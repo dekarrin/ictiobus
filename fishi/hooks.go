@@ -153,9 +153,9 @@ func sdtsFnMakeActionsBlock(_ translation.SetterInfo, args []interface{}) interf
 }
 
 func sdtsFnGrammarContentBlocksStartRuleList(_ translation.SetterInfo, args []interface{}) interface{} {
-	rules, ok := args[0].([]grammar.Rule)
+	rules, ok := args[0].([]astGrammarRule)
 	if !ok {
-		rules = []grammar.Rule{{NonTerminal: SDDErrMsg("producing this rule list: first argument is not a rule list")}}
+		rules = []astGrammarRule{{rule: grammar.Rule{NonTerminal: SDDErrMsg("producing this rule list: first argument is not a rule list")}}}
 	}
 	toAppend := astGrammarContent{
 		rules: rules,
@@ -243,9 +243,9 @@ func sdtsFnGrammarContentBlocksPrepend(_ translation.SetterInfo, args []interfac
 	}
 
 	// stateless block
-	rules, ok := args[1].([]grammar.Rule)
+	rules, ok := args[1].([]astGrammarRule)
 	if !ok {
-		rules = []grammar.Rule{{NonTerminal: SDDErrMsg("producing this grammar content list: second argument is not a grammar rule list")}}
+		rules = []astGrammarRule{{rule: grammar.Rule{NonTerminal: SDDErrMsg("producing this grammar content list: second argument is not a grammar rule list")}}}
 	}
 	toAppend := astGrammarContent{
 		rules: rules,
@@ -307,9 +307,9 @@ func sdtsFnMakeGrammarContentNode(_ translation.SetterInfo, args []interface{}) 
 	if !ok {
 		state = SDDErrMsg("STATE value is not a string")
 	}
-	rules, ok := args[1].([]grammar.Rule)
+	rules, ok := args[1].([]astGrammarRule)
 	if !ok {
-		rules = []grammar.Rule{{NonTerminal: SDDErrMsg("producing this rule list: second argument is not a rule list")}}
+		rules = []astGrammarRule{{rule: grammar.Rule{NonTerminal: SDDErrMsg("producing this rule list: second argument is not a rule list")}}}
 	}
 	return astGrammarContent{rules: rules, state: state}
 }
@@ -346,44 +346,44 @@ func sdtsFnTrimString(_ translation.SetterInfo, args []interface{}) interface{} 
 	return strings.TrimSpace(str)
 }
 
-func sdtsFnMakeDiscardOption(_ translation.SetterInfo, args []interface{}) interface{} {
-	return astTokenOption{optType: tokenOptDiscard}
+func sdtsFnMakeDiscardOption(info translation.SetterInfo, args []interface{}) interface{} {
+	return astTokenOption{optType: tokenOptDiscard, tok: info.FirstToken}
 }
 
-func sdtsFnMakeStateshiftOption(_ translation.SetterInfo, args []interface{}) interface{} {
+func sdtsFnMakeStateshiftOption(info translation.SetterInfo, args []interface{}) interface{} {
 	state, ok := args[0].(string)
 	if !ok {
 		return SDDErrMsg("argument is not a string")
 	}
 
-	return astTokenOption{optType: tokenOptStateshift, value: state}
+	return astTokenOption{optType: tokenOptStateshift, value: state, tok: info.FirstToken}
 }
 
-func sdtsFnMakeHumanOption(_ translation.SetterInfo, args []interface{}) interface{} {
+func sdtsFnMakeHumanOption(info translation.SetterInfo, args []interface{}) interface{} {
 	human, ok := args[0].(string)
 	if !ok {
 		return SDDErrMsg("argument is not a string")
 	}
 
-	return astTokenOption{optType: tokenOptHuman, value: human}
+	return astTokenOption{optType: tokenOptHuman, value: human, tok: info.FirstToken}
 }
 
-func sdtsFnMakeTokenOption(_ translation.SetterInfo, args []interface{}) interface{} {
-	tok, ok := args[0].(string)
+func sdtsFnMakeTokenOption(info translation.SetterInfo, args []interface{}) interface{} {
+	t, ok := args[0].(string)
 	if !ok {
 		return SDDErrMsg("argument is not a string")
 	}
 
-	return astTokenOption{optType: tokenOptToken, value: tok}
+	return astTokenOption{optType: tokenOptToken, value: t, tok: info.FirstToken}
 }
 
-func sdtsFnMakePriorityOption(_ translation.SetterInfo, args []interface{}) interface{} {
+func sdtsFnMakePriorityOption(info translation.SetterInfo, args []interface{}) interface{} {
 	priority, ok := args[0].(string)
 	if !ok {
 		return SDDErrMsg("argument is not a string")
 	}
 
-	return astTokenOption{optType: tokenOptPriority, value: priority}
+	return astTokenOption{optType: tokenOptPriority, value: priority, tok: info.FirstToken}
 }
 
 func sdtsFnIdentity(_ translation.SetterInfo, args []interface{}) interface{} { return args[0] }
@@ -461,14 +461,14 @@ func sdtsFnGetTerminal(_ translation.SetterInfo, args []interface{}) interface{}
 }
 
 func sdtsFnRuleListAppend(_ translation.SetterInfo, args []interface{}) interface{} {
-	list, ok := args[0].([]grammar.Rule)
+	list, ok := args[0].([]astGrammarRule)
 	if !ok {
-		list = []grammar.Rule{{NonTerminal: SDDErrMsg("producing this rule list: first argument is not a rule list")}}
+		list = []astGrammarRule{{rule: grammar.Rule{NonTerminal: SDDErrMsg("producing this rule list: first argument is not a rule list")}}}
 	}
 
-	toAppend, ok := args[1].(grammar.Rule)
+	toAppend, ok := args[1].(astGrammarRule)
 	if !ok {
-		toAppend = grammar.Rule{NonTerminal: SDDErrMsg("producing this rule: second argument is not a rule")}
+		toAppend = astGrammarRule{rule: grammar.Rule{NonTerminal: SDDErrMsg("producing this rule: second argument is not a rule")}}
 	}
 
 	list = append(list, toAppend)
@@ -684,12 +684,12 @@ func sdtsFnSemanticActionListStart(_ translation.SetterInfo, args []interface{})
 }
 
 func sdtsFnRuleListStart(_ translation.SetterInfo, args []interface{}) interface{} {
-	toAppend, ok := args[0].(grammar.Rule)
+	toAppend, ok := args[0].(astGrammarRule)
 	if !ok {
-		toAppend = grammar.Rule{NonTerminal: SDDErrMsg("producing this rule: first argument is not a rule")}
+		toAppend = astGrammarRule{rule: grammar.Rule{NonTerminal: SDDErrMsg("producing this rule: first argument is not a rule")}}
 	}
 
-	return []grammar.Rule{toAppend}
+	return []astGrammarRule{toAppend}
 }
 
 func sdtsFnGrammarStateBlockListStart(_ translation.SetterInfo, args []interface{}) interface{} {
@@ -815,7 +815,7 @@ func sdtsFnEpsilonStringList(_ translation.SetterInfo, args []interface{}) inter
 	return []string(strList)
 }
 
-func sdtsFnMakeRule(_ translation.SetterInfo, args []interface{}) interface{} {
+func sdtsFnMakeRule(info translation.SetterInfo, args []interface{}) interface{} {
 	ntInterface := sdtsFnGetNonterminal(translation.SetterInfo{}, args[0:1])
 
 	nt, ok := ntInterface.(string)
@@ -828,16 +828,21 @@ func sdtsFnMakeRule(_ translation.SetterInfo, args []interface{}) interface{} {
 		productions = [][]string{{SDDErrMsg("producing this list of lists of strings: second argument is not a [][]string")}}
 	}
 
-	r := grammar.Rule{NonTerminal: nt, Productions: []grammar.Production{}}
+	gr := grammar.Rule{NonTerminal: nt, Productions: []grammar.Production{}}
 
 	for _, p := range productions {
-		r.Productions = append(r.Productions, p)
+		gr.Productions = append(gr.Productions, p)
+	}
+
+	r := astGrammarRule{
+		rule: gr,
+		tok:  info.FirstToken,
 	}
 
 	return r
 }
 
-func sdtsFnMakeTokenEntry(_ translation.SetterInfo, args []interface{}) interface{} {
+func sdtsFnMakeTokenEntry(info translation.SetterInfo, args []interface{}) interface{} {
 	pattern, ok := args[0].(string)
 	if !ok {
 		pattern = SDDErrMsg("first argument (pattern) is not a string")
@@ -848,23 +853,28 @@ func sdtsFnMakeTokenEntry(_ translation.SetterInfo, args []interface{}) interfac
 		tokenOpts = []astTokenOption{{value: SDDErrMsg("producing this token option list: second argument (tokenOpts) is not a token option list")}}
 	}
 
-	t := tokenEntry{pattern: pattern}
+	t := tokenEntry{pattern: pattern, tok: info.FirstToken}
 
 	for _, opt := range tokenOpts {
 		switch opt.optType {
 		case tokenOptDiscard:
 			t.discard = true
+			t.discardTok = append(t.discardTok, opt.tok)
 		case tokenOptHuman:
 			t.human = opt.value
+			t.humanTok = append(t.humanTok, opt.tok)
 		case tokenOptPriority:
 			prior, err := strconv.Atoi(opt.value)
 			if err == nil {
 				t.priority = prior
 			}
+			t.priorityTok = append(t.priorityTok, opt.tok)
 		case tokenOptStateshift:
 			t.shift = opt.value
+			t.shiftTok = append(t.shiftTok, opt.tok)
 		case tokenOptToken:
 			t.token = opt.value
+			t.tokenTok = append(t.tokenTok, opt.tok)
 		}
 	}
 	return t
