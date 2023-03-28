@@ -52,7 +52,8 @@ type AnnotatedParseTree struct {
 
 // AddAttributes adds annotation fields to the given parse tree. Returns an
 // AnnotatedParseTree with only auto fields set ('$text' for terminals, '$id'
-// for all nodes).
+// for all nodes, '$first' for all nodes representing first Token of the
+// expression).
 func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 	treeStack := stack.Stack[*types.ParseTree]{Of: []*types.ParseTree{&root}}
 	annoRoot := AnnotatedParseTree{}
@@ -82,6 +83,20 @@ func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 			curAnnoNode.Children[i] = newAnnoNode
 			treeStack.Push(curTreeNode.Children[i])
 			annotatedStack.Push(newAnnoNode)
+		}
+	}
+
+	// now that we have the tree, traverse it again to set $first
+	annotatedStack = stack.Stack[*AnnotatedParseTree]{Of: []*AnnotatedParseTree{&annoRoot}}
+	for annotatedStack.Len() > 0 {
+		curAnnoNode := annotatedStack.Pop()
+
+		// enshore $first is set by calling First()
+		curAnnoNode.First()
+
+		// put child nodes on stack in reverse order to get left-first
+		for i := len(curAnnoNode.Children) - 1; i >= 0; i-- {
+			annotatedStack.Push(curAnnoNode.Children[i])
 		}
 	}
 
@@ -118,6 +133,34 @@ func (apt AnnotatedParseTree) leveledStr(firstPrefix, contPrefix string) string 
 	}
 
 	return sb.String()
+}
+
+// Returns the first token of the expression represented by this node in the
+// parse tree. All nodes have a first token accessible via the special
+// predefined attribute '$first'; this function serves as a shortcut to getting
+// the value from the node attributes with casting and sanity checking handled.
+//
+// Call on pointer because it may update $first if not already set.
+func (apt *AnnotatedParseTree) First() types.Token {
+	untyped, ok := apt.Attributes[string("$first")]
+
+	// if we didn't have it, set it for future calls
+	if !ok {
+		if apt.Terminal {
+			untyped = apt.Source
+		} else {
+			untyped = apt.Children[0].First()
+		}
+		apt.Attributes[string("$first")] = untyped
+	}
+
+	var first types.Token
+	first, ok = untyped.(types.Token)
+	if !ok {
+		panic(fmt.Sprintf("$first attribute set to non-Token typed value: %v", untyped))
+	}
+
+	return first
 }
 
 // Returns the ID of this node in the parse tree. All nodes have an ID
