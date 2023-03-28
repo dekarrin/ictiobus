@@ -67,8 +67,16 @@ func (bind SDDBinding) Invoke(apt *AnnotatedParseTree, hooksTable map[string]Att
 		panic("cannot invoke synthesized attribute SDD binding on production of rule")
 	}
 
+	// gather info on the attribute being set
+	info := SetterInfo{
+		Name:       bind.Dest.Name,
+		Synthetic:  bind.Synthesized,
+		FirstToken: apt.First(),
+	}
+
 	// symbol of who it is for
-	forSymbol, ok := apt.SymbolOf(bind.Dest.Relation)
+	var ok bool
+	info.GrammarSymbol, ok = apt.SymbolOf(bind.Dest.Relation)
 	if !ok {
 		// invalid dest
 		panic(fmt.Sprintf("bound-to rule does not contain a %s", bind.Dest.Relation.String()))
@@ -94,7 +102,7 @@ func (bind SDDBinding) Invoke(apt *AnnotatedParseTree, hooksTable map[string]Att
 	}
 
 	// call func
-	val := hookFn(forSymbol, bind.Dest.Name, args)
+	val := hookFn(info, args)
 
 	return val, nil
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
+	"github.com/dekarrin/ictiobus/types"
 )
 
 type AST struct {
@@ -244,6 +245,7 @@ type tokenEntry struct {
 	token    string
 	human    string
 	priority int
+	tok      types.Token
 }
 
 func (entry tokenEntry) String() string {

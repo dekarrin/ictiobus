@@ -52,7 +52,7 @@ type AnnotatedParseTree struct {
 
 // AddAttributes adds annotation fields to the given parse tree. Returns an
 // AnnotatedParseTree with only auto fields set ('$text' for terminals, '$id'
-// for all nodes, '$first' for all nodes representing first Token of the
+// for all nodes, '$ft' for all nodes representing first Token of the
 // expression).
 func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 	treeStack := stack.Stack[*types.ParseTree]{Of: []*types.ParseTree{&root}}
@@ -87,6 +87,10 @@ func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 	}
 
 	// now that we have the tree, traverse it again to set $first
+	// TODO: appears to 8e noticibly slow. To improve speed, could add a First
+	// attribute to normal parse treee and build it up at parse time.
+	// Yeah it makes more sense to make $ft a property passed to an attribute
+	// setter, from the parse tree.
 	annotatedStack = stack.Stack[*AnnotatedParseTree]{Of: []*AnnotatedParseTree{&annoRoot}}
 	for annotatedStack.Len() > 0 {
 		curAnnoNode := annotatedStack.Pop()
@@ -137,12 +141,12 @@ func (apt AnnotatedParseTree) leveledStr(firstPrefix, contPrefix string) string 
 
 // Returns the first token of the expression represented by this node in the
 // parse tree. All nodes have a first token accessible via the special
-// predefined attribute '$first'; this function serves as a shortcut to getting
+// predefined attribute '$ft'; this function serves as a shortcut to getting
 // the value from the node attributes with casting and sanity checking handled.
 //
 // Call on pointer because it may update $first if not already set.
 func (apt *AnnotatedParseTree) First() types.Token {
-	untyped, ok := apt.Attributes[string("$first")]
+	untyped, ok := apt.Attributes[string("$ft")]
 
 	// if we didn't have it, set it for future calls
 	if !ok {
@@ -151,13 +155,13 @@ func (apt *AnnotatedParseTree) First() types.Token {
 		} else {
 			untyped = apt.Children[0].First()
 		}
-		apt.Attributes[string("$first")] = untyped
+		apt.Attributes[string("$ft")] = untyped
 	}
 
 	var first types.Token
 	first, ok = untyped.(types.Token)
 	if !ok {
-		panic(fmt.Sprintf("$first attribute set to non-Token typed value: %v", untyped))
+		panic(fmt.Sprintf("$ft attribute set to non-Token typed value: %v", untyped))
 	}
 
 	return first

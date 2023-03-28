@@ -3,7 +3,11 @@
 // translation intepreter engine.
 package translation
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/dekarrin/ictiobus/types"
+)
 
 type APTNodeID uint64
 
@@ -81,4 +85,19 @@ type NodeValues struct {
 	Symbol string
 }
 
-type AttributeSetter func(symbol string, name string, args []interface{}) interface{}
+type SetterInfo struct {
+	// The name of the grammar symbol of the particular node that the attribute
+	// is being set on.
+	GrammarSymbol string
+
+	// The first token of the grammar symbol that the attribute is being set on.
+	FirstToken types.Token
+
+	// The name of the attribute being set.
+	Name string
+
+	// Whether the attribute is a synthetic attribute.
+	Synthetic bool
+}
+
+type AttributeSetter func(info SetterInfo, args []interface{}) interface{}
