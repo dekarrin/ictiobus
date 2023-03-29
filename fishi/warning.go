@@ -5,6 +5,8 @@ type WarnType int
 const (
 	WarnDuplicateHumanDefs WarnType = iota
 	WarnMissingHumanDef
+	WarnPriorityZero
+	WarnUnusedTerminal
 )
 
 // Warning is a warning that is generated when processing an AST. It is not an
