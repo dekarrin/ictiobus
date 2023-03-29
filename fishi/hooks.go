@@ -100,7 +100,7 @@ func sdtsFnMakeFishispec(_ translation.SetterInfo, args []interface{}) interface
 		return AST{}
 	}
 
-	return AST{nodes: list}
+	return AST{Nodes: list}
 }
 
 func sdtsFnBlockListAppend(_ translation.SetterInfo, args []interface{}) interface{} {

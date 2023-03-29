@@ -10,17 +10,17 @@ import (
 )
 
 type AST struct {
-	nodes []ASTBlock
+	Nodes []ASTBlock
 }
 
 func (ast AST) String() string {
 	var sb strings.Builder
 
 	sb.WriteRune('<')
-	if len(ast.nodes) > 0 {
+	if len(ast.Nodes) > 0 {
 		sb.WriteRune('\n')
-		for i := range ast.nodes {
-			n := ast.nodes[i]
+		for i := range ast.Nodes {
+			n := ast.Nodes[i]
 			switch n.Type() {
 			case BlockTypeError:
 				sb.WriteString("  <ERR>\n")

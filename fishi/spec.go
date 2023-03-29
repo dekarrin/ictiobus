@@ -16,9 +16,9 @@ type LanguageSpec struct {
 	// Tokens is all of the tokens that are used in the language.
 	Tokens []types.TokenClass
 
-	// LexerPatterns is a map of state names to the lexer patterns that are used
+	// Patterns is a map of state names to the lexer patterns that are used
 	// while in that state.
-	LexerMatches map[string]Pattern
+	Patterns map[string]Pattern
 
 	// Grammar is the syntactical specification of the language.
 	Grammar grammar.Grammar
@@ -61,4 +61,69 @@ type SDD struct {
 
 	// Args is the list of arguments to the hook.
 	Args []translation.AttrRef
+}
+
+// CreateSpec reads an AST and creates a LanguageSpec from it. If the AST has
+// any errors, then an error is returned.
+func CreateSpec(ast AST) (LanguageSpec, error) {
+	ls := LanguageSpec{
+		Patterns: make(map[string]Pattern),
+	}
+
+	// first, gather each type of AST block into a single listing (per state)
+	tokensBlocks := map[string][]ASTTokensContent{}
+	grammarBlocks := map[string][]ASTGrammarContent{}
+	actionsBlocks := map[string][]ASTActionsContent{}
+
+	for _, bl := range ast.Nodes {
+		switch bl := bl.(type) {
+		case ASTTokensBlock:
+			tokBl := bl.Tokens()
+
+			for i := range tokBl.Content {
+				tokCont := tokBl.Content[i]
+				tokSlice, ok := tokensBlocks[tokCont.State]
+				if !ok {
+					tokSlice = []ASTTokensContent{}
+				}
+				tokSlice = append(tokSlice, tokCont)
+				tokensBlocks[tokCont.State] = tokSlice
+			}
+		case ASTGrammarBlock:
+			gramBl := bl.Grammar()
+
+			for i := range gramBl.Content {
+				gramCont := gramBl.Content[i]
+				gramSlice, ok := grammarBlocks[gramCont.State]
+				if !ok {
+					gramSlice = []ASTGrammarContent{}
+				}
+				gramSlice = append(gramSlice, gramCont)
+				grammarBlocks[gramCont.State] = gramSlice
+			}
+		case ASTActionsBlock:
+			actBl := bl.Actions()
+
+			for i := range actBl.Content {
+				actCont := actBl.Content[i]
+				actSlice, ok := actionsBlocks[actCont.State]
+				if !ok {
+					actSlice = []ASTActionsContent{}
+				}
+				actSlice = append(actSlice, actCont)
+				actionsBlocks[actCont.State] = actSlice
+			}
+		}
+	}
+
+	// go over tokensBlocks
+	for i := range tokensBlocks {
+		bl := tokensBlocks[i]
+	}
+
+	// go over grammarBlocks
+
+	// go over actionsBlocks
+
+	return ls, nil
 }
