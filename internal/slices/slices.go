@@ -116,6 +116,17 @@ func SortBy[E any](items []E, lt func(left E, right E) bool) []E {
 	return s.src
 }
 
+// Any returns the first item in the slice that satisfies the given predicate.
+// If there is no item, the zero value is returned and ok is false.
+func Any[E any](sl []E, fn func(item E) bool) (item E, ok bool) {
+	for _, it := range sl {
+		if fn(it) {
+			return it, true
+		}
+	}
+	return item, false
+}
+
 // Filter returns a slice with only those items from sl that filterFn returns
 // true for. If filterFn is nil, returns a nil slice.
 func Filter[E any](sl []E, filterFn func(item E) bool) []E {
