@@ -1,0 +1,39 @@
+package {{ .FrontendPackage }}
+
+import (
+    "github.com/dekarrin/ictiobus"
+    "github.com/dekarrin/ictiobus/lex"
+)
+
+func CreateLexer(lazy bool) ictiobus.Lexer {
+    var lx ictiobus.Lexer
+    if lazy {
+        lx = lex.NewLazyLexer()
+    } else {
+        lx = lex.NewLexer()
+    }
+
+{{if .Patterns.HasDefaultState -}}
+    // default state, shared by all
+
+    {{range .Patterns.DefaultState.Classes -}}
+    lx.RegisterClass({{ .Name }}, "")
+    {{- end}}
+
+    {{range .Patterns.DefaultState.Entries -}}
+    lx.AddPattern({{ .Pattern }}, {{ .Action }}, "", {{ .Priority }})
+    {{- end}}
+{{- end}}
+
+{{range .Patterns.NonDefaultState -}}
+    {{range .Classes -}}
+    lx.RegisterClass({{ .Name }}, "{{.State}}")
+    {{- end}}
+
+    {{range .Entries -}}
+    lx.AddPattern({{ .Pattern }}, {{ .Action }}, "{{.State}}", {{ .Priority }})
+    {{- end}}
+{{- end}}
+
+    return lx
+}

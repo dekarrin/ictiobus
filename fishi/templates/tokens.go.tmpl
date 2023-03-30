@@ -1,0 +1,9 @@
+package {{ .FrontendPackage }}
+
+import "github.com/dekarrin/ictiobus/lex"
+
+var (
+{{range .Classes -}}
+{{"    "}}{{.Name}} = lex.NewTokenClass("{{.ID}}", "{{.Human}}")
+{{- end}}
+)
