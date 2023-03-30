@@ -87,6 +87,22 @@ func TruncateWith(s string, maxLen int, cont string) string {
 	return s[:maxLen] + cont
 }
 
+// Pluralize returns the singular string if count is 1, otherwise the plural
+// string. If the plural string starts with '-', it is treated as a suffix and
+// the pluralization is done by removing the leading '-' and appending it to the
+// singular string.
+func Pluralize(count int, sing, plural string) string {
+	if count == 1 {
+		return sing
+	}
+
+	if strings.HasPrefix(plural, "-") {
+		return sing + plural[1:]
+	}
+
+	return plural
+}
+
 // OrdinalSuf returns the suffix for the ordinal version of the given number,
 // e.g. "rd" for 3, "st" for 51, etc.
 func OrdinalSuf(a int) string {
