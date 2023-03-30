@@ -219,7 +219,7 @@ func main() {
 
 	for _, file := range args {
 
-		res, err := fishi.ExecuteMarkdownFile(file, fo)
+		res, err := fishi.ParseMarkdownFile(file, fo)
 
 		// results may be valid even if there is an error
 		if res.AST != nil && genAST {
