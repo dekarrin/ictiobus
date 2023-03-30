@@ -109,7 +109,7 @@ This is the context-free grammar for FISHI, glub.
 {SEM-ACTION}       =  dir-set attr-ref dir-hook id
                    |  dir-set attr-ref dir-hook id {WITH}
 
-{WITH}             =  dir-with ATTR-REF-LIST
+{WITH}             =  dir-with {ATTR-REF-LIST}
 
 {ATTR-REF-LIST}    =  {ATTR-REF-LIST} attr-ref
                    |  attr-ref
@@ -167,7 +167,7 @@ This is the context-free grammar for FISHI, glub.
 
 {GRULE-LIST}       =  {GRULE-LIST} {GRULE} | {GRULE}
 
-{GRULE}            =  nl-nonterm eq {ATERNATIONS}
+{GRULE}            =  nl-nonterm eq {ALTERNATIONS}
 
 {ALTERNATIONS}     =  {GPRODUCTION}
                    |  {ALTERNATIONS} alt {GPRODUCTION}
@@ -423,15 +423,15 @@ The following gives the Syntax-directed translations for the FISHI language.
 
 
 %symbol {ATTR-REF-LIST}
-->: {^}.value = attr_ref_list_append({0}.value, {1}.$text)
-->: {^}.value = attr_ref_list_start({0}.$text)
+->: {^}.value = attr_ref_list_append({0}.value, {1}.$text, {1}.$ft)
+->: {^}.value = attr_ref_list_start({0}.$text, {0}.$ft)
 
 %symbol {WITH}
 ->: {^}.value = ident({1}.value)
 
 %symbol {SEM-ACTION}
-->: {^}.value = make_semantic_action({1}.$text, {3}.$text)
-->: {^}.value = make_semantic_action({1}.$text, {3}.$text, {4}.value)
+->: {^}.value = make_semantic_action({1}.$text, {1}.$ft, {3}.$text, {3}.$ft)
+->: {^}.value = make_semantic_action({1}.$text, {1}.$ft, {3}.$text, {3}.$ft, {4}.value)
 
 %symbol {SEM-ACTION-LIST}
 ->: {^}.value = attr_ref_list_append({0}.value, {1}.value)
@@ -463,7 +463,7 @@ The following gives the Syntax-directed translations for the FISHI language.
 ->: {^}.value = make_prod_action({0}.value, {1}.value)
 
 %symbol {SYM-ACTIONS}
-->: {^}.value = make_symbol_actions({1}.$text, {2}.value)
+->: {^}.value = make_symbol_actions({1}.$text, {1}.$ft, {2}.value)
 
 %symbol {SYM-ACTIONS-LIST}
 ->: {^}.value = symbol_actions_list_append({0}.value, {1}.value)
@@ -531,7 +531,7 @@ The following gives the Syntax-directed translations for the FISHI language.
 ->: {^}.value = get_terminal({0}.$text)
 
 %symbol {STATE-INS}
-->: {^}.state = identity({1}.value)
+->: {^}.state = make_state_ins({1}.value, {1}.$ft)
 
 %symbol {ID-EXPR}
 ->: {^}.value = identity({0}.$text)

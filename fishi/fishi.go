@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus"
+	"github.com/dekarrin/ictiobus/fishi/fe"
 	"github.com/dekarrin/ictiobus/translation"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/gomarkdown/markdown"
@@ -86,13 +87,13 @@ func (fs fishiScanner) RenderNode(w io.Writer, node mkast.Node, entering bool) m
 func (fs fishiScanner) RenderHeader(w io.Writer, ast mkast.Node) {}
 func (fs fishiScanner) RenderFooter(w io.Writer, ast mkast.Node) {}
 
-func ExecuteMarkdownFile(filename string, opts Options) (Results, error) {
+func ParseMarkdownFile(filename string, opts Options) (Results, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return Results{}, err
 	}
 
-	res, err := ExecuteMarkdown(data, opts)
+	res, err := ParseMarkdown(data, opts)
 	if err != nil {
 		return res, err
 	}
@@ -100,7 +101,7 @@ func ExecuteMarkdownFile(filename string, opts Options) (Results, error) {
 	return res, nil
 }
 
-func ExecuteMarkdown(mdText []byte, opts Options) (Results, error) {
+func ParseMarkdown(mdText []byte, opts Options) (Results, error) {
 
 	// TODO: read in filename, based on it check for cached version
 
@@ -110,11 +111,11 @@ func ExecuteMarkdown(mdText []byte, opts Options) (Results, error) {
 	// output parser table and type
 
 	source := GetFishiFromMarkdown(mdText)
-	return Execute(source, opts)
+	return Parse(source, opts)
 }
 
-// Execute executes the fishi source code provided.
-func Execute(source []byte, opts Options) (Results, error) {
+// Parse converts the fishi source code provided into an AST.
+func Parse(source []byte, opts Options) (Results, error) {
 	// get the frontend
 	fishiFront, err := GetFrontend(opts)
 	if err != nil {
@@ -153,12 +154,12 @@ func GetFrontend(opts Options) (ictiobus.Frontend[AST], error) {
 		}
 	}
 
-	feOpts := FrontendOptions{
+	feOpts := fe.FrontendOptions{
 		LexerTrace:  opts.LexerTrace,
 		ParserTrace: opts.ParserTrace,
 	}
 
-	fishiFront := Frontend(HooksTable, feOpts, preloadedParser)
+	fishiFront := fe.Frontend[AST](HooksTable, feOpts, preloadedParser)
 
 	// check the parser encoding if we generated a new one:
 	if preloadedParser == nil && opts.ParserCFF != "" && opts.WriteCache {

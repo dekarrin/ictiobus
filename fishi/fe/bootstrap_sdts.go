@@ -1,4 +1,4 @@
-package fishi
+package fe
 
 import (
 	"github.com/dekarrin/ictiobus"
@@ -121,7 +121,7 @@ func bootstrapSDTSBlockAST(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSActionsBlockAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"ACTIONS-BLOCK", []string{tcHeaderActions.ID(), "ACTIONS-CONTENT"},
+		"ACTIONS-BLOCK", []string{TCHeaderActions.ID(), "ACTIONS-CONTENT"},
 		"ast",
 		"make_actions_block",
 		[]translation.AttrRef{
@@ -132,7 +132,7 @@ func bootstrapSDTSActionsBlockAST(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSTokensBlockAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"TOKENS-BLOCK", []string{tcHeaderTokens.ID(), "TOKENS-CONTENT"},
+		"TOKENS-BLOCK", []string{TCHeaderTokens.ID(), "TOKENS-CONTENT"},
 		"ast",
 		"make_tokens_block",
 		[]translation.AttrRef{
@@ -144,7 +144,7 @@ func bootstrapSDTSTokensBlockAST(sdts ictiobus.SDTS) {
 // TODO: finish converting
 func bootstrapSDTSGrammarBlockAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"GRAMMAR-BLOCK", []string{tcHeaderGrammar.ID(), "GRAMMAR-CONTENT"},
+		"GRAMMAR-BLOCK", []string{TCHeaderGrammar.ID(), "GRAMMAR-CONTENT"},
 		"ast",
 		"make_grammar_block",
 		[]translation.AttrRef{
@@ -295,28 +295,30 @@ func bootstrapSDTSProdActionsValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSAttrRefsValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"ATTR-REFS", []string{"ATTR-REFS", tcAttrRef.ID()},
+		"ATTR-REFS", []string{"ATTR-REFS", TCAttrRef.ID()},
 		"value",
 		"attr_ref_list_append",
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "value"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$ft"},
 		},
 	)
 
 	sdts.BindSynthesizedAttribute(
-		"ATTR-REFS", []string{tcAttrRef.ID()},
+		"ATTR-REFS", []string{TCAttrRef.ID()},
 		"value",
 		"attr_ref_list_start",
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 0}, Name: "$ft"},
 		},
 	)
 }
 
 func bootstrapSDTSWithClauseValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"WITH-CLAUSE", []string{tcDirWith.ID(), "ATTR-REFS"},
+		"WITH-CLAUSE", []string{TCDirWith.ID(), "ATTR-REFS"},
 		"value",
 		"identity",
 		[]translation.AttrRef{
@@ -327,21 +329,25 @@ func bootstrapSDTSWithClauseValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSSemanticActionValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"SEMANTIC-ACTION", []string{tcDirSet.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID()},
+		"SEMANTIC-ACTION", []string{TCDirSet.ID(), TCAttrRef.ID(), TCDirHook.ID(), TCId.ID()},
 		"value",
 		"make_semantic_action",
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$ft"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 3}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 3}, Name: "$ft"},
 		},
 	)
 	sdts.BindSynthesizedAttribute(
-		"SEMANTIC-ACTION", []string{tcDirSet.ID(), tcAttrRef.ID(), tcDirHook.ID(), tcId.ID(), "WITH-CLAUSE"},
+		"SEMANTIC-ACTION", []string{TCDirSet.ID(), TCAttrRef.ID(), TCDirHook.ID(), TCId.ID(), "WITH-CLAUSE"},
 		"value",
 		"make_semantic_action",
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$ft"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 3}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 3}, Name: "$ft"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 4}, Name: "value"},
 		},
 	)
@@ -369,7 +375,7 @@ func bootstrapSDTSSemanticActionsValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSActionSymbolValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"ACTION-SYMBOL", []string{tcNonterminal.ID()},
+		"ACTION-SYMBOL", []string{TCNonterminal.ID()},
 		"value",
 		"get_nonterminal",
 		[]translation.AttrRef{
@@ -377,7 +383,7 @@ func bootstrapSDTSActionSymbolValue(sdts ictiobus.SDTS) {
 		},
 	)
 	sdts.BindSynthesizedAttribute(
-		"ACTION-SYMBOL", []string{tcTerminal.ID()},
+		"ACTION-SYMBOL", []string{TCTerminal.ID()},
 		"value",
 		"get_terminal",
 		[]translation.AttrRef{
@@ -385,7 +391,7 @@ func bootstrapSDTSActionSymbolValue(sdts ictiobus.SDTS) {
 		},
 	)
 	sdts.BindSynthesizedAttribute(
-		"ACTION-SYMBOL", []string{tcInt.ID()},
+		"ACTION-SYMBOL", []string{TCInt.ID()},
 		"value",
 		"get_int",
 		[]translation.AttrRef{
@@ -393,7 +399,7 @@ func bootstrapSDTSActionSymbolValue(sdts ictiobus.SDTS) {
 		},
 	)
 	sdts.BindSynthesizedAttribute(
-		"ACTION-SYMBOL", []string{tcId.ID()},
+		"ACTION-SYMBOL", []string{TCId.ID()},
 		"value",
 		"identity",
 		[]translation.AttrRef{
@@ -432,7 +438,7 @@ func bootstrapSDTSActionProductionValue(sdts ictiobus.SDTS) {
 		},
 	)
 	sdts.BindSynthesizedAttribute(
-		"ACTION-PRODUCTION", []string{tcEpsilon.ID()},
+		"ACTION-PRODUCTION", []string{TCEpsilon.ID()},
 		"value",
 		"epsilon_string_list",
 		nil,
@@ -441,7 +447,7 @@ func bootstrapSDTSActionProductionValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSProdAddrValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"PROD-ADDR", []string{tcDirIndex.ID(), tcInt.ID()},
+		"PROD-ADDR", []string{TCDirIndex.ID(), TCInt.ID()},
 		"value",
 		"make_prod_specifier_index",
 		[]translation.AttrRef{
@@ -460,7 +466,7 @@ func bootstrapSDTSProdAddrValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSProdSpecifierValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"PROD-SPECIFIER", []string{tcDirProd.ID(), "PROD-ADDR"},
+		"PROD-SPECIFIER", []string{TCDirProd.ID(), "PROD-ADDR"},
 		"value",
 		"identity",
 		[]translation.AttrRef{
@@ -468,7 +474,7 @@ func bootstrapSDTSProdSpecifierValue(sdts ictiobus.SDTS) {
 		},
 	)
 	sdts.BindSynthesizedAttribute(
-		"PROD-SPECIFIER", []string{tcDirProd.ID()},
+		"PROD-SPECIFIER", []string{TCDirProd.ID()},
 		"value",
 		"make_prod_specifier_next",
 		nil,
@@ -489,11 +495,12 @@ func bootstrapSDTSProdActionValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSSymbolActionsValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"SYMBOL-ACTIONS", []string{tcDirSymbol.ID(), tcNonterminal.ID(), "PROD-ACTIONS"},
+		"SYMBOL-ACTIONS", []string{TCDirSymbol.ID(), TCNonterminal.ID(), "PROD-ACTIONS"},
 		"value",
 		"make_symbol_actions",
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$text"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$ft"},
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 2}, Name: "value"},
 		},
 	)
@@ -633,7 +640,7 @@ func bootstrapSDTSTokensEntryValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSGrammarRuleValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"GRAMMAR-RULE", []string{tcLineStartNonterminal.ID(), tcEq.ID(), "ALTERNATIONS"},
+		"GRAMMAR-RULE", []string{TCLineStartNonterminal.ID(), TCEq.ID(), "ALTERNATIONS"},
 		"value",
 		"make_rule",
 		[]translation.AttrRef{
@@ -653,7 +660,7 @@ func bootstrapSDTSAlternationsValue(sdts ictiobus.SDTS) {
 		},
 	)
 	sdts.BindSynthesizedAttribute(
-		"ALTERNATIONS", []string{"ALTERNATIONS", tcAlt.ID(), "PRODUCTION"},
+		"ALTERNATIONS", []string{"ALTERNATIONS", TCAlt.ID(), "PRODUCTION"},
 		"value",
 		"string_list_list_append",
 		[]translation.AttrRef{
@@ -673,7 +680,7 @@ func bootstrapSDTSProductionValue(sdts ictiobus.SDTS) {
 		},
 	)
 	sdts.BindSynthesizedAttribute(
-		"PRODUCTION", []string{tcEpsilon.ID()},
+		"PRODUCTION", []string{TCEpsilon.ID()},
 		"value",
 		"epsilon_string_list",
 		nil,
@@ -703,7 +710,7 @@ func bootstrapSDTSSymbolSequenceValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSPriorityValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"PRIORITY", []string{tcDirPriority.ID(), "TEXT"},
+		"PRIORITY", []string{TCDirPriority.ID(), "TEXT"},
 		"value",
 		"trim_string",
 		[]translation.AttrRef{
@@ -714,7 +721,7 @@ func bootstrapSDTSPriorityValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSHumanValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"HUMAN", []string{tcDirHuman.ID(), "TEXT"},
+		"HUMAN", []string{TCDirHuman.ID(), "TEXT"},
 		"value",
 		"trim_string",
 		[]translation.AttrRef{
@@ -725,7 +732,7 @@ func bootstrapSDTSHumanValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSTokenValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"TOKEN", []string{tcDirToken.ID(), "TEXT"},
+		"TOKEN", []string{TCDirToken.ID(), "TEXT"},
 		"value",
 		"trim_string",
 		[]translation.AttrRef{
@@ -736,7 +743,7 @@ func bootstrapSDTSTokenValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSStateshiftValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"STATESHIFT", []string{tcDirShift.ID(), "TEXT"},
+		"STATESHIFT", []string{TCDirShift.ID(), "TEXT"},
 		"value",
 		"trim_string",
 		[]translation.AttrRef{
@@ -819,7 +826,7 @@ func bootstrapSDTSPattern(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSSymbolValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"SYMBOL", []string{tcNonterminal.ID()},
+		"SYMBOL", []string{TCNonterminal.ID()},
 		"value",
 		"get_nonterminal",
 		[]translation.AttrRef{
@@ -828,7 +835,7 @@ func bootstrapSDTSSymbolValue(sdts ictiobus.SDTS) {
 	)
 
 	sdts.BindSynthesizedAttribute(
-		"SYMBOL", []string{tcTerminal.ID()},
+		"SYMBOL", []string{TCTerminal.ID()},
 		"value",
 		"get_terminal",
 		[]translation.AttrRef{
@@ -839,18 +846,19 @@ func bootstrapSDTSSymbolValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSStateInstructionState(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"STATE-INSTRUCTION", []string{tcDirState.ID(), "ID-EXPR"},
+		"STATE-INSTRUCTION", []string{TCDirState.ID(), "ID-EXPR"},
 		"state",
-		"identity",
+		"make_state_ins",
 		[]translation.AttrRef{
 			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "value"},
+			{Relation: translation.NodeRelation{Type: translation.RelSymbol, Index: 1}, Name: "$ft"},
 		},
 	)
 }
 
 func bootstrapSDTSIDExprValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"ID-EXPR", []string{tcId.ID()},
+		"ID-EXPR", []string{TCId.ID()},
 		"value",
 		"identity",
 		[]translation.AttrRef{
@@ -859,7 +867,7 @@ func bootstrapSDTSIDExprValue(sdts ictiobus.SDTS) {
 	)
 
 	sdts.BindSynthesizedAttribute(
-		"ID-EXPR", []string{tcTerminal.ID()},
+		"ID-EXPR", []string{TCTerminal.ID()},
 		"value",
 		"identity",
 		[]translation.AttrRef{
@@ -917,7 +925,7 @@ func bootstrapSDTSTextElementsValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSLineStartTextElementValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"LINE-START-TEXT-ELEMENT", []string{tcLineStartFreeformText.ID()},
+		"LINE-START-TEXT-ELEMENT", []string{TCLineStartFreeformText.ID()},
 		"value",
 		"identity",
 		[]translation.AttrRef{
@@ -925,7 +933,7 @@ func bootstrapSDTSLineStartTextElementValue(sdts ictiobus.SDTS) {
 		},
 	)
 	sdts.BindSynthesizedAttribute(
-		"LINE-START-TEXT-ELEMENT", []string{tcLineStartEscseq.ID()},
+		"LINE-START-TEXT-ELEMENT", []string{TCLineStartEscseq.ID()},
 		"value",
 		"interpret_escape",
 		[]translation.AttrRef{
@@ -936,7 +944,7 @@ func bootstrapSDTSLineStartTextElementValue(sdts ictiobus.SDTS) {
 
 func bootstrapSDTSTextElementValue(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
-		"TEXT-ELEMENT", []string{tcFreeformText.ID()},
+		"TEXT-ELEMENT", []string{TCFreeformText.ID()},
 		"value",
 		"identity",
 		[]translation.AttrRef{
@@ -945,7 +953,7 @@ func bootstrapSDTSTextElementValue(sdts ictiobus.SDTS) {
 	)
 
 	sdts.BindSynthesizedAttribute(
-		"TEXT-ELEMENT", []string{tcEscseq.ID()},
+		"TEXT-ELEMENT", []string{TCEscseq.ID()},
 		"value",
 		"interpret_escape",
 		[]translation.AttrRef{

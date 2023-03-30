@@ -52,7 +52,8 @@ type AnnotatedParseTree struct {
 
 // AddAttributes adds annotation fields to the given parse tree. Returns an
 // AnnotatedParseTree with only auto fields set ('$text' for terminals, '$id'
-// for all nodes).
+// for all nodes, '$ft' for all nodes representing first Token of the
+// expression).
 func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 	treeStack := stack.Stack[*types.ParseTree]{Of: []*types.ParseTree{&root}}
 	annoRoot := AnnotatedParseTree{}
@@ -82,6 +83,28 @@ func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 			curAnnoNode.Children[i] = newAnnoNode
 			treeStack.Push(curTreeNode.Children[i])
 			annotatedStack.Push(newAnnoNode)
+		}
+	}
+
+	// now that we have the tree, traverse it again to set $first
+	// TODO: appears to 8e noticibly slow. To improve speed, could add a First
+	// attribute to normal parse treee and build it up at parse time.
+	// Yeah it makes more sense to make $ft a property passed to an attribute
+	// setter, from the parse tree.
+	// 8ut we still need to keep it set as an APT property because caller might
+	// want to access the first token of something besides just the thing that
+	// is 8eing set, *in particular* for terminal nodes where SDDs cannot be
+	// set.
+	annotatedStack = stack.Stack[*AnnotatedParseTree]{Of: []*AnnotatedParseTree{&annoRoot}}
+	for annotatedStack.Len() > 0 {
+		curAnnoNode := annotatedStack.Pop()
+
+		// enshore $first is set by calling First()
+		curAnnoNode.First()
+
+		// put child nodes on stack in reverse order to get left-first
+		for i := len(curAnnoNode.Children) - 1; i >= 0; i-- {
+			annotatedStack.Push(curAnnoNode.Children[i])
 		}
 	}
 
@@ -118,6 +141,34 @@ func (apt AnnotatedParseTree) leveledStr(firstPrefix, contPrefix string) string 
 	}
 
 	return sb.String()
+}
+
+// Returns the first token of the expression represented by this node in the
+// parse tree. All nodes have a first token accessible via the special
+// predefined attribute '$ft'; this function serves as a shortcut to getting
+// the value from the node attributes with casting and sanity checking handled.
+//
+// Call on pointer because it may update $first if not already set.
+func (apt *AnnotatedParseTree) First() types.Token {
+	untyped, ok := apt.Attributes[string("$ft")]
+
+	// if we didn't have it, set it for future calls
+	if !ok {
+		if apt.Terminal {
+			untyped = apt.Source
+		} else {
+			untyped = apt.Children[0].First()
+		}
+		apt.Attributes[string("$ft")] = untyped
+	}
+
+	var first types.Token
+	first, ok = untyped.(types.Token)
+	if !ok {
+		panic(fmt.Sprintf("$ft attribute set to non-Token typed value: %v", untyped))
+	}
+
+	return first
 }
 
 // Returns the ID of this node in the parse tree. All nodes have an ID

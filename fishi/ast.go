@@ -6,69 +6,70 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
+	"github.com/dekarrin/ictiobus/types"
 )
 
 type AST struct {
-	nodes []astBlock
+	Nodes []ASTBlock
 }
 
 func (ast AST) String() string {
 	var sb strings.Builder
 
 	sb.WriteRune('<')
-	if len(ast.nodes) > 0 {
+	if len(ast.Nodes) > 0 {
 		sb.WriteRune('\n')
-		for i := range ast.nodes {
-			n := ast.nodes[i]
+		for i := range ast.Nodes {
+			n := ast.Nodes[i]
 			switch n.Type() {
-			case blockTypeError:
+			case BlockTypeError:
 				sb.WriteString("  <ERR>\n")
-			case blockTypeGrammar:
+			case BlockTypeGrammar:
 				gram := n.Grammar()
 				sb.WriteString("  <GRAMMAR:\n")
-				for j := range gram.content {
-					cont := gram.content[j]
-					if cont.state != "" {
-						sb.WriteString("    <RULE-SET FOR STATE " + fmt.Sprintf("%q\n", cont.state))
+				for j := range gram.Content {
+					cont := gram.Content[j]
+					if cont.State != "" {
+						sb.WriteString("    <RULE-SET FOR STATE " + fmt.Sprintf("%q\n", cont.State))
 					} else {
 						sb.WriteString("    <RULE-SET FOR ALL STATES\n")
 					}
-					for k := range cont.rules {
-						r := cont.rules[k]
+					for k := range cont.Rules {
+						r := cont.Rules[k]
 						sb.WriteString("      * " + r.String() + "\n")
 					}
 					sb.WriteString("    >\n")
 				}
 				sb.WriteString("  >\n")
-			case blockTypeTokens:
+			case BlockTypeTokens:
 				toks := n.Tokens()
 				sb.WriteString("  <TOKENS:\n")
-				for j := range toks.content {
-					cont := toks.content[j]
-					if cont.state != "" {
-						sb.WriteString("    <ENTRY-SET FOR STATE " + fmt.Sprintf("%q\n", cont.state))
+				for j := range toks.Content {
+					cont := toks.Content[j]
+					if cont.State != "" {
+						sb.WriteString("    <ENTRY-SET FOR STATE " + fmt.Sprintf("%q\n", cont.State))
 					} else {
 						sb.WriteString("    <ENTRY-SET FOR ALL STATES\n")
 					}
-					for k := range cont.entries {
-						entry := cont.entries[k]
+					for k := range cont.Entries {
+						entry := cont.Entries[k]
 						sb.WriteString("      * " + entry.String() + "\n")
 					}
 					sb.WriteString("    >\n")
 				}
 				sb.WriteString("  >\n")
-			case blockTypeActions:
+			case BlockTypeActions:
 				acts := n.Actions()
 				sb.WriteString("  <ACTIONS:\n")
-				for j := range acts.content {
-					cont := acts.content[j]
-					if cont.state != "" {
-						sb.WriteString("    <ACTION-SET FOR STATE " + fmt.Sprintf("%q\n", cont.state))
+				for j := range acts.Content {
+					cont := acts.Content[j]
+					if cont.State != "" {
+						sb.WriteString("    <ACTION-SET FOR STATE " + fmt.Sprintf("%q\n", cont.State))
 					} else {
 						sb.WriteString("    <ACTION-SET FOR ALL STATES\n")
 					}
-					for k := range cont.actions {
-						action := cont.actions[k]
+					for k := range cont.Actions {
+						action := cont.Actions[k]
 						sb.WriteString("      * " + action.String() + "\n")
 					}
 					sb.WriteString("    >\n")
@@ -82,55 +83,55 @@ func (ast AST) String() string {
 	return sb.String()
 }
 
-type blockType int
+type ASTBlockType int
 
 const (
-	blockTypeError blockType = iota
-	blockTypeGrammar
-	blockTypeTokens
-	blockTypeActions
+	BlockTypeError ASTBlockType = iota
+	BlockTypeGrammar
+	BlockTypeTokens
+	BlockTypeActions
 )
 
-type astBlock interface {
-	Type() blockType
-	Grammar() astGrammarBlock
-	Tokens() astTokensBlock
-	Actions() astActionsBlock
+type ASTBlock interface {
+	Type() ASTBlockType
+	Grammar() ASTGrammarBlock
+	Tokens() ASTTokensBlock
+	Actions() ASTActionsBlock
 }
 
-type astErrorBlock bool
+type ASTErrorBlock bool
 
-func (errBlock astErrorBlock) Type() blockType {
-	return blockTypeError
+func (errBlock ASTErrorBlock) Type() ASTBlockType {
+	return BlockTypeError
 }
 
-func (errBlock astErrorBlock) Grammar() astGrammarBlock {
+func (errBlock ASTErrorBlock) Grammar() ASTGrammarBlock {
 	panic("not grammar-type block")
 }
 
-func (errBlock astErrorBlock) Tokens() astTokensBlock {
+func (errBlock ASTErrorBlock) Tokens() ASTTokensBlock {
 	panic("not tokens-type block")
 }
 
-func (errBlock astErrorBlock) Actions() astActionsBlock {
+func (errBlock ASTErrorBlock) Actions() ASTActionsBlock {
 	panic("not actions-type block")
 }
 
-func (errBlock astErrorBlock) String() string {
+func (errBlock ASTErrorBlock) String() string {
 	return "<Block: ERR>"
 }
 
-type astGrammarBlock struct {
-	content []astGrammarContent
+type ASTGrammarBlock struct {
+	Content []ASTGrammarContent
 }
 
-func (agb astGrammarBlock) String() string {
+func (agb ASTGrammarBlock) String() string {
 	var sb strings.Builder
 
 	sb.WriteString("<Block: GRAMMAR, Content: {")
-	for i := range agb.content {
-		sb.WriteString(agb.content[i].String())
-		if i+1 < len(agb.content) {
+	for i := range agb.Content {
+		sb.WriteString(agb.Content[i].String())
+		if i+1 < len(agb.Content) {
 			sb.WriteString(", ")
 		}
 	}
@@ -138,33 +139,33 @@ func (agb astGrammarBlock) String() string {
 	return sb.String()
 }
 
-func (agb astGrammarBlock) Type() blockType {
-	return blockTypeGrammar
+func (agb ASTGrammarBlock) Type() ASTBlockType {
+	return BlockTypeGrammar
 }
 
-func (agb astGrammarBlock) Grammar() astGrammarBlock {
+func (agb ASTGrammarBlock) Grammar() ASTGrammarBlock {
 	return agb
 }
 
-func (agb astGrammarBlock) Tokens() astTokensBlock {
+func (agb ASTGrammarBlock) Tokens() ASTTokensBlock {
 	panic("not tokens-type block")
 }
 
-func (agb astGrammarBlock) Actions() astActionsBlock {
+func (agb ASTGrammarBlock) Actions() ASTActionsBlock {
 	panic("not actions-type block")
 }
 
-type astActionsBlock struct {
-	content []astActionsContent
+type ASTActionsBlock struct {
+	Content []ASTActionsContent
 }
 
-func (aab astActionsBlock) String() string {
+func (aab ASTActionsBlock) String() string {
 	var sb strings.Builder
 
 	sb.WriteString("<Block: GRAMMAR, Content: {")
-	for i := range aab.content {
-		sb.WriteString(aab.content[i].String())
-		if i+1 < len(aab.content) {
+	for i := range aab.Content {
+		sb.WriteString(aab.Content[i].String())
+		if i+1 < len(aab.Content) {
 			sb.WriteString(", ")
 		}
 	}
@@ -172,33 +173,33 @@ func (aab astActionsBlock) String() string {
 	return sb.String()
 }
 
-func (aab astActionsBlock) Type() blockType {
-	return blockTypeActions
+func (aab ASTActionsBlock) Type() ASTBlockType {
+	return BlockTypeActions
 }
 
-func (aab astActionsBlock) Grammar() astGrammarBlock {
+func (aab ASTActionsBlock) Grammar() ASTGrammarBlock {
 	panic("not grammar-type block")
 }
 
-func (aab astActionsBlock) Tokens() astTokensBlock {
+func (aab ASTActionsBlock) Tokens() ASTTokensBlock {
 	panic("not tokens-type block")
 }
 
-func (aab astActionsBlock) Actions() astActionsBlock {
+func (aab ASTActionsBlock) Actions() ASTActionsBlock {
 	return aab
 }
 
-type astTokensBlock struct {
-	content []astTokensContent
+type ASTTokensBlock struct {
+	Content []ASTTokensContent
 }
 
-func (atb astTokensBlock) String() string {
+func (atb ASTTokensBlock) String() string {
 	var sb strings.Builder
 
 	sb.WriteString("<Block: TOKENS, Content: {")
-	for i := range atb.content {
-		sb.WriteString(atb.content[i].String())
-		if i+1 < len(atb.content) {
+	for i := range atb.Content {
+		sb.WriteString(atb.Content[i].String())
+		if i+1 < len(atb.Content) {
 			sb.WriteString(", ")
 		}
 	}
@@ -206,129 +207,166 @@ func (atb astTokensBlock) String() string {
 	return sb.String()
 }
 
-func (atb astTokensBlock) Type() blockType {
-	return blockTypeTokens
+func (atb ASTTokensBlock) Type() ASTBlockType {
+	return BlockTypeTokens
 }
 
-func (atb astTokensBlock) Grammar() astGrammarBlock {
+func (atb ASTTokensBlock) Grammar() ASTGrammarBlock {
 	panic("not grammar-type block")
 }
 
-func (atb astTokensBlock) Tokens() astTokensBlock {
+func (atb ASTTokensBlock) Tokens() ASTTokensBlock {
 	return atb
 }
 
-func (atb astTokensBlock) Actions() astActionsBlock {
+func (atb ASTTokensBlock) Actions() ASTActionsBlock {
 	panic("not actions-type block")
 }
 
-type astTokenOptionType int
+type ASTTokenOptionType int
 
 const (
-	tokenOptDiscard astTokenOptionType = iota
-	tokenOptStateshift
-	tokenOptToken
-	tokenOptHuman
-	tokenOptPriority
+	TokenOptDiscard ASTTokenOptionType = iota
+	TokenOptStateshift
+	TokenOptToken
+	TokenOptHuman
+	TokenOptPriority
 )
 
-type astTokenOption struct {
-	optType astTokenOptionType
-	value   string
+type ASTTokenOption struct {
+	Type  ASTTokenOptionType
+	Value string
+
+	tok types.Token
 }
 
-type tokenEntry struct {
-	pattern  string
-	discard  bool
-	shift    string
-	token    string
-	human    string
-	priority int
+type ASTTokenEntry struct {
+	Pattern  string
+	Discard  bool
+	Shift    string
+	Token    string
+	Human    string
+	Priority int
+
+	tok types.Token
+
+	// in theory may be multiple options for the same option type; while it
+	// is not allowed semantically, it is allowed syntactically, so track it so
+	// we can do proper error reporting later.
+	discardTok  []types.Token
+	shiftTok    []types.Token
+	tokenTok    []types.Token
+	humanTok    []types.Token
+	priorityTok []types.Token
+
+	// (don't need a patternTok because that pattern is the first symbol and
+	// there can only be one; tok will be the same as patternTok)
 }
 
-func (entry tokenEntry) String() string {
+func (entry ASTTokenEntry) String() string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("%s -> ", entry.pattern))
-	sb.WriteString(fmt.Sprintf("Discard: %v, ", entry.discard))
-	sb.WriteString(fmt.Sprintf("Shift: %q, ", entry.shift))
-	sb.WriteString(fmt.Sprintf("Token: %q, ", entry.token))
-	sb.WriteString(fmt.Sprintf("Human: %q, ", entry.human))
-	sb.WriteString(fmt.Sprintf("Priority: %d", entry.priority))
+	sb.WriteString(fmt.Sprintf("%s -> ", entry.Pattern))
+	sb.WriteString(fmt.Sprintf("Discard: %v, ", entry.Discard))
+	sb.WriteString(fmt.Sprintf("Shift: %q, ", entry.Shift))
+	sb.WriteString(fmt.Sprintf("Token: %q, ", entry.Token))
+	sb.WriteString(fmt.Sprintf("Human: %q, ", entry.Human))
+	sb.WriteString(fmt.Sprintf("Priority: %d", entry.Priority))
 
 	return sb.String()
 }
 
-type astTokensContent struct {
-	entries []tokenEntry
-	state   string
+type ASTGrammarRule struct {
+	Rule grammar.Rule
+
+	tok types.Token
 }
 
-func (content astTokensContent) String() string {
-	if len(content.entries) > 0 {
-		return fmt.Sprintf("(State: %q, Entries: %v)", content.state, content.entries)
+func (agr ASTGrammarRule) String() string {
+	return agr.Rule.String()
+}
+
+type ASTTokensContent struct {
+	Entries []ASTTokenEntry
+	State   string
+
+	tok      types.Token
+	tokState types.Token
+}
+
+func (content ASTTokensContent) String() string {
+	if len(content.Entries) > 0 {
+		return fmt.Sprintf("(State: %q, Entries: %v)", content.State, content.Entries)
 	} else {
-		return fmt.Sprintf("(State: %q, Entries: (empty))", content.state)
+		return fmt.Sprintf("(State: %q, Entries: (empty))", content.State)
 	}
 }
 
-type astGrammarContent struct {
-	rules []grammar.Rule
-	state string
+type ASTGrammarContent struct {
+	Rules []ASTGrammarRule
+	State string
+
+	tok      types.Token
+	tokState types.Token
 }
 
-func (content astGrammarContent) String() string {
-	if len(content.rules) > 0 {
-		return fmt.Sprintf("(State: %q, Rules: %v)", content.state, content.rules)
+func (content ASTGrammarContent) String() string {
+	if len(content.Rules) > 0 {
+		return fmt.Sprintf("(State: %q, Rules: %v)", content.State, content.Rules)
 	} else {
-		return fmt.Sprintf("(State: %q, Rules: (empty))", content.state)
+		return fmt.Sprintf("(State: %q, Rules: (empty))", content.State)
 	}
 }
 
-type astActionsContent struct {
-	actions []symbolActions
-	state   string
+type ASTActionsContent struct {
+	Actions []ASTSymbolActions
+	State   string
+
+	tok      types.Token
+	tokState types.Token
 }
 
-func (content astActionsContent) String() string {
-	if len(content.actions) > 0 {
-		return fmt.Sprintf("(State: %q, Actions: %v)", content.state, content.actions)
+func (content ASTActionsContent) String() string {
+	if len(content.Actions) > 0 {
+		return fmt.Sprintf("(State: %q, Actions: %v)", content.State, content.Actions)
 	} else {
-		return fmt.Sprintf("(State: %q, Actions: (empty))", content.state)
+		return fmt.Sprintf("(State: %q, Actions: (empty))", content.State)
 	}
 }
 
-type AttrRef struct {
-	symbol   string
-	terminal bool
+type ASTAttrRef struct {
+	Symbol   string
+	Terminal bool
 
-	head          bool
-	termInProd    bool
-	nontermInProd bool
-	symInProd     bool
+	Head          bool
+	TermInProd    bool
+	NontermInProd bool
+	SymInProd     bool
 
-	occurance int
-	attribute string
+	Occurance int
+	Attribute string
+
+	tok types.Token
 }
 
 // ParseAttrRef does a simple parse on an attribute reference from a string that
-// makes it up.
-func ParseAttrRef(s string) (AttrRef, error) {
+// makes it up. Does not set tok; caller must do so if needed.
+func ParseAttrRef(s string) (ASTAttrRef, error) {
 	dotSpl := strings.Split(s, ".")
 	if len(dotSpl) < 2 {
-		return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
+		return ASTAttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
 	}
 
 	attrName := dotSpl[len(dotSpl)-1]
 	nodeRefStr := strings.Join(dotSpl[:len(dotSpl)-1], ".")
 
-	ar := AttrRef{attribute: attrName}
+	ar := ASTAttrRef{Attribute: attrName}
 
 	if nodeRefStr[0] == '{' && nodeRefStr[len(nodeRefStr)-1] == '}' {
 		str := nodeRefStr[1 : len(nodeRefStr)-1]
 		if (str[0] >= 'A' && str[0] <= 'Z') || (str[0] >= 'a' && str[0] <= 'z') {
 			// nonterminal-by-name reference
-			ar.symbol = str
+			ar.Symbol = str
 
 			// get index from $num... sequence at end of ref str
 			allSplits := strings.Split(nodeRefStr, "$")
@@ -337,54 +375,54 @@ func ParseAttrRef(s string) (AttrRef, error) {
 				firstSplits := strings.Join(allSplits[:len(allSplits)-1], "$")
 
 				var err error
-				ar.occurance, err = strconv.Atoi(lastSplit)
+				ar.Occurance, err = strconv.Atoi(lastSplit)
 				if err != nil {
 					// not an error, it's optional
-					ar.occurance = 0
+					ar.Occurance = 0
 				} else {
-					ar.symbol = firstSplits
+					ar.Symbol = firstSplits
 				}
 			}
 			return ar, nil
 		} else if str == "^" {
-			ar.head = true
+			ar.Head = true
 			return ar, nil
 		} else if strings.HasPrefix(str, ".") {
-			ar.termInProd = true
+			ar.TermInProd = true
 			if len(str) > 1 {
 				str = str[1:]
 				num, err := strconv.Atoi(str)
 				if err != nil {
-					return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
+					return ASTAttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
 				}
-				ar.occurance = num
+				ar.Occurance = num
 			}
 			return ar, nil
 		} else if strings.HasPrefix(str, "&") {
-			ar.nontermInProd = true
+			ar.NontermInProd = true
 			if len(str) > 1 {
 				str = str[1:]
 				num, err := strconv.Atoi(str)
 				if err != nil {
-					return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
+					return ASTAttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
 				}
-				ar.occurance = num
+				ar.Occurance = num
 			}
 			return ar, nil
 		} else {
 			// then it has to be a parsable number
 			num, err := strconv.Atoi(str)
 			if err != nil {
-				return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
+				return ASTAttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
 			}
-			ar.occurance = num
-			ar.symInProd = true
+			ar.Occurance = num
+			ar.SymInProd = true
 			return ar, nil
 		}
 	} else {
 		// terminal-by-name reference
-		ar.terminal = true
-		ar.symbol = nodeRefStr
+		ar.Terminal = true
+		ar.Symbol = nodeRefStr
 
 		// get index from $num... sequence at end of ref str
 		allSplits := strings.Split(nodeRefStr, "$")
@@ -393,12 +431,12 @@ func ParseAttrRef(s string) (AttrRef, error) {
 			firstSplits := strings.Join(allSplits[:len(allSplits)-1], "$")
 
 			var err error
-			ar.occurance, err = strconv.Atoi(lastSplit)
+			ar.Occurance, err = strconv.Atoi(lastSplit)
 			if err != nil {
 				// not an error, it's optional
-				ar.occurance = 0
+				ar.Occurance = 0
 			} else {
-				ar.symbol = firstSplits
+				ar.Symbol = firstSplits
 			}
 		}
 
@@ -406,64 +444,67 @@ func ParseAttrRef(s string) (AttrRef, error) {
 	}
 }
 
-func (ar AttrRef) String() string {
+func (ar ASTAttrRef) String() string {
 	var sb strings.Builder
 
-	if ar.head {
+	if ar.Head {
 		sb.WriteString("{^}")
-	} else if ar.termInProd {
+	} else if ar.TermInProd {
 		sb.WriteString("{.")
-		if ar.occurance > 0 {
-			sb.WriteString(fmt.Sprintf("%d", ar.occurance))
+		if ar.Occurance > 0 {
+			sb.WriteString(fmt.Sprintf("%d", ar.Occurance))
 		}
 		sb.WriteString("}")
-	} else if ar.nontermInProd {
+	} else if ar.NontermInProd {
 		sb.WriteString("{&")
-		if ar.occurance > 0 {
-			sb.WriteString(fmt.Sprintf("%d", ar.occurance))
+		if ar.Occurance > 0 {
+			sb.WriteString(fmt.Sprintf("%d", ar.Occurance))
 		}
 		sb.WriteString("}")
-	} else if ar.symInProd {
+	} else if ar.SymInProd {
 		sb.WriteString("{")
-		sb.WriteString(fmt.Sprintf("%d", ar.occurance))
+		sb.WriteString(fmt.Sprintf("%d", ar.Occurance))
 		sb.WriteString("}")
-	} else if ar.terminal {
-		sb.WriteString(ar.symbol)
-		if ar.occurance > 0 {
-			sb.WriteString(fmt.Sprintf("$%d", ar.occurance))
+	} else if ar.Terminal {
+		sb.WriteString(ar.Symbol)
+		if ar.Occurance > 0 {
+			sb.WriteString(fmt.Sprintf("$%d", ar.Occurance))
 		}
 	} else {
 		sb.WriteString("{")
-		sb.WriteString(ar.symbol)
-		if ar.occurance > 0 {
-			sb.WriteString(fmt.Sprintf("$%d", ar.occurance))
+		sb.WriteString(ar.Symbol)
+		if ar.Occurance > 0 {
+			sb.WriteString(fmt.Sprintf("$%d", ar.Occurance))
 		}
 		sb.WriteString("}")
 	}
 
 	sb.WriteRune('.')
-	sb.WriteString(ar.attribute)
+	sb.WriteString(ar.Attribute)
 
 	return sb.String()
 }
 
-type semanticAction struct {
-	lhs  AttrRef
-	hook string
-	with []AttrRef
+type ASTSemanticAction struct {
+	LHS  ASTAttrRef
+	Hook string
+	With []ASTAttrRef
+
+	hookTok types.Token
+	tok     types.Token
 }
 
-func (sa semanticAction) String() string {
+func (sa ASTSemanticAction) String() string {
 	var sb strings.Builder
 
-	sb.WriteString(sa.lhs.String())
+	sb.WriteString(sa.LHS.String())
 	sb.WriteString(" = ")
-	sb.WriteString(sa.hook)
+	sb.WriteString(sa.Hook)
 
 	sb.WriteRune('(')
-	for i := range sa.with {
-		sb.WriteString(sa.with[i].String())
-		if i+1 < len(sa.with) {
+	for i := range sa.With {
+		sb.WriteString(sa.With[i].String())
+		if i+1 < len(sa.With) {
 			sb.WriteString(", ")
 		}
 	}
@@ -472,56 +513,65 @@ func (sa semanticAction) String() string {
 	return sb.String()
 }
 
-type productionAction struct {
-	prodNext    bool
-	prodIndex   int
-	prodLiteral []string
+type ASTProductionAction struct {
+	ProdNext    bool
+	ProdIndex   int
+	ProdLiteral []string
 
-	actions []semanticAction
+	Actions []ASTSemanticAction
+
+	tok types.Token
+
+	// valTok is where the production action "value" is set; that is, the index
+	// or production. It will be nil if it is simply a prodNext.
+	valTok types.Token
 }
 
-func (pa productionAction) String() string {
+func (pa ASTProductionAction) String() string {
 	var sb strings.Builder
 
 	sb.WriteString("prod ")
-	if pa.prodNext {
+	if pa.ProdNext {
 		sb.WriteString("(next)")
-	} else if pa.prodLiteral != nil {
+	} else if pa.ProdLiteral != nil {
 		sb.WriteRune('[')
-		if len(pa.prodLiteral) == 1 && pa.prodLiteral[0] == grammar.Epsilon[0] {
+		if len(pa.ProdLiteral) == 1 && pa.ProdLiteral[0] == grammar.Epsilon[0] {
 			sb.WriteString("ε")
 		} else {
-			sb.WriteString(strings.Join(pa.prodLiteral, " "))
+			sb.WriteString(strings.Join(pa.ProdLiteral, " "))
 		}
 		sb.WriteRune(']')
 	} else {
-		sb.WriteString(fmt.Sprintf("(index %d)", pa.prodIndex))
+		sb.WriteString(fmt.Sprintf("(index %d)", pa.ProdIndex))
 	}
 
 	sb.WriteString(": ")
-	for i := range pa.actions {
-		sb.WriteString(pa.actions[i].String())
-		if i+1 < len(pa.actions) {
+	for i := range pa.Actions {
+		sb.WriteString(pa.Actions[i].String())
+		if i+1 < len(pa.Actions) {
 			sb.WriteString("; ")
 		}
 	}
 	return sb.String()
 }
 
-type symbolActions struct {
-	symbol  string
-	actions []productionAction
+type ASTSymbolActions struct {
+	Symbol  string
+	Actions []ASTProductionAction
+
+	tok    types.Token
+	symTok types.Token
 }
 
-func (sa symbolActions) String() string {
+func (sa ASTSymbolActions) String() string {
 	var sb strings.Builder
 
-	sb.WriteString(sa.symbol)
+	sb.WriteString(sa.Symbol)
 	sb.WriteString(": [")
 
-	for i := range sa.actions {
-		sb.WriteString(sa.actions[i].String())
-		if i+1 < len(sa.actions) {
+	for i := range sa.Actions {
+		sb.WriteString(sa.Actions[i].String())
+		if i+1 < len(sa.Actions) {
 			sb.WriteString(", ")
 		}
 	}
