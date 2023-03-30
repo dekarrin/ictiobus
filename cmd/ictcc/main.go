@@ -182,8 +182,8 @@ func init() {
 	flag.BoolVar(&noGen, "n", false, noGenUsage+" (shorthand)")
 	flag.BoolVar(&genAST, "ast", false, genASTUsage)
 	flag.BoolVar(&genAST, "a", false, genASTUsage+" (shorthand)")
-	flag.BoolVar(&genAST, "spec", false, genSpecUsage)
-	flag.BoolVar(&genAST, "s", false, genSpecUsage+" (shorthand)")
+	flag.BoolVar(&genSpec, "spec", false, genSpecUsage)
+	flag.BoolVar(&genSpec, "s", false, genSpecUsage+" (shorthand)")
 	flag.BoolVar(&genTree, "tree", false, genTreeUsage)
 	flag.BoolVar(&genTree, "t", false, genTreeUsage+" (shorthand)")
 	flag.StringVar(&parserCff, "parser", parserCffDefault, parserCffUsage)
@@ -285,11 +285,12 @@ func main() {
 				IndentOpts(len(warnPrefix), rosed.Options{IndentStr: " "}).
 				String()
 
-			fmt.Fprintf(os.Stderr, "%s\n", warnStr)
+			fmt.Fprintf(os.Stderr, "%s\n\n", warnStr)
 		}
 	}
 	// now check err
 	if err != nil {
+		fmt.Printf("\n")
 		// TODO: at this point, it would be v nice to have file in the
 		// token/syntax error output. Allow specification of file in anyfin that
 		// can return a SyntaxError and have all token sources include that.
@@ -300,7 +301,6 @@ func main() {
 			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 			returnCode = ExitErrOther
 		}
-		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		return
 	}
 
@@ -317,14 +317,23 @@ func main() {
 }
 
 func printSpec(spec fishi.Spec) {
-	fmt.Printf("Language Specification:\n")
-
 	// print tokens
 	fmt.Printf("Token Classes:\n")
 
+	// find the longest token class ID
+	maxTCLen := 0
 	for _, tc := range spec.Tokens {
-		fmt.Printf("\t* %s - %q", tc.ID(), tc.Human())
+		if len(tc.ID()) > maxTCLen {
+			maxTCLen = len(tc.ID())
+		}
 	}
+
+	for _, tc := range spec.Tokens {
+		// padding
+		idPad := strings.Repeat(" ", maxTCLen-len(tc.ID()))
+		fmt.Printf("* %s%s - %q\n", tc.ID(), idPad, tc.Human())
+	}
+	fmt.Printf("\n")
 
 	// print lexer
 	fmt.Printf("Lexer Patterns:\n")
@@ -334,15 +343,15 @@ func printSpec(spec fishi.Spec) {
 		pats := spec.Patterns[state]
 
 		if state == "" {
-			fmt.Printf("\tAll States:\n")
+			fmt.Printf("All States:\n")
 		} else {
-			fmt.Printf("\tState %s:\n", state)
+			fmt.Printf("State %s:\n", state)
 		}
 
 		// TODO: sort output pats by priority
 
 		for _, pat := range pats {
-			fmt.Printf("\t* %s => ", pat.Regex.String())
+			fmt.Printf("* %s => ", pat.Regex.String())
 
 			switch pat.Action.Type {
 			case lex.ActionNone:
@@ -410,7 +419,7 @@ func printSpec(spec fishi.Spec) {
 
 		// add alternatives
 		for _, prod := range r.Productions[1:] {
-			ruleStr += fmt.Sprintf("%s| %s\n", nextPad, prod.String())
+			ruleStr += fmt.Sprintf("%s  | %s\n", nextPad, prod.String())
 		}
 
 		// print the final rule string

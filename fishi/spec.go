@@ -316,6 +316,10 @@ func analyzeASTGrammarContentSlice(
 							return g, warnings, synErr
 						}
 
+						// get token class
+						tc := classes[sym]
+						g.AddTerm(sym, tc)
+
 						// mark it as seen
 						seenTerminals[sym] = true
 					}
@@ -347,7 +351,7 @@ func analyzeASTGrammarContentSlice(
 
 	// validate the grammar
 	if err := g.Validate(); err != nil {
-		return g, warnings, err
+		return g, warnings, fmt.Errorf("invalid grammar: %w", err)
 	}
 
 	return g, warnings, nil
@@ -363,8 +367,9 @@ func analzyeASTTokensContentSlice(
 	pats := make(map[string][]Pattern)
 
 	for _, tokBl := range tokensBlocks {
-		var p Pattern
 		for _, entry := range tokBl.Entries {
+			var p Pattern
+
 			// either an entry specifies discard, OR it specifies up to one each
 			// of stateshift, token, human. priority may be in either.
 			var err error
@@ -492,28 +497,28 @@ func analzyeASTTokensContentSlice(
 
 			// finally, check for priority
 			if len(entry.priorityTok) > 0 {
-				if p.Priority == 0 {
+				if entry.Priority == 0 {
 					warn := types.NewSyntaxErrorFromToken("setting priority to 0 has no effect", entry.priorityTok[0])
 					warnings = append(warnings, Warning{
 						Type:    WarnPriorityZero,
 						Message: warn.FullMessage(),
 					})
-				} else if p.Priority < 0 {
+				} else if entry.Priority < 0 {
 					synErr := types.NewSyntaxErrorFromToken("priority cannot be negative", entry.priorityTok[0])
 					return nil, warnings, synErr
 				}
 
 				p.Priority = entry.Priority
 			}
-		}
 
-		// add the pattern to the lexer
-		statePats, ok := pats[tokBl.State]
-		if !ok {
-			statePats = make([]Pattern, 0)
+			// add the pattern to the lexer
+			statePats, ok := pats[tokBl.State]
+			if !ok {
+				statePats = make([]Pattern, 0)
+			}
+			statePats = append(statePats, p)
+			pats[tokBl.State] = statePats
 		}
-		statePats = append(statePats, p)
-		pats[tokBl.State] = statePats
 	}
 
 	return pats, warnings, nil

@@ -109,7 +109,7 @@ This is the context-free grammar for FISHI, glub.
 {SEM-ACTION}       =  dir-set attr-ref dir-hook id
                    |  dir-set attr-ref dir-hook id {WITH}
 
-{WITH}             =  dir-with ATTR-REF-LIST
+{WITH}             =  dir-with {ATTR-REF-LIST}
 
 {ATTR-REF-LIST}    =  {ATTR-REF-LIST} attr-ref
                    |  attr-ref
@@ -167,7 +167,7 @@ This is the context-free grammar for FISHI, glub.
 
 {GRULE-LIST}       =  {GRULE-LIST} {GRULE} | {GRULE}
 
-{GRULE}            =  nl-nonterm eq {ATERNATIONS}
+{GRULE}            =  nl-nonterm eq {ALTERNATIONS}
 
 {ALTERNATIONS}     =  {GPRODUCTION}
                    |  {ALTERNATIONS} alt {GPRODUCTION}
