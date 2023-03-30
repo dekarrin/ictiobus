@@ -636,6 +636,17 @@ func (g Grammar) NonTerminals() []string {
 	return textfmt.OrderedKeys(g.rulesByName)
 }
 
+// PriorityNonTerminals returns list of all the non-terminal symbols in the order
+// they were defined in. All will be upper case.
+func (g Grammar) PriorityNonTerminals() []string {
+	termNames := []string{}
+	for _, r := range g.rules {
+		termNames = append(termNames, r.NonTerminal)
+	}
+
+	return termNames
+}
+
 // ReversePriorityNonTerminals returns list of all the non-terminal symbols in
 // reverse order from the order they were defined in. This is handy because it
 // can have the effect of causing iteration to do so in a manner that a human

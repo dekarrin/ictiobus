@@ -12,10 +12,14 @@ Usage:
 Flags:
 
 	-a/-ast
-		Print the AST to stdout before generating the parser.
+		Print the AST to stdout before generating the frontend.
 
 	-t/-tree
-		Print the parse tree to stdout before generating the parser.
+		Print the parse tree to stdout before generating the frontend.
+
+	-s/-spec
+		Print the interpreted language specification to stdout before generating
+		the frontend.
 
 	-n/-no-gen
 		Do not generate the parser. If this flag is set, the fishi is parsed and
@@ -113,11 +117,15 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"time"
+	"strings"
 
 	"github.com/dekarrin/ictiobus/fishi"
+	"github.com/dekarrin/ictiobus/grammar"
+	"github.com/dekarrin/ictiobus/internal/textfmt"
+	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/translation"
 	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/rosed"
 )
 
 const (
@@ -144,6 +152,7 @@ var (
 	noGen         bool
 	genAST        bool
 	genTree       bool
+	genSpec       bool
 	parserCff     string
 	noCache       *bool = flag.Bool("no-cache", false, "Disable use of cached frontend components, even if available")
 	noCacheOutput *bool = flag.Bool("no-cache-out", false, "Disable writing of cached frontend components, even if one was generated")
@@ -164,7 +173,8 @@ func init() {
 	const (
 		noGenUsage       = "Do not generate the parser"
 		genASTUsage      = "Print the AST of the analyzed fishi"
-		genTreeUsage     = "Print the parse tree of the analyzed fishi"
+		genTreeUsage     = "Print the parse trees of each analyzed fishi file"
+		genSpecUsage     = "Print the FISHI spec interpreted from the analyzed fishi"
 		parserCffUsage   = "Use the specified parser CFF cache file instead of default"
 		parserCffDefault = "fishi-parser.cff"
 	)
@@ -172,6 +182,8 @@ func init() {
 	flag.BoolVar(&noGen, "n", false, noGenUsage+" (shorthand)")
 	flag.BoolVar(&genAST, "ast", false, genASTUsage)
 	flag.BoolVar(&genAST, "a", false, genASTUsage+" (shorthand)")
+	flag.BoolVar(&genAST, "spec", false, genSpecUsage)
+	flag.BoolVar(&genAST, "s", false, genSpecUsage+" (shorthand)")
 	flag.BoolVar(&genTree, "tree", false, genTreeUsage)
 	flag.BoolVar(&genTree, "t", false, genTreeUsage+" (shorthand)")
 	flag.StringVar(&parserCff, "parser", parserCffDefault, parserCffUsage)
@@ -217,20 +229,31 @@ func main() {
 		ParserTrace:       *parserTrace,
 	}
 
-	for _, file := range args {
+	var joinedAST *fishi.AST
 
+	for _, file := range args {
 		res, err := fishi.ParseMarkdownFile(file, fo)
 
-		// results may be valid even if there is an error
-		if res.AST != nil && genAST {
-			fmt.Printf("%s\n", res.AST.String())
+		if res.AST != nil {
+			if joinedAST == nil {
+				joinedAST = res.AST
+			} else {
+				joinedAST.Nodes = append(joinedAST.Nodes, res.AST.Nodes...)
+			}
 		}
 
+		// parse tree is per-file, so we do this immediately even on error, as
+		// it may be useful
 		if res.Tree != nil && genTree {
 			fmt.Printf("%s\n", translation.AddAttributes(*res.Tree).String())
 		}
 
 		if err != nil {
+			// results may be valid even if there is an error
+			if joinedAST != nil && genAST {
+				fmt.Printf("%s\n", res.AST.String())
+			}
+
 			if syntaxErr, ok := err.(*types.SyntaxError); ok {
 				fmt.Fprintf(os.Stderr, "%s:\n%s\n", file, syntaxErr.FullMessage())
 				returnCode = ExitErrSyntax
@@ -240,12 +263,247 @@ func main() {
 			}
 			return
 		}
+	}
 
-		if !noGen {
-			// do processing of the AST here
-			time.Sleep(100 * time.Millisecond) // so they don't interleave
-			fmt.Printf("(frontend generation not implemented yet)\n")
+	if joinedAST == nil {
+		panic("joinedAST is nil; should not be possible")
+	}
+
+	if genAST {
+		fmt.Printf("%s\n", joinedAST.String())
+	}
+
+	// attempt to turn AST into a fishi.Spec
+	spec, warnings, err := fishi.NewSpec(*joinedAST)
+	// warnings may be valid even if there is an error
+	if len(warnings) > 0 {
+		for _, warn := range warnings {
+			const warnPrefix = "WARN: "
+			// indent all except the first line
+			warnStr := rosed.Edit(warnPrefix+warn.Message).
+				LinesFrom(1).
+				IndentOpts(len(warnPrefix), rosed.Options{IndentStr: " "}).
+				String()
+
+			fmt.Fprintf(os.Stderr, "%s\n", warnStr)
+		}
+	}
+	// now check err
+	if err != nil {
+		// TODO: at this point, it would be v nice to have file in the
+		// token/syntax error output. Allow specification of file in anyfin that
+		// can return a SyntaxError and have all token sources include that.
+		if syntaxErr, ok := err.(*types.SyntaxError); ok {
+			fmt.Fprintf(os.Stderr, "%s\n", syntaxErr.FullMessage())
+			returnCode = ExitErrSyntax
+		} else {
+			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+			returnCode = ExitErrOther
+		}
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		return
+	}
+
+	// we officially have a spec. try to print it if requested
+	if genSpec {
+		printSpec(spec)
+	}
+
+	if !noGen {
+		// do processing of the AST here
+		fmt.Printf("(frontend generation not implemented yet)\n")
+	}
+
+}
+
+func printSpec(spec fishi.Spec) {
+	fmt.Printf("Language Specification:\n")
+
+	// print tokens
+	fmt.Printf("Token Classes:\n")
+
+	for _, tc := range spec.Tokens {
+		fmt.Printf("\t* %s - %q", tc.ID(), tc.Human())
+	}
+
+	// print lexer
+	fmt.Printf("Lexer Patterns:\n")
+	orderedStates := textfmt.OrderedKeys(spec.Patterns)
+
+	for _, state := range orderedStates {
+		pats := spec.Patterns[state]
+
+		if state == "" {
+			fmt.Printf("\tAll States:\n")
+		} else {
+			fmt.Printf("\tState %s:\n", state)
+		}
+
+		// TODO: sort output pats by priority
+
+		for _, pat := range pats {
+			fmt.Printf("\t* %s => ", pat.Regex.String())
+
+			switch pat.Action.Type {
+			case lex.ActionNone:
+				fmt.Printf("(DISCARDED)")
+			case lex.ActionScan:
+				fmt.Printf("%s", pat.Action.ClassID)
+			case lex.ActionState:
+				fmt.Printf("GO TO STATE %s", pat.Action.State)
+			case lex.ActionScanAndState:
+				fmt.Printf("%s THEN GO TO STATE %s", pat.Action.ClassID, pat.Action.State)
+			}
+
+			if pat.Priority != 0 {
+				fmt.Printf(", PRIORITY %d", pat.Priority)
+			}
+
+			fmt.Printf("\n")
+		}
+	}
+	fmt.Printf("\n")
+
+	// print grammar in custom way
+	fmt.Printf("Grammar:\n")
+	nts := spec.Grammar.PriorityNonTerminals()
+	// ensure that the start symbol is first
+	if nts[0] != spec.Grammar.StartSymbol() {
+		startSymIdx := -1
+
+		needle := spec.Grammar.StartSymbol()
+		for i, nt := range nts {
+			if nt == needle {
+				startSymIdx = i
+				break
+			}
+		}
+
+		if startSymIdx == -1 {
+			panic("start symbol not found in grammar")
+		}
+
+		nts[0], nts[startSymIdx] = nts[startSymIdx], nts[0]
+	}
+
+	// find the longest non-terminal name
+	maxNTLen := 0
+	for _, nt := range nts {
+		if len(nt) > maxNTLen {
+			maxNTLen = len(nt)
 		}
 	}
 
+	nextPad := strings.Repeat(" ", maxNTLen)
+
+	for _, nt := range nts {
+		// head part is space-padded to align with longest non-terminal name
+		r := spec.Grammar.Rule(nt)
+		if r.NonTerminal == "" {
+			panic("non-terminal not found in grammar")
+		}
+
+		headPad := strings.Repeat(" ", maxNTLen-len(r.NonTerminal))
+
+		// first rule will be simply HEAD -> PROD
+		ruleStr := fmt.Sprintf("%s%s -> %s\n", r.NonTerminal, headPad, r.Productions[0].String())
+
+		// add alternatives
+		for _, prod := range r.Productions[1:] {
+			ruleStr += fmt.Sprintf("%s| %s\n", nextPad, prod.String())
+		}
+
+		// print the final rule string
+		fmt.Printf("%s", ruleStr)
+	}
+	fmt.Printf("\n")
+
+	// print translation scheme
+	fmt.Printf("Translation Scheme:\n")
+	for _, sdd := range spec.TranslationScheme {
+		fmt.Printf("* %s: ", sdd.Rule.String())
+		lhsStr := sddRefToPrintedString(sdd.Attribute, spec.Grammar, sdd.Rule)
+		fmt.Printf("%s = %s(", lhsStr, sdd.Hook)
+		for i := range sdd.Args {
+			if i != 0 {
+				fmt.Printf(", ")
+			}
+			argStr := sddRefToPrintedString(sdd.Args[i], spec.Grammar, sdd.Rule)
+			fmt.Printf("%s", argStr)
+		}
+		fmt.Printf(")\n")
+	}
+}
+
+func sddRefToPrintedString(ref translation.AttrRef, g grammar.Grammar, r grammar.Rule) string {
+	// which symbol does it refer to?
+	var symName string
+	if ref.Relation.Type == translation.RelHead {
+		symName = "{" + r.NonTerminal + "$^}"
+	} else if ref.Relation.Type == translation.RelSymbol {
+		sym := r.Productions[0][ref.Relation.Index]
+		// now find all indexes of that particular symbol in the rule
+
+		inst := -1
+		for i, s := range r.Productions[0] {
+			if s == sym {
+				inst++
+			}
+			if i == ref.Relation.Index {
+				break
+			}
+		}
+		if inst == -1 {
+			// should never happen
+			panic("symbol not found in rule")
+		}
+
+		symName = fmt.Sprintf("%s$%d", sym, inst)
+		if g.IsNonTerminal(sym) {
+			symName = "{" + symName + "}"
+		}
+	} else {
+		// find the nth non-terminal in the rule
+		curOfType := -1
+		symIdx := -1
+		for i, sym := range r.Productions[0] {
+			if (ref.Relation.Type == translation.RelNonTerminal && g.IsNonTerminal(sym)) || (ref.Relation.Type == translation.RelTerminal && g.IsTerminal(sym)) {
+				curOfType++
+			}
+			if curOfType == ref.Relation.Index {
+				symIdx = i
+				break
+			}
+		}
+
+		if symIdx == -1 {
+			// should never happen
+			panic("non-terminal not found in rule")
+		}
+
+		sym := r.Productions[0][symIdx]
+		// now find all indexes of that particular symbol in the rule
+
+		inst := -1
+		for i, s := range r.Productions[0] {
+			if s == sym {
+				inst++
+			}
+			if i == ref.Relation.Index {
+				break
+			}
+		}
+		if inst == -1 {
+			// should never happen
+			panic("symbol not found in rule")
+		}
+
+		symName = fmt.Sprintf("%s$%d", sym, inst)
+		if g.IsNonTerminal(sym) {
+			symName = "{" + symName + "}"
+		}
+	}
+
+	// now the easy part, add the attribute name
+	return fmt.Sprintf("%s.%s", symName, ref.Name)
 }
