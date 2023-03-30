@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/slices"
@@ -32,6 +33,159 @@ type Spec struct {
 	// TranslationScheme outlines the Syntax-Directed Translation Scheme for the
 	// language by giving the instructions for each attribute.
 	TranslationScheme []SDD
+}
+
+// ValidateSDTS builds the Lexer and SDTS and runs validation on several
+// simulated parse trees to ensure that the SDTS is valid and works.
+func (spec Spec) ValidateSDTS(opts translation.ValidationOptions) error {
+	lx, err := spec.CreateLexer(true)
+	if err != nil {
+		return fmt.Errorf("lexer creation error: %w", err)
+	}
+
+	valProd := lx.FakeLexemeProducer(true, "")
+
+	sdts, err := spec.CreateSDTS()
+	if err != nil {
+		return fmt.Errorf("SDTS creation error: %w", err)
+	}
+
+	// validate the SDTS. the first defined attribute will be the IR attribute.
+	irAttrName := spec.TranslationScheme[0].Attribute.Name
+
+	sdtsErr := sdts.Validate(spec.Grammar, irAttrName, opts, valProd)
+	if sdtsErr != nil {
+		return fmt.Errorf("SDTS validation error: %w", sdtsErr)
+	}
+
+	return nil
+}
+
+// ClassMap is a map of string to token class with that ID.
+func (spec Spec) ClassMap() map[string]types.TokenClass {
+	classes := map[string]types.TokenClass{}
+	for _, class := range spec.Tokens {
+		classes[class.ID()] = class
+	}
+	return classes
+}
+
+// CreateLexer uses the Tokens and Patterns in the spec to create a new Lexer.
+func (spec Spec) CreateLexer(lazy bool) (ictiobus.Lexer, error) {
+	var lx ictiobus.Lexer
+
+	if lazy {
+		lx = ictiobus.NewLazyLexer()
+	} else {
+		lx = ictiobus.NewLexer()
+	}
+
+	// find the tokens we need to register classes for
+	toBeRegisteredOrd := map[string][]string{}
+	toBeRegisteredSet := map[string]box.StringSet{}
+
+	for state := range spec.Patterns {
+		statePats := spec.Patterns[state]
+		stateToRegOrd, ok := toBeRegisteredOrd[state]
+		stateToRegSet := toBeRegisteredSet[state]
+		if !ok {
+			stateToRegOrd = []string{}
+			stateToRegSet = box.NewStringSet()
+		}
+
+		for _, pat := range statePats {
+			if pat.Action.Type == lex.ActionScan || pat.Action.Type == lex.ActionScanAndState {
+				// we need to register the classes for this pattern
+				if !stateToRegSet.Has(pat.Action.ClassID) {
+					stateToRegOrd = append(stateToRegOrd, pat.Action.ClassID)
+					stateToRegSet.Add(pat.Action.ClassID)
+				}
+			}
+		}
+	}
+
+	classes := spec.ClassMap()
+
+	// register the classes
+	for state, classIDs := range toBeRegisteredOrd {
+		for _, id := range classIDs {
+			lx.RegisterClass(classes[id], state)
+		}
+	}
+
+	// add the patterns
+	for state, pats := range spec.Patterns {
+		for _, pat := range pats {
+			err := lx.AddPattern(pat.Regex.String(), pat.Action, state, pat.Priority)
+			if err != nil {
+				// all error conditions should be handled; should never happen
+				return nil, err
+			}
+		}
+	}
+
+	// done!
+	return lx, nil
+}
+
+// CreateParser uses the Grammar in the spec to create a new Parser of the
+// given type. Returns an error if the type is not supported.
+func (spec Spec) CreateParser(t types.ParserType, allowAmbig bool) (ictiobus.Parser, []Warning, error) {
+	var warns []Warning
+	var p ictiobus.Parser
+	var err error
+
+	var ambigWarns []string
+	switch t {
+	case types.ParserLALR1:
+		p, ambigWarns, err = ictiobus.NewLALR1Parser(spec.Grammar, allowAmbig)
+	case types.ParserCLR1:
+		p, ambigWarns, err = ictiobus.NewCLRParser(spec.Grammar, allowAmbig)
+	case types.ParserSLR1:
+		p, ambigWarns, err = ictiobus.NewSLRParser(spec.Grammar, allowAmbig)
+	case types.ParserLL1:
+		if allowAmbig {
+			return nil, nil, fmt.Errorf("LL(k) parsers do not support ambiguous grammars")
+		}
+
+		p, err = ictiobus.NewLL1Parser(spec.Grammar)
+	default:
+		return nil, nil, fmt.Errorf("unsupported parser type: %s", t)
+	}
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, warn := range ambigWarns {
+		warns = append(warns, Warning{
+			Type:    WarnAmbiguousGrammar,
+			Message: warn,
+		})
+	}
+
+	return p, warns, nil
+}
+
+// CreateSDTS uses the TranslationScheme in the spec to create a new SDTS.
+func (spec Spec) CreateSDTS() (ictiobus.SDTS, error) {
+	sdts := ictiobus.NewSDTS()
+
+	for _, sdd := range spec.TranslationScheme {
+		if sdd.Attribute.Relation.Type == translation.RelHead {
+			err := sdts.BindSynthesizedAttribute(sdd.Rule.NonTerminal, sdd.Rule.Productions[0], sdd.Attribute.Name, sdd.Hook, sdd.Args)
+			if err != nil {
+				return nil, fmt.Errorf("cannot bind synthesized attribute for %s: %w", sdd.Attribute, err)
+			}
+		} else {
+			err := sdts.BindInheritedAttribute(sdd.Rule.NonTerminal, sdd.Rule.Productions[0], sdd.Attribute.Name, sdd.Hook, sdd.Args, sdd.Attribute.Relation)
+			if err != nil {
+				return nil, fmt.Errorf("cannot bind inherited attribute for %s: %w", sdd.Attribute, err)
+			}
+		}
+	}
+
+	return sdts, nil
 }
 
 // Pattern is a lexer pattern that is used to match a token, along with the
@@ -75,6 +229,9 @@ type SDD struct {
 // any errors, then an error is returned. If the AST has non-error warnings,
 // they will be returned in the warnings slice. Warnings will be present and
 // valid even if err is non-nil; spec will only be valid if err is nil.
+//
+// Uses the Options to determine what to validate. Only the SDTS options are
+// recognized at this time.
 func NewSpec(ast AST) (spec Spec, warnings []Warning, err error) {
 	ls := Spec{
 		Patterns: make(map[string][]Pattern),

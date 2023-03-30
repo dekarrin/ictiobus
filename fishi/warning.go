@@ -7,6 +7,7 @@ const (
 	WarnMissingHumanDef
 	WarnPriorityZero
 	WarnUnusedTerminal
+	WarnAmbiguousGrammar
 )
 
 // Warning is a warning that is generated when processing an AST. It is not an
