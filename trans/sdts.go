@@ -30,9 +30,7 @@ func (sdts *sdtsImpl) SetHooks(hooks map[string]AttributeSetter) {
 
 			// but if we already have a non-nil mapping and were given a nil
 			// one, remove it
-			if _, ok := sdts.hooks[k]; ok {
-				delete(sdts.hooks, k)
-			}
+			delete(sdts.hooks, k)
 		} else {
 			sdts.hooks[k] = v
 		}
