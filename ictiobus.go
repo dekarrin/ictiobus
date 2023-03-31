@@ -30,7 +30,7 @@ import (
 	"github.com/dekarrin/ictiobus/internal/decbin"
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/parse"
-	"github.com/dekarrin/ictiobus/translation"
+	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
 )
 
@@ -112,7 +112,7 @@ type SDTS interface {
 	// Calling it multiple times will add to the existing hook table, not
 	// replace it entirely. If there are any duplicate hook names, the last one
 	// set will be the one that is used.
-	SetHooks(hooks map[string]translation.AttributeSetter)
+	SetHooks(hooks map[string]trans.AttributeSetter)
 
 	// BindInheritedAttribute creates a new SDD binding for setting the value of
 	// an inherited attribute with name attrName. The production that the
@@ -130,7 +130,7 @@ type SDTS interface {
 	// node and attribute name whose value to retrieve in the withArgs slice.
 	// Explicitlygiving the referenced attributes in this fashion makes it easy
 	// to determine the dependency graph for later execution.
-	BindInheritedAttribute(head string, prod []string, attrName string, hook string, withArgs []translation.AttrRef, forProd translation.NodeRelation) error
+	BindInheritedAttribute(head string, prod []string, attrName string, hook string, withArgs []trans.AttrRef, forProd trans.NodeRelation) error
 
 	// BindSynthesizedAttribute creates a new SDD binding for setting the value
 	// of a synthesized attribute with name attrName. The attribute is set on
@@ -146,7 +146,7 @@ type SDTS interface {
 	// node and attribute name whose value to retrieve in the withArgs slice.
 	// Explicitly giving the referenced attributes in this fashion makes it easy
 	// to determine the dependency graph for later execution.
-	BindSynthesizedAttribute(head string, prod []string, attrName string, hook string, withArgs []translation.AttrRef) error
+	BindSynthesizedAttribute(head string, prod []string, attrName string, hook string, withArgs []trans.AttrRef) error
 
 	// SetNoFlow sets a binding to be explicitly allowed to not be required to
 	// flow up to a particular parent. This will prevent it from causing an
@@ -159,15 +159,15 @@ type SDTS interface {
 	// prior criteria. Set to -1 or less to set it on all matching bindings.
 	// - ifParent is the symbol that the parent of the node must be for no flow
 	// to be considered acceptable.
-	SetNoFlow(synth bool, head string, prod []string, attrName string, forProd translation.NodeRelation, which int, ifParent string) error
+	SetNoFlow(synth bool, head string, prod []string, attrName string, forProd trans.NodeRelation, which int, ifParent string) error
 
 	// Bindings returns all bindings defined to apply when at a node in a parse
 	// tree created by the rule production with head as its head symbol and prod
 	// as its produced symbols. They will be returned in the order they were
 	// defined.
-	Bindings(head string, prod []string) []translation.SDDBinding
+	Bindings(head string, prod []string) []trans.SDDBinding
 
-	BindingsFor(head string, prod []string, dest translation.AttrRef) []translation.SDDBinding
+	BindingsFor(head string, prod []string, dest trans.AttrRef) []trans.SDDBinding
 
 	// Evaluate takes a parse tree and executes the semantic actions defined as
 	// SDDBindings for a node for each node in the tree and on completion,
@@ -189,7 +189,7 @@ type SDTS interface {
 	// values will be used, which may not behave as expected with the SDTS. To
 	// get one that will use the configured regexes of tokens used for lexing,
 	// call FakeLexemeProducer on a Lexer.
-	Validate(grammar grammar.Grammar, attribute string, debug translation.ValidationOptions, fakeValProducer ...map[string]func() string) error
+	Validate(grammar grammar.Grammar, attribute string, debug trans.ValidationOptions, fakeValProducer ...map[string]func() string) error
 }
 
 // NewLexer returns a lexer whose Lex method will immediately lex the entire
@@ -355,7 +355,7 @@ func NewCLRParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigW
 
 // NewSDTS returns a new Syntax-Directed Translation Scheme.
 func NewSDTS() SDTS {
-	return translation.NewSDTS()
+	return trans.NewSDTS()
 }
 
 // Frontend is a complete input-to-intermediate representation compiler

@@ -123,7 +123,7 @@ import (
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
-	"github.com/dekarrin/ictiobus/translation"
+	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/rosed"
 )
@@ -245,7 +245,7 @@ func main() {
 		// parse tree is per-file, so we do this immediately even on error, as
 		// it may be useful
 		if res.Tree != nil && genTree {
-			fmt.Printf("%s\n", translation.AddAttributes(*res.Tree).String())
+			fmt.Printf("%s\n", trans.AddAttributes(*res.Tree).String())
 		}
 
 		if err != nil {
@@ -444,12 +444,12 @@ func printSpec(spec fishi.Spec) {
 	}
 }
 
-func sddRefToPrintedString(ref translation.AttrRef, g grammar.Grammar, r grammar.Rule) string {
+func sddRefToPrintedString(ref trans.AttrRef, g grammar.Grammar, r grammar.Rule) string {
 	// which symbol does it refer to?
 	var symName string
-	if ref.Relation.Type == translation.RelHead {
+	if ref.Relation.Type == trans.RelHead {
 		symName = "{" + r.NonTerminal + "$^}"
-	} else if ref.Relation.Type == translation.RelSymbol {
+	} else if ref.Relation.Type == trans.RelSymbol {
 		sym := r.Productions[0][ref.Relation.Index]
 		// now find all indexes of that particular symbol in the rule
 
@@ -476,7 +476,7 @@ func sddRefToPrintedString(ref translation.AttrRef, g grammar.Grammar, r grammar
 		curOfType := -1
 		symIdx := -1
 		for i, sym := range r.Productions[0] {
-			if (ref.Relation.Type == translation.RelNonTerminal && g.IsNonTerminal(sym)) || (ref.Relation.Type == translation.RelTerminal && g.IsTerminal(sym)) {
+			if (ref.Relation.Type == trans.RelNonTerminal && g.IsNonTerminal(sym)) || (ref.Relation.Type == trans.RelTerminal && g.IsTerminal(sym)) {
 				curOfType++
 			}
 			if curOfType == ref.Relation.Index {

@@ -11,7 +11,7 @@ import (
 
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/fishi/fe"
-	"github.com/dekarrin/ictiobus/translation"
+	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/gomarkdown/markdown"
 	mkast "github.com/gomarkdown/markdown/ast"
@@ -175,7 +175,7 @@ func GetFrontend(opts Options) (ictiobus.Frontend[AST], error) {
 	if opts.SDTSValidate {
 		valProd := fishiFront.Lexer.FakeLexemeProducer(true, "")
 
-		di := translation.ValidationOptions{
+		di := trans.ValidationOptions{
 			ParseTrees:    opts.SDTSValShowTrees,
 			FullDepGraphs: opts.SDTSValShowGraphs,
 			ShowAllErrors: opts.SDTSValAllTrees,

@@ -9,7 +9,7 @@ created by invoking ictiobus with the following command:
 
 import (
 	"github.com/dekarrin/ictiobus"
-	"github.com/dekarrin/ictiobus/translation"
+	"github.com/dekarrin/ictiobus/trans"
 )
 
 // SDTS returns the syntax-directed translation scheme for the {{ .Lang }}
@@ -39,16 +39,16 @@ func sdtsBind{{ .Head | upperCamel }}{{ .Name | upperCamel }}(sdts ictiobus.SDTS
         "{{ .Attribute }}",
         "{{ .Hook }}",
             {{ if .Args }}
-        []translation.AttrRef{
+        []trans.AttrRef{
             {{ range .Args }}
-                {Relation: translation.NodeRelation{Type: translation.{{ .RelType }}, Index: {{ .RelIndex }} }, Name: "{{ .Name }}"},
+                {Relation: trans.NodeRelation{Type: trans.{{ .RelType }}, Index: {{ .RelIndex }} }, Name: "{{ .Name }}"},
             {{ end }}
         },
             {{ else }}
         nil,
             {{ end }}
             {{ if not .Synthetic }}
-        translation.NodeRelation{Type: translation.{{ .ForRelType }}, Index: {{ .ForRelIndex }} },
+        trans.NodeRelation{Type: trans.{{ .ForRelType }}, Index: {{ .ForRelIndex }} },
             {{ end }}
     )
         {{ end }}

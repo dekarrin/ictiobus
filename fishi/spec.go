@@ -11,7 +11,7 @@ import (
 	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
-	"github.com/dekarrin/ictiobus/translation"
+	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/rosed"
 )
@@ -37,7 +37,7 @@ type Spec struct {
 
 // ValidateSDTS builds the Lexer and SDTS and runs validation on several
 // simulated parse trees to ensure that the SDTS is valid and works.
-func (spec Spec) ValidateSDTS(opts translation.ValidationOptions) error {
+func (spec Spec) ValidateSDTS(opts trans.ValidationOptions) error {
 	lx, err := spec.CreateLexer(true)
 	if err != nil {
 		return fmt.Errorf("lexer creation error: %w", err)
@@ -172,7 +172,7 @@ func (spec Spec) CreateSDTS() (ictiobus.SDTS, error) {
 	sdts := ictiobus.NewSDTS()
 
 	for _, sdd := range spec.TranslationScheme {
-		if sdd.Attribute.Relation.Type == translation.RelHead {
+		if sdd.Attribute.Relation.Type == trans.RelHead {
 			err := sdts.BindSynthesizedAttribute(sdd.Rule.NonTerminal, sdd.Rule.Productions[0], sdd.Attribute.Name, sdd.Hook, sdd.Args)
 			if err != nil {
 				return nil, fmt.Errorf("cannot bind synthesized attribute for %s: %w", sdd.Attribute, err)
@@ -210,7 +210,7 @@ type SDD struct {
 	// this is RelHead, then the attribute will be set on the head of the
 	// relation and it is a synthesized attribute; otherwise, this is an
 	// inherited attribute.
-	Attribute translation.AttrRef
+	Attribute trans.AttrRef
 
 	// Rule is the grammar haed and production that this SDD is for. This will
 	// have exactly one production in it, as opposed to Rule structs stored in
@@ -222,7 +222,7 @@ type SDD struct {
 	Hook string
 
 	// Args is the list of arguments to the hook.
-	Args []translation.AttrRef
+	Args []trans.AttrRef
 }
 
 // NewSpec reads an AST and creates a LanguageSpec from it. If the AST has
@@ -414,7 +414,7 @@ func analyzeASTActionsContentSlice(
 
 					// do the same for each arg to the hook
 					if len(semAct.With) > 0 {
-						sdd.Args = make([]translation.AttrRef, len(semAct.With))
+						sdd.Args = make([]trans.AttrRef, len(semAct.With))
 						for i, arg := range semAct.With {
 							sdd.Args[i], err = attrRefFromASTAttrRef(arg, g, sddRule)
 							if err != nil {
@@ -682,22 +682,22 @@ func analzyeASTTokensContentSlice(
 }
 
 // r is rule to check against, only first production is checked.
-func attrRefFromASTAttrRef(astRef ASTAttrRef, g grammar.Grammar, r grammar.Rule) (translation.AttrRef, error) {
+func attrRefFromASTAttrRef(astRef ASTAttrRef, g grammar.Grammar, r grammar.Rule) (trans.AttrRef, error) {
 	if astRef.Head {
-		return translation.AttrRef{
-			Relation: translation.NodeRelation{
-				Type: translation.RelHead,
+		return trans.AttrRef{
+			Relation: trans.NodeRelation{
+				Type: trans.RelHead,
 			},
 			Name: astRef.Attribute,
 		}, nil
 	} else if astRef.SymInProd {
 		// make sure the rule has the right number of symbols
 		if astRef.Occurance >= len(r.Productions[0]) {
-			return translation.AttrRef{}, fmt.Errorf("symbol index out of range; production only has %d symbols", len(r.Productions[0]))
+			return trans.AttrRef{}, fmt.Errorf("symbol index out of range; production only has %d symbols", len(r.Productions[0]))
 		}
-		return translation.AttrRef{
-			Relation: translation.NodeRelation{
-				Type:  translation.RelSymbol,
+		return trans.AttrRef{
+			Relation: trans.NodeRelation{
+				Type:  trans.RelSymbol,
 				Index: astRef.Occurance,
 			},
 			Name: astRef.Attribute,
@@ -711,11 +711,11 @@ func attrRefFromASTAttrRef(astRef ASTAttrRef, g grammar.Grammar, r grammar.Rule)
 			}
 		}
 		if astRef.Occurance >= nontermCount {
-			return translation.AttrRef{}, fmt.Errorf("non-terminal index out of range; production only has %d non-terminals", nontermCount)
+			return trans.AttrRef{}, fmt.Errorf("non-terminal index out of range; production only has %d non-terminals", nontermCount)
 		}
-		return translation.AttrRef{
-			Relation: translation.NodeRelation{
-				Type:  translation.RelNonTerminal,
+		return trans.AttrRef{
+			Relation: trans.NodeRelation{
+				Type:  trans.RelNonTerminal,
 				Index: astRef.Occurance,
 			},
 			Name: astRef.Attribute,
@@ -729,11 +729,11 @@ func attrRefFromASTAttrRef(astRef ASTAttrRef, g grammar.Grammar, r grammar.Rule)
 			}
 		}
 		if astRef.Occurance >= termCount {
-			return translation.AttrRef{}, fmt.Errorf("terminal index out of range; production only has %d terminals", termCount)
+			return trans.AttrRef{}, fmt.Errorf("terminal index out of range; production only has %d terminals", termCount)
 		}
-		return translation.AttrRef{
-			Relation: translation.NodeRelation{
-				Type:  translation.RelTerminal,
+		return trans.AttrRef{
+			Relation: trans.NodeRelation{
+				Type:  trans.RelTerminal,
 				Index: astRef.Occurance,
 			},
 			Name: astRef.Attribute,
@@ -747,14 +747,14 @@ func attrRefFromASTAttrRef(astRef ASTAttrRef, g grammar.Grammar, r grammar.Rule)
 			}
 		}
 		if len(symIndexes) == 0 {
-			return translation.AttrRef{}, fmt.Errorf("no symbol %s in production", astRef.Symbol)
+			return trans.AttrRef{}, fmt.Errorf("no symbol %s in production", astRef.Symbol)
 		}
 		if astRef.Occurance >= len(symIndexes) {
-			return translation.AttrRef{}, fmt.Errorf("symbol index out of range; production only has %d instances of %s", len(symIndexes), astRef.Symbol)
+			return trans.AttrRef{}, fmt.Errorf("symbol index out of range; production only has %d instances of %s", len(symIndexes), astRef.Symbol)
 		}
-		return translation.AttrRef{
-			Relation: translation.NodeRelation{
-				Type:  translation.RelSymbol,
+		return trans.AttrRef{
+			Relation: trans.NodeRelation{
+				Type:  trans.RelSymbol,
 				Index: symIndexes[astRef.Occurance],
 			},
 			Name: astRef.Attribute,
