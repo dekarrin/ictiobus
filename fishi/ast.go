@@ -24,7 +24,7 @@ import (
 
 // AST is the abstract syntax tree of a fishi spec.
 type AST struct {
-	Nodes []syntax.ASTBlock
+	Nodes []syntax.Block
 }
 
 func (ast AST) String() string {

@@ -255,19 +255,19 @@ func NewSpec(ast AST) (spec Spec, warnings []Warning, err error) {
 	// grammar blocks must be processed before any actions blocks.
 
 	// first, gather each type of AST block into a single listing
-	tokensBlocks := []syntax.ASTTokensContent{}
-	grammarBlocks := []syntax.ASTGrammarContent{}
-	actionsBlocks := []syntax.ASTActionsContent{}
+	tokensBlocks := []syntax.TokensContent{}
+	grammarBlocks := []syntax.GrammarContent{}
+	actionsBlocks := []syntax.ActionsContent{}
 
 	for _, bl := range ast.Nodes {
 		switch bl := bl.(type) {
-		case syntax.ASTTokensBlock:
+		case syntax.TokensBlock:
 			tokBl := bl.Tokens()
 			tokensBlocks = append(tokensBlocks, tokBl.Content...)
-		case syntax.ASTGrammarBlock:
+		case syntax.GrammarBlock:
 			gramBl := bl.Grammar()
 			grammarBlocks = append(grammarBlocks, gramBl.Content...)
-		case syntax.ASTActionsBlock:
+		case syntax.ActionsBlock:
 			actBl := bl.Actions()
 			actionsBlocks = append(actionsBlocks, actBl.Content...)
 		}
@@ -330,7 +330,7 @@ func NewSpec(ast AST) (spec Spec, warnings []Warning, err error) {
 }
 
 func analyzeASTActionsContentSlice(
-	actionsBlocks []syntax.ASTActionsContent,
+	actionsBlocks []syntax.ActionsContent,
 	g grammar.Grammar,
 ) ([]SDD, []Warning, error) {
 	var warnings []Warning
@@ -451,7 +451,7 @@ func analyzeASTActionsContentSlice(
 }
 
 func analyzeASTGrammarContentSlice(
-	grammarBlocks []syntax.ASTGrammarContent,
+	grammarBlocks []syntax.GrammarContent,
 	classes map[string]types.TokenClass,
 ) (grammar.Grammar, []Warning, error) {
 	var warnings []Warning
@@ -529,7 +529,7 @@ func analyzeASTGrammarContentSlice(
 }
 
 func analzyeASTTokensContentSlice(
-	tokensBlocks []syntax.ASTTokensContent,
+	tokensBlocks []syntax.TokensContent,
 	existingStates box.StringSet,
 	classes map[string]types.TokenClass,
 ) (map[string][]Pattern, []Warning, error) {
@@ -696,7 +696,7 @@ func analzyeASTTokensContentSlice(
 }
 
 // r is rule to check against, only first production is checked.
-func attrRefFromASTAttrRef(astRef syntax.ASTAttrRef, g grammar.Grammar, r grammar.Rule) (trans.AttrRef, error) {
+func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.Grammar, r grammar.Rule) (trans.AttrRef, error) {
 	if astRef.Head {
 		return trans.AttrRef{
 			Relation: trans.NodeRelation{
@@ -855,7 +855,7 @@ func checkForDuplicateHumanDefs(tcSymTable map[string][]box.Pair[string, types.T
 // do not error check (but do track for multiple human definition text)
 // until the scan is complete even if we could; that way, all errors are
 // reported at once.
-func scanTokenClasses(blocks []syntax.ASTTokensContent) (map[string][]box.Pair[string, types.Token], box.StringSet) {
+func scanTokenClasses(blocks []syntax.TokensContent) (map[string][]box.Pair[string, types.Token], box.StringSet) {
 
 	// tcSymTable is tok-name -> pairs of human-name and token where that human
 	// name is first defined. Uses slice of pairs instead of map to preserve

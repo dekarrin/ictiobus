@@ -9,49 +9,49 @@ import (
 	"github.com/dekarrin/ictiobus/types"
 )
 
-type ASTBlockType int
+type BlockType int
 
 const (
-	BlockTypeError ASTBlockType = iota
+	BlockTypeError BlockType = iota
 	BlockTypeGrammar
 	BlockTypeTokens
 	BlockTypeActions
 )
 
-type ASTBlock interface {
-	Type() ASTBlockType
-	Grammar() ASTGrammarBlock
-	Tokens() ASTTokensBlock
-	Actions() ASTActionsBlock
+type Block interface {
+	Type() BlockType
+	Grammar() GrammarBlock
+	Tokens() TokensBlock
+	Actions() ActionsBlock
 }
 
-type ASTErrorBlock bool
+type ErrorBlock bool
 
-func (errBlock ASTErrorBlock) Type() ASTBlockType {
+func (errBlock ErrorBlock) Type() BlockType {
 	return BlockTypeError
 }
 
-func (errBlock ASTErrorBlock) Grammar() ASTGrammarBlock {
+func (errBlock ErrorBlock) Grammar() GrammarBlock {
 	panic("not grammar-type block")
 }
 
-func (errBlock ASTErrorBlock) Tokens() ASTTokensBlock {
+func (errBlock ErrorBlock) Tokens() TokensBlock {
 	panic("not tokens-type block")
 }
 
-func (errBlock ASTErrorBlock) Actions() ASTActionsBlock {
+func (errBlock ErrorBlock) Actions() ActionsBlock {
 	panic("not actions-type block")
 }
 
-func (errBlock ASTErrorBlock) String() string {
+func (errBlock ErrorBlock) String() string {
 	return "<Block: ERR>"
 }
 
-type ASTGrammarBlock struct {
-	Content []ASTGrammarContent
+type GrammarBlock struct {
+	Content []GrammarContent
 }
 
-func (agb ASTGrammarBlock) String() string {
+func (agb GrammarBlock) String() string {
 	var sb strings.Builder
 
 	sb.WriteString("<Block: GRAMMAR, Content: {")
@@ -65,27 +65,27 @@ func (agb ASTGrammarBlock) String() string {
 	return sb.String()
 }
 
-func (agb ASTGrammarBlock) Type() ASTBlockType {
+func (agb GrammarBlock) Type() BlockType {
 	return BlockTypeGrammar
 }
 
-func (agb ASTGrammarBlock) Grammar() ASTGrammarBlock {
+func (agb GrammarBlock) Grammar() GrammarBlock {
 	return agb
 }
 
-func (agb ASTGrammarBlock) Tokens() ASTTokensBlock {
+func (agb GrammarBlock) Tokens() TokensBlock {
 	panic("not tokens-type block")
 }
 
-func (agb ASTGrammarBlock) Actions() ASTActionsBlock {
+func (agb GrammarBlock) Actions() ActionsBlock {
 	panic("not actions-type block")
 }
 
-type ASTActionsBlock struct {
-	Content []ASTActionsContent
+type ActionsBlock struct {
+	Content []ActionsContent
 }
 
-func (aab ASTActionsBlock) String() string {
+func (aab ActionsBlock) String() string {
 	var sb strings.Builder
 
 	sb.WriteString("<Block: GRAMMAR, Content: {")
@@ -99,27 +99,27 @@ func (aab ASTActionsBlock) String() string {
 	return sb.String()
 }
 
-func (aab ASTActionsBlock) Type() ASTBlockType {
+func (aab ActionsBlock) Type() BlockType {
 	return BlockTypeActions
 }
 
-func (aab ASTActionsBlock) Grammar() ASTGrammarBlock {
+func (aab ActionsBlock) Grammar() GrammarBlock {
 	panic("not grammar-type block")
 }
 
-func (aab ASTActionsBlock) Tokens() ASTTokensBlock {
+func (aab ActionsBlock) Tokens() TokensBlock {
 	panic("not tokens-type block")
 }
 
-func (aab ASTActionsBlock) Actions() ASTActionsBlock {
+func (aab ActionsBlock) Actions() ActionsBlock {
 	return aab
 }
 
-type ASTTokensBlock struct {
-	Content []ASTTokensContent
+type TokensBlock struct {
+	Content []TokensContent
 }
 
-func (atb ASTTokensBlock) String() string {
+func (atb TokensBlock) String() string {
 	var sb strings.Builder
 
 	sb.WriteString("<Block: TOKENS, Content: {")
@@ -133,40 +133,40 @@ func (atb ASTTokensBlock) String() string {
 	return sb.String()
 }
 
-func (atb ASTTokensBlock) Type() ASTBlockType {
+func (atb TokensBlock) Type() BlockType {
 	return BlockTypeTokens
 }
 
-func (atb ASTTokensBlock) Grammar() ASTGrammarBlock {
+func (atb TokensBlock) Grammar() GrammarBlock {
 	panic("not grammar-type block")
 }
 
-func (atb ASTTokensBlock) Tokens() ASTTokensBlock {
+func (atb TokensBlock) Tokens() TokensBlock {
 	return atb
 }
 
-func (atb ASTTokensBlock) Actions() ASTActionsBlock {
+func (atb TokensBlock) Actions() ActionsBlock {
 	panic("not actions-type block")
 }
 
-type ASTTokenOptionType int
+type TokenOptionType int
 
 const (
-	TokenOptDiscard ASTTokenOptionType = iota
+	TokenOptDiscard TokenOptionType = iota
 	TokenOptStateshift
 	TokenOptToken
 	TokenOptHuman
 	TokenOptPriority
 )
 
-type ASTTokenOption struct {
-	Type  ASTTokenOptionType
+type TokenOption struct {
+	Type  TokenOptionType
 	Value string
 
 	Src types.Token
 }
 
-type ASTTokenEntry struct {
+type TokenEntry struct {
 	Pattern  string
 	Discard  bool
 	Shift    string
@@ -189,7 +189,7 @@ type ASTTokenEntry struct {
 	// there can only be one; tok will be the same as patternTok)
 }
 
-func (entry ASTTokenEntry) String() string {
+func (entry TokenEntry) String() string {
 	var sb strings.Builder
 
 	sb.WriteString(fmt.Sprintf("%s -> ", entry.Pattern))
@@ -202,25 +202,25 @@ func (entry ASTTokenEntry) String() string {
 	return sb.String()
 }
 
-type ASTGrammarRule struct {
+type GrammarRule struct {
 	Rule grammar.Rule
 
 	Src types.Token
 }
 
-func (agr ASTGrammarRule) String() string {
+func (agr GrammarRule) String() string {
 	return agr.Rule.String()
 }
 
-type ASTTokensContent struct {
-	Entries []ASTTokenEntry
+type TokensContent struct {
+	Entries []TokenEntry
 	State   string
 
 	Src      types.Token
 	SrcState types.Token
 }
 
-func (content ASTTokensContent) String() string {
+func (content TokensContent) String() string {
 	if len(content.Entries) > 0 {
 		return fmt.Sprintf("(State: %q, Entries: %v)", content.State, content.Entries)
 	} else {
@@ -228,15 +228,15 @@ func (content ASTTokensContent) String() string {
 	}
 }
 
-type ASTGrammarContent struct {
-	Rules []ASTGrammarRule
+type GrammarContent struct {
+	Rules []GrammarRule
 	State string
 
 	Src      types.Token
 	SrcState types.Token
 }
 
-func (content ASTGrammarContent) String() string {
+func (content GrammarContent) String() string {
 	if len(content.Rules) > 0 {
 		return fmt.Sprintf("(State: %q, Rules: %v)", content.State, content.Rules)
 	} else {
@@ -244,15 +244,15 @@ func (content ASTGrammarContent) String() string {
 	}
 }
 
-type ASTActionsContent struct {
-	Actions []ASTSymbolActions
+type ActionsContent struct {
+	Actions []SymbolActions
 	State   string
 
 	Src      types.Token
 	SrcState types.Token
 }
 
-func (content ASTActionsContent) String() string {
+func (content ActionsContent) String() string {
 	if len(content.Actions) > 0 {
 		return fmt.Sprintf("(State: %q, Actions: %v)", content.State, content.Actions)
 	} else {
@@ -260,7 +260,7 @@ func (content ASTActionsContent) String() string {
 	}
 }
 
-type ASTAttrRef struct {
+type AttrRef struct {
 	Symbol   string
 	Terminal bool
 
@@ -277,16 +277,16 @@ type ASTAttrRef struct {
 
 // ParseAttrRef does a simple parse on an attribute reference from a string that
 // makes it up. Does not set tok; caller must do so if needed.
-func ParseAttrRef(s string) (ASTAttrRef, error) {
+func ParseAttrRef(s string) (AttrRef, error) {
 	dotSpl := strings.Split(s, ".")
 	if len(dotSpl) < 2 {
-		return ASTAttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
+		return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
 	}
 
 	attrName := dotSpl[len(dotSpl)-1]
 	nodeRefStr := strings.Join(dotSpl[:len(dotSpl)-1], ".")
 
-	ar := ASTAttrRef{Attribute: attrName}
+	ar := AttrRef{Attribute: attrName}
 
 	if nodeRefStr[0] == '{' && nodeRefStr[len(nodeRefStr)-1] == '}' {
 		str := nodeRefStr[1 : len(nodeRefStr)-1]
@@ -319,7 +319,7 @@ func ParseAttrRef(s string) (ASTAttrRef, error) {
 				str = str[1:]
 				num, err := strconv.Atoi(str)
 				if err != nil {
-					return ASTAttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
+					return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
 				}
 				ar.Occurance = num
 			}
@@ -330,7 +330,7 @@ func ParseAttrRef(s string) (ASTAttrRef, error) {
 				str = str[1:]
 				num, err := strconv.Atoi(str)
 				if err != nil {
-					return ASTAttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
+					return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
 				}
 				ar.Occurance = num
 			}
@@ -339,7 +339,7 @@ func ParseAttrRef(s string) (ASTAttrRef, error) {
 			// then it has to be a parsable number
 			num, err := strconv.Atoi(str)
 			if err != nil {
-				return ASTAttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
+				return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
 			}
 			ar.Occurance = num
 			ar.SymInProd = true
@@ -370,7 +370,7 @@ func ParseAttrRef(s string) (ASTAttrRef, error) {
 	}
 }
 
-func (ar ASTAttrRef) String() string {
+func (ar AttrRef) String() string {
 	var sb strings.Builder
 
 	if ar.Head {
@@ -411,16 +411,16 @@ func (ar ASTAttrRef) String() string {
 	return sb.String()
 }
 
-type ASTSemanticAction struct {
-	LHS  ASTAttrRef
+type SemanticAction struct {
+	LHS  AttrRef
 	Hook string
-	With []ASTAttrRef
+	With []AttrRef
 
 	SrcHook types.Token
 	Src     types.Token
 }
 
-func (sa ASTSemanticAction) String() string {
+func (sa SemanticAction) String() string {
 	var sb strings.Builder
 
 	sb.WriteString(sa.LHS.String())
@@ -439,12 +439,12 @@ func (sa ASTSemanticAction) String() string {
 	return sb.String()
 }
 
-type ASTProductionAction struct {
+type ProductionAction struct {
 	ProdNext    bool
 	ProdIndex   int
 	ProdLiteral []string
 
-	Actions []ASTSemanticAction
+	Actions []SemanticAction
 
 	Src types.Token
 
@@ -453,7 +453,7 @@ type ASTProductionAction struct {
 	SrcVal types.Token
 }
 
-func (pa ASTProductionAction) String() string {
+func (pa ProductionAction) String() string {
 	var sb strings.Builder
 
 	sb.WriteString("prod ")
@@ -481,15 +481,15 @@ func (pa ASTProductionAction) String() string {
 	return sb.String()
 }
 
-type ASTSymbolActions struct {
+type SymbolActions struct {
 	Symbol  string
-	Actions []ASTProductionAction
+	Actions []ProductionAction
 
 	Src    types.Token
 	SrcSym types.Token
 }
 
-func (sa ASTSymbolActions) String() string {
+func (sa SymbolActions) String() string {
 	var sb strings.Builder
 
 	sb.WriteString(sa.Symbol)

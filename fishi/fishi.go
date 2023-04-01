@@ -142,7 +142,7 @@ func Parse(source []byte, opts Options) (Results, error) {
 // GetFrontend gets the frontend for the fishi compiler-compiler. If cffFile is
 // provided, it is used to load the cached parser from disk. Otherwise, a new
 // frontend is created.
-func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.ASTBlock], error) {
+func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.Block], error) {
 	// check for preload
 	var preloadedParser ictiobus.Parser
 	if opts.ParserCFF != "" && opts.ReadCache {
@@ -152,7 +152,7 @@ func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.ASTBlock], error) {
 			if errors.Is(err, os.ErrNotExist) {
 				preloadedParser = nil
 			} else {
-				return ictiobus.Frontend[[]syntax.ASTBlock]{}, fmt.Errorf("loading cachefile %q: %w", opts.ParserCFF, err)
+				return ictiobus.Frontend[[]syntax.Block]{}, fmt.Errorf("loading cachefile %q: %w", opts.ParserCFF, err)
 			}
 		}
 	}
@@ -162,7 +162,7 @@ func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.ASTBlock], error) {
 		ParserTrace: opts.ParserTrace,
 	}
 
-	fishiFront := fe.Frontend[[]syntax.ASTBlock](syntax.HooksTable, feOpts, preloadedParser)
+	fishiFront := fe.Frontend[[]syntax.Block](syntax.HooksTable, feOpts, preloadedParser)
 
 	// check the parser encoding if we generated a new one:
 	if preloadedParser == nil && opts.ParserCFF != "" && opts.WriteCache {
@@ -187,7 +187,7 @@ func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.ASTBlock], error) {
 
 		sddErr := fishiFront.SDT.Validate(fishiFront.Parser.Grammar(), fishiFront.IRAttribute, di, valProd)
 		if sddErr != nil {
-			return ictiobus.Frontend[[]syntax.ASTBlock]{}, fmt.Errorf("sdd validation error: %w", sddErr)
+			return ictiobus.Frontend[[]syntax.Block]{}, fmt.Errorf("sdd validation error: %w", sddErr)
 		}
 	}
 
