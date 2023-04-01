@@ -11,7 +11,8 @@ import (
 
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/fishi/fe"
-	"github.com/dekarrin/ictiobus/translation"
+	"github.com/dekarrin/ictiobus/fishi/syntax"
+	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/gomarkdown/markdown"
 	mkast "github.com/gomarkdown/markdown/ast"
@@ -126,12 +127,14 @@ func Parse(source []byte, opts Options) (Results, error) {
 
 	r := Results{}
 	// now, try to make a parse tree
-	ast, pt, err := fishiFront.AnalyzeString(string(preprocessedSource))
+	nodes, pt, err := fishiFront.AnalyzeString(string(preprocessedSource))
 	r.Tree = pt // need to do this before we return
 	if err != nil {
 		return r, err
 	}
-	r.AST = &ast
+	r.AST = &AST{
+		Nodes: nodes,
+	}
 
 	return r, nil
 }
@@ -139,7 +142,7 @@ func Parse(source []byte, opts Options) (Results, error) {
 // GetFrontend gets the frontend for the fishi compiler-compiler. If cffFile is
 // provided, it is used to load the cached parser from disk. Otherwise, a new
 // frontend is created.
-func GetFrontend(opts Options) (ictiobus.Frontend[AST], error) {
+func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.Block], error) {
 	// check for preload
 	var preloadedParser ictiobus.Parser
 	if opts.ParserCFF != "" && opts.ReadCache {
@@ -149,7 +152,7 @@ func GetFrontend(opts Options) (ictiobus.Frontend[AST], error) {
 			if errors.Is(err, os.ErrNotExist) {
 				preloadedParser = nil
 			} else {
-				return ictiobus.Frontend[AST]{}, fmt.Errorf("loading cachefile %q: %w", opts.ParserCFF, err)
+				return ictiobus.Frontend[[]syntax.Block]{}, fmt.Errorf("loading cachefile %q: %w", opts.ParserCFF, err)
 			}
 		}
 	}
@@ -159,7 +162,7 @@ func GetFrontend(opts Options) (ictiobus.Frontend[AST], error) {
 		ParserTrace: opts.ParserTrace,
 	}
 
-	fishiFront := fe.Frontend[AST](HooksTable, feOpts, preloadedParser)
+	fishiFront := fe.Frontend[[]syntax.Block](syntax.HooksTable, feOpts, preloadedParser)
 
 	// check the parser encoding if we generated a new one:
 	if preloadedParser == nil && opts.ParserCFF != "" && opts.WriteCache {
@@ -175,7 +178,7 @@ func GetFrontend(opts Options) (ictiobus.Frontend[AST], error) {
 	if opts.SDTSValidate {
 		valProd := fishiFront.Lexer.FakeLexemeProducer(true, "")
 
-		di := translation.ValidationOptions{
+		di := trans.ValidationOptions{
 			ParseTrees:    opts.SDTSValShowTrees,
 			FullDepGraphs: opts.SDTSValShowGraphs,
 			ShowAllErrors: opts.SDTSValAllTrees,
@@ -184,7 +187,7 @@ func GetFrontend(opts Options) (ictiobus.Frontend[AST], error) {
 
 		sddErr := fishiFront.SDT.Validate(fishiFront.Parser.Grammar(), fishiFront.IRAttribute, di, valProd)
 		if sddErr != nil {
-			return ictiobus.Frontend[AST]{}, fmt.Errorf("sdd validation error: %w", sddErr)
+			return ictiobus.Frontend[[]syntax.Block]{}, fmt.Errorf("sdd validation error: %w", sddErr)
 		}
 	}
 

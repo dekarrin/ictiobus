@@ -5,12 +5,14 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/dekarrin/ictiobus"
+	"github.com/dekarrin/ictiobus/fishi/syntax"
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
-	"github.com/dekarrin/ictiobus/translation"
+	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/rosed"
 )
@@ -32,6 +34,172 @@ type Spec struct {
 	// TranslationScheme outlines the Syntax-Directed Translation Scheme for the
 	// language by giving the instructions for each attribute.
 	TranslationScheme []SDD
+}
+
+// SpecMetadata is data that is not strictly part of the spec but tells info
+// about the language it was generated for and how it was generated.
+type SpecMetadata struct {
+	// Language is name of the language.
+	Language string
+
+	// Version is the version of the language.
+	Version string
+
+	// InvocationArgs are the arguments
+	InvocationArgs string
+}
+
+// ValidateSDTS builds the Lexer and SDTS and runs validation on several
+// simulated parse trees to ensure that the SDTS is valid and works.
+func (spec Spec) ValidateSDTS(opts trans.ValidationOptions) error {
+	lx, err := spec.CreateLexer(true)
+	if err != nil {
+		return fmt.Errorf("lexer creation error: %w", err)
+	}
+
+	valProd := lx.FakeLexemeProducer(true, "")
+
+	sdts, err := spec.CreateSDTS()
+	if err != nil {
+		return fmt.Errorf("SDTS creation error: %w", err)
+	}
+
+	// validate the SDTS. the first defined attribute will be the IR attribute.
+	irAttrName := spec.TranslationScheme[0].Attribute.Name
+
+	sdtsErr := sdts.Validate(spec.Grammar, irAttrName, opts, valProd)
+	if sdtsErr != nil {
+		return fmt.Errorf("SDTS validation error: %w", sdtsErr)
+	}
+
+	return nil
+}
+
+// ClassMap is a map of string to token class with that ID.
+func (spec Spec) ClassMap() map[string]types.TokenClass {
+	classes := map[string]types.TokenClass{}
+	for _, class := range spec.Tokens {
+		classes[class.ID()] = class
+	}
+	return classes
+}
+
+// CreateLexer uses the Tokens and Patterns in the spec to create a new Lexer.
+func (spec Spec) CreateLexer(lazy bool) (ictiobus.Lexer, error) {
+	var lx ictiobus.Lexer
+
+	if lazy {
+		lx = ictiobus.NewLazyLexer()
+	} else {
+		lx = ictiobus.NewLexer()
+	}
+
+	// find the tokens we need to register classes for
+	toBeRegisteredOrd := map[string][]string{}
+	toBeRegisteredSet := map[string]box.StringSet{}
+
+	for state := range spec.Patterns {
+		statePats := spec.Patterns[state]
+		stateToRegOrd, ok := toBeRegisteredOrd[state]
+		stateToRegSet := toBeRegisteredSet[state]
+		if !ok {
+			stateToRegOrd = []string{}
+			stateToRegSet = box.NewStringSet()
+		}
+
+		for _, pat := range statePats {
+			if pat.Action.Type == lex.ActionScan || pat.Action.Type == lex.ActionScanAndState {
+				// we need to register the classes for this pattern
+				if !stateToRegSet.Has(pat.Action.ClassID) {
+					stateToRegOrd = append(stateToRegOrd, pat.Action.ClassID)
+					stateToRegSet.Add(pat.Action.ClassID)
+				}
+			}
+		}
+	}
+
+	classes := spec.ClassMap()
+
+	// register the classes
+	for state, classIDs := range toBeRegisteredOrd {
+		for _, id := range classIDs {
+			lx.RegisterClass(classes[id], state)
+		}
+	}
+
+	// add the patterns
+	for state, pats := range spec.Patterns {
+		for _, pat := range pats {
+			err := lx.AddPattern(pat.Regex.String(), pat.Action, state, pat.Priority)
+			if err != nil {
+				// all error conditions should be handled; should never happen
+				return nil, err
+			}
+		}
+	}
+
+	// done!
+	return lx, nil
+}
+
+// CreateParser uses the Grammar in the spec to create a new Parser of the
+// given type. Returns an error if the type is not supported.
+func (spec Spec) CreateParser(t types.ParserType, allowAmbig bool) (ictiobus.Parser, []Warning, error) {
+	var warns []Warning
+	var p ictiobus.Parser
+	var err error
+
+	var ambigWarns []string
+	switch t {
+	case types.ParserLALR1:
+		p, ambigWarns, err = ictiobus.NewLALR1Parser(spec.Grammar, allowAmbig)
+	case types.ParserCLR1:
+		p, ambigWarns, err = ictiobus.NewCLRParser(spec.Grammar, allowAmbig)
+	case types.ParserSLR1:
+		p, ambigWarns, err = ictiobus.NewSLRParser(spec.Grammar, allowAmbig)
+	case types.ParserLL1:
+		if allowAmbig {
+			return nil, nil, fmt.Errorf("LL(k) parsers do not support ambiguous grammars")
+		}
+
+		p, err = ictiobus.NewLL1Parser(spec.Grammar)
+	default:
+		return nil, nil, fmt.Errorf("unsupported parser type: %s", t)
+	}
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, warn := range ambigWarns {
+		warns = append(warns, Warning{
+			Type:    WarnAmbiguousGrammar,
+			Message: warn,
+		})
+	}
+
+	return p, warns, nil
+}
+
+// CreateSDTS uses the TranslationScheme in the spec to create a new SDTS.
+func (spec Spec) CreateSDTS() (ictiobus.SDTS, error) {
+	sdts := ictiobus.NewSDTS()
+
+	for _, sdd := range spec.TranslationScheme {
+		if sdd.Attribute.Relation.Type == trans.RelHead {
+			err := sdts.BindSynthesizedAttribute(sdd.Rule.NonTerminal, sdd.Rule.Productions[0], sdd.Attribute.Name, sdd.Hook, sdd.Args)
+			if err != nil {
+				return nil, fmt.Errorf("cannot bind synthesized attribute for %s: %w", sdd.Attribute, err)
+			}
+		} else {
+			err := sdts.BindInheritedAttribute(sdd.Rule.NonTerminal, sdd.Rule.Productions[0], sdd.Attribute.Name, sdd.Hook, sdd.Args, sdd.Attribute.Relation)
+			if err != nil {
+				return nil, fmt.Errorf("cannot bind inherited attribute for %s: %w", sdd.Attribute, err)
+			}
+		}
+	}
+
+	return sdts, nil
 }
 
 // Pattern is a lexer pattern that is used to match a token, along with the
@@ -56,7 +224,7 @@ type SDD struct {
 	// this is RelHead, then the attribute will be set on the head of the
 	// relation and it is a synthesized attribute; otherwise, this is an
 	// inherited attribute.
-	Attribute translation.AttrRef
+	Attribute trans.AttrRef
 
 	// Rule is the grammar haed and production that this SDD is for. This will
 	// have exactly one production in it, as opposed to Rule structs stored in
@@ -68,13 +236,16 @@ type SDD struct {
 	Hook string
 
 	// Args is the list of arguments to the hook.
-	Args []translation.AttrRef
+	Args []trans.AttrRef
 }
 
 // NewSpec reads an AST and creates a LanguageSpec from it. If the AST has
 // any errors, then an error is returned. If the AST has non-error warnings,
 // they will be returned in the warnings slice. Warnings will be present and
 // valid even if err is non-nil; spec will only be valid if err is nil.
+//
+// Uses the Options to determine what to validate. Only the SDTS options are
+// recognized at this time.
 func NewSpec(ast AST) (spec Spec, warnings []Warning, err error) {
 	ls := Spec{
 		Patterns: make(map[string][]Pattern),
@@ -84,19 +255,19 @@ func NewSpec(ast AST) (spec Spec, warnings []Warning, err error) {
 	// grammar blocks must be processed before any actions blocks.
 
 	// first, gather each type of AST block into a single listing
-	tokensBlocks := []ASTTokensContent{}
-	grammarBlocks := []ASTGrammarContent{}
-	actionsBlocks := []ASTActionsContent{}
+	tokensBlocks := []syntax.TokensContent{}
+	grammarBlocks := []syntax.GrammarContent{}
+	actionsBlocks := []syntax.ActionsContent{}
 
 	for _, bl := range ast.Nodes {
 		switch bl := bl.(type) {
-		case ASTTokensBlock:
+		case syntax.TokensBlock:
 			tokBl := bl.Tokens()
 			tokensBlocks = append(tokensBlocks, tokBl.Content...)
-		case ASTGrammarBlock:
+		case syntax.GrammarBlock:
 			gramBl := bl.Grammar()
 			grammarBlocks = append(grammarBlocks, gramBl.Content...)
-		case ASTActionsBlock:
+		case syntax.ActionsBlock:
 			actBl := bl.Actions()
 			actionsBlocks = append(actionsBlocks, actBl.Content...)
 		}
@@ -159,7 +330,7 @@ func NewSpec(ast AST) (spec Spec, warnings []Warning, err error) {
 }
 
 func analyzeASTActionsContentSlice(
-	actionsBlocks []ASTActionsContent,
+	actionsBlocks []syntax.ActionsContent,
 	g grammar.Grammar,
 ) ([]SDD, []Warning, error) {
 	var warnings []Warning
@@ -178,7 +349,7 @@ func analyzeASTActionsContentSlice(
 
 			gRule := g.Rule(ruleHead)
 			if gRule.NonTerminal == "" {
-				synErr := types.NewSyntaxErrorFromToken(fmt.Sprintf("'%s' is not a non-terminal symbol in the grammar", ruleHead), symAct.symTok)
+				synErr := types.NewSyntaxErrorFromToken(fmt.Sprintf("'%s' is not a non-terminal symbol in the grammar", ruleHead), symAct.SrcSym)
 				return nil, warnings, synErr
 			}
 
@@ -194,7 +365,7 @@ func analyzeASTActionsContentSlice(
 						prodsStr := textfmt.Pluralize(len(gRule.Productions), "production", "-s")
 						errFmt := "'->' by itself specifies production #%d, but grammar for %s only defines %s"
 						errMsg := fmt.Sprintf(errFmt, forProdIdx+1, ruleHead, prodsStr)
-						synErr := types.NewSyntaxErrorFromToken(errMsg, prodAct.valTok)
+						synErr := types.NewSyntaxErrorFromToken(errMsg, prodAct.SrcVal)
 						return nil, warnings, synErr
 					}
 				} else if len(prodAct.ProdLiteral) > 0 {
@@ -231,7 +402,7 @@ func analyzeASTActionsContentSlice(
 					if !found {
 						errFmt := "no grammar rule specifies %s -> '%s'"
 						errMsg := fmt.Sprintf(errFmt, convertedProd.String(), ruleHead)
-						synErr := types.NewSyntaxErrorFromToken(errMsg, prodAct.valTok)
+						synErr := types.NewSyntaxErrorFromToken(errMsg, prodAct.SrcVal)
 						return nil, warnings, synErr
 					}
 				} else {
@@ -251,17 +422,17 @@ func analyzeASTActionsContentSlice(
 					// convert LHS ASTAttrRef to valid translation.AttrRef
 					sdd.Attribute, err = attrRefFromASTAttrRef(semAct.LHS, g, sddRule)
 					if err != nil {
-						synErr := types.NewSyntaxErrorFromToken("invalid attrRef: "+err.Error(), semAct.LHS.tok)
+						synErr := types.NewSyntaxErrorFromToken("invalid attrRef: "+err.Error(), semAct.LHS.Src)
 						return nil, warnings, synErr
 					}
 
 					// do the same for each arg to the hook
 					if len(semAct.With) > 0 {
-						sdd.Args = make([]translation.AttrRef, len(semAct.With))
+						sdd.Args = make([]trans.AttrRef, len(semAct.With))
 						for i, arg := range semAct.With {
 							sdd.Args[i], err = attrRefFromASTAttrRef(arg, g, sddRule)
 							if err != nil {
-								synErr := types.NewSyntaxErrorFromToken("invalid attrRef: "+err.Error(), arg.tok)
+								synErr := types.NewSyntaxErrorFromToken("invalid attrRef: "+err.Error(), arg.Src)
 								return nil, warnings, synErr
 							}
 						}
@@ -280,7 +451,7 @@ func analyzeASTActionsContentSlice(
 }
 
 func analyzeASTGrammarContentSlice(
-	grammarBlocks []ASTGrammarContent,
+	grammarBlocks []syntax.GrammarContent,
 	classes map[string]types.TokenClass,
 ) (grammar.Grammar, []Warning, error) {
 	var warnings []Warning
@@ -312,7 +483,7 @@ func analyzeASTGrammarContentSlice(
 
 						// ...and make sure it's in the lexer's terminals
 						if _, ok := classes[sym]; !ok {
-							synErr := types.NewSyntaxErrorFromToken(fmt.Sprintf("terminal '%s' is not a defined token class in any tokens block", sym), rule.tok)
+							synErr := types.NewSyntaxErrorFromToken(fmt.Sprintf("terminal '%s' is not a defined token class in any tokens block", sym), rule.Src)
 							return g, warnings, synErr
 						}
 
@@ -358,7 +529,7 @@ func analyzeASTGrammarContentSlice(
 }
 
 func analzyeASTTokensContentSlice(
-	tokensBlocks []ASTTokensContent,
+	tokensBlocks []syntax.TokensContent,
 	existingStates box.StringSet,
 	classes map[string]types.TokenClass,
 ) (map[string][]Pattern, []Warning, error) {
@@ -377,25 +548,25 @@ func analzyeASTTokensContentSlice(
 			// get the pattern
 			p.Regex, err = regexp.Compile(entry.Pattern)
 			if err != nil {
-				synErr := types.NewSyntaxErrorFromToken(fmt.Sprintf("invalid regular expression: %s", err.Error()), entry.tok)
+				synErr := types.NewSyntaxErrorFromToken(fmt.Sprintf("invalid regular expression: %s", err.Error()), entry.Src)
 				return nil, warnings, synErr
 			}
 
 			// make sure we only have one maximum of each option
-			if len(entry.discardTok) > 1 {
-				synErr := types.NewSyntaxErrorFromToken("duplicate discard directive for entry", entry.discardTok[1])
+			if len(entry.SrcDiscard) > 1 {
+				synErr := types.NewSyntaxErrorFromToken("duplicate discard directive for entry", entry.SrcDiscard[1])
 				return nil, warnings, synErr
 			}
-			if len(entry.humanTok) > 1 {
-				synErr := types.NewSyntaxErrorFromToken("duplicate human directive for entry", entry.humanTok[1])
+			if len(entry.SrcHuman) > 1 {
+				synErr := types.NewSyntaxErrorFromToken("duplicate human directive for entry", entry.SrcHuman[1])
 				return nil, warnings, synErr
 			}
-			if len(entry.priorityTok) > 1 {
-				synErr := types.NewSyntaxErrorFromToken("duplicate priority directive for entry", entry.priorityTok[1])
+			if len(entry.SrcPriority) > 1 {
+				synErr := types.NewSyntaxErrorFromToken("duplicate priority directive for entry", entry.SrcPriority[1])
 				return nil, warnings, synErr
 			}
-			if len(entry.shiftTok) > 1 {
-				synErr := types.NewSyntaxErrorFromToken("duplicate state shift directive for entry", entry.shiftTok[1])
+			if len(entry.SrcShift) > 1 {
+				synErr := types.NewSyntaxErrorFromToken("duplicate state shift directive for entry", entry.SrcShift[1])
 				return nil, warnings, synErr
 			}
 
@@ -407,21 +578,21 @@ func analzyeASTTokensContentSlice(
 
 				// error report on the *2nd* token to break things
 
-				firstTok := entry.discardTok[0]
+				firstTok := entry.SrcDiscard[0]
 				firstIsDiscard := true
 				var secondTok types.Token
 
-				if len(entry.humanTok) > 0 {
-					humanTok := entry.humanTok[0]
+				if len(entry.SrcHuman) > 0 {
+					humanTok := entry.SrcHuman[0]
 					putEntryTokenInCorrectPosForDiscardCheck(&firstTok, &secondTok, &firstIsDiscard, humanTok)
 				}
-				if len(entry.tokenTok) > 0 {
-					tokenTok := entry.tokenTok[0]
+				if len(entry.SrcToken) > 0 {
+					tokenTok := entry.SrcToken[0]
 					putEntryTokenInCorrectPosForDiscardCheck(&firstTok, &secondTok, &firstIsDiscard, tokenTok)
 				}
-				if len(entry.shiftTok) > 0 {
-					shiftTok := entry.shiftTok[0]
-					putEntryTokenInCorrectPosForDiscardCheck(&firstTok, &secondTok, &firstIsDiscard, shiftTok)
+				if len(entry.SrcShift) > 0 {
+					srcShift := entry.SrcShift[0]
+					putEntryTokenInCorrectPosForDiscardCheck(&firstTok, &secondTok, &firstIsDiscard, srcShift)
 				}
 
 				if secondTok != nil {
@@ -454,25 +625,25 @@ func analzyeASTTokensContentSlice(
 					// then there'd 8etta be a token directive
 
 					if entry.Token == "" {
-						synErr := types.NewSyntaxErrorFromToken("human directive given without token directive", entry.humanTok[0])
+						synErr := types.NewSyntaxErrorFromToken("human directive given without token directive", entry.SrcHuman[0])
 						return nil, warnings, synErr
 					}
 				}
 
 				if entry.Token == "" && entry.Shift == "" {
-					synErr := types.NewSyntaxErrorFromToken("entry must have a discard, token, or stateshift directive", entry.tok)
+					synErr := types.NewSyntaxErrorFromToken("entry must have a discard, token, or stateshift directive", entry.Src)
 					return nil, warnings, synErr
 				}
 
 				// don't try to shift to non-existent state
 				if entry.Shift != "" {
 					if !existingStates.Has(entry.Shift) {
-						synErr := types.NewSyntaxErrorFromToken("bad stateshift; shifted-to-state does not exist", entry.shiftTok[0])
+						synErr := types.NewSyntaxErrorFromToken("bad stateshift; shifted-to-state does not exist", entry.SrcShift[0])
 						return nil, warnings, synErr
 					}
 
 					if entry.Shift == tokBl.State {
-						synErr := types.NewSyntaxErrorFromToken("bad stateshift; already in that state", entry.shiftTok[0])
+						synErr := types.NewSyntaxErrorFromToken("bad stateshift; already in that state", entry.SrcShift[0])
 						return nil, warnings, synErr
 					}
 				}
@@ -496,15 +667,15 @@ func analzyeASTTokensContentSlice(
 			}
 
 			// finally, check for priority
-			if len(entry.priorityTok) > 0 {
+			if len(entry.SrcPriority) > 0 {
 				if entry.Priority == 0 {
-					warn := types.NewSyntaxErrorFromToken("setting priority to 0 has no effect", entry.priorityTok[0])
+					warn := types.NewSyntaxErrorFromToken("setting priority to 0 has no effect", entry.SrcPriority[0])
 					warnings = append(warnings, Warning{
 						Type:    WarnPriorityZero,
 						Message: warn.FullMessage(),
 					})
 				} else if entry.Priority < 0 {
-					synErr := types.NewSyntaxErrorFromToken("priority cannot be negative", entry.priorityTok[0])
+					synErr := types.NewSyntaxErrorFromToken("priority cannot be negative", entry.SrcPriority[0])
 					return nil, warnings, synErr
 				}
 
@@ -525,22 +696,22 @@ func analzyeASTTokensContentSlice(
 }
 
 // r is rule to check against, only first production is checked.
-func attrRefFromASTAttrRef(astRef ASTAttrRef, g grammar.Grammar, r grammar.Rule) (translation.AttrRef, error) {
+func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.Grammar, r grammar.Rule) (trans.AttrRef, error) {
 	if astRef.Head {
-		return translation.AttrRef{
-			Relation: translation.NodeRelation{
-				Type: translation.RelHead,
+		return trans.AttrRef{
+			Relation: trans.NodeRelation{
+				Type: trans.RelHead,
 			},
 			Name: astRef.Attribute,
 		}, nil
 	} else if astRef.SymInProd {
 		// make sure the rule has the right number of symbols
 		if astRef.Occurance >= len(r.Productions[0]) {
-			return translation.AttrRef{}, fmt.Errorf("symbol index out of range; production only has %d symbols", len(r.Productions[0]))
+			return trans.AttrRef{}, fmt.Errorf("symbol index out of range; production only has %d symbols", len(r.Productions[0]))
 		}
-		return translation.AttrRef{
-			Relation: translation.NodeRelation{
-				Type:  translation.RelSymbol,
+		return trans.AttrRef{
+			Relation: trans.NodeRelation{
+				Type:  trans.RelSymbol,
 				Index: astRef.Occurance,
 			},
 			Name: astRef.Attribute,
@@ -554,11 +725,11 @@ func attrRefFromASTAttrRef(astRef ASTAttrRef, g grammar.Grammar, r grammar.Rule)
 			}
 		}
 		if astRef.Occurance >= nontermCount {
-			return translation.AttrRef{}, fmt.Errorf("non-terminal index out of range; production only has %d non-terminals", nontermCount)
+			return trans.AttrRef{}, fmt.Errorf("non-terminal index out of range; production only has %d non-terminals", nontermCount)
 		}
-		return translation.AttrRef{
-			Relation: translation.NodeRelation{
-				Type:  translation.RelNonTerminal,
+		return trans.AttrRef{
+			Relation: trans.NodeRelation{
+				Type:  trans.RelNonTerminal,
 				Index: astRef.Occurance,
 			},
 			Name: astRef.Attribute,
@@ -572,11 +743,11 @@ func attrRefFromASTAttrRef(astRef ASTAttrRef, g grammar.Grammar, r grammar.Rule)
 			}
 		}
 		if astRef.Occurance >= termCount {
-			return translation.AttrRef{}, fmt.Errorf("terminal index out of range; production only has %d terminals", termCount)
+			return trans.AttrRef{}, fmt.Errorf("terminal index out of range; production only has %d terminals", termCount)
 		}
-		return translation.AttrRef{
-			Relation: translation.NodeRelation{
-				Type:  translation.RelTerminal,
+		return trans.AttrRef{
+			Relation: trans.NodeRelation{
+				Type:  trans.RelTerminal,
 				Index: astRef.Occurance,
 			},
 			Name: astRef.Attribute,
@@ -590,14 +761,14 @@ func attrRefFromASTAttrRef(astRef ASTAttrRef, g grammar.Grammar, r grammar.Rule)
 			}
 		}
 		if len(symIndexes) == 0 {
-			return translation.AttrRef{}, fmt.Errorf("no symbol %s in production", astRef.Symbol)
+			return trans.AttrRef{}, fmt.Errorf("no symbol %s in production", astRef.Symbol)
 		}
 		if astRef.Occurance >= len(symIndexes) {
-			return translation.AttrRef{}, fmt.Errorf("symbol index out of range; production only has %d instances of %s", len(symIndexes), astRef.Symbol)
+			return trans.AttrRef{}, fmt.Errorf("symbol index out of range; production only has %d instances of %s", len(symIndexes), astRef.Symbol)
 		}
-		return translation.AttrRef{
-			Relation: translation.NodeRelation{
-				Type:  translation.RelSymbol,
+		return trans.AttrRef{
+			Relation: trans.NodeRelation{
+				Type:  trans.RelSymbol,
 				Index: symIndexes[astRef.Occurance],
 			},
 			Name: astRef.Attribute,
@@ -684,7 +855,7 @@ func checkForDuplicateHumanDefs(tcSymTable map[string][]box.Pair[string, types.T
 // do not error check (but do track for multiple human definition text)
 // until the scan is complete even if we could; that way, all errors are
 // reported at once.
-func scanTokenClasses(blocks []ASTTokensContent) (map[string][]box.Pair[string, types.Token], box.StringSet) {
+func scanTokenClasses(blocks []syntax.TokensContent) (map[string][]box.Pair[string, types.Token], box.StringSet) {
 
 	// tcSymTable is tok-name -> pairs of human-name and token where that human
 	// name is first defined. Uses slice of pairs instead of map to preserve
@@ -723,7 +894,7 @@ func scanTokenClasses(blocks []ASTTokensContent) (map[string][]box.Pair[string, 
 					}
 
 					if keepHuman {
-						humanDefs = append(humanDefs, box.PairOf(entry.Human, entry.humanTok[len(entry.humanTok)-1]))
+						humanDefs = append(humanDefs, box.PairOf(entry.Human, entry.SrcHuman[len(entry.SrcHuman)-1]))
 						tcSymTable[entry.Token] = humanDefs
 					}
 				}

@@ -115,7 +115,7 @@ func (lx *lexerTemplate) AddPattern(pat string, action Action, forState string, 
 		id := action.ClassID
 		_, ok := stateClasses[id]
 		if !ok {
-			return fmt.Errorf("%q is not a defined token class on this lexer; add it with AddClass first", id)
+			return fmt.Errorf("%q is not a defined token class on this lexer; add it with RegisterClass first", id)
 		}
 	}
 	if action.Type == ActionState || action.Type == ActionScanAndState {

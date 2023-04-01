@@ -82,6 +82,27 @@ Flags:
 		stdout, including the symbol stack, manipulations of the stack, ACTION
 		selected in DFA based on the stack, and other information.
 
+	-pkg NAME
+		Set the name of the package to place generated files in. Defaults to
+		'fe'.
+
+	-dest DIR
+		Set the destination directory to place generated files in. Defaults to a
+		directory named 'fe' in the current working directory.
+
+	-l/lang NAME
+		Set the name of the language to generate a frontend for. Defaults to
+		"Unspecified".
+
+	-lang-ver VERSION
+		Set the version of the language to generate a frontend for. Defaults to
+		"v0.0.0".
+
+	-pre-format
+		Enable dumping of the fishi filled template files before they are passed
+		to the formatter. This allows debugging of the template files when
+		editing them, since they must be valid go code to be formatted.
+
 Each markdown file given is scanned for fishi codeblocks. They are all combined
 into a single fishi code block and parsed. Each markdown file is parsed
 separately but their resulting ASTs are combined into a single list of FISHI
@@ -123,7 +144,7 @@ import (
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
-	"github.com/dekarrin/ictiobus/translation"
+	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/rosed"
 )
@@ -140,6 +161,10 @@ const (
 	// occurs.
 	ExitErrSyntax
 
+	// ExitErrGeneration is the code returned as exit status when there is an
+	// error creating the generated files.
+	ExitErrGeneration
+
 	// ExitErrOther is a generic error code for any other error.
 	ExitErrOther
 )
@@ -154,8 +179,13 @@ var (
 	genTree       bool
 	genSpec       bool
 	parserCff     string
-	noCache       *bool = flag.Bool("no-cache", false, "Disable use of cached frontend components, even if available")
-	noCacheOutput *bool = flag.Bool("no-cache-out", false, "Disable writing of cached frontend components, even if one was generated")
+	lang          string
+	dumpPreFormat *bool   = flag.Bool("pre-format", false, "Dump the generated code before running through gofmt")
+	pkg           *string = flag.String("pkg", "fe", "The name of the package to place generated files in")
+	dest          *string = flag.String("dest", "./fe", "The name of the directory to place the generated package in")
+	langVer       *string = flag.String("lang-ver", "v0.0.0", "The version of the language to generate")
+	noCache       *bool   = flag.Bool("no-cache", false, "Disable use of cached frontend components, even if available")
+	noCacheOutput *bool   = flag.Bool("no-cache-out", false, "Disable writing of cached frontend components, even if one was generated")
 
 	valSDTSOff        *bool = flag.Bool("val-sdts-off", false, "Disable validation of the SDTS of the resulting fishi")
 	valSDTSShowTrees  *bool = flag.Bool("val-sdts-trees", false, "Show trees that caused SDTS validation errors")
@@ -177,6 +207,8 @@ func init() {
 		genSpecUsage     = "Print the FISHI spec interpreted from the analyzed fishi"
 		parserCffUsage   = "Use the specified parser CFF cache file instead of default"
 		parserCffDefault = "fishi-parser.cff"
+		langUsage        = "The name of the languae being generated"
+		langDefault      = "Unspecified"
 	)
 	flag.BoolVar(&noGen, "no-gen", false, noGenUsage)
 	flag.BoolVar(&noGen, "n", false, noGenUsage+" (shorthand)")
@@ -188,6 +220,8 @@ func init() {
 	flag.BoolVar(&genTree, "t", false, genTreeUsage+" (shorthand)")
 	flag.StringVar(&parserCff, "parser", parserCffDefault, parserCffUsage)
 	flag.StringVar(&parserCff, "p", parserCffDefault, parserCffUsage+" (shorthand)")
+	flag.StringVar(&lang, "lang", langDefault, langUsage)
+	flag.StringVar(&lang, "l", langDefault, langUsage+"(shorthand)")
 }
 
 func main() {
@@ -201,11 +235,20 @@ func main() {
 		}
 	}()
 
+	invocation := strings.Join(os.Args[1:], " ")
+
 	flag.Parse()
 
 	if *version {
 		fmt.Println(GetVersionString())
 		return
+	}
+
+	// create a spec metadata object
+	md := fishi.SpecMetadata{
+		Language:       lang,
+		Version:        *langVer,
+		InvocationArgs: invocation,
 	}
 
 	args := flag.Args()
@@ -245,7 +288,7 @@ func main() {
 		// parse tree is per-file, so we do this immediately even on error, as
 		// it may be useful
 		if res.Tree != nil && genTree {
-			fmt.Printf("%s\n", translation.AddAttributes(*res.Tree).String())
+			fmt.Printf("%s\n", trans.AddAttributes(*res.Tree).String())
 		}
 
 		if err != nil {
@@ -310,8 +353,17 @@ func main() {
 	}
 
 	if !noGen {
+		// TODO: jello, first need to create a PRELIM generation along with hooks
+		// pkg because that is the only way to validate the SDTS.
+
 		// do processing of the AST here
-		fmt.Printf("(frontend generation not implemented yet)\n")
+		err := fishi.GenerateCompilerGo(spec, md, *pkg, *dest, *dumpPreFormat)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+			returnCode = ExitErrGeneration
+			return
+		}
+		fmt.Printf("(NOTE: complete frontend generation not implemented yet)\n")
 	}
 
 }
@@ -444,12 +496,12 @@ func printSpec(spec fishi.Spec) {
 	}
 }
 
-func sddRefToPrintedString(ref translation.AttrRef, g grammar.Grammar, r grammar.Rule) string {
+func sddRefToPrintedString(ref trans.AttrRef, g grammar.Grammar, r grammar.Rule) string {
 	// which symbol does it refer to?
 	var symName string
-	if ref.Relation.Type == translation.RelHead {
+	if ref.Relation.Type == trans.RelHead {
 		symName = "{" + r.NonTerminal + "$^}"
-	} else if ref.Relation.Type == translation.RelSymbol {
+	} else if ref.Relation.Type == trans.RelSymbol {
 		sym := r.Productions[0][ref.Relation.Index]
 		// now find all indexes of that particular symbol in the rule
 
@@ -476,7 +528,7 @@ func sddRefToPrintedString(ref translation.AttrRef, g grammar.Grammar, r grammar
 		curOfType := -1
 		symIdx := -1
 		for i, sym := range r.Productions[0] {
-			if (ref.Relation.Type == translation.RelNonTerminal && g.IsNonTerminal(sym)) || (ref.Relation.Type == translation.RelTerminal && g.IsTerminal(sym)) {
+			if (ref.Relation.Type == trans.RelNonTerminal && g.IsNonTerminal(sym)) || (ref.Relation.Type == trans.RelTerminal && g.IsTerminal(sym)) {
 				curOfType++
 			}
 			if curOfType == ref.Relation.Index {

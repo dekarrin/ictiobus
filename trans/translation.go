@@ -1,7 +1,7 @@
 // Package translation holds constructs involved in the final stage of langage
 // processing. It can also serve as an entrypoint with a full-featured
 // translation intepreter engine.
-package translation
+package trans
 
 import (
 	"fmt"

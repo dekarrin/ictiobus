@@ -1,4 +1,4 @@
-package translation
+package trans
 
 // ValidationOptions is a struct passed to SDTS.Validate that selects the items
 // to be included in the text of returned errors when problems are encountered.
