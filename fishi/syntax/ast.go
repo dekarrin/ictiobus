@@ -1,4 +1,4 @@
-package ir
+package syntax
 
 import (
 	"fmt"

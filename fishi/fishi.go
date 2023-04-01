@@ -11,7 +11,7 @@ import (
 
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/fishi/fe"
-	"github.com/dekarrin/ictiobus/fishi/ir"
+	"github.com/dekarrin/ictiobus/fishi/syntax"
 	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/gomarkdown/markdown"
@@ -142,7 +142,7 @@ func Parse(source []byte, opts Options) (Results, error) {
 // GetFrontend gets the frontend for the fishi compiler-compiler. If cffFile is
 // provided, it is used to load the cached parser from disk. Otherwise, a new
 // frontend is created.
-func GetFrontend(opts Options) (ictiobus.Frontend[[]ir.ASTBlock], error) {
+func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.ASTBlock], error) {
 	// check for preload
 	var preloadedParser ictiobus.Parser
 	if opts.ParserCFF != "" && opts.ReadCache {
@@ -152,7 +152,7 @@ func GetFrontend(opts Options) (ictiobus.Frontend[[]ir.ASTBlock], error) {
 			if errors.Is(err, os.ErrNotExist) {
 				preloadedParser = nil
 			} else {
-				return ictiobus.Frontend[[]ir.ASTBlock]{}, fmt.Errorf("loading cachefile %q: %w", opts.ParserCFF, err)
+				return ictiobus.Frontend[[]syntax.ASTBlock]{}, fmt.Errorf("loading cachefile %q: %w", opts.ParserCFF, err)
 			}
 		}
 	}
@@ -162,7 +162,7 @@ func GetFrontend(opts Options) (ictiobus.Frontend[[]ir.ASTBlock], error) {
 		ParserTrace: opts.ParserTrace,
 	}
 
-	fishiFront := fe.Frontend[[]ir.ASTBlock](ir.HooksTable, feOpts, preloadedParser)
+	fishiFront := fe.Frontend[[]syntax.ASTBlock](syntax.HooksTable, feOpts, preloadedParser)
 
 	// check the parser encoding if we generated a new one:
 	if preloadedParser == nil && opts.ParserCFF != "" && opts.WriteCache {
@@ -187,7 +187,7 @@ func GetFrontend(opts Options) (ictiobus.Frontend[[]ir.ASTBlock], error) {
 
 		sddErr := fishiFront.SDT.Validate(fishiFront.Parser.Grammar(), fishiFront.IRAttribute, di, valProd)
 		if sddErr != nil {
-			return ictiobus.Frontend[[]ir.ASTBlock]{}, fmt.Errorf("sdd validation error: %w", sddErr)
+			return ictiobus.Frontend[[]syntax.ASTBlock]{}, fmt.Errorf("sdd validation error: %w", sddErr)
 		}
 	}
 

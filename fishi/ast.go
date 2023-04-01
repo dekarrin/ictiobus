@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dekarrin/ictiobus/fishi/ir"
+	"github.com/dekarrin/ictiobus/fishi/syntax"
 )
 
 // This file contains a copy of ir.AST for convenience so callers may directly
@@ -24,7 +24,7 @@ import (
 
 // AST is the abstract syntax tree of a fishi spec.
 type AST struct {
-	Nodes []ir.ASTBlock
+	Nodes []syntax.ASTBlock
 }
 
 func (ast AST) String() string {
@@ -36,9 +36,9 @@ func (ast AST) String() string {
 		for i := range ast.Nodes {
 			n := ast.Nodes[i]
 			switch n.Type() {
-			case ir.BlockTypeError:
+			case syntax.BlockTypeError:
 				sb.WriteString("  <ERR>\n")
-			case ir.BlockTypeGrammar:
+			case syntax.BlockTypeGrammar:
 				gram := n.Grammar()
 				sb.WriteString("  <GRAMMAR:\n")
 				for j := range gram.Content {
@@ -55,7 +55,7 @@ func (ast AST) String() string {
 					sb.WriteString("    >\n")
 				}
 				sb.WriteString("  >\n")
-			case ir.BlockTypeTokens:
+			case syntax.BlockTypeTokens:
 				toks := n.Tokens()
 				sb.WriteString("  <TOKENS:\n")
 				for j := range toks.Content {
@@ -72,7 +72,7 @@ func (ast AST) String() string {
 					sb.WriteString("    >\n")
 				}
 				sb.WriteString("  >\n")
-			case ir.BlockTypeActions:
+			case syntax.BlockTypeActions:
 				acts := n.Actions()
 				sb.WriteString("  <ACTIONS:\n")
 				for j := range acts.Content {
