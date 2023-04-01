@@ -246,7 +246,7 @@ type SDD struct {
 //
 // Uses the Options to determine what to validate. Only the SDTS options are
 // recognized at this time.
-func NewSpec(ast ir.AST) (spec Spec, warnings []Warning, err error) {
+func NewSpec(ast AST) (spec Spec, warnings []Warning, err error) {
 	ls := Spec{
 		Patterns: make(map[string][]Pattern),
 	}

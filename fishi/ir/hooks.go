@@ -97,10 +97,12 @@ func SDDErrMsg(msg string, a ...interface{}) string {
 func sdtsFnMakeFishispec(_ trans.SetterInfo, args []interface{}) interface{} {
 	list, ok := args[0].([]ASTBlock)
 	if !ok {
-		return AST{}
+		// can't directly return nil because we'd lose the type information
+		var ast []ASTBlock
+		return ast
 	}
 
-	return AST{Nodes: list}
+	return list
 }
 
 func sdtsFnBlockListAppend(_ trans.SetterInfo, args []interface{}) interface{} {
