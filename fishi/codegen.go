@@ -1,11 +1,13 @@
 package fishi
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"text/template"
 	"unicode"
 
 	"github.com/dekarrin/ictiobus/internal/box"
@@ -27,12 +29,45 @@ const (
 
 var (
 	underscoreCollapser = regexp.MustCompile(`_+`)
+
+	// go:embed templates/tokens.go.tmpl
+	TemplateFileTokens string
+
+	// go:embed templates/lexer.go.tmpl
+	TemplateFileLexer string
+
+	// go:embed templates/parser.go.tmpl
+	TemplateFileParser string
+
+	// go:embed templates/sdts.go.tmpl
+	TemplateFileSDTS string
+
+	// go:embed templates/frontend.go.tmpl
+	TemplateFileFrontend string
 )
 
 // GenerateCompilerGo generates the source code for a compiler that can handle a
-// fishi spec. The source code is placed in the given directory.
-func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName string, dir string) error {
-	return fmt.Errorf("not implemented")
+// fishi spec. The source code is placed in the given directory. This does *not*
+// copy the hooks package, it only outputs the compiler code.
+func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string) error {
+	data := createTemplateFillData(spec, md, pkgName)
+
+	err := os.MkdirAll(pkgDir, 0755)
+	if err != nil {
+		return fmt.Errorf("creating target dir: %w", err)
+	}
+
+	// tokens
+	tokTmpl := template.Must(template.New("tokens").Parse(TemplateFileTokens))
+
+	// lexer
+
+	// parser
+
+	// sdts
+
+	// frontend
+
 }
 
 func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
