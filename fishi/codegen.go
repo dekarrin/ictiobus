@@ -32,7 +32,7 @@ var (
 // GenerateCompilerGo generates the source code for a compiler that can handle a
 // fishi spec. The source code is placed in the given directory.
 func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName string, dir string) error {
-
+	return fmt.Errorf("not implemented")
 }
 
 func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
