@@ -1,8 +1,10 @@
 package fishi
 
 import (
+	"bytes"
 	_ "embed"
 	"fmt"
+	"go/format"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -25,25 +27,32 @@ import (
 
 const (
 	CommandName = "ictcc"
+
+	GeneratedTokensFilename   = "tokens.ict.go"
+	GeneratedLexerFilename    = "lexer.ict.go"
+	GeneratedParserFilename   = "parser.ict.go"
+	GeneratedSDTSFilename     = "sdts.ict.go"
+	GeneratedFrontendFilename = "frontend.ict.go"
 )
 
 var (
 	underscoreCollapser = regexp.MustCompile(`_+`)
+	titleCaser          = cases.Title(language.AmericanEnglish)
 
 	// go:embed templates/tokens.go.tmpl
-	TemplateFileTokens string
+	TemplateTokens string
 
 	// go:embed templates/lexer.go.tmpl
-	TemplateFileLexer string
+	TemplateLexer string
 
 	// go:embed templates/parser.go.tmpl
-	TemplateFileParser string
+	TemplateParser string
 
 	// go:embed templates/sdts.go.tmpl
-	TemplateFileSDTS string
+	TemplateSDTS string
 
 	// go:embed templates/frontend.go.tmpl
-	TemplateFileFrontend string
+	TemplateFrontend string
 )
 
 // GenerateCompilerGo generates the source code for a compiler that can handle a
@@ -57,8 +66,38 @@ func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string) erro
 		return fmt.Errorf("creating target dir: %w", err)
 	}
 
+	fnMap := template.FuncMap{
+		"upperCamel": func(s string) string {
+			words := strings.Split(s, "_")
+			upperCamel := ""
+			for _, word := range words {
+				theWord := []byte(word)
+				_, _, err := titleCaser.Transform(theWord, theWord, true)
+				if err != nil {
+					panic(err)
+				}
+				upperCamel += string(theWord)
+			}
+			return upperCamel
+		},
+	}
+
 	// tokens
-	tokTmpl := template.Must(template.New("tokens").Parse(TemplateFileTokens))
+	tokTemp := template.Must(template.New("tokens").Funcs(fnMap).Parse(TemplateTokens))
+	var tokBuf bytes.Buffer
+	if err := tokTemp.Execute(&tokBuf, data); err != nil {
+		return fmt.Errorf("generating tokens file: %w", err)
+	}
+	formatted, err := format.Source(tokBuf.Bytes())
+	if err != nil {
+		return fmt.Errorf("formatting tokens file: %w", err)
+	}
+	// write the file out
+	tokDest := filepath.Join(pkgDir, GeneratedTokensFilename)
+	err = os.WriteFile(tokDest, formatted, 0666)
+	if err != nil {
+		return fmt.Errorf("writing tokens file: %w", err)
+	}
 
 	// lexer
 
@@ -67,6 +106,8 @@ func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string) erro
 	// sdts
 
 	// frontend
+
+	return nil
 
 }
 
@@ -310,11 +351,10 @@ func tokenClassVarName(class types.TokenClass) string {
 
 	fullName := "TC"
 	// split by underscores and do a title case on each word
-	titler := cases.Title(language.AmericanEnglish)
 	words := strings.Split(name, "_")
 	for _, word := range words {
 		theWord := []byte(word)
-		_, _, err := titler.Transform(theWord, theWord, true)
+		_, _, err := titleCaser.Transform(theWord, theWord, true)
 		if err != nil {
 			panic(err)
 		}
