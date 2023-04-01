@@ -39,19 +39,19 @@ var (
 	underscoreCollapser = regexp.MustCompile(`_+`)
 	titleCaser          = cases.Title(language.AmericanEnglish)
 
-	// go:embed templates/tokens.go.tmpl
+	//go:embed templates/tokens.go.tmpl
 	TemplateTokens string
 
-	// go:embed templates/lexer.go.tmpl
+	//go:embed templates/lexer.go.tmpl
 	TemplateLexer string
 
-	// go:embed templates/parser.go.tmpl
+	//go:embed templates/parser.go.tmpl
 	TemplateParser string
 
-	// go:embed templates/sdts.go.tmpl
+	//go:embed templates/sdts.go.tmpl
 	TemplateSDTS string
 
-	// go:embed templates/frontend.go.tmpl
+	//go:embed templates/frontend.go.tmpl
 	TemplateFrontend string
 )
 

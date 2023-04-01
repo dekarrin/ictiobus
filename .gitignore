@@ -1,6 +1,7 @@
 # vim
 *.swp
 
+/testout
 /ictcc
 
 # mac
