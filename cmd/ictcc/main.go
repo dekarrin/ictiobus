@@ -347,6 +347,9 @@ func main() {
 	}
 
 	if !noGen {
+		// TODO: jello, first need to create a PRELIM generation along with hooks
+		// pkg because that is the only way to validate the SDTS.
+
 		// do processing of the AST here
 		err := fishi.GenerateCompilerGo(spec, md, *pkg, *dest)
 		if err != nil {
