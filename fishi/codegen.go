@@ -16,6 +16,7 @@ import (
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/rosed"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/runenames"
@@ -58,7 +59,7 @@ var (
 // GenerateCompilerGo generates the source code for a compiler that can handle a
 // fishi spec. The source code is placed in the given directory. This does *not*
 // copy the hooks package, it only outputs the compiler code.
-func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string) error {
+func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, dumpPreFormat bool) error {
 	data := createTemplateFillData(spec, md, pkgName)
 
 	err := os.MkdirAll(pkgDir, 0755)
@@ -71,44 +72,69 @@ func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string) erro
 			words := strings.Split(s, "_")
 			upperCamel := ""
 			for _, word := range words {
-				theWord := []byte(word)
-				_, _, err := titleCaser.Transform(theWord, theWord, true)
-				if err != nil {
-					panic(err)
-				}
-				upperCamel += string(theWord)
+				upperCamel += string(titleCaser.String(word))
 			}
 			return upperCamel
 		},
+		"quote": func(s string) string {
+			return fmt.Sprintf("%q", s)
+		},
 	}
 
-	// tokens
-	tokTemp := template.Must(template.New("tokens").Funcs(fnMap).Parse(TemplateTokens))
-	var tokBuf bytes.Buffer
-	if err := tokTemp.Execute(&tokBuf, data); err != nil {
-		return fmt.Errorf("generating tokens file: %w", err)
-	}
-	formatted, err := format.Source(tokBuf.Bytes())
-	if err != nil {
-		return fmt.Errorf("formatting tokens file: %w", err)
-	}
-	// write the file out
-	tokDest := filepath.Join(pkgDir, GeneratedTokensFilename)
-	err = os.WriteFile(tokDest, formatted, 0666)
-	if err != nil {
-		return fmt.Errorf("writing tokens file: %w", err)
+	renderFiles := []struct {
+		name     string
+		tmpl     string
+		filename string
+	}{
+		{"tokens", TemplateTokens, GeneratedTokensFilename},
+		{"lexer", TemplateLexer, GeneratedLexerFilename},
+		{"parser", TemplateParser, GeneratedParserFilename},
+		{"sdts", TemplateSDTS, GeneratedSDTSFilename},
+		{"frontend", TemplateFrontend, GeneratedFrontendFilename},
 	}
 
-	// lexer
-
-	// parser
-
-	// sdts
-
-	// frontend
+	// render the template files
+	for _, rf := range renderFiles {
+		err = renderTemplateToFile(rf.name, rf.tmpl, fnMap, data, filepath.Join(pkgDir, rf.filename), dumpPreFormat)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 
+}
+
+func renderTemplateToFile(name, tmpl string, fns template.FuncMap, data interface{}, dest string, dumpPreFormat bool) error {
+	tokTemp, err := template.New(name).Funcs(fns).Parse(tmpl)
+	if err != nil {
+		return fmt.Errorf("parsing %s template: %w", name, err)
+	}
+
+	var tokBuf bytes.Buffer
+	if err := tokTemp.Execute(&tokBuf, data); err != nil {
+		return fmt.Errorf("generating %s file: %w", name, err)
+	}
+	if dumpPreFormat {
+		fmt.Printf("\n=== %s ===\n", dest)
+		preFmt := rosed.Edit(tokBuf.String()).
+			Apply(func(idx int, line string) []string {
+				// add line numbers
+				return []string{fmt.Sprintf("%4d: %s", idx+1, line)}
+			}).
+			String()
+		fmt.Printf("%s\n", preFmt)
+	}
+	formatted, err := format.Source(tokBuf.Bytes())
+	if err != nil {
+		return fmt.Errorf("formatting %s file: %w", name, err)
+	}
+	// write the file out
+	err = os.WriteFile(dest, formatted, 0666)
+	if err != nil {
+		return fmt.Errorf("writing %s file: %w", name, err)
+	}
+	return nil
 }
 
 func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
@@ -353,13 +379,7 @@ func tokenClassVarName(class types.TokenClass) string {
 	// split by underscores and do a title case on each word
 	words := strings.Split(name, "_")
 	for _, word := range words {
-		theWord := []byte(word)
-		_, _, err := titleCaser.Transform(theWord, theWord, true)
-		if err != nil {
-			panic(err)
-		}
-
-		fullName += string(theWord)
+		fullName += string(titleCaser.String(word))
 	}
 
 	return fullName

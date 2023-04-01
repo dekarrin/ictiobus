@@ -98,6 +98,11 @@ Flags:
 		Set the version of the language to generate a frontend for. Defaults to
 		"v0.0.0".
 
+	-pre-format
+		Enable dumping of the fishi filled template files before they are passed
+		to the formatter. This allows debugging of the template files when
+		editing them, since they must be valid go code to be formatted.
+
 Each markdown file given is scanned for fishi codeblocks. They are all combined
 into a single fishi code block and parsed. Each markdown file is parsed
 separately but their resulting ASTs are combined into a single list of FISHI
@@ -175,6 +180,7 @@ var (
 	genSpec       bool
 	parserCff     string
 	lang          string
+	dumpPreFormat *bool   = flag.Bool("pre-format", false, "Dump the generated code before running through gofmt")
 	pkg           *string = flag.String("pkg", "fe", "The name of the package to place generated files in")
 	dest          *string = flag.String("dest", "./fe", "The name of the directory to place the generated package in")
 	langVer       *string = flag.String("lang-ver", "v0.0.0", "The version of the language to generate")
@@ -351,7 +357,7 @@ func main() {
 		// pkg because that is the only way to validate the SDTS.
 
 		// do processing of the AST here
-		err := fishi.GenerateCompilerGo(spec, md, *pkg, *dest)
+		err := fishi.GenerateCompilerGo(spec, md, *pkg, *dest, *dumpPreFormat)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 			returnCode = ExitErrGeneration

@@ -17,9 +17,9 @@ import (
 func Lexer(lazy bool) ictiobus.Lexer {
     var lx ictiobus.Lexer
     if lazy {
-        lx = lex.NewLazyLexer()
+        lx = ictiobus.NewLazyLexer()
     } else {
-        lx = lex.NewLexer()
+        lx = ictiobus.NewLexer()
     }
 
 {{if .Patterns.DefaultState.Entries -}}
@@ -27,7 +27,7 @@ func Lexer(lazy bool) ictiobus.Lexer {
 
     {{range .Patterns.DefaultState.Classes -}}
     lx.RegisterClass({{ .Name }}, "")
-    {{- end}}
+{{end -}}
 
     {{range .Patterns.DefaultState.Entries -}}
     lx.AddPattern({{ .Pattern }}, {{ .Action }}, "", {{ .Priority }})
@@ -38,7 +38,7 @@ func Lexer(lazy bool) ictiobus.Lexer {
     {{$state := .State}}
     {{range .Classes -}}
     lx.RegisterClass({{ .Name }}, "{{$state}}")
-    {{- end}}
+{{end -}}
 
     {{range .Entries -}}
     lx.AddPattern({{ .Regex }}, {{ .Action }}, "{{$state}}", {{ .Priority }})
