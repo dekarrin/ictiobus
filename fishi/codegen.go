@@ -29,18 +29,13 @@ var (
 	underscoreCollapser = regexp.MustCompile(`_+`)
 )
 
-type specMetadata struct {
-	// Language is name of the language.
-	Language string
+// GenerateCompilerGo generates the source code for a compiler that can handle a
+// fishi spec. The source code is placed in the given directory.
+func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName string, dir string) error {
 
-	// Version is the version of the language.
-	Version string
-
-	// InvocationArgs are the arguments
-	InvocationArgs string
 }
 
-func createTemplateFillData(spec Spec, md specMetadata, pkgName string) cgData {
+func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
 	// fill initial from metadata
 
 	data := cgData{

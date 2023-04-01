@@ -1,4 +1,4 @@
-package fishi
+package ir
 
 import (
 	"fmt"
@@ -277,8 +277,8 @@ func sdtsFnMakeProdAction(info trans.SetterInfo, args []interface{}) interface{}
 
 	pa := ASTProductionAction{
 		Actions: semActions,
-		tok:     info.FirstToken,
-		valTok:  prodSpec.Third,
+		Src:     info.FirstToken,
+		SrcVal:  prodSpec.Third,
 	}
 
 	if prodSpec.First == "LITERAL" {
@@ -317,8 +317,8 @@ func sdtsFnMakeSymbolActions(info trans.SetterInfo, args []interface{}) interfac
 		Symbol:  nonTerm,
 		Actions: prodActions,
 
-		tok:    info.FirstToken,
-		symTok: ntTok,
+		Src:    info.FirstToken,
+		SrcSym: ntTok,
 	}
 
 	return sa
@@ -353,7 +353,7 @@ func sdtsFnMakeGrammarContentNode(info trans.SetterInfo, args []interface{}) int
 	if !ok {
 		rules = []ASTGrammarRule{{Rule: grammar.Rule{NonTerminal: SDDErrMsg("producing this rule list: second argument is not a rule list")}}}
 	}
-	return ASTGrammarContent{Rules: rules, State: state.First, tokState: state.Second, tok: info.FirstToken}
+	return ASTGrammarContent{Rules: rules, State: state.First, SrcState: state.Second, Src: info.FirstToken}
 }
 
 func sdtsFnMakeActionsContentNode(info trans.SetterInfo, args []interface{}) interface{} {
@@ -365,7 +365,7 @@ func sdtsFnMakeActionsContentNode(info trans.SetterInfo, args []interface{}) int
 	if !ok {
 		actions = []ASTSymbolActions{{Symbol: SDDErrMsg("producing this symbol actions list: second argument is not a symbol actions list")}}
 	}
-	return ASTActionsContent{Actions: actions, State: state.First, tokState: state.Second, tok: info.FirstToken}
+	return ASTActionsContent{Actions: actions, State: state.First, SrcState: state.Second, Src: info.FirstToken}
 }
 
 func sdtsFnMakeTokensContentNode(info trans.SetterInfo, args []interface{}) interface{} {
@@ -379,7 +379,7 @@ func sdtsFnMakeTokensContentNode(info trans.SetterInfo, args []interface{}) inte
 		entries = []ASTTokenEntry{{Pattern: SDDErrMsg("producing this token entry list: first argument is not a token entry list")}}
 	}
 
-	return ASTTokensContent{Entries: entries, State: state.First, tokState: state.Second, tok: info.FirstToken}
+	return ASTTokensContent{Entries: entries, State: state.First, SrcState: state.Second, Src: info.FirstToken}
 }
 
 func sdtsFnTrimString(_ trans.SetterInfo, args []interface{}) interface{} {
@@ -391,7 +391,7 @@ func sdtsFnTrimString(_ trans.SetterInfo, args []interface{}) interface{} {
 }
 
 func sdtsFnMakeDiscardOption(info trans.SetterInfo, args []interface{}) interface{} {
-	return ASTTokenOption{Type: TokenOptDiscard, tok: info.FirstToken}
+	return ASTTokenOption{Type: TokenOptDiscard, Src: info.FirstToken}
 }
 
 func sdtsFnMakeStateshiftOption(info trans.SetterInfo, args []interface{}) interface{} {
@@ -400,7 +400,7 @@ func sdtsFnMakeStateshiftOption(info trans.SetterInfo, args []interface{}) inter
 		return SDDErrMsg("argument is not a string")
 	}
 
-	return ASTTokenOption{Type: TokenOptStateshift, Value: state, tok: info.FirstToken}
+	return ASTTokenOption{Type: TokenOptStateshift, Value: state, Src: info.FirstToken}
 }
 
 func sdtsFnMakeHumanOption(info trans.SetterInfo, args []interface{}) interface{} {
@@ -409,7 +409,7 @@ func sdtsFnMakeHumanOption(info trans.SetterInfo, args []interface{}) interface{
 		return SDDErrMsg("argument is not a string")
 	}
 
-	return ASTTokenOption{Type: TokenOptHuman, Value: human, tok: info.FirstToken}
+	return ASTTokenOption{Type: TokenOptHuman, Value: human, Src: info.FirstToken}
 }
 
 func sdtsFnMakeTokenOption(info trans.SetterInfo, args []interface{}) interface{} {
@@ -418,7 +418,7 @@ func sdtsFnMakeTokenOption(info trans.SetterInfo, args []interface{}) interface{
 		return SDDErrMsg("argument is not a string")
 	}
 
-	return ASTTokenOption{Type: TokenOptToken, Value: t, tok: info.FirstToken}
+	return ASTTokenOption{Type: TokenOptToken, Value: t, Src: info.FirstToken}
 }
 
 func sdtsFnMakePriorityOption(info trans.SetterInfo, args []interface{}) interface{} {
@@ -427,7 +427,7 @@ func sdtsFnMakePriorityOption(info trans.SetterInfo, args []interface{}) interfa
 		return SDDErrMsg("argument is not a string")
 	}
 
-	return ASTTokenOption{Type: TokenOptPriority, Value: priority, tok: info.FirstToken}
+	return ASTTokenOption{Type: TokenOptPriority, Value: priority, Src: info.FirstToken}
 }
 
 func sdtsFnIdentity(_ trans.SetterInfo, args []interface{}) interface{} { return args[0] }
@@ -660,7 +660,7 @@ func sdtsFnGetAttrRef(info trans.SetterInfo, args []interface{}) interface{} {
 		}
 	}
 
-	attrRef.tok = info.FirstToken
+	attrRef.Src = info.FirstToken
 
 	return attrRef
 }
@@ -695,8 +695,8 @@ func sdtsFnMakeSemanticAction(info trans.SetterInfo, args []interface{}) interfa
 		LHS:     attrRef,
 		Hook:    hookId,
 		With:    argRefs,
-		hookTok: hookTok,
-		tok:     info.FirstToken,
+		SrcHook: hookTok,
+		Src:     info.FirstToken,
 	}
 
 	return sa
@@ -898,7 +898,7 @@ func sdtsFnMakeRule(info trans.SetterInfo, args []interface{}) interface{} {
 
 	r := ASTGrammarRule{
 		Rule: gr,
-		tok:  info.FirstToken,
+		Src:  info.FirstToken,
 	}
 
 	return r
@@ -915,28 +915,28 @@ func sdtsFnMakeTokenEntry(info trans.SetterInfo, args []interface{}) interface{}
 		tokenOpts = []ASTTokenOption{{Value: SDDErrMsg("producing this token option list: second argument (tokenOpts) is not a token option list")}}
 	}
 
-	t := ASTTokenEntry{Pattern: pattern, tok: info.FirstToken}
+	t := ASTTokenEntry{Pattern: pattern, Src: info.FirstToken}
 
 	for _, opt := range tokenOpts {
 		switch opt.Type {
 		case TokenOptDiscard:
 			t.Discard = true
-			t.discardTok = append(t.discardTok, opt.tok)
+			t.SrcDiscard = append(t.SrcDiscard, opt.Src)
 		case TokenOptHuman:
 			t.Human = opt.Value
-			t.humanTok = append(t.humanTok, opt.tok)
+			t.SrcHuman = append(t.SrcHuman, opt.Src)
 		case TokenOptPriority:
 			prior, err := strconv.Atoi(opt.Value)
 			if err == nil {
 				t.Priority = prior
 			}
-			t.priorityTok = append(t.priorityTok, opt.tok)
+			t.SrcPriority = append(t.SrcPriority, opt.Src)
 		case TokenOptStateshift:
 			t.Shift = opt.Value
-			t.shiftTok = append(t.shiftTok, opt.tok)
+			t.SrcShift = append(t.SrcShift, opt.Src)
 		case TokenOptToken:
 			t.Token = opt.Value
-			t.tokenTok = append(t.tokenTok, opt.tok)
+			t.SrcToken = append(t.SrcToken, opt.Src)
 		}
 	}
 	return t

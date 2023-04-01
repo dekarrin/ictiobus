@@ -1,4 +1,4 @@
-package fishi
+package ir
 
 import (
 	"fmt"
@@ -237,7 +237,7 @@ type ASTTokenOption struct {
 	Type  ASTTokenOptionType
 	Value string
 
-	tok types.Token
+	Src types.Token
 }
 
 type ASTTokenEntry struct {
@@ -248,16 +248,16 @@ type ASTTokenEntry struct {
 	Human    string
 	Priority int
 
-	tok types.Token
+	Src types.Token
 
 	// in theory may be multiple options for the same option type; while it
 	// is not allowed semantically, it is allowed syntactically, so track it so
 	// we can do proper error reporting later.
-	discardTok  []types.Token
-	shiftTok    []types.Token
-	tokenTok    []types.Token
-	humanTok    []types.Token
-	priorityTok []types.Token
+	SrcDiscard  []types.Token
+	SrcShift    []types.Token
+	SrcToken    []types.Token
+	SrcHuman    []types.Token
+	SrcPriority []types.Token
 
 	// (don't need a patternTok because that pattern is the first symbol and
 	// there can only be one; tok will be the same as patternTok)
@@ -279,7 +279,7 @@ func (entry ASTTokenEntry) String() string {
 type ASTGrammarRule struct {
 	Rule grammar.Rule
 
-	tok types.Token
+	Src types.Token
 }
 
 func (agr ASTGrammarRule) String() string {
@@ -290,8 +290,8 @@ type ASTTokensContent struct {
 	Entries []ASTTokenEntry
 	State   string
 
-	tok      types.Token
-	tokState types.Token
+	Src      types.Token
+	SrcState types.Token
 }
 
 func (content ASTTokensContent) String() string {
@@ -306,8 +306,8 @@ type ASTGrammarContent struct {
 	Rules []ASTGrammarRule
 	State string
 
-	tok      types.Token
-	tokState types.Token
+	Src      types.Token
+	SrcState types.Token
 }
 
 func (content ASTGrammarContent) String() string {
@@ -322,8 +322,8 @@ type ASTActionsContent struct {
 	Actions []ASTSymbolActions
 	State   string
 
-	tok      types.Token
-	tokState types.Token
+	Src      types.Token
+	SrcState types.Token
 }
 
 func (content ASTActionsContent) String() string {
@@ -346,7 +346,7 @@ type ASTAttrRef struct {
 	Occurance int
 	Attribute string
 
-	tok types.Token
+	Src types.Token
 }
 
 // ParseAttrRef does a simple parse on an attribute reference from a string that
@@ -490,8 +490,8 @@ type ASTSemanticAction struct {
 	Hook string
 	With []ASTAttrRef
 
-	hookTok types.Token
-	tok     types.Token
+	SrcHook types.Token
+	Src     types.Token
 }
 
 func (sa ASTSemanticAction) String() string {
@@ -520,11 +520,11 @@ type ASTProductionAction struct {
 
 	Actions []ASTSemanticAction
 
-	tok types.Token
+	Src types.Token
 
-	// valTok is where the production action "value" is set; that is, the index
+	// SrcVal is where the production action "value" is set; that is, the index
 	// or production. It will be nil if it is simply a prodNext.
-	valTok types.Token
+	SrcVal types.Token
 }
 
 func (pa ASTProductionAction) String() string {
@@ -559,8 +559,8 @@ type ASTSymbolActions struct {
 	Symbol  string
 	Actions []ASTProductionAction
 
-	tok    types.Token
-	symTok types.Token
+	Src    types.Token
+	SrcSym types.Token
 }
 
 func (sa ASTSymbolActions) String() string {
