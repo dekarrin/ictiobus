@@ -18,41 +18,39 @@ func SDTS() ictiobus.SDTS {
     sdts := ictiobus.NewSDTS()
 
 {{ range .Bindings }}
-    {{ range .Attributes }}
-    sdtsBind{{ .Head | upperCamel }}{{ .Name | upperCamel }}(sdts)
-    {{ end }}
+    sdtsBind{{ .Head | upperCamel }}(sdts)
 {{ end }}
 
     return sdts
 }
 
 {{ range .Bindings }}
-    {{ range .Attributes }}
-func sdtsBind{{ .Head | upperCamel }}{{ .Name | upperCamel }}(sdts ictiobus.SDTS) {
-        {{ range .Prods }}
+func sdtsBind{{ .Head | upperCamel }}(sdts ictiobus.SDTS) {
+    {{- $head := .Head -}}
+    {{ range .Productions }}
         
-            {{ if .Synthetic }}
-    sdts.BindSynthesizedAttribute(        
-            {{ else }}
+{{ if .Synthetic }}
+
+    sdts.BindSynthesizedAttribute(
+{{ else }}
     sdts.BindInheritedAttribute(
-            {{ end }}
-        "{{ .Head }}", []string{ {{- range .Symbols }}"{{ . }}", {{ end -}} },
+{{ end }}
+        "{{ $head }}", []string{ {{- range .Symbols }}"{{ . }}", {{ end -}} },
         "{{ .Attribute }}",
         "{{ .Hook }}",
-            {{ if .Args }}
+{{ if .Args }}
         []trans.AttrRef{
-            {{ range .Args }}
-                {Relation: trans.NodeRelation{Type: trans.{{ .RelType }}, Index: {{ .RelIndex }} }, Name: "{{ .Name }}"},
-            {{ end }}
-        },
-            {{ else }}
-        nil,
-            {{ end }}
-            {{ if not .Synthetic }}
-        trans.NodeRelation{Type: trans.{{ .ForRelType }}, Index: {{ .ForRelIndex }} },
-            {{ end }}
-    )
-        {{ end }}
-}
+    {{ range .Args }}
+                {Relation: trans.NodeRelation{Type: trans.{{ .RelType }}, Index: {{ .RelIndex }} }, Name: "{{ .Attribute }}"},
     {{ end }}
+        },
+{{ else }}
+        nil,
+{{ end }}
+{{ if not .Synthetic }}
+        trans.NodeRelation{Type: trans.{{ .ForRelType }}, Index: {{ .ForRelIndex }} },
+{{ end }}
+    )
+    {{ end }}
+}
 {{ end }}

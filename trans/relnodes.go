@@ -27,6 +27,21 @@ const (
 	RelSymbol
 )
 
+func (nrt NodeRelationType) GoString() string {
+	switch nrt {
+	case RelHead:
+		return "RelHead"
+	case RelTerminal:
+		return "RelTerminal"
+	case RelNonTerminal:
+		return "RelNonTerminal"
+	case RelSymbol:
+		return "RelSymbol"
+	default:
+		return fmt.Sprintf("NodeRelationType(%d)", int(nrt))
+	}
+}
+
 func (nrt NodeRelationType) String() string {
 	if nrt == RelHead {
 		return "head symbol"

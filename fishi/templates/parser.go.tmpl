@@ -30,9 +30,10 @@ func Grammar() grammar.Grammar {
 {{- end}}
     
 {{range .Rules}}{{/* no space removal here */}}
+    {{$head := .Head}}
     {{range .Productions -}}
 
-{{"    "}}g.AddRule("{{ .Head }}", []string{ {{- range .Symbols }}"{{ . }}", {{ end -}} })
+{{"    "}}g.AddRule("{{ $head }}", []string{ {{- range .Symbols }}"{{ . }}", {{ end -}} })
 
     {{- end}}
 {{- end}}

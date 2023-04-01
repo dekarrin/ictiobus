@@ -22,7 +22,7 @@ func Lexer(lazy bool) ictiobus.Lexer {
         lx = lex.NewLexer()
     }
 
-{{if .Patterns.HasDefaultState -}}
+{{if .Patterns.DefaultState.Entries -}}
     // default state, shared by all
 
     {{range .Patterns.DefaultState.Classes -}}
@@ -34,13 +34,14 @@ func Lexer(lazy bool) ictiobus.Lexer {
     {{- end}}
 {{- end}}
 
-{{range .Patterns.NonDefaultState -}}
+{{range .Patterns.NonDefaultStates -}}
+    {{$state := .State}}
     {{range .Classes -}}
-    lx.RegisterClass({{ .Name }}, "{{.State}}")
+    lx.RegisterClass({{ .Name }}, "{{$state}}")
     {{- end}}
 
     {{range .Entries -}}
-    lx.AddPattern({{ .Pattern }}, {{ .Action }}, "{{.State}}", {{ .Priority }})
+    lx.AddPattern({{ .Regex }}, {{ .Action }}, "{{$state}}", {{ .Priority }})
     {{- end}}
 {{- end}}
 

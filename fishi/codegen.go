@@ -4,12 +4,296 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
+	"unicode"
 
+	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/lex"
+	"github.com/dekarrin/ictiobus/trans"
+	"github.com/dekarrin/ictiobus/types"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+	"golang.org/x/text/unicode/runenames"
 	"golang.org/x/tools/go/packages"
 )
 
-// file spec2go implements conversion of a fishi spec to a series of go files.
+// file codegen implements conversion of a fishi spec to a series of go files.
 // This is the only way that we can do full validation with a hooks package.
+
+const (
+	CommandName = "ictcc"
+)
+
+var (
+	underscoreCollapser = regexp.MustCompile(`_+`)
+)
+
+type specMetadata struct {
+	// Language is name of the language.
+	Language string
+
+	// Version is the version of the language.
+	Version string
+
+	// InvocationArgs are the arguments
+	InvocationArgs string
+}
+
+func createTemplateFillData(spec Spec, md specMetadata, pkgName string) cgData {
+	// fill initial from metadata
+
+	data := cgData{
+		FrontendPackage: pkgName,
+		Lang:            md.Language,
+		Version:         md.Version,
+		Command:         CommandName,
+		CommandArgs:     md.InvocationArgs,
+	}
+
+	// fill classes (also save their cgClass)
+
+	tokCgClasses := map[string]cgClass{}
+	for _, class := range spec.Tokens {
+		varName := tokenClassVarName(class)
+
+		classData := cgClass{
+			Name:  varName,
+			ID:    class.ID(),
+			Human: class.Human(),
+		}
+
+		tokCgClasses[class.ID()] = classData
+
+		data.Classes = append(data.Classes, classData)
+	}
+
+	// fill patterns
+
+	tokMap := spec.ClassMap()
+	for state := range spec.Patterns {
+		cgStateData := cgStatePatterns{State: state}
+		statePats := spec.Patterns[state]
+
+		seenToks := box.NewStringSet()
+		for _, pat := range statePats {
+			entry := cgPatternEntry{
+				Priority: pat.Priority,
+				Regex:    pat.Regex.String(),
+			}
+
+			// figure out our action string
+			// TODO: kind of fragile, directly putting code in as a string,
+			// probably should be templated, but works for now
+			switch pat.Action.Type {
+			case lex.ActionScan:
+				tokData := tokCgClasses[pat.Action.ClassID]
+				entry.Action = fmt.Sprintf("lex.LexAs(%s.ID())", tokData.Name)
+			case lex.ActionScanAndState:
+				tokData := tokCgClasses[pat.Action.ClassID]
+				entry.Action = fmt.Sprintf("lex.LexAndSwapState(%s.ID(), %q)", tokData.Name, pat.Action.State)
+			case lex.ActionState:
+				entry.Action = fmt.Sprintf("lex.SwapState(%q)", pat.Action.State)
+			case lex.ActionNone:
+				entry.Action = "lex.Discard()"
+			}
+
+			// register any token class used in the pattern
+			if pat.Action.Type == lex.ActionScan || pat.Action.Type == lex.ActionScanAndState {
+				if !seenToks.Has(pat.Action.ClassID) {
+					tok := tokMap[pat.Action.ClassID]
+					tokData := tokCgClasses[tok.ID()]
+					seenToks.Add(tok.ID())
+					cgStateData.Classes = append(cgStateData.Classes, tokData)
+				}
+			}
+		}
+
+		if state == "" {
+			data.Patterns.DefaultState = cgStateData
+		} else {
+			data.Patterns.NonDefaultStates = append(data.Patterns.NonDefaultStates, cgStateData)
+		}
+	}
+
+	// fill rules
+
+	nts := spec.Grammar.PriorityNonTerminals()
+	for _, nt := range nts {
+		gRule := spec.Grammar.Rule(nt)
+		rData := cgRule{Head: gRule.NonTerminal}
+		for _, p := range gRule.Productions {
+			pData := cgGramProd{}
+			for _, sym := range p {
+				pData.Symbols = append(pData.Symbols, sym)
+			}
+			rData.Productions = append(rData.Productions, pData)
+		}
+
+		data.Rules = append(data.Rules, rData)
+	}
+
+	// fill bindings
+
+	// group all the bindings for node with same head together
+	bindingData := map[string]*cgBinding{}
+	// ... but also, preserve the order of the bindings
+	bindingOrder := []*cgBinding{}
+	for _, sdd := range spec.TranslationScheme {
+		bData, ok := bindingData[sdd.Rule.NonTerminal]
+		if !ok {
+			bData = &cgBinding{
+				Head: sdd.Rule.NonTerminal,
+			}
+			bindingData[sdd.Rule.NonTerminal] = bData
+			bindingOrder = append(bindingOrder, bData)
+		}
+
+		sdtsData := cgSDTSProd{
+			Attribute:   sdd.Attribute.Name,
+			Hook:        sdd.Hook,
+			Synthetic:   sdd.Attribute.Relation.Type == trans.RelHead,
+			ForRelType:  sdd.Attribute.Relation.Type.GoString(),
+			ForRelIndex: sdd.Attribute.Relation.Index,
+		}
+
+		// fill symbols from the only production
+		for _, sym := range sdd.Rule.Productions[0] {
+			sdtsData.Symbols = append(sdtsData.Symbols, sym)
+		}
+
+		// fill args
+		for _, arg := range sdd.Args {
+			argData := cgArg{
+				RelType:   arg.Relation.Type.GoString(),
+				RelIndex:  arg.Relation.Index,
+				Attribute: arg.Name,
+			}
+			sdtsData.Args = append(sdtsData.Args, argData)
+		}
+
+		bData.Productions = append(bData.Productions, sdtsData)
+	}
+	// now add all the bindings to the data in order
+	for _, b := range bindingOrder {
+		data.Bindings = append(data.Bindings, *b)
+	}
+
+	// done, return finished data
+	return data
+}
+
+// codegenData for template fill.
+type cgData struct {
+	FrontendPackage string
+	Lang            string
+	Version         string
+	IRAttribute     string
+	Command         string
+	CommandArgs     string
+	Classes         []cgClass
+	Patterns        cgPatterns
+	Rules           []cgRule
+	Bindings        []cgBinding
+}
+
+type cgPatterns struct {
+	DefaultState     cgStatePatterns
+	NonDefaultStates []cgStatePatterns
+}
+
+type cgStatePatterns struct {
+	State   string
+	Classes []cgClass
+	Entries []cgPatternEntry
+}
+
+type cgPatternEntry struct {
+	Regex    string
+	Action   string
+	Priority int
+}
+
+type cgBinding struct {
+	Head        string
+	Productions []cgSDTSProd
+}
+
+type cgSDTSProd struct {
+	Symbols     []string
+	Attribute   string
+	Hook        string
+	Args        []cgArg
+	Synthetic   bool
+	ForRelType  string
+	ForRelIndex int
+}
+
+type cgArg struct {
+	RelType   string
+	RelIndex  int
+	Attribute string
+}
+
+type cgRule struct {
+	Head        string
+	Productions []cgGramProd
+}
+
+type cgGramProd struct {
+	Symbols []string
+}
+
+type cgClass struct {
+	Name  string
+	ID    string
+	Human string
+}
+
+func tokenClassVarName(class types.TokenClass) string {
+	nameRunes := []rune{}
+
+	for _, ch := range class.ID() {
+		if ('A' <= ch && ch <= 'Z') || ('a' <= ch && ch <= 'z') || ('0' <= ch && ch <= '9') || ch == '_' {
+			nameRunes = append(nameRunes, ch)
+		} else if ch == '-' || unicode.IsSpace(ch) {
+			nameRunes = append(nameRunes, '_')
+		} else {
+			// can we get a symbol name?
+			chName := runenames.Name(ch)
+
+			// how many words is the rune? you get up to 3.
+			words := strings.Split(chName, " ")
+			if len(words) > 3 {
+				// we only want the first 3 words
+				words = words[:3]
+			}
+			chName = strings.Join(words, "_")
+			nameRunes = append(nameRunes, []rune(chName)...)
+		}
+	}
+
+	// collapse all runs of underscores
+	name := underscoreCollapser.ReplaceAllString(string(nameRunes), "_")
+	// trim leading and trailing underscores
+	name = strings.Trim(name, "_")
+
+	fullName := "TC"
+	// split by underscores and do a title case on each word
+	titler := cases.Title(language.AmericanEnglish)
+	words := strings.Split(name, "_")
+	for _, word := range words {
+		theWord := []byte(word)
+		_, _, err := titler.Transform(theWord, theWord, true)
+		if err != nil {
+			panic(err)
+		}
+
+		fullName += string(theWord)
+	}
+
+	return fullName
+}
 
 // asynchronounsly copy the package to the target directory. returns non-nil
 // error if scanning the package and directory creation was successful. later,

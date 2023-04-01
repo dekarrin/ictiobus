@@ -43,15 +43,15 @@ type FrontendOptions struct {
 // scheme in the frontend and the external code executed in the backend. The
 // opts parameter allows options to be set on the frontend for debugging and
 // other purposes. If opts is nil, it is treated as an empty FrontendOptions.
-func Frontend(hooks map[string]trans.AttributeSetter, opts *FrontendOptions) ictiobus.Frontend[{{ .IRType }}] {
+func Frontend[IRTYPE any](hooks map[string]trans.AttributeSetter, opts *FrontendOptions) ictiobus.Frontend[IRType] {
     var feOpts FrontendOptions
     
     if opts != nil {
         feOpts = *opts
     }
 
-    fe := ictiobus.Frontend[{{ .IRType }}]{
-        Language: "{{ .LangCanonical }}",
+    fe := ictiobus.Frontend[IRType]{
+        Language: "{{ .Lang }}",
         Version: "{{ .Version }}",
         IRAttribute: "{{ .IRAttribute }}",
         Lexer: Lexer(!feOpts.LexerEager),
