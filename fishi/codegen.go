@@ -28,7 +28,20 @@ import (
 
 const (
 	CommandName = "ictcc"
+)
 
+// Names of each component of the generated compiler. Each component
+// represents one file that is generated.
+const (
+	ComponentTokens   = "tokens"
+	ComponentLexer    = "lexer"
+	ComponentParser   = "parser"
+	ComponentSDTS     = "sdts"
+	ComponentFrontend = "frontend"
+)
+
+// Names of each file that is generated.
+const (
 	GeneratedTokensFilename   = "tokens.ict.go"
 	GeneratedLexerFilename    = "lexer.ict.go"
 	GeneratedParserFilename   = "parser.ict.go"
@@ -36,10 +49,8 @@ const (
 	GeneratedFrontendFilename = "frontend.ict.go"
 )
 
+// Default template strings for each component of the generated compiler.
 var (
-	underscoreCollapser = regexp.MustCompile(`_+`)
-	titleCaser          = cases.Title(language.AmericanEnglish)
-
 	//go:embed templates/tokens.go.tmpl
 	TemplateTokens string
 
@@ -56,10 +67,50 @@ var (
 	TemplateFrontend string
 )
 
+var (
+	underscoreCollapser = regexp.MustCompile(`_+`)
+	titleCaser          = cases.Title(language.AmericanEnglish)
+
+	// order in which components of the generated compiler (files) are created.
+	codegenOrder = []string{
+		ComponentTokens,
+		ComponentLexer,
+		ComponentParser,
+		ComponentSDTS,
+		ComponentFrontend,
+	}
+
+	defaultTemplates = map[string]string{
+		ComponentTokens:   TemplateTokens,
+		ComponentLexer:    TemplateLexer,
+		ComponentParser:   TemplateParser,
+		ComponentSDTS:     TemplateSDTS,
+		ComponentFrontend: TemplateFrontend,
+	}
+)
+
+type CodegenOptions struct {
+	// DumpPreFormat will dump the generated code before it is formatted.
+	DumpPreFormat bool
+
+	// TemplateFiles is a map of template names to a path to a custom template
+	// file for that template. If entries are detected under the key of one of
+	// the ComponentX constants, the path in it is parsed as a template file and
+	// used for outputting the generated code for that component instead of the
+	// default embedded template.
+	TemplateFiles map[string]string
+}
+
 // GenerateCompilerGo generates the source code for a compiler that can handle a
 // fishi spec. The source code is placed in the given directory. This does *not*
 // copy the hooks package, it only outputs the compiler code.
-func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, dumpPreFormat bool) error {
+//
+// If opts is nil, the default options will be used.
+func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, opts *CodegenOptions) error {
+	if opts == nil {
+		opts = &CodegenOptions{}
+	}
+
 	data := createTemplateFillData(spec, md, pkgName)
 
 	err := os.MkdirAll(pkgDir, 0755)
@@ -79,23 +130,30 @@ func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, dump
 		"quote": func(s string) string {
 			return fmt.Sprintf("%q", s)
 		},
+		"rquote": func(s string) string {
+			s = strings.ReplaceAll(s, "`", "` + \"`\" + `")
+			return fmt.Sprintf("`%s`", s)
+		},
 	}
 
-	renderFiles := []struct {
-		name     string
-		tmpl     string
-		filename string
-	}{
-		{"tokens", TemplateTokens, GeneratedTokensFilename},
-		{"lexer", TemplateLexer, GeneratedLexerFilename},
-		{"parser", TemplateParser, GeneratedParserFilename},
-		{"sdts", TemplateSDTS, GeneratedSDTSFilename},
-		{"frontend", TemplateFrontend, GeneratedFrontendFilename},
+	renderFiles := map[string]codegenTemplate{
+		ComponentTokens:   {nil, GeneratedTokensFilename},
+		ComponentLexer:    {nil, GeneratedLexerFilename},
+		ComponentParser:   {nil, GeneratedParserFilename},
+		ComponentSDTS:     {nil, GeneratedSDTSFilename},
+		ComponentFrontend: {nil, GeneratedFrontendFilename},
 	}
 
-	// render the template files
-	for _, rf := range renderFiles {
-		err = renderTemplateToFile(rf.name, rf.tmpl, fnMap, data, filepath.Join(pkgDir, rf.filename), dumpPreFormat)
+	// initialize templates
+	err = initTemplates(renderFiles, fnMap, opts.TemplateFiles)
+	if err != nil {
+		return err
+	}
+
+	// finally, render the template files
+	for _, comp := range codegenOrder {
+		rf := renderFiles[comp]
+		err = renderTemplateToFile(rf.tmpl, data, filepath.Join(pkgDir, rf.outFile), opts.DumpPreFormat)
 		if err != nil {
 			return err
 		}
@@ -105,15 +163,58 @@ func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, dump
 
 }
 
-func renderTemplateToFile(name, tmpl string, fns template.FuncMap, data interface{}, dest string, dumpPreFormat bool) error {
-	tokTemp, err := template.New(name).Funcs(fns).Parse(tmpl)
-	if err != nil {
-		return fmt.Errorf("parsing %s template: %w", name, err)
+func initTemplates(renderFiles map[string]codegenTemplate, fnMap template.FuncMap, customTemplateFiles map[string]string) error {
+	// initialize the templates and parse the template for each, either from the
+	// default embedded template string or from the specified custom template
+	// file on disk.
+	for _, comp := range codegenOrder {
+		var err error
+
+		rf := renderFiles[comp]
+
+		rf.tmpl = template.New(comp).Funcs(fnMap)
+
+		if customTemplatePath, ok := customTemplateFiles[comp]; ok {
+			// custom template file specified, load it
+			fileBasename := filepath.Base(customTemplatePath)
+
+			// avoid use of Template.ParseFiles because according to docs it
+			// relies on the template having the same name as the basename of at
+			// least one of the files, which is not going to be the case here.
+			templateBytes, err := os.ReadFile(customTemplatePath)
+			if err != nil {
+				return fmt.Errorf("loading custom %s template %s: %w", comp, fileBasename, err)
+			}
+
+			templateStr := string(templateBytes)
+
+			// TODO: p shore it's not actually necessary to reassign the results
+			// of calling Parse(); check l8er.
+			rf.tmpl, err = rf.tmpl.Parse(templateStr)
+			if err != nil {
+				return fmt.Errorf("parsing custom %s template %s: %w", comp, fileBasename, err)
+			}
+		} else {
+			// use default embedded template string
+
+			// TODO: p shore it's not actually necessary to reassign the results
+			// of calling Parse(); check l8er.
+			rf.tmpl, err = rf.tmpl.Parse(defaultTemplates[comp])
+			if err != nil {
+				return fmt.Errorf("parsing default %s template: %w", comp, err)
+			}
+		}
+
+		renderFiles[comp] = rf
 	}
 
+	return nil
+}
+
+func renderTemplateToFile(tmpl *template.Template, data interface{}, dest string, dumpPreFormat bool) error {
 	var tokBuf bytes.Buffer
-	if err := tokTemp.Execute(&tokBuf, data); err != nil {
-		return fmt.Errorf("generating %s file: %w", name, err)
+	if err := tmpl.Execute(&tokBuf, data); err != nil {
+		return fmt.Errorf("generating %s file: %w", tmpl.Name(), err)
 	}
 	if dumpPreFormat {
 		fmt.Printf("\n=== %s ===\n", dest)
@@ -127,12 +228,12 @@ func renderTemplateToFile(name, tmpl string, fns template.FuncMap, data interfac
 	}
 	formatted, err := format.Source(tokBuf.Bytes())
 	if err != nil {
-		return fmt.Errorf("formatting %s file: %w", name, err)
+		return fmt.Errorf("formatting %s file: %w", tmpl.Name(), err)
 	}
 	// write the file out
 	err = os.WriteFile(dest, formatted, 0666)
 	if err != nil {
-		return fmt.Errorf("writing %s file: %w", name, err)
+		return fmt.Errorf("writing %s file: %w", tmpl.Name(), err)
 	}
 	return nil
 }
@@ -204,6 +305,8 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
 					cgStateData.Classes = append(cgStateData.Classes, tokData)
 				}
 			}
+
+			cgStateData.Entries = append(cgStateData.Entries, entry)
 		}
 
 		if state == "" {
@@ -278,6 +381,11 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
 
 	// done, return finished data
 	return data
+}
+
+type codegenTemplate struct {
+	tmpl    *template.Template
+	outFile string
 }
 
 // codegenData for template fill.

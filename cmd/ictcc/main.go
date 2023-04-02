@@ -103,6 +103,26 @@ Flags:
 		to the formatter. This allows debugging of the template files when
 		editing them, since they must be valid go code to be formatted.
 
+	-tmpl-tokens FILE
+		Use the provided file as the template for outputting the generated
+		tokens file instead of the default embedded within the binary.
+
+	-tmpl-lexer FILE
+		Use the provided file as the template for outputting the generated lexer
+		file instead of the default embedded within the binary.
+
+	-tmpl-parser FILE
+		Use the provided file as the template for outputting the generated
+		parser file instead of the default embedded within the binary.
+
+	-tmpl-sdts FILE
+		Use the provided file as the template for outputting the generated SDTS
+		file instead of the default embedded within the binary.
+
+	-tmpl-frontend FILE
+		Use the provided file as the template for outputting the generated
+		frontend file instead of the default embedded within the binary.
+
 Each markdown file given is scanned for fishi codeblocks. They are all combined
 into a single fishi code block and parsed. Each markdown file is parsed
 separately but their resulting ASTs are combined into a single list of FISHI
@@ -193,6 +213,12 @@ var (
 	valSDTSFirstOnly  *bool = flag.Bool("val-sdts-first", false, "Show only the first error found in SDTS validation")
 	valSDTSSkip       *int  = flag.Int("val-sdts-skip", 0, "Skip the first N errors found in SDTS validation in output")
 
+	tmplTokens *string = flag.String("tmpl-tokens", "", "A template file to replace the embedded tokens template with")
+	tmplLexer  *string = flag.String("tmpl-lexer", "", "A template file to replace the embedded lexer template with")
+	tmplParser *string = flag.String("tmpl-parser", "", "A template file to replace the embedded parser template with")
+	tmplSDTS   *string = flag.String("tmpl-sdts", "", "A template file to replace the embedded SDTS template with")
+	tmplFront  *string = flag.String("tmpl-frontend", "", "A template file to replace the embedded frontend template with")
+
 	lexerTrace  *bool = flag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
 	parserTrace *bool = flag.Bool("debug-parser", false, "Print the parser trace to stdout")
 
@@ -225,6 +251,8 @@ func init() {
 }
 
 func main() {
+	// basic function to check if panic is happening and recover it while also
+	// preserving possibly-set exit code.
 	defer func() {
 		if panicErr := recover(); panicErr != nil {
 			// we are panicking, make sure we dont lose the panic just because
@@ -235,6 +263,7 @@ func main() {
 		}
 	}()
 
+	// gather options and arguments
 	invocation := strings.Join(os.Args[1:], " ")
 
 	flag.Parse()
@@ -272,6 +301,31 @@ func main() {
 		ParserTrace:       *parserTrace,
 	}
 
+	cgOpts := fishi.CodegenOptions{
+		DumpPreFormat: *dumpPreFormat,
+		TemplateFiles: map[string]string{},
+	}
+	if *tmplTokens != "" {
+		cgOpts.TemplateFiles[fishi.ComponentTokens] = *tmplTokens
+	}
+	if *tmplLexer != "" {
+		cgOpts.TemplateFiles[fishi.ComponentLexer] = *tmplLexer
+	}
+	if *tmplParser != "" {
+		cgOpts.TemplateFiles[fishi.ComponentParser] = *tmplParser
+	}
+	if *tmplSDTS != "" {
+		cgOpts.TemplateFiles[fishi.ComponentSDTS] = *tmplParser
+	}
+	if *tmplFront != "" {
+		cgOpts.TemplateFiles[fishi.ComponentFrontend] = *tmplFront
+	}
+	if len(cgOpts.TemplateFiles) == 0 {
+		// just nil it
+		cgOpts.TemplateFiles = nil
+	}
+
+	// now that args are gathered, parse markdown files into an AST
 	var joinedAST *fishi.AST
 
 	for _, file := range args {
@@ -317,6 +371,7 @@ func main() {
 	}
 
 	// attempt to turn AST into a fishi.Spec
+
 	spec, warnings, err := fishi.NewSpec(*joinedAST)
 	// warnings may be valid even if there is an error
 	if len(warnings) > 0 {
@@ -357,7 +412,7 @@ func main() {
 		// pkg because that is the only way to validate the SDTS.
 
 		// do processing of the AST here
-		err := fishi.GenerateCompilerGo(spec, md, *pkg, *dest, *dumpPreFormat)
+		err := fishi.GenerateCompilerGo(spec, md, *pkg, *dest, &cgOpts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 			returnCode = ExitErrGeneration
