@@ -13,6 +13,7 @@ import (
 	"unicode"
 
 	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
@@ -269,7 +270,8 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
 	// fill patterns
 
 	tokMap := spec.ClassMap()
-	for state := range spec.Patterns {
+
+	for _, state := range textfmt.OrderedKeys(spec.Patterns) {
 		cgStateData := cgStatePatterns{State: state}
 		statePats := spec.Patterns[state]
 

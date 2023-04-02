@@ -30,16 +30,15 @@ func Lexer(lazy bool) ictiobus.Lexer {
 {{range .Patterns.DefaultState.Entries -}}
 {{"    "}}lx.AddPattern({{ .Regex | rquote }}, {{ .Action }}, "", {{ .Priority }})
 {{end}}
-{{- end}}
-{{range .Patterns.NonDefaultStates -}}
+{{- end -}}
+{{range .Patterns.NonDefaultStates}}
 {{$state := .State}}
 {{"    "}}// {{ .State }} state
 {{range .Classes -}}
 {{"    "}}lx.RegisterClass({{ .Name }}, "{{$state}}")
 {{end}}
-
-    {{range .Entries -}}
-    lx.AddPattern({{ .Regex | rquote }}, {{ .Action }}, "{{$state}}", {{ .Priority }})
+{{range .Entries -}}
+{{"    "}}lx.AddPattern({{ .Regex | rquote }}, {{ .Action }}, "{{$state}}", {{ .Priority }})
 {{end}}
 {{- end}}
 
