@@ -56,7 +56,7 @@ func Frontend[IRType any](hooks map[string]trans.AttributeSetter, opts *Frontend
         IRAttribute: "{{ .IRAttribute }}",
         Lexer: Lexer(!feOpts.LexerEager),
         Parser: Parser(),
-        Translator: Translator(),
+        SDT: SDTS(),
     }
     
     // Add traces if requested

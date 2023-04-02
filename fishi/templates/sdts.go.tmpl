@@ -16,10 +16,9 @@ import (
 // frontend.
 func SDTS() ictiobus.SDTS {
     sdts := ictiobus.NewSDTS()
-
 {{ range .Bindings }}
     sdtsBind{{ .Head | upperCamel }}(sdts)
-{{ end }}
+{{- end }}
 
     return sdts
 }
@@ -28,29 +27,27 @@ func SDTS() ictiobus.SDTS {
 func sdtsBind{{ .Head | upperCamel }}(sdts ictiobus.SDTS) {
 {{- $head := .Head -}}
 {{ range .Productions }}
-        
-{{ if .Synthetic }}
-
+{{- if .Synthetic }}
     sdts.BindSynthesizedAttribute(
-{{ else }}
+{{- else }}
     sdts.BindInheritedAttribute(
-{{ end }}
-        "{{ $head }}", []string{ {{- range .Symbols }}"{{ . }}", {{ end -}} },
+{{- end }}
+        "{{ $head }}", []string{ {{- range .Symbols }}"{{ . }}", {{- end -}} },
         "{{ .Attribute }}",
         "{{ .Hook }}",
-{{ if .Args }}
+{{- if .Args }}
         []trans.AttrRef{
 {{ range .Args -}}
-{{ "                " }}{Relation: trans.NodeRelation{Type: trans.{{ .RelType }}, Index: {{ .RelIndex }} }, Name: "{{ .Attribute }}"},
+{{ "            " }}{Relation: trans.NodeRelation{Type: trans.{{ .RelType }}, Index: {{ .RelIndex -}} }, Name: "{{ .Attribute }}"},
 {{ end -}}
 {{ "        " -}} },
-{{ else }}
+{{- else }}
         nil,
 {{ end -}}
 {{ if not .Synthetic }}
         trans.NodeRelation{Type: trans.{{ .ForRelType }}, Index: {{ .ForRelIndex }} },
+{{ end }}
+    )
 {{ end -}}
-{{"    " -}})
-{{- end }}
 }
 {{ end }}

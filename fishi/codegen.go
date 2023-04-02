@@ -16,7 +16,6 @@ import (
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/trans"
-	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/rosed"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -120,14 +119,7 @@ func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, opts
 	}
 
 	fnMap := template.FuncMap{
-		"upperCamel": func(s string) string {
-			words := strings.Split(s, "_")
-			upperCamel := ""
-			for _, word := range words {
-				upperCamel += string(titleCaser.String(word))
-			}
-			return upperCamel
-		},
+		"upperCamel": safeIdentifierName,
 		"quote": func(s string) string {
 			return fmt.Sprintf("%q", s)
 		},
@@ -254,7 +246,7 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
 
 	tokCgClasses := map[string]cgClass{}
 	for _, class := range spec.Tokens {
-		varName := tokenClassVarName(class)
+		varName := safeIdentifierName(class.ID())
 
 		classData := cgClass{
 			Name:  varName,
@@ -457,10 +449,10 @@ type cgClass struct {
 	Human string
 }
 
-func tokenClassVarName(class types.TokenClass) string {
+func safeIdentifierName(str string) string {
 	nameRunes := []rune{}
 
-	for _, ch := range class.ID() {
+	for _, ch := range str {
 		if ('A' <= ch && ch <= 'Z') || ('a' <= ch && ch <= 'z') || ('0' <= ch && ch <= '9') || ch == '_' {
 			nameRunes = append(nameRunes, ch)
 		} else if ch == '-' || unicode.IsSpace(ch) {
