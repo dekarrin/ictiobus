@@ -26,8 +26,8 @@ func SDTS() ictiobus.SDTS {
 
 {{ range .Bindings }}
 func sdtsBind{{ .Head | upperCamel }}(sdts ictiobus.SDTS) {
-    {{- $head := .Head -}}
-    {{ range .Productions }}
+{{- $head := .Head -}}
+{{ range .Productions }}
         
 {{ if .Synthetic }}
 
@@ -40,17 +40,17 @@ func sdtsBind{{ .Head | upperCamel }}(sdts ictiobus.SDTS) {
         "{{ .Hook }}",
 {{ if .Args }}
         []trans.AttrRef{
-    {{ range .Args }}
-                {Relation: trans.NodeRelation{Type: trans.{{ .RelType }}, Index: {{ .RelIndex }} }, Name: "{{ .Attribute }}"},
-    {{ end }}
-        },
+{{ range .Args -}}
+{{ "                " }}{Relation: trans.NodeRelation{Type: trans.{{ .RelType }}, Index: {{ .RelIndex }} }, Name: "{{ .Attribute }}"},
+{{ end -}}
+{{ "        " -}} },
 {{ else }}
         nil,
-{{ end }}
+{{ end -}}
 {{ if not .Synthetic }}
         trans.NodeRelation{Type: trans.{{ .ForRelType }}, Index: {{ .ForRelIndex }} },
-{{ end }}
-    )
-    {{ end }}
+{{ end -}}
+{{"    " -}})
+{{- end }}
 }
 {{ end }}

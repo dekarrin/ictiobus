@@ -315,7 +315,7 @@ func main() {
 		cgOpts.TemplateFiles[fishi.ComponentParser] = *tmplParser
 	}
 	if *tmplSDTS != "" {
-		cgOpts.TemplateFiles[fishi.ComponentSDTS] = *tmplParser
+		cgOpts.TemplateFiles[fishi.ComponentSDTS] = *tmplSDTS
 	}
 	if *tmplFront != "" {
 		cgOpts.TemplateFiles[fishi.ComponentFrontend] = *tmplFront
