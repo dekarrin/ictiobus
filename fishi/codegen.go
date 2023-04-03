@@ -1,10 +1,12 @@
 package fishi
 
 import (
+	"bufio"
 	"bytes"
 	_ "embed"
 	"fmt"
 	"go/format"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -12,6 +14,7 @@ import (
 	"text/template"
 	"unicode"
 
+	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
@@ -20,7 +23,6 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/runenames"
-	"golang.org/x/tools/go/packages"
 )
 
 // file codegen implements conversion of a fishi spec to a series of go files.
@@ -99,6 +101,114 @@ type CodegenOptions struct {
 	// used for outputting the generated code for that component instead of the
 	// default embedded template.
 	TemplateFiles map[string]string
+}
+
+// GeneratedCodeInfo contains information about the generated code.
+type GeneratedCodeInfo struct {
+	// MainFile is the path to the main executable file, relative to Path.
+	MainFile string
+
+	// Path is the location of the root of the generated code.
+	Path string
+}
+
+// GenerateTestCompiler generates (but does not yet run) a test compiler for the
+// given spec and pre-created parser, using the provided hooks package. Once it
+// is created, it will be able to be executed by calling go run on the provided
+// mainfile from the outDir.
+func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, opts *CodegenOptions) (GeneratedCodeInfo, error) {
+	gci := GeneratedCodeInfo{}
+	var fePkgName = "sim" + strings.ToLower(md.Language)
+
+	// what is the name of our hooks package? find out by reading the first go
+	// file in the package.
+	hooksDirItems, err := os.ReadDir(hooksPkgDir)
+	if err != nil {
+		return gci, fmt.Errorf("reading hooks package dir: %w", err)
+	}
+
+	var hooksPkgName string
+	for _, item := range hooksDirItems {
+		if !item.IsDir() && strings.ToLower(filepath.Ext(item.Name())) == ".go" {
+			// read the file to find the package name
+			goFilePath := filepath.Join(hooksPkgDir, item.Name())
+			goFile, err := os.Open(goFilePath)
+			if err != nil {
+				return gci, fmt.Errorf("reading go file in hooks package: %w", err)
+			}
+
+			// buffered reading
+			r := bufio.NewReader(goFile)
+
+			// now find the package name in the file
+			for hooksPkgName == "" {
+				str, err := r.ReadString('\n')
+				strTrimmed := strings.TrimSpace(str)
+
+				// is it a line starting with "package"?
+				if strings.HasPrefix(strTrimmed, "package") {
+					lineItems := strings.Split(strTrimmed, " ")
+					if len(lineItems) == 2 {
+						hooksPkgName = lineItems[1]
+						break
+					}
+				}
+
+				// ofc if err is somefin else
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					return gci, fmt.Errorf("reading go file in hooks package: %w", err)
+				}
+			}
+		}
+
+		if hooksPkgName != "" {
+			break
+		}
+	}
+	if hooksPkgName == "" {
+		return gci, fmt.Errorf("could not find package name for hooks package; make sure files are gofmt'd")
+	}
+	if hooksPkgName == fePkgName {
+		// double it to avoid name collision
+		fePkgName += "_" + fePkgName
+	}
+
+	// create a temporary directory to save things in
+	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("ictcc-test-%s", strings.ToLower(md.Language)))
+	if err != nil {
+		return gci, fmt.Errorf("creating temp dir: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// start copying the hooks package
+	hooksDestPath := filepath.Join(tmpDir, "internal", hooksPkgName)
+	hooksDone, err := copyDirToTargetAsync(hooksPkgDir, hooksDestPath)
+	if err != nil {
+		return gci, fmt.Errorf("copying hooks package: %w", err)
+	}
+
+	// generate the compiler code
+	fePkgPath := filepath.Join(tmpDir, "internal", fePkgName)
+	err = GenerateCompilerGo(spec, md, fePkgName, fePkgPath, opts)
+	if err != nil {
+		return gci, fmt.Errorf("generating compiler: %w", err)
+	}
+
+	// since GenerateCompilerGo ensures the directory exists, we can now copy
+	// the encoded parser into it as well.
+	parserPath := filepath.Join(fePkgPath, "parser.cff")
+	err = ictiobus.SaveParserToDisk(p, parserPath)
+	if err != nil {
+		return gci, fmt.Errorf("writing parser: %w", err)
+	}
+
+	// wait for the hooks package to be copied
+	<-hooksDone
+
+	return nil
 }
 
 // GenerateCompilerGo generates the source code for a compiler that can handle a
@@ -491,19 +601,28 @@ func safeIdentifierName(str string) string {
 // error if scanning the package and directory creation was successful. later,
 // pushes the first error that occurs while copying the contents of a file to
 // the channel, or nil to the channel if the copy was successful.
-func copyPackageToTargetAsync(goPackage string, targetDir string) (copyResult chan error, err error) {
-	pkgs, err := packages.Load(nil, goPackage)
+//
+// TODO: this should be a go dir, not a package.
+func copyDirToTargetAsync(srcDir string, targetDir string) (copyResult chan error, err error) {
+	/*
+		pkgs, err := packages.Load(nil, goPackage)
+		if err != nil {
+			return nil, fmt.Errorf("scanning package: %w", err)
+		}
+		if len(pkgs) != 1 {
+			return nil, fmt.Errorf("expected one package, got %d", len(pkgs))
+		}
+
+		pkg := pkgs[0]
+
+		// Permissions:
+		// rwxr-xr-x = 755*/
+
+	// read the list of files in the source directory
+	srcFiles, err := os.ReadDir(srcDir)
 	if err != nil {
-		return nil, fmt.Errorf("scanning package: %w", err)
+		return nil, fmt.Errorf("reading source dir %q: %w", srcDir, err)
 	}
-	if len(pkgs) != 1 {
-		return nil, fmt.Errorf("expected one package, got %d", len(pkgs))
-	}
-
-	pkg := pkgs[0]
-
-	// Permissions:
-	// rwxr-xr-x = 755
 
 	err = os.MkdirAll(targetDir, 0755)
 	if err != nil {
@@ -512,21 +631,42 @@ func copyPackageToTargetAsync(goPackage string, targetDir string) (copyResult ch
 
 	ch := make(chan error)
 	go func() {
-		for _, file := range pkg.GoFiles {
-			baseFilename := filepath.Base(file)
+		var recursions []chan error
 
-			fileData, err := os.ReadFile(file)
-			if err != nil {
-				ch <- fmt.Errorf("reading source file %s: %w", baseFilename, err)
-				return
+		for _, dirEntry := range srcFiles {
+			file := filepath.Join(srcDir, dirEntry.Name())
+			if dirEntry.IsDir() {
+				// do it recursively.
+				recursion, err := copyDirToTargetAsync(file, filepath.Join(targetDir, dirEntry.Name()))
+				if err != nil {
+					ch <- err
+					return
+				}
+
+				recursions = append(recursions, recursion)
+			} else {
+				fileData, err := os.ReadFile(file)
+				if err != nil {
+					ch <- fmt.Errorf("reading source file %s: %w", file, err)
+					return
+				}
+
+				dest := filepath.Join(targetDir, dirEntry.Name())
+
+				// write the file to the dest path
+				err = os.WriteFile(dest, fileData, 0644)
+				if err != nil {
+					ch <- fmt.Errorf("writing source file %s: %w", dest, err)
+					return
+				}
 			}
+		}
 
-			dest := filepath.Join(targetDir, baseFilename)
-
-			// write the file to the dest path
-			err = os.WriteFile(dest, fileData, 0644)
+		// block until all the recursions are done
+		for _, recursion := range recursions {
+			err := <-recursion
 			if err != nil {
-				ch <- fmt.Errorf("writing source file %s: %w", baseFilename, err)
+				ch <- err
 				return
 			}
 		}

@@ -388,7 +388,7 @@ func main() {
 	}
 	// now check err
 	if err != nil {
-		fmt.Printf("\n")
+		fmt.Fprintf(os.Stderr, "\n")
 		// TODO: at this point, it would be v nice to have file in the
 		// token/syntax error output. Allow specification of file in anyfin that
 		// can return a SyntaxError and have all token sources include that.

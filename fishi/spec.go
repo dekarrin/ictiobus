@@ -67,6 +67,7 @@ func (spec Spec) ValidateSDTS(opts trans.ValidationOptions) error {
 	// validate the SDTS. the first defined attribute will be the IR attribute.
 	irAttrName := spec.TranslationScheme[0].Attribute.Name
 
+	// TODO: except we would need to check hook here.
 	sdtsErr := sdts.Validate(spec.Grammar, irAttrName, opts, valProd)
 	if sdtsErr != nil {
 		return fmt.Errorf("SDTS validation error: %w", sdtsErr)
