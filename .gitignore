@@ -11,6 +11,9 @@
 /.vscode
 /.idea
 
+
+# default frontend generation
+/fe
 # we are a go mod household tyvm
 /vendor
 

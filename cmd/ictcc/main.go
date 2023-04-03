@@ -152,6 +152,29 @@ Flags:
 		default of trying each parser type in sequence from most restrictive to
 		least restrictive and using the first one found.
 
+	-hooks PATH
+		Gives the filesystem path to the directory containing the package that
+		the hooks table is in. This is required for live validation of simulated
+		parse trees, but may be omitted if SDTS validation is disabled.
+
+	-hooks-table NAME
+		Gives the expression to retrieve the hooks table from the hooks package,
+		relative to the package that it is in. The NAME must be an exported var
+		of type map[string]trans.AttributeSetter, or a function call that
+		returns such a value. Do not include the package prefix as part of this
+		expression; it will be automatically determined. The default value is
+		"HooksTable".
+
+	-ir TYPE
+		Gives the type of the intermediate representation returned by applying
+		the translation scheme to a parse tree. This is required for running
+		SDTS validation on simulated parse trees, but may be omitted if SDTS
+		validation is not enabled. Regardless, if set, the generated frontend
+		file will explicitly return ictiobus.Frontend[TYPE] instead of requiring
+		it to be declared at calltime of Frontend(). TYPE must be qualified with
+		the fully-qualified package name; e.g.
+		"github.com/dekarrin/ictiobus/fishi/syntax.Node".
+
 Each markdown file given is scanned for fishi codeblocks. They are all combined
 into a single fishi code block and parsed. Each markdown file is parsed
 separately but their resulting ASTs are combined into a single FISHI spec for a
@@ -275,6 +298,11 @@ var (
 	lexerTrace  *bool = flag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
 	parserTrace *bool = flag.Bool("debug-parser", false, "Print the parser trace to stdout")
 
+	hooksPath      *string = flag.String("hooks", "", "The path to the hooks directory to use for the generated parser. Required for SDTS validation.")
+	hooksTableName *string = flag.String("hooks-table", "HooksTable", "Function call or name of exported var in 'hooks' that has the hooks table.")
+
+	irType *string = flag.String("ir", "", "The fully-qualified type of IR to generate.")
+
 	version *bool = flag.Bool("version", false, "Print the version of ictcc and exit")
 )
 
@@ -363,6 +391,7 @@ func main() {
 
 	cgOpts := fishi.CodegenOptions{
 		DumpPreFormat: *dumpPreFormat,
+		IRType:        *irType,
 		TemplateFiles: map[string]string{},
 	}
 	if *tmplTokens != "" {
@@ -499,11 +528,16 @@ func main() {
 			return
 		}
 
+		fmt.Printf("Successfully generated %s parser from grammar\n", p.Type().String())
+
 		// create a test compiler and output it
 		if !*valSDTSOff {
+			if *irType == "" {
+				fmt.Fprintf(os.Stderr, "must specify IR type when validating SDTS")
+			}
 			// TODO: following should be args:
 			// hookExpr, hooksPkgDir, irType, irPackage
-			genInfo, err := fishi.GenerateTestCompiler(spec, md, p, filepath.Join("fishi", "syntax"), "HooksTable", "[]syntax.Block", "", &cgOpts)
+			genInfo, err := fishi.GenerateTestCompiler(spec, md, p, filepath.Join("fishi", "syntax"), *hooksTableName, cgOpts)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 				returnCode = ExitErrGeneration

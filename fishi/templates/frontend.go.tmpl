@@ -14,6 +14,9 @@ import (
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
+{{if .IRPackage}}
+    "{{ .IRPackage }}"
+{{end}}
 )
 
 // FrontendOptions allows options to be set on the frontend returned by
@@ -43,14 +46,22 @@ type FrontendOptions struct {
 // scheme in the frontend and the external code executed in the backend. The
 // opts parameter allows options to be set on the frontend for debugging and
 // other purposes. If opts is nil, it is treated as an empty FrontendOptions.
+{{- if .IRType}}
+func Frontend(hooks map[string]trans.AttributeSetter, opts *FrontendOptions) ictiobus.Frontend[{{ .IRType }}] {
+{{else}}
 func Frontend[IRType any](hooks map[string]trans.AttributeSetter, opts *FrontendOptions) ictiobus.Frontend[IRType] {
+{{end -}}
     var feOpts FrontendOptions
     
     if opts != nil {
         feOpts = *opts
     }
 
+{{if .IRType}}
     fe := ictiobus.Frontend[IRType]{
+{{else}}
+    fe := ictiobus.Frontend[{{ .IRType }}]{
+{{end}}
         Language: "{{ .Lang }}",
         Version: "{{ .Version }}",
         IRAttribute: "{{ .IRAttribute }}",

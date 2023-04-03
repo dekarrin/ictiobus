@@ -111,6 +111,12 @@ type CodegenOptions struct {
 	// used for outputting the generated code for that component instead of the
 	// default embedded template.
 	TemplateFiles map[string]string
+
+	// IRType is the fully-qualified type of the intermediate representation in
+	// the frontend. This is used to make the Frontend function return a
+	// specific type instead of requiring an explicit type instantiation when
+	// called.
+	IRType string
 }
 
 // GeneratedCodeInfo contains information about the generated code.
@@ -135,15 +141,20 @@ type GeneratedCodeInfo struct {
 // map[string]trans.AttributeSetter. It can be a function call, constant name,
 // or var name.
 //
-// irType must be set to the complete type (including package prefix) of the ir
-// in the frontend.
-//
-// If irType is in a package not already being imported (such as the hooks pkg),
-// irPackage must be set to the fully-qualified package name of the irType.
-func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, irType string, irPackage string, opts *CodegenOptions) (GeneratedCodeInfo, error) {
-	if opts == nil {
-		opts = &CodegenOptions{}
+// opts must be non-nil and IRType must be set.
+func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, opts CodegenOptions) (GeneratedCodeInfo, error) {
+	if opts.IRType == "" {
+		return GeneratedCodeInfo{}, fmt.Errorf("IRType must be set in options")
 	}
+
+	irParts := strings.Split(opts.IRType, ".")
+	if len(irParts) != 2 {
+		return GeneratedCodeInfo{}, fmt.Errorf("IRType must have fully-qualified package and type name")
+	}
+	irFQPackage := irParts[0]
+	irPkgParts := strings.Split(irFQPackage, "/")
+	irPackage := irPkgParts[len(irPkgParts)-1]
+	irType := irPackage + "." + irParts[1]
 
 	gci := GeneratedCodeInfo{}
 	var fePkgName = "sim" + strings.ToLower(md.Language)
@@ -204,8 +215,14 @@ func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 		fePkgName += "_" + fePkgName
 	}
 
+	safePkgIdent := func(s string) string {
+		s = safeTCIdentifierName(s)
+		s = s[2:] // remove initial "tc".
+		return strings.ToLower(s)
+	}
+
 	// create a temporary directory to save things in
-	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("ictcc-test-%s", strings.ToLower(md.Language)))
+	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("ictcc-test-%s", safePkgIdent(md.Language)))
 	if err != nil {
 		return gci, fmt.Errorf("creating temp dir: %w", err)
 	}
@@ -219,7 +236,7 @@ func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 
 	// generate the compiler code
 	fePkgPath := filepath.Join(tmpDir, "internal", fePkgName)
-	err = GenerateCompilerGo(spec, md, fePkgName, fePkgPath, opts)
+	err = GenerateCompilerGo(spec, md, fePkgName, fePkgPath, &opts)
 	if err != nil {
 		return gci, fmt.Errorf("generating compiler: %w", err)
 	}
@@ -232,15 +249,20 @@ func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 		return gci, fmt.Errorf("writing parser: %w", err)
 	}
 
+	// only fill in the ir package import if ir's package is not not the same as the hooks package
+	if irPackage == hooksPkgName {
+		irFQPackage = ""
+	}
+
 	// export template with main file
 	mainFillData := cgMainData{
-		BinPkg:            "github.com/dekarrin/ictiobus/langtest/" + strings.ToLower(safeIdentifierName(md.Language)),
-		BinName:           "test" + strings.ToLower(safeIdentifierName(md.Language)),
+		BinPkg:            "github.com/dekarrin/ictiobus/langtest/" + strings.ToLower(safePkgIdent(md.Language)),
+		BinName:           "test" + strings.ToLower(safePkgIdent(md.Language)),
 		BinVersion:        "(simulator version)",
 		HooksPkg:          hooksPkgName,
 		HooksTableExpr:    hooksExpr,
 		FrontendPkg:       fePkgName,
-		IRTypePackage:     irPackage,
+		IRTypePackage:     irFQPackage,
 		IRType:            irType,
 		IncludeSimulation: true,
 	}
@@ -299,7 +321,7 @@ func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, opts
 		opts = &CodegenOptions{}
 	}
 
-	data := createTemplateFillData(spec, md, pkgName)
+	data := createTemplateFillData(spec, md, pkgName, opts.IRType)
 
 	err := os.MkdirAll(pkgDir, 0755)
 	if err != nil {
@@ -341,7 +363,7 @@ func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, opts
 
 func createFuncMap() template.FuncMap {
 	return template.FuncMap{
-		"upperCamel": safeIdentifierName,
+		"upperCamel": safeTCIdentifierName,
 		"quote": func(s string) string {
 			return fmt.Sprintf("%q", s)
 		},
@@ -430,9 +452,8 @@ func renderTemplateToFile(tmpl *template.Template, data interface{}, dest string
 	return nil
 }
 
-func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
+func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType string) cgData {
 	// fill initial from metadata
-
 	data := cgData{
 		FrontendPackage: pkgName,
 		Lang:            md.Language,
@@ -441,11 +462,23 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
 		CommandArgs:     md.InvocationArgs,
 	}
 
+	// if IR type is specified, use it
+	if fqIRType != "" {
+
+		irParts := strings.Split(fqIRType, ".")
+		if len(fqIRType) == 2 {
+			fqPackage := irParts[0]
+			irPkgParts := strings.Split(fqPackage, "/")
+			data.IRPackage = irPkgParts[len(irPkgParts)-1]
+			data.IRType = data.IRPackage + "." + irParts[1]
+		}
+	}
+
 	// fill classes (also save their cgClass)
 
 	tokCgClasses := map[string]cgClass{}
 	for _, class := range spec.Tokens {
-		varName := safeIdentifierName(class.ID())
+		varName := safeTCIdentifierName(class.ID())
 
 		classData := cgClass{
 			Name:  varName,
@@ -600,6 +633,8 @@ type cgData struct {
 	Lang            string
 	Version         string
 	IRAttribute     string
+	IRType          string
+	IRPackage       string
 	Command         string
 	CommandArgs     string
 	Classes         []cgClass
@@ -661,7 +696,7 @@ type cgClass struct {
 	Human string
 }
 
-func safeIdentifierName(str string) string {
+func safeTCIdentifierName(str string) string {
 	nameRunes := []rune{}
 
 	for _, ch := range str {
