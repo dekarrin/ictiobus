@@ -147,26 +147,10 @@ func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 		return GeneratedCodeInfo{}, fmt.Errorf("IRType must be set in options")
 	}
 
-	optsIRType := opts.IRType
-	preIRType := ""
-	for strings.HasPrefix(optsIRType, "[]") || strings.HasPrefix(optsIRType, "*") {
-		if strings.HasPrefix(optsIRType, "[]") {
-			preIRType += "[]"
-			optsIRType = optsIRType[2:]
-		} else {
-			preIRType += "*"
-			optsIRType = optsIRType[1:]
-		}
+	irFQPackage, irType, irPackage, irErr := ParseFQType(opts.IRType)
+	if irErr != nil {
+		return GeneratedCodeInfo{}, fmt.Errorf("parsing IRType: %w", irErr)
 	}
-	irParts := strings.Split(optsIRType, ".")
-	if len(irParts) != 2 {
-		return GeneratedCodeInfo{}, fmt.Errorf("IRType must have fully-qualified package and type name")
-	}
-
-	irFQPackage := irParts[0]
-	irPkgParts := strings.Split(irFQPackage, "/")
-	irPackage := irPkgParts[len(irPkgParts)-1]
-	irType := preIRType + irPackage + "." + irParts[1]
 
 	gci := GeneratedCodeInfo{}
 	var fePkgName = "sim" + strings.ToLower(md.Language)
@@ -476,23 +460,10 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 
 	// if IR type is specified, use it
 	if fqIRType != "" {
-		preType := ""
-		for strings.HasPrefix(fqIRType, "[]") || strings.HasPrefix(fqIRType, "*") {
-			if strings.HasPrefix(fqIRType, "[]") {
-				preType += "[]"
-				fqIRType = fqIRType[2:]
-			} else {
-				preType += "*"
-				fqIRType = fqIRType[1:]
-			}
-		}
-
-		irParts := strings.Split(fqIRType, ".")
-		if len(fqIRType) == 2 {
-			fqPackage := irParts[0]
-			irPkgParts := strings.Split(fqPackage, "/")
-			data.IRPackage = irPkgParts[len(irPkgParts)-1]
-			data.IRType = preType + data.IRPackage + "." + irParts[1]
+		irPkg, irType, _, err := ParseFQType(fqIRType)
+		if err == nil {
+			data.IRPackage = irPkg
+			data.IRType = irType
 		}
 	}
 

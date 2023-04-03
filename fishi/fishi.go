@@ -193,3 +193,35 @@ func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.Block], error) {
 
 	return fishiFront, nil
 }
+
+// ParseFQType parses a fully-qualified type name into its package and type
+// along with the name of the package. Any number of leading [] and * are
+// allowed, but map types are not supported, although types with an underlying
+// map type are supported.
+//
+// For example, ParseFQType("[]*github.com/ictiobus/fishi.Options") would return
+// "github.com/ictiobus/fishi", "[]*fishi.Options", nil.
+func ParseFQType(fqType string) (pkg, typeName, pkgName string, err error) {
+	fqOriginal := fqType
+
+	preType := ""
+	for strings.HasPrefix(fqType, "[]") || strings.HasPrefix(fqType, "*") {
+		if strings.HasPrefix(fqType, "[]") {
+			preType += "[]"
+			fqType = fqType[2:]
+		} else {
+			preType += "*"
+			fqType = fqType[1:]
+		}
+	}
+	typeParts := strings.Split(fqType, ".")
+	if len(typeParts) < 2 {
+		return "", "", "", fmt.Errorf("invalid fully-qualified type: %s", fqOriginal)
+	}
+	fqPackage := strings.Join(typeParts[:len(typeParts)-1], ".")
+	pkgParts := strings.Split(fqPackage, "/")
+	pkgName = pkgParts[len(pkgParts)-1]
+	irType := preType + pkgName + "." + typeParts[len(typeParts)-1]
+
+	return fqPackage, irType, pkgName, nil
+}

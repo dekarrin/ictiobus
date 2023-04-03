@@ -536,7 +536,7 @@ func main() {
 		// create a test compiler and output it
 		if !*valSDTSOff {
 			if *irType == "" {
-				fmt.Fprintf(os.Stderr, "WARN: must specify IR type when validating SDTS\n")
+				fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing -ir parameter\n")
 			} else {
 				// TODO: following should be args:
 				// hookExpr, hooksPkgDir, irType, irPackage

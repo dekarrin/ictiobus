@@ -78,7 +78,7 @@ func main() {
 	if *doSimulation {
 		hooksMapping := {{ .HooksPkg }}.{{ .HooksTableExpr }}
 
-		langFront := {{ .FrontendPkg }}.Frontend[{{ .IRType }}](hooksMapping, nil)
+		langFront := {{ .FrontendPkg }}.Frontend(hooksMapping, nil)
 
 		// hooks will be set, so run validation now
 		valProd := langFront.Lexer.FakeLexemeProducer(true, "")
