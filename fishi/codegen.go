@@ -80,14 +80,15 @@ var (
 	titleCaser          = cases.Title(language.AmericanEnglish)
 
 	// order in which components of the generated compiler (files) are created.
-	// does not include supplementary files such as any generated main.go, only
-	// those that are part of the frontend.
+	// not all will be present in all cases; this only enforces an ordering on
+	// rendered templates to aid in debugging.
 	codegenOrder = []string{
 		ComponentTokens,
 		ComponentLexer,
 		ComponentParser,
 		ComponentSDTS,
 		ComponentFrontend,
+		ComponentMainFile,
 	}
 
 	defaultTemplates = map[string]string{
@@ -323,7 +324,11 @@ func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, opts
 
 	// finally, render the template files
 	for _, comp := range codegenOrder {
-		rf := renderFiles[comp]
+		rf, ok := renderFiles[comp]
+		if !ok {
+			continue
+		}
+
 		err = renderTemplateToFile(rf.tmpl, data, filepath.Join(pkgDir, rf.outFile), opts.DumpPreFormat)
 		if err != nil {
 			return err
@@ -354,7 +359,10 @@ func initTemplates(renderFiles map[string]codegenTemplate, fnMap template.FuncMa
 	for _, comp := range codegenOrder {
 		var err error
 
-		rf := renderFiles[comp]
+		rf, ok := renderFiles[comp]
+		if !ok {
+			continue
+		}
 
 		rf.tmpl = template.New(comp).Funcs(fnMap)
 

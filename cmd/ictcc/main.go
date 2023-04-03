@@ -195,6 +195,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/dekarrin/ictiobus"
@@ -502,7 +503,7 @@ func main() {
 		if !*valSDTSOff {
 			// TODO: following should be args:
 			// hookExpr, hooksPkgDir, irType, irPackage
-			genInfo, err := fishi.GenerateTestCompiler(spec, md, p, "syntax", "HooksTable", "[]syntax.Block", "", &cgOpts)
+			genInfo, err := fishi.GenerateTestCompiler(spec, md, p, filepath.Join("fishi", "syntax"), "HooksTable", "[]syntax.Block", "", &cgOpts)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 				returnCode = ExitErrGeneration
@@ -511,7 +512,7 @@ func main() {
 
 			// TODO: actually run the test internally, with no further user
 			// interaction
-			fmt.Printf("GENERATED FAKE TO: %q\n", genInfo.Path)
+			fmt.Printf("GENERATED FAKE TO: \"%s\"\n", strings.ReplaceAll(genInfo.Path, "\"", "\\\""))
 		}
 
 		// assuming it worked, now generate the final output

@@ -13,6 +13,8 @@ import (
 {{if and .IncludeSimulation .IRTypePackage }}
 	"{{ .IRTypePackage }}"
 {{end -}}
+
+	"github.com/dekarrin/ictiobus/trans"
 )
 
 const (
@@ -76,7 +78,7 @@ func main() {
 	if *doSimulation {
 		hooksMapping := {{ .HooksPkg }}.{{ .HooksTableExpr }}
 
-		langFront := {{ .FrontendPkg }}.Fronend[{{ .IRType }}](hooksMapping, nil)
+		langFront := {{ .FrontendPkg }}.Frontend[{{ .IRType }}](hooksMapping, nil)
 
 		// hooks will be set, so run validation now
 		valProd := langFront.Lexer.FakeLexemeProducer(true, "")
@@ -84,24 +86,24 @@ func main() {
 		di := trans.ValidationOptions{
 			ParseTrees:    *simSDTSShowTrees,
 			FullDepGraphs: *simSDTSShowGraphs,
-			ShowAllErrors: *simSDTSAllTrees,
-			SkipErrors:    *simSDTSkipTrees,
+			ShowAllErrors: !*simSDTSFirstOnly,
+			SkipErrors:    *simSDTSSkip,
 		}
 
 		sddErr := langFront.SDT.Validate(langFront.Parser.Grammar(), langFront.IRAttribute, di, valProd)
 		if sddErr != nil {
-			fmt.Fprintf(os.Stderr, "validation error: %v", sddErr.Error())
+			fmt.Fprintf(os.Stderr, "validation error: %v\n", sddErr.Error())
 			returnCode = ExitErr
 			return
 		}
 
 		if !quietMode {
-			fmt.Printf("(simulation completed with 0 errors)")
+			fmt.Printf("(simulation completed with 0 errors)\n")
 		}
 	}
 {{end -}}
 
 	if !quietMode {
-		fmt.Printf("(%s executed successfully)")
+		fmt.Printf("({{.BinName}} executed successfully)\n")
 	}
 }
