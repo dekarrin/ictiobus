@@ -58,9 +58,9 @@ func Frontend[IRType any](hooks map[string]trans.AttributeSetter, opts *Frontend
     }
 
 {{if .IRType}}
-    fe := ictiobus.Frontend[IRType]{
-{{else}}
     fe := ictiobus.Frontend[{{ .IRType }}]{
+{{else}}
+    fe := ictiobus.Frontend[IRType]{
 {{end}}
         Language: "{{ .Lang }}",
         Version: "{{ .Version }}",

@@ -173,7 +173,9 @@ Flags:
 		file will explicitly return ictiobus.Frontend[TYPE] instead of requiring
 		it to be declared at calltime of Frontend(). TYPE must be qualified with
 		the fully-qualified package name; e.g.
-		"github.com/dekarrin/ictiobus/fishi/syntax.Node".
+		"github.com/dekarrin/ictiobus/fishi/syntax.Node". Pointer indirection
+		and array/slice notation are allowed; maps are not (but types that have
+		map as an underlying type are allowed).
 
 Each markdown file given is scanned for fishi codeblocks. They are all combined
 into a single fishi code block and parsed. Each markdown file is parsed
@@ -519,8 +521,9 @@ func main() {
 				IndentOpts(len(warnPrefix), rosed.Options{IndentStr: " "}).
 				String()
 
-			fmt.Fprintf(os.Stderr, "%s\n\n", warnStr)
+			fmt.Fprintf(os.Stderr, "%s\n", warnStr)
 		}
+		fmt.Fprintf(os.Stderr, "\n")
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
@@ -533,20 +536,21 @@ func main() {
 		// create a test compiler and output it
 		if !*valSDTSOff {
 			if *irType == "" {
-				fmt.Fprintf(os.Stderr, "must specify IR type when validating SDTS")
-			}
-			// TODO: following should be args:
-			// hookExpr, hooksPkgDir, irType, irPackage
-			genInfo, err := fishi.GenerateTestCompiler(spec, md, p, filepath.Join("fishi", "syntax"), *hooksTableName, cgOpts)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-				returnCode = ExitErrGeneration
-				return
-			}
+				fmt.Fprintf(os.Stderr, "WARN: must specify IR type when validating SDTS\n")
+			} else {
+				// TODO: following should be args:
+				// hookExpr, hooksPkgDir, irType, irPackage
+				genInfo, err := fishi.GenerateTestCompiler(spec, md, p, filepath.Join("fishi", "syntax"), *hooksTableName, cgOpts)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+					returnCode = ExitErrGeneration
+					return
+				}
 
-			// TODO: actually run the test internally, with no further user
-			// interaction
-			fmt.Printf("GENERATED FAKE TO: \"%s\"\n", strings.ReplaceAll(genInfo.Path, "\"", "\\\""))
+				// TODO: actually run the test internally, with no further user
+				// interaction
+				fmt.Printf("GENERATED FAKE TO: \"%s\"\n", strings.ReplaceAll(genInfo.Path, "\"", "\\\""))
+			}
 		}
 
 		// assuming it worked, now generate the final output
