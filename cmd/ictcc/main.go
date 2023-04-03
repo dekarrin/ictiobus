@@ -342,7 +342,7 @@ func main() {
 
 	parserType, allowAmbig, err := parserSelectionFromFlags()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		returnCode = ExitErrInvalidFlags
 		return
 	}
