@@ -123,10 +123,47 @@ Flags:
 		Use the provided file as the template for outputting the generated
 		frontend file instead of the default embedded within the binary.
 
+	-no-ambig
+		Disable the generation of a parser for an ambiguous language. Normally,
+		when generating an LR parser, an ambiguous grammar is allowed, with
+		shift-reduce conflicts resolved in favor of shift in all cases. If this
+		flag is set, that behavior is disabled and an error is returned if the
+		given grammar is ambiguous. Note that LL(k) grammars can never be
+		ambiguous, so this flag has no effect if explicitly selecting an LL
+		parser.
+
+	-ll
+		Force the generation of an LL(1) parser instead of the default of trying
+		each parser type in sequence from most restrictive to least restrictive
+		and using the first one found.
+
+	-slr
+		Force the generation of an SLR(1) (simple LR) parser instead of the
+		default of trying each parser type in sequence from most restrictive to
+		least restrictive and using the first one found.
+
+	-clr
+		Force the generation of a CLR(1) (canonical LR) parser instead of the
+		default of trying each parser type in sequence from most restrictive to
+		least restrictive and using the first one found.
+
+	-lalr
+		Force the generation of a LALR(1) (lookahead LR) parser instead of the
+		default of trying each parser type in sequence from most restrictive to
+		least restrictive and using the first one found.
+
 Each markdown file given is scanned for fishi codeblocks. They are all combined
 into a single fishi code block and parsed. Each markdown file is parsed
-separately but their resulting ASTs are combined into a single list of FISHI
-specs for a language.
+separately but their resulting ASTs are combined into a single FISHI spec for a
+language.
+
+The spec is then used to generate a lexer, parser, and SDTS for the language.
+For the parser, if no specific parser is selected via the -ll, -slr, -clr, or
+-lalr flags, the parser generator will attempt to generate each type of parser
+in sequence from most restrictive to least restrictive (LL(1), simple LR(1),
+lookahead LR(1), and canonical LR(1), in that order), and use the first one it
+is able to generate. If a specific parser is selected, it will attempt to
+generate that one and fail if it is unable to.
 
 If there are any errors, they are displayed and the program exits with a
 non-zero exit code. If there are multiple files, they are all attempted to be
@@ -160,6 +197,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/fishi"
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
@@ -177,9 +215,17 @@ const (
 	// provided to the invocation.
 	ExitErrNoFiles
 
+	// ExitErrInvalidFlags is used if the combination of flags specified is
+	// invalid.
+	ExitErrInvalidFlags
+
 	// ExitErrSyntax is the code returned as exit status when a syntax error
 	// occurs.
 	ExitErrSyntax
+
+	// ExitErrParser is the code returned as exit status when there is an error
+	// generating the parser.
+	ExitErrParser
 
 	// ExitErrGeneration is the code returned as exit status when there is an
 	// error creating the generated files.
@@ -218,6 +264,12 @@ var (
 	tmplParser *string = flag.String("tmpl-parser", "", "A template file to replace the embedded parser template with")
 	tmplSDTS   *string = flag.String("tmpl-sdts", "", "A template file to replace the embedded SDTS template with")
 	tmplFront  *string = flag.String("tmpl-frontend", "", "A template file to replace the embedded frontend template with")
+
+	parserLL      *bool = flag.Bool("ll", false, "Generate an LL(1) parser")
+	parserSLR     *bool = flag.Bool("slr", false, "Generate a simple LR(1) parser")
+	parserCLR     *bool = flag.Bool("clr", false, "Generate a canonical LR(1) parser")
+	parserLALR    *bool = flag.Bool("lalr", false, "Generate a canonical LR(1) parser")
+	parserNoAmbig *bool = flag.Bool("no-ambig", false, "Disallow ambiguity in grammar even if creating a parser that can auto-resolve it")
 
 	lexerTrace  *bool = flag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
 	parserTrace *bool = flag.Bool("debug-parser", false, "Print the parser trace to stdout")
@@ -285,6 +337,13 @@ func main() {
 	if len(args) < 1 {
 		fmt.Fprintf(os.Stderr, "No files given to process")
 		returnCode = ExitErrNoFiles
+		return
+	}
+
+	parserType, allowAmbig, err := parserSelectionFromFlags()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, err.Error())
+		returnCode = ExitErrInvalidFlags
 		return
 	}
 
@@ -411,7 +470,51 @@ func main() {
 		// TODO: jello, first need to create a PRELIM generation along with hooks
 		// pkg because that is the only way to validate the SDTS.
 
-		// do processing of the AST here
+		// okay, first try to create a parser
+		// TODO: this should deffo be in fishi package, not the bin.
+		var p ictiobus.Parser
+		var parserWarns []fishi.Warning
+		// if one is selected, use that one
+		if parserType != nil {
+			p, parserWarns, err = spec.CreateParser(*parserType, allowAmbig)
+		} else {
+			p, parserWarns, err = spec.CreateMostRestrictiveParser(allowAmbig)
+		}
+
+		for _, warn := range parserWarns {
+			const warnPrefix = "WARN: "
+			// indent all except the first line
+			warnStr := rosed.Edit(warnPrefix+warn.Message).
+				LinesFrom(1).
+				IndentOpts(len(warnPrefix), rosed.Options{IndentStr: " "}).
+				String()
+
+			fmt.Fprintf(os.Stderr, "%s\n\n", warnStr)
+		}
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+			returnCode = ExitErrParser
+			return
+		}
+
+		// create a test compiler and output it
+		if !*valSDTSOff {
+			// TODO: following should be args:
+			// hookExpr, hooksPkgDir, irType, irPackage
+			genInfo, err := fishi.GenerateTestCompiler(spec, md, p, "syntax", "HooksTable", "[]syntax.Block", "", &cgOpts)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+				returnCode = ExitErrGeneration
+				return
+			}
+
+			// TODO: actually run the test internally, with no further user
+			// interaction
+			fmt.Printf("GENERATED FAKE TO: %q\n", genInfo.Path)
+		}
+
+		// assuming it worked, now generate the final output
 		err := fishi.GenerateCompilerGo(spec, md, *pkg, *dest, &cgOpts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
@@ -421,6 +524,43 @@ func main() {
 		fmt.Printf("(NOTE: complete frontend generation not implemented yet)\n")
 	}
 
+}
+
+// return from flags the parser type selected and whether ambiguity is allowed.
+// If no parser type is selected, nil is returned as first arg. if parser type
+// does not allow ambiguity, allowAmbig will always be false.
+//
+// err will be non-nil if there is an invalid combination of CLI flags.
+func parserSelectionFromFlags() (t *types.ParserType, allowAmbig bool, err error) {
+	// enforce mutual exclusion of cli args
+	if (*parserLL && (*parserCLR || *parserSLR || *parserLALR)) ||
+		(*parserCLR && (*parserSLR || *parserLALR)) ||
+		(*parserSLR && *parserLALR) {
+
+		err = fmt.Errorf("cannot specify more than one parser type")
+		return
+	}
+
+	allowAmbig = !*parserNoAmbig
+
+	if *parserLL {
+		t = new(types.ParserType)
+		*t = types.ParserLL1
+
+		// allowAmbig auto false for LL(1)
+		allowAmbig = false
+	} else if *parserSLR {
+		t = new(types.ParserType)
+		*t = types.ParserSLR1
+	} else if *parserCLR {
+		t = new(types.ParserType)
+		*t = types.ParserCLR1
+	} else if *parserLALR {
+		t = new(types.ParserType)
+		*t = types.ParserLALR1
+	}
+
+	return
 }
 
 func printSpec(spec fishi.Spec) {

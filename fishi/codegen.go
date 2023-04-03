@@ -8,6 +8,7 @@ import (
 	"go/format"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -125,6 +126,9 @@ type GeneratedCodeInfo struct {
 // is created, it will be able to be executed by calling go run on the provided
 // mainfile from the outDir.
 //
+// It will be created in a temporary file; caller must do os.RemoveAll() on the
+// returned path when done.
+//
 // hooksExpr must be set to an exported identifier or func call that can be
 // called from within the hooks package with a type of
 // map[string]trans.AttributeSetter. It can be a function call, constant name,
@@ -204,7 +208,6 @@ func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 	if err != nil {
 		return gci, fmt.Errorf("creating temp dir: %w", err)
 	}
-	defer os.RemoveAll(tmpDir)
 
 	// start copying the hooks package
 	hooksDestPath := filepath.Join(tmpDir, "internal", hooksPkgName)
@@ -253,17 +256,36 @@ func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 
 	// finally, render the main file
 	rf := renderFiles[ComponentMainFile]
-	err = renderTemplateToFile(rf.tmpl, mainFillData, filepath.Join(tmpDir, rf.outFile), opts.DumpPreFormat)
+	mainFileRelPath := rf.outFile
+	err = renderTemplateToFile(rf.tmpl, mainFillData, filepath.Join(tmpDir, mainFileRelPath), opts.DumpPreFormat)
 	if err != nil {
 		return gci, err
 	}
 
-	// okay, all that's left to do is initialize the go module
-
-	// wait for the hooks package to be copied
+	// wait for the hooks package to be copied; we'll need it for go mod tidy
 	<-hooksDone
 
-	return nil
+	// shell out to run go module stuff
+	goModInitCmd := exec.Command("go", "mod", "init", mainFillData.BinPkg)
+	goModInitCmd.Env = os.Environ()
+	goModInitCmd.Dir = tmpDir
+	goModInitOutput, err := goModInitCmd.CombinedOutput()
+	if err != nil {
+		return gci, fmt.Errorf("initializing generated module with binary: %w\n%s", err, string(goModInitOutput))
+	}
+	goModTidyCmd := exec.Command("go", "mod", "tidy")
+	goModTidyCmd.Env = os.Environ()
+	goModTidyCmd.Dir = tmpDir
+	goModTidyOutput, err := goModTidyCmd.CombinedOutput()
+	if err != nil {
+		return gci, fmt.Errorf("tidying generated module with binary: %w\n%s", err, string(goModTidyOutput))
+	}
+
+	// if we got here, all output has been written to the temp dir.
+	gci.Path = tmpDir
+	gci.MainFile = mainFileRelPath
+
+	return gci, nil
 }
 
 // GenerateCompilerGo generates the source code for a compiler that can handle a

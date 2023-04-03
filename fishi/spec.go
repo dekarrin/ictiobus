@@ -143,6 +143,30 @@ func (spec Spec) CreateLexer(lazy bool) (ictiobus.Lexer, error) {
 	return lx, nil
 }
 
+// CreateMostRestrictiveParser creates the most restrictive parser possible for
+// the language it represents. They will be tried in this order: LL(1), SLR(1),
+// LALR(1), CLR(1).
+//
+// AllowAmbig only applies for parser types that can auto-resolve ambiguity,
+// e.g. it does not apply to an LL(k) parser.
+func (spec Spec) CreateMostRestrictiveParser(allowAmbig bool) (ictiobus.Parser, []Warning, error) {
+	p, warns, err := spec.CreateParser(types.ParserLL1, false)
+	if err != nil {
+		p, warns, err = spec.CreateParser(types.ParserSLR1, allowAmbig)
+		if err != nil {
+			p, warns, err = spec.CreateParser(types.ParserLALR1, allowAmbig)
+			if err != nil {
+				p, warns, err = spec.CreateParser(types.ParserCLR1, allowAmbig)
+				if err != nil {
+					return p, warns, fmt.Errorf("no parser can be generated for grammar; for CLR(1) parser, got: %w", err)
+				}
+			}
+		}
+	}
+
+	return p, warns, err
+}
+
 // CreateParser uses the Grammar in the spec to create a new Parser of the
 // given type. Returns an error if the type is not supported.
 func (spec Spec) CreateParser(t types.ParserType, allowAmbig bool) (ictiobus.Parser, []Warning, error) {
