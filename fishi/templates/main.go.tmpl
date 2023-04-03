@@ -8,8 +8,11 @@ import (
     "os"
 	"flag"
 
-	"github.com/{{ .BinPkg }}/internal/{{ .HooksPkg }}"
-	"github.com/{{ .BinPkg }}/internal/{{ .FrontendPkg }}"
+	"{{ .BinPkg }}/internal/{{ .HooksPkg }}"
+	"{{ .BinPkg }}/internal/{{ .FrontendPkg }}"
+{{if and .IncludeSimulation .IRTypePackage }}
+	"{{ .IRTypePackage }}"
+{{end -}}
 )
 
 const (
@@ -19,7 +22,7 @@ const (
 )
 
 const (
-	versionString = "{{ .BinName }} v{{ .BinVersion }}"
+	versionString = "{{ .BinName }} {{ .BinVersion }}"
 )
 
 var (

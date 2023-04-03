@@ -40,6 +40,7 @@ const (
 	ComponentParser   = "parser"
 	ComponentSDTS     = "sdts"
 	ComponentFrontend = "frontend"
+	ComponentMainFile = "main"
 )
 
 // Names of each file that is generated.
@@ -49,6 +50,7 @@ const (
 	GeneratedParserFilename   = "parser.ict.go"
 	GeneratedSDTSFilename     = "sdts.ict.go"
 	GeneratedFrontendFilename = "frontend.ict.go"
+	GeneratedMainFilename     = "main.ict.go"
 )
 
 // Default template strings for each component of the generated compiler.
@@ -67,6 +69,9 @@ var (
 
 	//go:embed templates/frontend.go.tmpl
 	TemplateFrontend string
+
+	//go:embed templates/main.go.tmpl
+	TemplateMainFile string
 )
 
 var (
@@ -74,6 +79,8 @@ var (
 	titleCaser          = cases.Title(language.AmericanEnglish)
 
 	// order in which components of the generated compiler (files) are created.
+	// does not include supplementary files such as any generated main.go, only
+	// those that are part of the frontend.
 	codegenOrder = []string{
 		ComponentTokens,
 		ComponentLexer,
@@ -88,6 +95,7 @@ var (
 		ComponentParser:   TemplateParser,
 		ComponentSDTS:     TemplateSDTS,
 		ComponentFrontend: TemplateFrontend,
+		ComponentMainFile: TemplateMainFile,
 	}
 )
 
@@ -116,7 +124,22 @@ type GeneratedCodeInfo struct {
 // given spec and pre-created parser, using the provided hooks package. Once it
 // is created, it will be able to be executed by calling go run on the provided
 // mainfile from the outDir.
-func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, opts *CodegenOptions) (GeneratedCodeInfo, error) {
+//
+// hooksExpr must be set to an exported identifier or func call that can be
+// called from within the hooks package with a type of
+// map[string]trans.AttributeSetter. It can be a function call, constant name,
+// or var name.
+//
+// irType must be set to the complete type (including package prefix) of the ir
+// in the frontend.
+//
+// If irType is in a package not already being imported (such as the hooks pkg),
+// irPackage must be set to the fully-qualified package name of the irType.
+func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, irType string, irPackage string, opts *CodegenOptions) (GeneratedCodeInfo, error) {
+	if opts == nil {
+		opts = &CodegenOptions{}
+	}
+
 	gci := GeneratedCodeInfo{}
 	var fePkgName = "sim" + strings.ToLower(md.Language)
 
@@ -205,6 +228,38 @@ func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 		return gci, fmt.Errorf("writing parser: %w", err)
 	}
 
+	// export template with main file
+	mainFillData := cgMainData{
+		BinPkg:            "github.com/dekarrin/ictiobus/langtest/" + strings.ToLower(safeIdentifierName(md.Language)),
+		BinName:           "test" + strings.ToLower(safeIdentifierName(md.Language)),
+		BinVersion:        "(simulator version)",
+		HooksPkg:          hooksPkgName,
+		HooksTableExpr:    hooksExpr,
+		FrontendPkg:       fePkgName,
+		IRTypePackage:     irPackage,
+		IRType:            irType,
+		IncludeSimulation: true,
+	}
+	fnMap := createFuncMap()
+	renderFiles := map[string]codegenTemplate{
+		ComponentMainFile: {nil, GeneratedMainFilename},
+	}
+
+	// initialize templates
+	err = initTemplates(renderFiles, fnMap, opts.TemplateFiles)
+	if err != nil {
+		return gci, err
+	}
+
+	// finally, render the main file
+	rf := renderFiles[ComponentMainFile]
+	err = renderTemplateToFile(rf.tmpl, mainFillData, filepath.Join(tmpDir, rf.outFile), opts.DumpPreFormat)
+	if err != nil {
+		return gci, err
+	}
+
+	// okay, all that's left to do is initialize the go module
+
 	// wait for the hooks package to be copied
 	<-hooksDone
 
@@ -228,16 +283,7 @@ func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, opts
 		return fmt.Errorf("creating target dir: %w", err)
 	}
 
-	fnMap := template.FuncMap{
-		"upperCamel": safeIdentifierName,
-		"quote": func(s string) string {
-			return fmt.Sprintf("%q", s)
-		},
-		"rquote": func(s string) string {
-			s = strings.ReplaceAll(s, "`", "` + \"`\" + `")
-			return fmt.Sprintf("`%s`", s)
-		},
-	}
+	fnMap := createFuncMap()
 
 	renderFiles := map[string]codegenTemplate{
 		ComponentTokens:   {nil, GeneratedTokensFilename},
@@ -264,6 +310,19 @@ func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, opts
 
 	return nil
 
+}
+
+func createFuncMap() template.FuncMap {
+	return template.FuncMap{
+		"upperCamel": safeIdentifierName,
+		"quote": func(s string) string {
+			return fmt.Sprintf("%q", s)
+		},
+		"rquote": func(s string) string {
+			s = strings.ReplaceAll(s, "`", "` + \"`\" + `")
+			return fmt.Sprintf("`%s`", s)
+		},
+	}
 }
 
 func initTemplates(renderFiles map[string]codegenTemplate, fnMap template.FuncMap, customTemplateFiles map[string]string) error {
@@ -490,6 +549,19 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
 type codegenTemplate struct {
 	tmpl    *template.Template
 	outFile string
+}
+
+// codegen data for template fill of main.go
+type cgMainData struct {
+	BinPkg            string
+	BinName           string
+	BinVersion        string
+	HooksPkg          string
+	HooksTableExpr    string
+	FrontendPkg       string
+	IRTypePackage     string
+	IRType            string
+	IncludeSimulation bool
 }
 
 // codegenData for template fill.
