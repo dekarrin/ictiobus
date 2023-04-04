@@ -220,7 +220,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/dekarrin/ictiobus"
@@ -538,18 +537,31 @@ func main() {
 			if *irType == "" {
 				fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing -ir parameter\n")
 			} else {
-				// TODO: following should be args:
-				// hookExpr, hooksPkgDir, irType, irPackage
-				genInfo, err := fishi.GenerateTestCompiler(spec, md, p, filepath.Join("fishi", "syntax"), *hooksTableName, cgOpts)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-					returnCode = ExitErrGeneration
-					return
-				}
+				if *hooksPath == "" {
+					fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing -hooks parameter\n")
+				} else {
+					genInfo, err := fishi.GenerateTestCompiler(spec, md, p, *hooksPath, *hooksTableName, cgOpts)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+						returnCode = ExitErrGeneration
+						return
+					}
 
-				// TODO: actually run the test internally, with no further user
-				// interaction
-				fmt.Printf("GENERATED FAKE TO: \"%s\"\n", strings.ReplaceAll(genInfo.Path, "\"", "\\\""))
+					di := trans.ValidationOptions{
+
+						ParseTrees:    *valSDTSShowTrees,
+						FullDepGraphs: *valSDTSShowGraphs,
+						ShowAllErrors: !*valSDTSFirstOnly,
+						SkipErrors:    *valSDTSSkip,
+					}
+
+					err = fishi.ExecuteTestCompiler(genInfo, di)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "%s\n", "ERROR: SDTS validation failed")
+						returnCode = ExitErrGeneration
+						return
+					}
+				}
 			}
 		}
 

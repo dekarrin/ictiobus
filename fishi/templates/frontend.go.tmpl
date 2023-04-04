@@ -51,10 +51,8 @@ func Frontend(hooks map[string]trans.AttributeSetter, opts *FrontendOptions) ict
 {{else}}
 func Frontend[IRType any](hooks map[string]trans.AttributeSetter, opts *FrontendOptions) ictiobus.Frontend[IRType] {
 {{end -}}
-    var feOpts FrontendOptions
-    
-    if opts != nil {
-        feOpts = *opts
+    if opts == nil {
+        opts = &FrontendOptions{}
     }
 
 {{if .IRType}}
@@ -65,14 +63,14 @@ func Frontend[IRType any](hooks map[string]trans.AttributeSetter, opts *Frontend
         Language: "{{ .Lang }}",
         Version: "{{ .Version }}",
         IRAttribute: "{{ .IRAttribute }}",
-        Lexer: Lexer(!feOpts.LexerEager),
+        Lexer: Lexer(!opts.LexerEager),
         Parser: Parser(),
         SDT: SDTS(),
     }
     
     // Add traces if requested
 
-    if feOpts.LexerTrace {
+    if opts.LexerTrace {
         fe.Lexer.RegisterTokenListener(func(t types.Token) {
 			fmt.Fprintf(os.Stderr, "Token: %s\n", t)
 		})

@@ -152,6 +152,10 @@ type evalError struct {
 	// the name of the hook it is looking for.
 	missingHook string
 
+	// if this was created due to a failed hook function, this will be set to
+	// the name of the hook it was trying to run.
+	failedHook string
+
 	msg string
 }
 

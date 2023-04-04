@@ -128,6 +128,27 @@ type GeneratedCodeInfo struct {
 	Path string
 }
 
+func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions trans.ValidationOptions) error {
+	args := []string{"run", gci.MainFile, "-sim"}
+	if valOptions.FullDepGraphs {
+		args = append(args, "-sim-sdts-graphs")
+	}
+	if valOptions.ParseTrees {
+		args = append(args, "-sim-sdts-trees")
+	}
+	if !valOptions.ShowAllErrors {
+		args = append(args, "-sim-sdts-first")
+	}
+	if valOptions.SkipErrors != 0 {
+		args = append(args, "-sim-sdts-skip", fmt.Sprintf("%d", valOptions.SkipErrors))
+	}
+	cmd := exec.Command("go", args...)
+	cmd.Dir = gci.Path
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 // GenerateTestCompiler generates (but does not yet run) a test compiler for the
 // given spec and pre-created parser, using the provided hooks package. Once it
 // is created, it will be able to be executed by calling go run on the provided
