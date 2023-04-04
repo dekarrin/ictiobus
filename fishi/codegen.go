@@ -238,8 +238,13 @@ func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 		return strings.ToLower(s)
 	}
 
-	// create a temporary directory to save things in
-	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("ictcc-test-%s", safePkgIdent(md.Language)))
+	// create a directory to save things in
+	tmpDir := ".sim"
+	err = os.RemoveAll(tmpDir)
+	if err != nil {
+		return gci, fmt.Errorf("removing old temp dir: %w", err)
+	}
+	err = os.MkdirAll(tmpDir, 0766)
 	if err != nil {
 		return gci, fmt.Errorf("creating temp dir: %w", err)
 	}
@@ -615,8 +620,12 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 		bData.Productions = append(bData.Productions, sdtsData)
 	}
 	// now add all the bindings to the data in order
+	// (first one is the default IR attribute)
 	for _, b := range bindingOrder {
 		data.Bindings = append(data.Bindings, *b)
+		if data.IRAttribute == "" {
+			data.IRAttribute = b.Productions[0].Attribute
+		}
 	}
 
 	// done, return finished data

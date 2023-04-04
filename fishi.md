@@ -415,7 +415,7 @@ The following gives the Syntax-directed translations for the FISHI language.
                        )
 
 %symbol {PROD-ACTION-LIST}
-->: {^}.value = prod_actions_list_append(
+->: {^}.value = prod_action_list_append(
                         {PROD-ACTION-LIST}.value
                         {PROD-ACTION}.value
                        )
@@ -434,8 +434,8 @@ The following gives the Syntax-directed translations for the FISHI language.
 ->: {^}.value = make_semantic_action({1}.$text, {1}.$ft, {3}.$text, {3}.$ft, {4}.value)
 
 %symbol {SEM-ACTION-LIST}
-->: {^}.value = attr_ref_list_append({0}.value, {1}.value)
-->: {^}.value = attr_ref_list_start({0}.value, {0}.$ft)
+->: {^}.value = semantic_action_list_append({0}.value, {1}.value)
+->: {^}.value = semantic_action_list_start({0}.value)
 
 %symbol {ASYM}
 ->: {^}.value = get_nonterminal({0}.$text)
@@ -534,23 +534,23 @@ The following gives the Syntax-directed translations for the FISHI language.
 ->: {^}.state = make_state_ins({1}.value, {1}.$ft)
 
 %symbol {ID-EXPR}
-->: {^}.value = identity({0}.$text)
-->: {^}.value = identity({0}.$text)
+->: {^}.value = ident({0}.$text)
+->: {^}.value = ident({0}.$text)
 
 %symbol {TEXT}
 ->: {^}.value = append_strings_trimmed({0}.value, {1}.value)
-->: {^}.value = identity({0}.value)
-->: {^}.value = identity({0}.value)
+->: {^}.value = ident({0}.value)
+->: {^}.value = ident({0}.value)
 
 %symbol {TEXT-ELEM-LIST}
 ->: {^}.value = append_strings({0}.value, {1}.value)
-->: {^}.value = identity({0}.value)
+->: {^}.value = ident({0}.value)
 
 %symbol {NL-TEXT-ELEM}
 ->: {^}.value = interpret_escape({0}.$text)
-->: {^}.value = identity({0}.$text)
+->: {^}.value = ident({0}.$text)
 
 %symbol {TEXT-ELEM}
 ->: {^}.value = interpret_escape({0}.$text)
-->: {^}.value = identity({0}.$text)
+->: {^}.value = ident({0}.$text)
 ```

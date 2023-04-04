@@ -123,7 +123,7 @@ func bootstrapSDTSActionsBlockAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ACTIONS-BLOCK", []string{TCHeaderActions.ID(), "ACTIONS-CONTENT"},
 		"ast",
-		"make_actions_block",
+		"make_ablock",
 		[]trans.AttrRef{
 			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "ast"},
 		},
@@ -134,7 +134,7 @@ func bootstrapSDTSTokensBlockAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TOKENS-BLOCK", []string{TCHeaderTokens.ID(), "TOKENS-CONTENT"},
 		"ast",
-		"make_tokens_block",
+		"make_tblock",
 		[]trans.AttrRef{
 			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "ast"},
 		},
@@ -146,7 +146,7 @@ func bootstrapSDTSGrammarBlockAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GRAMMAR-BLOCK", []string{TCHeaderGrammar.ID(), "GRAMMAR-CONTENT"},
 		"ast",
-		"make_grammar_block",
+		"make_gblock",
 		[]trans.AttrRef{
 			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "ast"},
 		},
@@ -185,7 +185,7 @@ func bootstrapSDTSActionsContentAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ACTIONS-CONTENT", []string{"SYMBOL-ACTIONS-LIST"},
 		"ast",
-		"actions_content_blocks_start_symbol_actions_list",
+		"actions_content_blocks_start_sym_actions",
 		[]trans.AttrRef{
 			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
