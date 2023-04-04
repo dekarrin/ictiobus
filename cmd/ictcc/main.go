@@ -535,17 +535,21 @@ func main() {
 			return
 		}
 
-		fmt.Printf("Successfully generated %s parser from grammar\n", p.Type().String())
+		if !quietMode {
+			fmt.Printf("Successfully generated %s parser from grammar\n", p.Type().String())
+		}
 
 		// create a test compiler and output it
 		if !*valSDTSOff {
 			if *irType == "" {
-				fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing -ir parameter\n")
+				fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing --ir parameter\n")
 			} else {
 				if *hooksPath == "" {
-					fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing -hooks parameter\n")
+					fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing --hooks parameter\n")
 				} else {
-
+					if !quietMode {
+						fmt.Printf("Generating parser simulation binary in .sim...\n")
+					}
 					di := trans.ValidationOptions{
 						ParseTrees:    *valSDTSShowTrees,
 						FullDepGraphs: *valSDTSShowGraphs,
@@ -559,18 +563,23 @@ func main() {
 						returnCode = ExitErrGeneration
 						return
 					}
+					if !quietMode {
+						fmt.Printf("Done simulating input; removing .sim...\n")
+					}
 				}
 			}
 		}
 
 		// assuming it worked, now generate the final output
+		if !quietMode {
+			fmt.Printf("Generating compiler frontend in %s...\n", *dest)
+		}
 		err := fishi.GenerateCompilerGo(spec, md, *pkg, *dest, &cgOpts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 			returnCode = ExitErrGeneration
 			return
 		}
-		fmt.Printf("(NOTE: complete frontend generation not implemented yet)\n")
 	} else if !quietMode {
 		fmt.Printf("(code generation skipped due to flags)\n")
 	}
