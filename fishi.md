@@ -279,7 +279,7 @@ For actions state:
 
 \s+                      %discard
 
-(?:{(?:&|\.)(?:[0-9]+)?}|{[0-9]+}|{\^}|{[A-Za-z][^{}]*}|[\s{}]+)\.[\$A-Za-z][\$A-Za-z0-9_]*
+(?:{(?:&|\.)(?:[0-9]+)?}|{[0-9]+}|{\^}|{[A-Za-z][^{}]*}|[^\s{}]+)\.[\$A-Za-z][\$A-Za-z0-9_]*
 %token attr-ref    %human attribute reference literal
 
 [0-9]+
