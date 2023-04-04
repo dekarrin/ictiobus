@@ -1,0 +1,109 @@
+{{/* main.go.tmpl is the main entry point for generated code that uses its */}}
+{{/* own binary. */ -}}
+
+package main
+
+import (
+	"fmt"
+    "os"
+	"flag"
+
+	"{{ .BinPkg }}/internal/{{ .HooksPkg }}"
+	"{{ .BinPkg }}/internal/{{ .FrontendPkg }}"
+{{if and .IncludeSimulation .IRTypePackage }}
+	"{{ .IRTypePackage }}"
+{{end -}}
+
+	"github.com/dekarrin/ictiobus/trans"
+)
+
+const (
+    ExitSuccess = iota
+
+    ExitErr
+)
+
+const (
+	versionString = "{{ .BinName }} {{ .BinVersion }}"
+)
+
+var (
+    returnCode = ExitSuccess
+)
+
+// flags
+var (
+	quietMode bool
+	version *bool = flag.Bool("version", false, "Print the version of {{ .BinName }} and exit")
+{{if .IncludeSimulation }}
+	doSimulation      *bool = flag.Bool("sim", false, "Run analysis on a series of simulated parse trees intended to cover all rules")
+	simSDTSShowTrees  *bool = flag.Bool("sim-sdts-trees", false, "Show full simulated parse trees that caused SDTS validation errors")
+	simSDTSShowGraphs *bool = flag.Bool("sim-sdts-graphs", false, "Show dependency graph for each simulated tree that caused SDTS validation errors")
+	simSDTSFirstOnly  *bool = flag.Bool("sim-sdts-first", false, "Show only the first error found in SDTS validation of simulated trees")
+	simSDTSSkip       *int  = flag.Int("sim-sdts-skip", 0, "Skip the first N errors found in SDTS validation of simulated trees")
+{{end -}}
+)
+
+// init flags
+func init() {
+	const (
+		quietUsage       = "Quiet mode"
+	)
+	flag.BoolVar(&quietMode, "quiet", false, quietUsage)
+	flag.BoolVar(&quietMode, "q", false, quietUsage+" (shorthand)")
+}
+
+func main() {
+	// preserve possibly-set exit code while also checking for panic and
+    // propagating it if there was one.
+	defer func() {
+		if panicErr := recover(); panicErr != nil {
+			// we are panicking, make sure we dont lose the panic just because
+			// we checked
+			panic("unrecoverable panic occured")
+		} else {
+			os.Exit(returnCode)
+		}
+	}()
+
+	flag.Parse()
+
+	if *version {
+		fmt.Println(versionString)
+		return
+	}
+
+{{ if .IncludeSimulation }}
+	// do simulation if requested
+	if *doSimulation {
+		hooksMapping := {{ .HooksPkg }}.{{ .HooksTableExpr }}
+
+		langFront := {{ .FrontendPkg }}.Frontend(hooksMapping, nil)
+
+		// hooks will be set, so run validation now
+		valProd := langFront.Lexer.FakeLexemeProducer(true, "")
+
+		di := trans.ValidationOptions{
+			ParseTrees:    *simSDTSShowTrees,
+			FullDepGraphs: *simSDTSShowGraphs,
+			ShowAllErrors: !*simSDTSFirstOnly,
+			SkipErrors:    *simSDTSSkip,
+		}
+
+		sddErr := langFront.SDT.Validate(langFront.Parser.Grammar(), langFront.IRAttribute, di, valProd)
+		if sddErr != nil {
+			fmt.Fprintf(os.Stderr, "validation error: %v\n", sddErr.Error())
+			returnCode = ExitErr
+			return
+		}
+
+		if !quietMode {
+			fmt.Printf("(simulation completed with 0 errors)\n")
+		}
+	}
+{{end -}}
+
+	if !quietMode {
+		fmt.Printf("({{.BinName}} executed successfully)\n")
+	}
+}

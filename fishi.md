@@ -352,7 +352,7 @@ The following gives the Syntax-directed translations for the FISHI language.
 : {^}.value = block_list_append({BLOCKS}.value, {BLOCK}.ast)
 
          -> %index 1
-: {^}.value = block_list_start({BLOCK}.value)
+: {^}.value = block_list_start({BLOCK}.ast)
 
 
 # TODO: add %prod %all selection.
@@ -435,7 +435,7 @@ The following gives the Syntax-directed translations for the FISHI language.
 
 %symbol {SEM-ACTION-LIST}
 ->: {^}.value = attr_ref_list_append({0}.value, {1}.value)
-->: {^}.value = attr_ref_list_start({0}.value)
+->: {^}.value = attr_ref_list_start({0}.value, {0}.$ft)
 
 %symbol {ASYM}
 ->: {^}.value = get_nonterminal({0}.$text)
@@ -456,7 +456,7 @@ The following gives the Syntax-directed translations for the FISHI language.
 ->: {^}.value = make_prod_specifier_literal({0}.value)
 
 %symbol {PROD-SPEC}
-->: {^}.value = ident({0}.value)
+->: {^}.value = ident({1}.value)
 ->: {^}.value = make_prod_specifier_next()
 
 %symbol {PROD-ACTION}

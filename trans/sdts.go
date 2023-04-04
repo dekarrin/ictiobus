@@ -178,16 +178,21 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 							errMsg += ", "
 						}
 					}
-					errMsg += fmt.Sprintf(") for rule %s -> %s: ", nodeRuleHead, nodeRuleProd)
+					errMsg += fmt.Sprintf(") for rule %s -> %s", nodeRuleHead, nodeRuleProd)
 
 					if hookErr.name == "" {
 						return nil, evalError{
 							msg: fmt.Sprintf("%s: no hook set on binding", errMsg),
 						}
-					} else {
+					} else if hookErr.missingHook {
 						return nil, evalError{
 							missingHook: hName,
 							msg:         fmt.Sprintf("%s: '%s' is not in the provided hooks table", errMsg, hookErr.name),
+						}
+					} else {
+						return nil, evalError{
+							failedHook: hName,
+							msg:        fmt.Sprintf("%s: %s", errMsg, hookErr.Error()),
 						}
 					}
 				} else {

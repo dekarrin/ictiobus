@@ -45,7 +45,7 @@ var (
 		"make_human_option":                                sdtsFnMakeHumanOption,
 		"make_token_option":                                sdtsFnMakeTokenOption,
 		"make_priority_option":                             sdtsFnMakePriorityOption,
-		"identity":                                         sdtsFnIdentity,
+		"ident":                                            sdtsFnIdentity,
 		"interpret_escape":                                 sdtsFnInterpretEscape,
 		"append_strings":                                   sdtsFnAppendStrings,
 		"append_strings_trimmed":                           sdtsFnAppendStringsTrimmed,

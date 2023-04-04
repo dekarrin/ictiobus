@@ -67,6 +67,7 @@ func (spec Spec) ValidateSDTS(opts trans.ValidationOptions) error {
 	// validate the SDTS. the first defined attribute will be the IR attribute.
 	irAttrName := spec.TranslationScheme[0].Attribute.Name
 
+	// TODO: except we would need to check hook here.
 	sdtsErr := sdts.Validate(spec.Grammar, irAttrName, opts, valProd)
 	if sdtsErr != nil {
 		return fmt.Errorf("SDTS validation error: %w", sdtsErr)
@@ -140,6 +141,30 @@ func (spec Spec) CreateLexer(lazy bool) (ictiobus.Lexer, error) {
 
 	// done!
 	return lx, nil
+}
+
+// CreateMostRestrictiveParser creates the most restrictive parser possible for
+// the language it represents. They will be tried in this order: LL(1), SLR(1),
+// LALR(1), CLR(1).
+//
+// AllowAmbig only applies for parser types that can auto-resolve ambiguity,
+// e.g. it does not apply to an LL(k) parser.
+func (spec Spec) CreateMostRestrictiveParser(allowAmbig bool) (ictiobus.Parser, []Warning, error) {
+	p, warns, err := spec.CreateParser(types.ParserLL1, false)
+	if err != nil {
+		p, warns, err = spec.CreateParser(types.ParserSLR1, allowAmbig)
+		if err != nil {
+			p, warns, err = spec.CreateParser(types.ParserLALR1, allowAmbig)
+			if err != nil {
+				p, warns, err = spec.CreateParser(types.ParserCLR1, allowAmbig)
+				if err != nil {
+					return p, warns, fmt.Errorf("no parser can be generated for grammar; for CLR(1) parser, got: %w", err)
+				}
+			}
+		}
+	}
+
+	return p, warns, err
 }
 
 // CreateParser uses the Grammar in the spec to create a new Parser of the

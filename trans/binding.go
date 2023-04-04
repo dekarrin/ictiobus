@@ -51,14 +51,14 @@ func (bind SDDBinding) Copy() SDDBinding {
 }
 
 // Invoke calls the given binding while visiting an annotated parse tree node.
-func (bind SDDBinding) Invoke(apt *AnnotatedParseTree, hooksTable map[string]AttributeSetter) (interface{}, error) {
+func (bind SDDBinding) Invoke(apt *AnnotatedParseTree, hooksTable map[string]AttributeSetter) (val interface{}, invokeErr error) {
 	// sanity checks; can we even call this?
 	if bind.Setter == "" {
 		return nil, hookError{msg: "binding has no setter hook defined"}
 	}
 	hookFn := hooksTable[bind.Setter]
 	if hookFn == nil {
-		return nil, hookError{name: bind.Setter, msg: fmt.Sprintf("no implementation for hook function '%s' was provided", bind.Setter)}
+		return nil, hookError{name: bind.Setter, missingHook: true, msg: fmt.Sprintf("no implementation for hook function '%s' was provided", bind.Setter)}
 	}
 
 	if bind.Dest.Relation.Type == RelHead && !bind.Synthesized {
@@ -101,8 +101,15 @@ func (bind SDDBinding) Invoke(apt *AnnotatedParseTree, hooksTable map[string]Att
 		args = append(args, reqVal)
 	}
 
+	// detect panic in deferred function
+	defer func() {
+		if r := recover(); r != nil {
+			invokeErr = hookError{name: bind.Setter, msg: fmt.Sprintf("panicked: %v", r)}
+		}
+	}()
+
 	// call func
-	val := hookFn(info, args)
+	val = hookFn(info, args)
 
 	return val, nil
 }
@@ -111,11 +118,13 @@ func (bind SDDBinding) Invoke(apt *AnnotatedParseTree, hooksTable map[string]Att
 // occured during invocation of a binding due to a problem with the associated
 // hook function. hook func could be missing, not set, or could have returned an
 // error. if name is empty, then the error is that the hook was set to an empty
-// string or never set. if name is non-empty, then the error is that the hook
-// was not found in the hooks table.
+// string or never set. If missingHook is set, the the name was set but the
+// hook was not found in the hooks table. Otherwise the error is in msg.
 type hookError struct {
 	// the name of the hook function.
 	name string
+
+	missingHook bool
 
 	msg string
 }

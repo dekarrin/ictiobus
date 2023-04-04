@@ -1,26 +1,29 @@
 package fishi
 
 import (
+	"bufio"
 	"bytes"
 	_ "embed"
 	"fmt"
 	"go/format"
+	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"text/template"
 	"unicode"
 
+	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/trans"
-	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/rosed"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/runenames"
-	"golang.org/x/tools/go/packages"
 )
 
 // file codegen implements conversion of a fishi spec to a series of go files.
@@ -28,18 +31,31 @@ import (
 
 const (
 	CommandName = "ictcc"
+)
 
+// Names of each component of the generated compiler. Each component
+// represents one file that is generated.
+const (
+	ComponentTokens   = "tokens"
+	ComponentLexer    = "lexer"
+	ComponentParser   = "parser"
+	ComponentSDTS     = "sdts"
+	ComponentFrontend = "frontend"
+	ComponentMainFile = "main"
+)
+
+// Names of each file that is generated.
+const (
 	GeneratedTokensFilename   = "tokens.ict.go"
 	GeneratedLexerFilename    = "lexer.ict.go"
 	GeneratedParserFilename   = "parser.ict.go"
 	GeneratedSDTSFilename     = "sdts.ict.go"
 	GeneratedFrontendFilename = "frontend.ict.go"
+	GeneratedMainFilename     = "main.ict.go"
 )
 
+// Default template strings for each component of the generated compiler.
 var (
-	underscoreCollapser = regexp.MustCompile(`_+`)
-	titleCaser          = cases.Title(language.AmericanEnglish)
-
 	//go:embed templates/tokens.go.tmpl
 	TemplateTokens string
 
@@ -54,48 +70,305 @@ var (
 
 	//go:embed templates/frontend.go.tmpl
 	TemplateFrontend string
+
+	//go:embed templates/main.go.tmpl
+	TemplateMainFile string
 )
+
+var (
+	underscoreCollapser = regexp.MustCompile(`_+`)
+	titleCaser          = cases.Title(language.AmericanEnglish)
+
+	// order in which components of the generated compiler (files) are created.
+	// not all will be present in all cases; this only enforces an ordering on
+	// rendered templates to aid in debugging.
+	codegenOrder = []string{
+		ComponentTokens,
+		ComponentLexer,
+		ComponentParser,
+		ComponentSDTS,
+		ComponentFrontend,
+		ComponentMainFile,
+	}
+
+	defaultTemplates = map[string]string{
+		ComponentTokens:   TemplateTokens,
+		ComponentLexer:    TemplateLexer,
+		ComponentParser:   TemplateParser,
+		ComponentSDTS:     TemplateSDTS,
+		ComponentFrontend: TemplateFrontend,
+		ComponentMainFile: TemplateMainFile,
+	}
+)
+
+type CodegenOptions struct {
+	// DumpPreFormat will dump the generated code before it is formatted.
+	DumpPreFormat bool
+
+	// TemplateFiles is a map of template names to a path to a custom template
+	// file for that template. If entries are detected under the key of one of
+	// the ComponentX constants, the path in it is parsed as a template file and
+	// used for outputting the generated code for that component instead of the
+	// default embedded template.
+	TemplateFiles map[string]string
+
+	// IRType is the fully-qualified type of the intermediate representation in
+	// the frontend. This is used to make the Frontend function return a
+	// specific type instead of requiring an explicit type instantiation when
+	// called.
+	IRType string
+}
+
+// GeneratedCodeInfo contains information about the generated code.
+type GeneratedCodeInfo struct {
+	// MainFile is the path to the main executable file, relative to Path.
+	MainFile string
+
+	// Path is the location of the root of the generated code.
+	Path string
+}
+
+func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions trans.ValidationOptions) error {
+	args := []string{"run", gci.MainFile, "-sim"}
+	if valOptions.FullDepGraphs {
+		args = append(args, "-sim-sdts-graphs")
+	}
+	if valOptions.ParseTrees {
+		args = append(args, "-sim-sdts-trees")
+	}
+	if !valOptions.ShowAllErrors {
+		args = append(args, "-sim-sdts-first")
+	}
+	if valOptions.SkipErrors != 0 {
+		args = append(args, "-sim-sdts-skip", fmt.Sprintf("%d", valOptions.SkipErrors))
+	}
+	cmd := exec.Command("go", args...)
+	cmd.Dir = gci.Path
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+// GenerateTestCompiler generates (but does not yet run) a test compiler for the
+// given spec and pre-created parser, using the provided hooks package. Once it
+// is created, it will be able to be executed by calling go run on the provided
+// mainfile from the outDir.
+//
+// It will be created in a temporary file; caller must do os.RemoveAll() on the
+// returned path when done.
+//
+// hooksExpr must be set to an exported identifier or func call that can be
+// called from within the hooks package with a type of
+// map[string]trans.AttributeSetter. It can be a function call, constant name,
+// or var name.
+//
+// opts must be non-nil and IRType must be set.
+func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, opts CodegenOptions) (GeneratedCodeInfo, error) {
+	if opts.IRType == "" {
+		return GeneratedCodeInfo{}, fmt.Errorf("IRType must be set in options")
+	}
+
+	irFQPackage, irType, irPackage, irErr := ParseFQType(opts.IRType)
+	if irErr != nil {
+		return GeneratedCodeInfo{}, fmt.Errorf("parsing IRType: %w", irErr)
+	}
+
+	gci := GeneratedCodeInfo{}
+	var fePkgName = "sim" + strings.ToLower(md.Language)
+
+	// what is the name of our hooks package? find out by reading the first go
+	// file in the package.
+	hooksDirItems, err := os.ReadDir(hooksPkgDir)
+	if err != nil {
+		return gci, fmt.Errorf("reading hooks package dir: %w", err)
+	}
+
+	var hooksPkgName string
+	for _, item := range hooksDirItems {
+		if !item.IsDir() && strings.ToLower(filepath.Ext(item.Name())) == ".go" {
+			// read the file to find the package name
+			goFilePath := filepath.Join(hooksPkgDir, item.Name())
+			goFile, err := os.Open(goFilePath)
+			if err != nil {
+				return gci, fmt.Errorf("reading go file in hooks package: %w", err)
+			}
+
+			// buffered reading
+			r := bufio.NewReader(goFile)
+
+			// now find the package name in the file
+			for hooksPkgName == "" {
+				str, err := r.ReadString('\n')
+				strTrimmed := strings.TrimSpace(str)
+
+				// is it a line starting with "package"?
+				if strings.HasPrefix(strTrimmed, "package") {
+					lineItems := strings.Split(strTrimmed, " ")
+					if len(lineItems) == 2 {
+						hooksPkgName = lineItems[1]
+						break
+					}
+				}
+
+				// ofc if err is somefin else
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					return gci, fmt.Errorf("reading go file in hooks package: %w", err)
+				}
+			}
+		}
+
+		if hooksPkgName != "" {
+			break
+		}
+	}
+	if hooksPkgName == "" {
+		return gci, fmt.Errorf("could not find package name for hooks package; make sure files are gofmt'd")
+	}
+	if hooksPkgName == fePkgName {
+		// double it to avoid name collision
+		fePkgName += "_" + fePkgName
+	}
+
+	safePkgIdent := func(s string) string {
+		s = safeTCIdentifierName(s)
+		s = s[2:] // remove initial "tc".
+		return strings.ToLower(s)
+	}
+
+	// create a temporary directory to save things in
+	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("ictcc-test-%s", safePkgIdent(md.Language)))
+	if err != nil {
+		return gci, fmt.Errorf("creating temp dir: %w", err)
+	}
+
+	// start copying the hooks package
+	hooksDestPath := filepath.Join(tmpDir, "internal", hooksPkgName)
+	hooksDone, err := copyDirToTargetAsync(hooksPkgDir, hooksDestPath)
+	if err != nil {
+		return gci, fmt.Errorf("copying hooks package: %w", err)
+	}
+
+	// generate the compiler code
+	fePkgPath := filepath.Join(tmpDir, "internal", fePkgName)
+	err = GenerateCompilerGo(spec, md, fePkgName, fePkgPath, &opts)
+	if err != nil {
+		return gci, fmt.Errorf("generating compiler: %w", err)
+	}
+
+	// since GenerateCompilerGo ensures the directory exists, we can now copy
+	// the encoded parser into it as well.
+	parserPath := filepath.Join(fePkgPath, "parser.cff")
+	err = ictiobus.SaveParserToDisk(p, parserPath)
+	if err != nil {
+		return gci, fmt.Errorf("writing parser: %w", err)
+	}
+
+	// only fill in the ir package import if ir's package is not not the same as the hooks package
+	if irPackage == hooksPkgName {
+		irFQPackage = ""
+	}
+
+	// export template with main file
+	mainFillData := cgMainData{
+		BinPkg:            "github.com/dekarrin/ictiobus/langtest/" + strings.ToLower(safePkgIdent(md.Language)),
+		BinName:           "test" + strings.ToLower(safePkgIdent(md.Language)),
+		BinVersion:        "(simulator version)",
+		HooksPkg:          hooksPkgName,
+		HooksTableExpr:    hooksExpr,
+		FrontendPkg:       fePkgName,
+		IRTypePackage:     irFQPackage,
+		IRType:            irType,
+		IncludeSimulation: true,
+	}
+	fnMap := createFuncMap()
+	renderFiles := map[string]codegenTemplate{
+		ComponentMainFile: {nil, GeneratedMainFilename},
+	}
+
+	// initialize templates
+	err = initTemplates(renderFiles, fnMap, opts.TemplateFiles)
+	if err != nil {
+		return gci, err
+	}
+
+	// finally, render the main file
+	rf := renderFiles[ComponentMainFile]
+	mainFileRelPath := rf.outFile
+	err = renderTemplateToFile(rf.tmpl, mainFillData, filepath.Join(tmpDir, mainFileRelPath), opts.DumpPreFormat)
+	if err != nil {
+		return gci, err
+	}
+
+	// wait for the hooks package to be copied; we'll need it for go mod tidy
+	<-hooksDone
+
+	// shell out to run go module stuff
+	goModInitCmd := exec.Command("go", "mod", "init", mainFillData.BinPkg)
+	goModInitCmd.Env = os.Environ()
+	goModInitCmd.Dir = tmpDir
+	goModInitOutput, err := goModInitCmd.CombinedOutput()
+	if err != nil {
+		return gci, fmt.Errorf("initializing generated module with binary: %w\n%s", err, string(goModInitOutput))
+	}
+	goModTidyCmd := exec.Command("go", "mod", "tidy")
+	goModTidyCmd.Env = os.Environ()
+	goModTidyCmd.Dir = tmpDir
+	goModTidyOutput, err := goModTidyCmd.CombinedOutput()
+	if err != nil {
+		return gci, fmt.Errorf("tidying generated module with binary: %w\n%s", err, string(goModTidyOutput))
+	}
+
+	// if we got here, all output has been written to the temp dir.
+	gci.Path = tmpDir
+	gci.MainFile = mainFileRelPath
+
+	return gci, nil
+}
 
 // GenerateCompilerGo generates the source code for a compiler that can handle a
 // fishi spec. The source code is placed in the given directory. This does *not*
 // copy the hooks package, it only outputs the compiler code.
-func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, dumpPreFormat bool) error {
-	data := createTemplateFillData(spec, md, pkgName)
+//
+// If opts is nil, the default options will be used.
+func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, opts *CodegenOptions) error {
+	if opts == nil {
+		opts = &CodegenOptions{}
+	}
+
+	data := createTemplateFillData(spec, md, pkgName, opts.IRType)
 
 	err := os.MkdirAll(pkgDir, 0755)
 	if err != nil {
 		return fmt.Errorf("creating target dir: %w", err)
 	}
 
-	fnMap := template.FuncMap{
-		"upperCamel": func(s string) string {
-			words := strings.Split(s, "_")
-			upperCamel := ""
-			for _, word := range words {
-				upperCamel += string(titleCaser.String(word))
-			}
-			return upperCamel
-		},
-		"quote": func(s string) string {
-			return fmt.Sprintf("%q", s)
-		},
+	fnMap := createFuncMap()
+
+	renderFiles := map[string]codegenTemplate{
+		ComponentTokens:   {nil, GeneratedTokensFilename},
+		ComponentLexer:    {nil, GeneratedLexerFilename},
+		ComponentParser:   {nil, GeneratedParserFilename},
+		ComponentSDTS:     {nil, GeneratedSDTSFilename},
+		ComponentFrontend: {nil, GeneratedFrontendFilename},
 	}
 
-	renderFiles := []struct {
-		name     string
-		tmpl     string
-		filename string
-	}{
-		{"tokens", TemplateTokens, GeneratedTokensFilename},
-		{"lexer", TemplateLexer, GeneratedLexerFilename},
-		{"parser", TemplateParser, GeneratedParserFilename},
-		{"sdts", TemplateSDTS, GeneratedSDTSFilename},
-		{"frontend", TemplateFrontend, GeneratedFrontendFilename},
+	// initialize templates
+	err = initTemplates(renderFiles, fnMap, opts.TemplateFiles)
+	if err != nil {
+		return err
 	}
 
-	// render the template files
-	for _, rf := range renderFiles {
-		err = renderTemplateToFile(rf.name, rf.tmpl, fnMap, data, filepath.Join(pkgDir, rf.filename), dumpPreFormat)
+	// finally, render the template files
+	for _, comp := range codegenOrder {
+		rf, ok := renderFiles[comp]
+		if !ok {
+			continue
+		}
+
+		err = renderTemplateToFile(rf.tmpl, data, filepath.Join(pkgDir, rf.outFile), opts.DumpPreFormat)
 		if err != nil {
 			return err
 		}
@@ -105,15 +378,74 @@ func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, dump
 
 }
 
-func renderTemplateToFile(name, tmpl string, fns template.FuncMap, data interface{}, dest string, dumpPreFormat bool) error {
-	tokTemp, err := template.New(name).Funcs(fns).Parse(tmpl)
-	if err != nil {
-		return fmt.Errorf("parsing %s template: %w", name, err)
+func createFuncMap() template.FuncMap {
+	return template.FuncMap{
+		"upperCamel": safeTCIdentifierName,
+		"quote": func(s string) string {
+			return fmt.Sprintf("%q", s)
+		},
+		"rquote": func(s string) string {
+			s = strings.ReplaceAll(s, "`", "` + \"`\" + `")
+			return fmt.Sprintf("`%s`", s)
+		},
+	}
+}
+
+func initTemplates(renderFiles map[string]codegenTemplate, fnMap template.FuncMap, customTemplateFiles map[string]string) error {
+	// initialize the templates and parse the template for each, either from the
+	// default embedded template string or from the specified custom template
+	// file on disk.
+	for _, comp := range codegenOrder {
+		var err error
+
+		rf, ok := renderFiles[comp]
+		if !ok {
+			continue
+		}
+
+		rf.tmpl = template.New(comp).Funcs(fnMap)
+
+		if customTemplatePath, ok := customTemplateFiles[comp]; ok {
+			// custom template file specified, load it
+			fileBasename := filepath.Base(customTemplatePath)
+
+			// avoid use of Template.ParseFiles because according to docs it
+			// relies on the template having the same name as the basename of at
+			// least one of the files, which is not going to be the case here.
+			templateBytes, err := os.ReadFile(customTemplatePath)
+			if err != nil {
+				return fmt.Errorf("loading custom %s template %s: %w", comp, fileBasename, err)
+			}
+
+			templateStr := string(templateBytes)
+
+			// TODO: p shore it's not actually necessary to reassign the results
+			// of calling Parse(); check l8er.
+			rf.tmpl, err = rf.tmpl.Parse(templateStr)
+			if err != nil {
+				return fmt.Errorf("parsing custom %s template %s: %w", comp, fileBasename, err)
+			}
+		} else {
+			// use default embedded template string
+
+			// TODO: p shore it's not actually necessary to reassign the results
+			// of calling Parse(); check l8er.
+			rf.tmpl, err = rf.tmpl.Parse(defaultTemplates[comp])
+			if err != nil {
+				return fmt.Errorf("parsing default %s template: %w", comp, err)
+			}
+		}
+
+		renderFiles[comp] = rf
 	}
 
+	return nil
+}
+
+func renderTemplateToFile(tmpl *template.Template, data interface{}, dest string, dumpPreFormat bool) error {
 	var tokBuf bytes.Buffer
-	if err := tokTemp.Execute(&tokBuf, data); err != nil {
-		return fmt.Errorf("generating %s file: %w", name, err)
+	if err := tmpl.Execute(&tokBuf, data); err != nil {
+		return fmt.Errorf("generating %s file: %w", tmpl.Name(), err)
 	}
 	if dumpPreFormat {
 		fmt.Printf("\n=== %s ===\n", dest)
@@ -127,19 +459,18 @@ func renderTemplateToFile(name, tmpl string, fns template.FuncMap, data interfac
 	}
 	formatted, err := format.Source(tokBuf.Bytes())
 	if err != nil {
-		return fmt.Errorf("formatting %s file: %w", name, err)
+		return fmt.Errorf("formatting %s file: %w", tmpl.Name(), err)
 	}
 	// write the file out
 	err = os.WriteFile(dest, formatted, 0666)
 	if err != nil {
-		return fmt.Errorf("writing %s file: %w", name, err)
+		return fmt.Errorf("writing %s file: %w", tmpl.Name(), err)
 	}
 	return nil
 }
 
-func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
+func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType string) cgData {
 	// fill initial from metadata
-
 	data := cgData{
 		FrontendPackage: pkgName,
 		Lang:            md.Language,
@@ -148,11 +479,20 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
 		CommandArgs:     md.InvocationArgs,
 	}
 
+	// if IR type is specified, use it
+	if fqIRType != "" {
+		irPkg, irType, _, err := ParseFQType(fqIRType)
+		if err == nil {
+			data.IRPackage = irPkg
+			data.IRType = irType
+		}
+	}
+
 	// fill classes (also save their cgClass)
 
 	tokCgClasses := map[string]cgClass{}
 	for _, class := range spec.Tokens {
-		varName := tokenClassVarName(class)
+		varName := safeTCIdentifierName(class.ID())
 
 		classData := cgClass{
 			Name:  varName,
@@ -168,7 +508,8 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
 	// fill patterns
 
 	tokMap := spec.ClassMap()
-	for state := range spec.Patterns {
+
+	for _, state := range textfmt.OrderedKeys(spec.Patterns) {
 		cgStateData := cgStatePatterns{State: state}
 		statePats := spec.Patterns[state]
 
@@ -204,6 +545,8 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
 					cgStateData.Classes = append(cgStateData.Classes, tokData)
 				}
 			}
+
+			cgStateData.Entries = append(cgStateData.Entries, entry)
 		}
 
 		if state == "" {
@@ -280,12 +623,32 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string) cgData {
 	return data
 }
 
+type codegenTemplate struct {
+	tmpl    *template.Template
+	outFile string
+}
+
+// codegen data for template fill of main.go
+type cgMainData struct {
+	BinPkg            string
+	BinName           string
+	BinVersion        string
+	HooksPkg          string
+	HooksTableExpr    string
+	FrontendPkg       string
+	IRTypePackage     string
+	IRType            string
+	IncludeSimulation bool
+}
+
 // codegenData for template fill.
 type cgData struct {
 	FrontendPackage string
 	Lang            string
 	Version         string
 	IRAttribute     string
+	IRType          string
+	IRPackage       string
 	Command         string
 	CommandArgs     string
 	Classes         []cgClass
@@ -347,10 +710,10 @@ type cgClass struct {
 	Human string
 }
 
-func tokenClassVarName(class types.TokenClass) string {
+func safeTCIdentifierName(str string) string {
 	nameRunes := []rune{}
 
-	for _, ch := range class.ID() {
+	for _, ch := range str {
 		if ('A' <= ch && ch <= 'Z') || ('a' <= ch && ch <= 'z') || ('0' <= ch && ch <= '9') || ch == '_' {
 			nameRunes = append(nameRunes, ch)
 		} else if ch == '-' || unicode.IsSpace(ch) {
@@ -389,19 +752,28 @@ func tokenClassVarName(class types.TokenClass) string {
 // error if scanning the package and directory creation was successful. later,
 // pushes the first error that occurs while copying the contents of a file to
 // the channel, or nil to the channel if the copy was successful.
-func copyPackageToTargetAsync(goPackage string, targetDir string) (copyResult chan error, err error) {
-	pkgs, err := packages.Load(nil, goPackage)
+//
+// TODO: this should be a go dir, not a package.
+func copyDirToTargetAsync(srcDir string, targetDir string) (copyResult chan error, err error) {
+	/*
+		pkgs, err := packages.Load(nil, goPackage)
+		if err != nil {
+			return nil, fmt.Errorf("scanning package: %w", err)
+		}
+		if len(pkgs) != 1 {
+			return nil, fmt.Errorf("expected one package, got %d", len(pkgs))
+		}
+
+		pkg := pkgs[0]
+
+		// Permissions:
+		// rwxr-xr-x = 755*/
+
+	// read the list of files in the source directory
+	srcFiles, err := os.ReadDir(srcDir)
 	if err != nil {
-		return nil, fmt.Errorf("scanning package: %w", err)
+		return nil, fmt.Errorf("reading source dir %q: %w", srcDir, err)
 	}
-	if len(pkgs) != 1 {
-		return nil, fmt.Errorf("expected one package, got %d", len(pkgs))
-	}
-
-	pkg := pkgs[0]
-
-	// Permissions:
-	// rwxr-xr-x = 755
 
 	err = os.MkdirAll(targetDir, 0755)
 	if err != nil {
@@ -410,21 +782,42 @@ func copyPackageToTargetAsync(goPackage string, targetDir string) (copyResult ch
 
 	ch := make(chan error)
 	go func() {
-		for _, file := range pkg.GoFiles {
-			baseFilename := filepath.Base(file)
+		var recursions []chan error
 
-			fileData, err := os.ReadFile(file)
-			if err != nil {
-				ch <- fmt.Errorf("reading source file %s: %w", baseFilename, err)
-				return
+		for _, dirEntry := range srcFiles {
+			file := filepath.Join(srcDir, dirEntry.Name())
+			if dirEntry.IsDir() {
+				// do it recursively.
+				recursion, err := copyDirToTargetAsync(file, filepath.Join(targetDir, dirEntry.Name()))
+				if err != nil {
+					ch <- err
+					return
+				}
+
+				recursions = append(recursions, recursion)
+			} else {
+				fileData, err := os.ReadFile(file)
+				if err != nil {
+					ch <- fmt.Errorf("reading source file %s: %w", file, err)
+					return
+				}
+
+				dest := filepath.Join(targetDir, dirEntry.Name())
+
+				// write the file to the dest path
+				err = os.WriteFile(dest, fileData, 0644)
+				if err != nil {
+					ch <- fmt.Errorf("writing source file %s: %w", dest, err)
+					return
+				}
 			}
+		}
 
-			dest := filepath.Join(targetDir, baseFilename)
-
-			// write the file to the dest path
-			err = os.WriteFile(dest, fileData, 0644)
+		// block until all the recursions are done
+		for _, recursion := range recursions {
+			err := <-recursion
 			if err != nil {
-				ch <- fmt.Errorf("writing source file %s: %w", baseFilename, err)
+				ch <- err
 				return
 			}
 		}

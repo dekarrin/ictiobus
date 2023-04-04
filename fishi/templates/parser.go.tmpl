@@ -11,7 +11,7 @@ import (
     _ "embed"
 
     "github.com/dekarrin/ictiobus"
-    "github.com/dekarrin/ictiobus/lex"
+    "github.com/dekarrin/ictiobus/grammar"
 )
 
 var (
@@ -23,29 +23,26 @@ var (
 // also be pre-compiled with the parser, but it is included here as well for
 // convenience.
 func Grammar() grammar.Grammar {
-    g := grammar.NewGrammar()
+    g := grammar.Grammar{}
 
 {{range .Classes -}}
 {{"    "}}g.AddTerm({{ .Name }}.ID(), {{ .Name }})
-{{- end}}
-    
+{{end}}
 {{range .Rules}}{{/* no space removal here */}}
-    {{$head := .Head}}
-    {{range .Productions -}}
-
+{{- $head := .Head}}
+{{range .Productions -}}
 {{"    "}}g.AddRule("{{ $head }}", []string{ {{- range .Symbols }}"{{ . }}", {{ end -}} })
-
-    {{- end}}
+{{end}}
 {{- end}}
-
+    return g
 }
 
 // Parser returns the ictiobus Parser compiled for {{ .Lang }}.
 func Parser() ictiobus.Parser {
-	p, err := DecodeParserBytes(parserData)
-	if err != nil {
-		panic("corrupted parser.cff file: " + err.Error())
-	}
+    p, err := ictiobus.DecodeParserBytes(parserData)
+    if err != nil {
+        panic("corrupted parser.cff file: " + err.Error())
+    }
 
     return p
 }
