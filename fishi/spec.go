@@ -450,6 +450,11 @@ func analyzeASTActionsContentSlice(
 						synErr := types.NewSyntaxErrorFromToken("invalid attrRef: "+err.Error(), semAct.LHS.Src)
 						return nil, warnings, synErr
 					}
+					// make shore we aren't trying to set somefin starting with a '$'; those are reserved
+					if strings.HasPrefix(sdd.Attribute.Name, "$") {
+						synErr := types.NewSyntaxErrorFromToken("cannot create attribute starting with reserved marker '$'", semAct.LHS.Src)
+						return nil, warnings, synErr
+					}
 
 					// do the same for each arg to the hook
 					if len(semAct.With) > 0 {
