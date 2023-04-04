@@ -26,6 +26,10 @@ Flags:
 		checked for errors but no other action is taken (unless specified by
 		other flags).
 
+	-q/-quiet
+		Do not show progress messages. This does not affect error messages or
+		warning output.
+
 	-p/-parser FILE
 		Set the location of the pre-compiled parser cache to the given CFF
 		format file as opposed to the default of './parser.cff'.
@@ -265,6 +269,7 @@ var (
 )
 
 var (
+	quietMode     bool
 	noGen         bool
 	genAST        bool
 	genTree       bool
@@ -309,6 +314,7 @@ var (
 
 func init() {
 	const (
+		quietUsage       = "Do not print progress messages"
 		noGenUsage       = "Do not generate the parser"
 		genASTUsage      = "Print the AST of the analyzed fishi"
 		genTreeUsage     = "Print the parse trees of each analyzed fishi file"
@@ -330,6 +336,8 @@ func init() {
 	flag.StringVar(&parserCff, "p", parserCffDefault, parserCffUsage+" (shorthand)")
 	flag.StringVar(&lang, "lang", langDefault, langUsage)
 	flag.StringVar(&lang, "l", langDefault, langUsage+"(shorthand)")
+	flag.BoolVar(&quietMode, "quiet", false, quietUsage)
+	flag.BoolVar(&quietMode, "q", false, quietUsage+" (shorthand)")
 }
 
 func main() {
@@ -540,24 +548,17 @@ func main() {
 				if *hooksPath == "" {
 					fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing -hooks parameter\n")
 				} else {
-					genInfo, err := fishi.GenerateTestCompiler(spec, md, p, *hooksPath, *hooksTableName, cgOpts)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-						returnCode = ExitErrGeneration
-						return
-					}
 
 					di := trans.ValidationOptions{
-
 						ParseTrees:    *valSDTSShowTrees,
 						FullDepGraphs: *valSDTSShowGraphs,
 						ShowAllErrors: !*valSDTSFirstOnly,
 						SkipErrors:    *valSDTSSkip,
 					}
 
-					err = fishi.ExecuteTestCompiler(genInfo, di)
+					err := fishi.ValidateSimulatedInput(spec, md, p, *hooksPath, *hooksTableName, cgOpts, &di)
 					if err != nil {
-						fmt.Fprintf(os.Stderr, "%s\n", "ERROR: SDTS validation failed")
+						fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 						returnCode = ExitErrGeneration
 						return
 					}

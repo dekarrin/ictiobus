@@ -37,6 +37,39 @@ type Options struct {
 	ParserTrace       bool
 }
 
+// ValidateSimulatedInput generates a lightweight compiler with the spec'd
+// frontend in a special directory (".sim" in the local directory) and then runs
+// SDTS validation on a variety of parse tree inputs designed to cover all the
+// productions of the grammar at least once.
+//
+// If running validation with the test compiler succeeds, it and the directory
+// it was generated in are deleted. If it fails, the directory is left in place
+// for inspection.
+//
+// IRType is required to be set in cgOpts.
+//
+// valOpts is not required to be set, and if nil will be treated as if it were
+// set to an empty struct.
+func ValidateSimulatedInput(spec Spec, md SpecMetadata, p ictiobus.Parser, hooks, hooksTable string, cgOpts CodegenOptions, valOpts *trans.ValidationOptions) error {
+	genInfo, err := GenerateTestCompiler(spec, md, p, hooks, hooksTable, cgOpts)
+	if err != nil {
+		return fmt.Errorf("generate test compiler: %w", err)
+	}
+
+	err = ExecuteTestCompiler(genInfo, valOpts)
+	if err != nil {
+		return fmt.Errorf("execute test compiler: %w", err)
+	}
+
+	// if we got here, no errors. delete the test compiler and its directory
+	err = os.RemoveAll(genInfo.Path)
+	if err != nil {
+		return fmt.Errorf("remove test compiler: %w", err)
+	}
+
+	return nil
+}
+
 func GetFishiFromMarkdown(mdText []byte) []byte {
 	doc := markdown.Parse(mdText, mkparser.New())
 	var scanner fishiScanner

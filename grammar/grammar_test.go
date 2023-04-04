@@ -9,6 +9,7 @@ import (
 
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
+	"github.com/dekarrin/ictiobus/internal/tmatch"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -340,10 +341,11 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 
 func Test_Grammar_CreateFewestNonTermsAlternationsTable(t *testing.T) {
 	testCases := []struct {
-		name      string
-		input     Grammar
-		expect    map[string]Production
-		expectErr bool
+		name        string
+		input       Grammar
+		expect      map[string]Production
+		expectOneOf []map[string]Production // because this is testing a non-deterministic algorithm, there may be multiple possible outputs
+		expectErr   bool
 	}{
 		{
 			name: "inescapable derivation cycle in single rule",
@@ -378,9 +380,7 @@ func Test_Grammar_CreateFewestNonTermsAlternationsTable(t *testing.T) {
 				F -> ( E ) | id ;
 			`),
 			expect: map[string]Production{
-				"E": {"T"},
-				"T": {"F"},
-				"F": {"id"},
+				"E": {"T"}, "T": {"F"}, "F": {"id"},
 			},
 		},
 		{
@@ -390,10 +390,9 @@ func Test_Grammar_CreateFewestNonTermsAlternationsTable(t *testing.T) {
 				T -> T * F | F ;
 				F -> ( E ) | id | num;
 			`),
-			expect: map[string]Production{
-				"E": {"T"},
-				"T": {"F"},
-				"F": {"id"},
+			expectOneOf: []map[string]Production{
+				{"E": {"T"}, "T": {"F"}, "F": {"id"}},
+				{"E": {"T"}, "T": {"F"}, "F": {"num"}},
 			},
 		},
 	}
@@ -401,6 +400,11 @@ func Test_Grammar_CreateFewestNonTermsAlternationsTable(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := assert.New(t)
+
+			// make sure we didnt accidentally make an invalid test
+			if !tc.expectErr && tc.expect == nil && tc.expectOneOf == nil {
+				panic(fmt.Sprintf("test case %s does not specify expectErr, expect, or expectOneOf", tc.name))
+			}
 
 			actual, err := tc.input.CreateFewestNonTermsAlternationsTable()
 			if tc.expectErr {
@@ -410,7 +414,14 @@ func Test_Grammar_CreateFewestNonTermsAlternationsTable(t *testing.T) {
 				return
 			}
 
-			assert.Equal(tc.expect, actual)
+			// if only one, check that one
+			if tc.expect != nil {
+				assert.Equal(tc.expect, actual)
+			} else {
+				// otherwise, check that it is one of the possible ones
+				assertErr := tmatch.AnyStrMapV(actual, tc.expectOneOf, tmatch.Comparer(Production.Equal))
+				assert.NoError(assertErr)
+			}
 		})
 	}
 

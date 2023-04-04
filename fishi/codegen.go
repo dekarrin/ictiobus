@@ -128,7 +128,14 @@ type GeneratedCodeInfo struct {
 	Path string
 }
 
-func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions trans.ValidationOptions) error {
+// ExecuteTestCompiler runs the compiler pointed to by gci in validation mode.
+//
+// If valOptions is nil, the default validation options are used.
+func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOptions) error {
+	if valOptions == nil {
+		valOptions = &trans.ValidationOptions{}
+	}
+
 	args := []string{"run", gci.MainFile, "-sim"}
 	if valOptions.FullDepGraphs {
 		args = append(args, "-sim-sdts-graphs")
