@@ -21,14 +21,14 @@ const (
 
 var (
 	HooksTable = map[string]trans.AttributeSetter{
-		"make_fishispec":                                   sdtsFnMakeFishispec,
-		"block_list_append":                                sdtsFnBlockListAppend,
-		"block_list_start":                                 sdtsFnBlockListStart,
-		"make_grammar_block":                               sdtsFnMakeGrammarBlock,
-		"make_tokens_block":                                sdtsFnMakeTokensBlock,
-		"make_actions_block":                               sdtsFnMakeActionsBlock,
-		"grammar_content_blocks_start_rule_list":           sdtsFnGrammarContentBlocksStartRuleList,
-		"tokens_content_blocks_start_entry_list":           sdtsFnTokensContentBlocksStartEntryList,
+		"make_fishispec":                         sdtsFnMakeFishispec,
+		"block_list_append":                      sdtsFnBlockListAppend,
+		"block_list_start":                       sdtsFnBlockListStart,
+		"make_gblock":                            sdtsFnMakeGrammarBlock,
+		"make_tblock":                            sdtsFnMakeTokensBlock,
+		"make_ablock":                            sdtsFnMakeActionsBlock,
+		"grammar_content_blocks_start_rule_list": sdtsFnGrammarContentBlocksStartRuleList,
+		"tokens_content_blocks_start_entry_list": sdtsFnTokensContentBlocksStartEntryList,
 		"actions_content_blocks_start_symbol_actions_list": sdtsFnActionsContentBlocksStartSymbolActionsList,
 		"actions_content_blocks_prepend":                   sdtsFnActionsContentBlocksPrepend,
 		"tokens_content_blocks_prepend":                    sdtsFnTokensContentBlocksPrepend,

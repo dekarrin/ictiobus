@@ -415,7 +415,7 @@ The following gives the Syntax-directed translations for the FISHI language.
                        )
 
 %symbol {PROD-ACTION-LIST}
-->: {^}.value = prod_actions_list_append(
+->: {^}.value = prod_action_list_append(
                         {PROD-ACTION-LIST}.value
                         {PROD-ACTION}.value
                        )
@@ -434,8 +434,8 @@ The following gives the Syntax-directed translations for the FISHI language.
 ->: {^}.value = make_semantic_action({1}.$text, {1}.$ft, {3}.$text, {3}.$ft, {4}.value)
 
 %symbol {SEM-ACTION-LIST}
-->: {^}.value = attr_ref_list_append({0}.value, {1}.value)
-->: {^}.value = attr_ref_list_start({0}.value, {0}.$ft)
+->: {^}.value = semantic_action_list_append({0}.value, {1}.value)
+->: {^}.value = semantic_action_list_start({0}.value)
 
 %symbol {ASYM}
 ->: {^}.value = get_nonterminal({0}.$text)

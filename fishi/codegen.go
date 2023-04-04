@@ -620,8 +620,12 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 		bData.Productions = append(bData.Productions, sdtsData)
 	}
 	// now add all the bindings to the data in order
+	// (first one is the default IR attribute)
 	for _, b := range bindingOrder {
 		data.Bindings = append(data.Bindings, *b)
+		if data.IRAttribute == "" {
+			data.IRAttribute = b.Productions[0].Attribute
+		}
 	}
 
 	// done, return finished data
