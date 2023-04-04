@@ -185,7 +185,7 @@ func bootstrapSDTSActionsContentAST(sdts ictiobus.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ACTIONS-CONTENT", []string{"SYMBOL-ACTIONS-LIST"},
 		"ast",
-		"actions_content_blocks_start_symbol_actions_list",
+		"actions_content_blocks_start_sym_actions",
 		[]trans.AttrRef{
 			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
