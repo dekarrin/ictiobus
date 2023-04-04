@@ -367,7 +367,7 @@ func main() {
 	args := pflag.Args()
 
 	if len(args) < 1 {
-		fmt.Fprintf(os.Stderr, "No files given to process")
+		fmt.Fprintf(os.Stderr, "No files given to process\n")
 		returnCode = ExitErrNoFiles
 		return
 	}
