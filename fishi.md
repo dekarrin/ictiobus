@@ -534,23 +534,23 @@ The following gives the Syntax-directed translations for the FISHI language.
 ->: {^}.state = make_state_ins({1}.value, {1}.$ft)
 
 %symbol {ID-EXPR}
-->: {^}.value = identity({0}.$text)
-->: {^}.value = identity({0}.$text)
+->: {^}.value = ident({0}.$text)
+->: {^}.value = ident({0}.$text)
 
 %symbol {TEXT}
 ->: {^}.value = append_strings_trimmed({0}.value, {1}.value)
-->: {^}.value = identity({0}.value)
-->: {^}.value = identity({0}.value)
+->: {^}.value = ident({0}.value)
+->: {^}.value = ident({0}.value)
 
 %symbol {TEXT-ELEM-LIST}
 ->: {^}.value = append_strings({0}.value, {1}.value)
-->: {^}.value = identity({0}.value)
+->: {^}.value = ident({0}.value)
 
 %symbol {NL-TEXT-ELEM}
 ->: {^}.value = interpret_escape({0}.$text)
-->: {^}.value = identity({0}.$text)
+->: {^}.value = ident({0}.$text)
 
 %symbol {TEXT-ELEM}
 ->: {^}.value = interpret_escape({0}.$text)
-->: {^}.value = identity({0}.$text)
+->: {^}.value = ident({0}.$text)
 ```

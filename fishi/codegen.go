@@ -238,8 +238,13 @@ func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 		return strings.ToLower(s)
 	}
 
-	// create a temporary directory to save things in
-	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("ictcc-test-%s", safePkgIdent(md.Language)))
+	// create a directory to save things in
+	tmpDir := ".sim"
+	err = os.RemoveAll(tmpDir)
+	if err != nil {
+		return gci, fmt.Errorf("removing old temp dir: %w", err)
+	}
+	err = os.MkdirAll(tmpDir, 0766)
 	if err != nil {
 		return gci, fmt.Errorf("creating temp dir: %w", err)
 	}

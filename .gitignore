@@ -3,6 +3,7 @@
 
 /testout
 /ictcc
+/.sim
 
 # mac
 .DS_Store
@@ -10,7 +11,6 @@
 # IDEs
 /.vscode
 /.idea
-
 
 # default frontend generation
 /fe
