@@ -1,5 +1,12 @@
 Example Language
 ################
+
+*NOTE: this document is being kept for historical purproses, and some content
+may be correct, but it was the first attempt to standardize the fishi language
+and is heavily out of date. Refer to fishi.md instead of this file for an
+example; the correct parts of this file will eventually be worked into the manual
+for FISHI.*
+
 This is a complete example of a language specified in the special ictiobus
 format. It is a markdown based format that uses specially named sections to
 allow both specificiation of a language and freeform text to co-exist.
