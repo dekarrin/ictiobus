@@ -738,7 +738,8 @@ func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.Grammar, r grammar.R
 	} else if astRef.SymInProd {
 		// make sure the rule has the right number of symbols
 		if astRef.Occurance >= len(r.Productions[0]) {
-			return trans.AttrRef{}, fmt.Errorf("symbol index out of range; production only has %d symbols", len(r.Productions[0]))
+			symCount := textfmt.Pluralize(len(r.Productions[0]), "symbol", "-s")
+			return trans.AttrRef{}, fmt.Errorf("symbol index out of range; production only has %s (%s)", symCount, r.Productions[0])
 		}
 		ar = trans.AttrRef{
 			Relation: trans.NodeRelation{
