@@ -386,16 +386,11 @@ func main() {
 	}
 
 	fo := fishi.Options{
-		ParserCFF:         parserCff,
-		ReadCache:         !*noCache,
-		WriteCache:        !*noCacheOutput,
-		SDTSValidate:      !*valSDTSOff,
-		SDTSValShowTrees:  *valSDTSShowTrees,
-		SDTSValShowGraphs: *valSDTSShowGraphs,
-		SDTSValAllTrees:   !*valSDTSFirstOnly,
-		SDTSValSkipTrees:  *valSDTSSkip,
-		LexerTrace:        *lexerTrace,
-		ParserTrace:       *parserTrace,
+		ParserCFF:   parserCff,
+		ReadCache:   !*noCache,
+		WriteCache:  !*noCacheOutput,
+		LexerTrace:  *lexerTrace,
+		ParserTrace: *parserTrace,
 	}
 
 	cgOpts := fishi.CodegenOptions{

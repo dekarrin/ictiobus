@@ -12,7 +12,7 @@ import (
 func Test_WithFakeInput(t *testing.T) {
 	assert := assert.New(t)
 
-	_, actual := Parse([]byte(testInput), Options{ParserCFF: "../fishi-parser.cff", ReadCache: true, WriteCache: true, SDTSValidate: true})
+	_, actual := Parse([]byte(testInput), Options{ParserCFF: "../fishi-parser.cff", ReadCache: true, WriteCache: true})
 
 	assert.NoError(actual)
 
@@ -27,7 +27,7 @@ func Test_WithFakeInput(t *testing.T) {
 func Test_SelfHostedMarkdown_Spec(t *testing.T) {
 	assert := assert.New(t)
 
-	res, err := ParseMarkdownFile("../fishi.md", Options{ParserCFF: "../fishi-parser.cff", ReadCache: true, WriteCache: true, SDTSValidate: true})
+	res, err := ParseMarkdownFile("../fishi.md", Options{ParserCFF: "../fishi-parser.cff", ReadCache: true, WriteCache: true})
 	if !assert.NoError(err) {
 		return
 	}
@@ -45,7 +45,7 @@ func Test_SelfHostedMarkdown_Spec(t *testing.T) {
 func Test_SelfHostedMarkdown(t *testing.T) {
 	assert := assert.New(t)
 
-	_, actual := ParseMarkdownFile("../fishi.md", Options{ParserCFF: "../fishi-parser.cff", ReadCache: true, WriteCache: true, SDTSValidate: true})
+	_, actual := ParseMarkdownFile("../fishi.md", Options{ParserCFF: "../fishi-parser.cff", ReadCache: true, WriteCache: true})
 
 	assert.NoError(actual)
 

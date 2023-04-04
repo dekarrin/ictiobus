@@ -25,16 +25,11 @@ type Results struct {
 }
 
 type Options struct {
-	ParserCFF         string
-	ReadCache         bool
-	WriteCache        bool
-	SDTSValidate      bool
-	SDTSValShowTrees  bool
-	SDTSValShowGraphs bool
-	SDTSValAllTrees   bool
-	SDTSValSkipTrees  int
-	LexerTrace        bool
-	ParserTrace       bool
+	ParserCFF   string
+	ReadCache   bool
+	WriteCache  bool
+	LexerTrace  bool
+	ParserTrace bool
 }
 
 // ValidateSimulatedInput generates a lightweight compiler with the spec'd
@@ -204,23 +199,6 @@ func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.Block], error) {
 			fmt.Fprintf(os.Stderr, "writing parser to disk: %s\n", err.Error())
 		} else {
 			fmt.Printf("wrote parser to %q\n", opts.ParserCFF)
-		}
-	}
-
-	// validate our SDTS if we were asked to
-	if opts.SDTSValidate {
-		valProd := fishiFront.Lexer.FakeLexemeProducer(true, "")
-
-		di := trans.ValidationOptions{
-			ParseTrees:    opts.SDTSValShowTrees,
-			FullDepGraphs: opts.SDTSValShowGraphs,
-			ShowAllErrors: opts.SDTSValAllTrees,
-			SkipErrors:    opts.SDTSValSkipTrees,
-		}
-
-		sddErr := fishiFront.SDT.Validate(fishiFront.Parser.Grammar(), fishiFront.IRAttribute, di, valProd)
-		if sddErr != nil {
-			return ictiobus.Frontend[[]syntax.Block]{}, fmt.Errorf("sdd validation error: %w", sddErr)
 		}
 	}
 
