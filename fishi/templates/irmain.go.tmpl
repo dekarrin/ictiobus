@@ -22,6 +22,8 @@ import (
 	"{{ .BinPkg }}/internal/{{ .HooksPkg }}"
 	"{{ .BinPkg }}/internal/{{ .FrontendPkg }}"
 	"{{ .IRTypePackage }}"
+
+	"github.com/dekarrin/ictiobus/trans"
 )
 
 const (
@@ -42,19 +44,30 @@ var (
 // flags
 var (
 	quietMode bool
-	printTrees bool = flag.Bool("t", false, "Print the parse trees of each file read to stdout")
-	version *bool = flag.Bool("version", false, "Print the version of {{ .BinName }} and exit")
-	lexerTrace  *bool = flag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
-	parserTrace *bool = flag.Bool("debug-parser", false, "Print the parser trace to stdout")
+	lexerTrace  bool
+	parserTrace bool
+	printTrees bool         = flag.Bool("t", false, "Print the parse trees of each file read to stdout")
+	version			  *bool = flag.Bool("version", false, "Print the version of {{ .BinName }} and exit")
+	doSimulation      *bool = flag.Bool("sim", false, "Run analysis on a series of simulated parse trees intended to cover all rules and then exit")
+	simSDTSShowTrees  *bool = flag.Bool("sim-trees", false, "Show full simulated parse trees that caused SDTS validation errors")
+	simSDTSShowGraphs *bool = flag.Bool("sim-graphs", false, "Show dependency graph for each simulated tree that caused SDTS validation errors")
+	simSDTSFirstOnly  *bool = flag.Bool("sim-first", false, "Show only the first error found in SDTS validation of simulated trees")
+	simSDTSSkip       *int  = flag.Int("sim-skip", 0, "Skip the first N errors found in SDTS validation of simulated trees")
 )
 
 // init flags
 func init() {
 	const (
-		quietUsage       = "Quiet mode"
+		quietUsage       = "Quiet mode; disables output of the IR"
+		lexerUsage		 = "Print the lexer trace to stdout"
+		parserUsage		 = "Print the parser trace to stdout"
 	)
 	flag.BoolVar(&quietMode, "quiet", false, quietUsage)
 	flag.BoolVar(&quietMode, "q", false, quietUsage+" (shorthand)")
+	flag.BoolVar(&lexerTrace, "debug-lexer", false, lexerUsage)
+	flag.BoolVar(&lexerTrace, "l", false, lexerUsage+" (shorthand)")
+	flag.BoolVar(&parserTrace, "debug-parser", false, parserUsage)
+	flag.BoolVar(&parserTrace, "p", false, parserUsage+" (shorthand)")
 }
 
 func main() {
@@ -85,13 +98,46 @@ func main() {
 		return
 	}
 
+	opts := {{ .FrontendPkg }}.FrontendOptions{
+		LexerTrace: *lexerTrace,
+		ParserTrace: *parserTrace,
+	}
+
 	hooksMapping := {{ .HooksPkg }}.{{ .HooksTableExpr }}
 	langFront := {{ .FrontendPkg }}.Frontend(hooksMapping, nil)
+
+	if *doSimulation {
+		hooksMapping := {{ .HooksPkg }}.{{ .HooksTableExpr }}
+
+		langFront := {{ .FrontendPkg }}.Frontend(hooksMapping, nil)
+
+		// hooks will be set, so run validation now
+		valProd := langFront.Lexer.FakeLexemeProducer(true, "")
+
+		di := trans.ValidationOptions{
+			ParseTrees:    *simSDTSShowTrees,
+			FullDepGraphs: *simSDTSShowGraphs,
+			ShowAllErrors: !*simSDTSFirstOnly,
+			SkipErrors:    *simSDTSSkip,
+		}
+
+		sddErr := langFront.SDT.Validate(langFront.Parser.Grammar(), langFront.IRAttribute, di, valProd)
+		if sddErr != nil {
+			fmt.Fprintf(os.Stderr, "validation error: %v\n", sddErr.Error())
+			returnCode = ExitErr
+			return
+		}
+
+		if !quietMode {
+			fmt.Printf("simulation completed with no errors\n")
+		}
+		return
+	}
 	
 	for _, f := files {
 		file, err := os.Open(f)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error opening file %s: %s\n", f, err)
+			fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", f, err)
 			returnCode = ExitErr
 			return
 		}
@@ -105,13 +151,14 @@ func main() {
 			fmt.Println(pt.String())
 		}
 
-		res, err := fishi.ParseMarkdownFile(file, fo)
-		if res.AST != nil {
-			if joinedAST == nil {
-				joinedAST = res.AST
-			} else {
-				joinedAST.Nodes = append(joinedAST.Nodes, res.AST.Nodes...)
-			}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", f, err)
+			returnCode = ExitErrSyntax
+			return
+		}
+
+		if !quietMode {
+			fmt.Println("----- %s -----\n%v\n\n"ir.String())
 		}
 	}
 }

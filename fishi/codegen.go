@@ -156,6 +156,24 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 	return cmd.Run()
 }
 
+func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, pkgName string, binPath string, opts CodegenOptions) error {
+	binName := filepath.Base(binPath)
+	gci, err := GenerateBinaryMainGo(spec, md, p, hooksPkgDir, hooksExpr, pkgName, binName, ".gen", opts)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("go", "build", "-o", binName, gci.MainFile)
+	cmd.Dir = gci.Path
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GenerateTestCompiler generates (but does not yet run) a test compiler for the
 // given spec and pre-created parser, using the provided hooks package. Once it
 // is created, it will be able to be executed by calling go run on the provided
@@ -170,7 +188,7 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 // or var name.
 //
 // opts must be non-nil and IRType must be set.
-func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, opts CodegenOptions) (GeneratedCodeInfo, error) {
+func GenerateBinaryMainGo(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, fePkgName string, genPath string, binName string, opts CodegenOptions) (GeneratedCodeInfo, error) {
 	if opts.IRType == "" {
 		return GeneratedCodeInfo{}, fmt.Errorf("IRType must be set in options")
 	}
@@ -181,7 +199,6 @@ func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 	}
 
 	gci := GeneratedCodeInfo{}
-	var fePkgName = "sim" + strings.ToLower(md.Language)
 
 	// what is the name of our hooks package? find out by reading the first go
 	// file in the package.
@@ -246,25 +263,24 @@ func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 	}
 
 	// create a directory to save things in
-	tmpDir := ".sim"
-	err = os.RemoveAll(tmpDir)
+	err = os.RemoveAll(genPath)
 	if err != nil {
 		return gci, fmt.Errorf("removing old temp dir: %w", err)
 	}
-	err = os.MkdirAll(tmpDir, 0766)
+	err = os.MkdirAll(genPath, 0766)
 	if err != nil {
 		return gci, fmt.Errorf("creating temp dir: %w", err)
 	}
 
 	// start copying the hooks package
-	hooksDestPath := filepath.Join(tmpDir, "internal", hooksPkgName)
+	hooksDestPath := filepath.Join(genPath, "internal", hooksPkgName)
 	hooksDone, err := copyDirToTargetAsync(hooksPkgDir, hooksDestPath)
 	if err != nil {
 		return gci, fmt.Errorf("copying hooks package: %w", err)
 	}
 
 	// generate the compiler code
-	fePkgPath := filepath.Join(tmpDir, "internal", fePkgName)
+	fePkgPath := filepath.Join(genPath, "internal", fePkgName)
 	err = GenerateCompilerGo(spec, md, fePkgName, fePkgPath, &opts)
 	if err != nil {
 		return gci, fmt.Errorf("generating compiler: %w", err)
@@ -285,9 +301,9 @@ func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 
 	// export template with main file
 	mainFillData := cgMainData{
-		BinPkg:            "github.com/dekarrin/ictiobus/langtest/" + strings.ToLower(safePkgIdent(md.Language)),
-		BinName:           "test" + strings.ToLower(safePkgIdent(md.Language)),
-		BinVersion:        "(simulator version)",
+		BinPkg:            "github.com/dekarrin/ictiobus/langexec/" + safePkgIdent(md.Language),
+		BinName:           binName,
+		BinVersion:        md.Version,
 		HooksPkg:          hooksPkgName,
 		HooksTableExpr:    hooksExpr,
 		FrontendPkg:       fePkgName,
@@ -309,7 +325,7 @@ func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 	// finally, render the main file
 	rf := renderFiles[ComponentMainFile]
 	mainFileRelPath := rf.outFile
-	err = renderTemplateToFile(rf.tmpl, mainFillData, filepath.Join(tmpDir, mainFileRelPath), opts.DumpPreFormat)
+	err = renderTemplateToFile(rf.tmpl, mainFillData, filepath.Join(genPath, mainFileRelPath), opts.DumpPreFormat)
 	if err != nil {
 		return gci, err
 	}
@@ -320,21 +336,21 @@ func GenerateTestCompiler(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 	// shell out to run go module stuff
 	goModInitCmd := exec.Command("go", "mod", "init", mainFillData.BinPkg)
 	goModInitCmd.Env = os.Environ()
-	goModInitCmd.Dir = tmpDir
+	goModInitCmd.Dir = genPath
 	goModInitOutput, err := goModInitCmd.CombinedOutput()
 	if err != nil {
 		return gci, fmt.Errorf("initializing generated module with binary: %w\n%s", err, string(goModInitOutput))
 	}
 	goModTidyCmd := exec.Command("go", "mod", "tidy")
 	goModTidyCmd.Env = os.Environ()
-	goModTidyCmd.Dir = tmpDir
+	goModTidyCmd.Dir = genPath
 	goModTidyOutput, err := goModTidyCmd.CombinedOutput()
 	if err != nil {
 		return gci, fmt.Errorf("tidying generated module with binary: %w\n%s", err, string(goModTidyOutput))
 	}
 
 	// if we got here, all output has been written to the temp dir.
-	gci.Path = tmpDir
+	gci.Path = genPath
 	gci.MainFile = mainFileRelPath
 
 	return gci, nil

@@ -46,7 +46,13 @@ type Options struct {
 // valOpts is not required to be set, and if nil will be treated as if it were
 // set to an empty struct.
 func ValidateSimulatedInput(spec Spec, md SpecMetadata, p ictiobus.Parser, hooks, hooksTable string, cgOpts CodegenOptions, valOpts *trans.ValidationOptions) error {
-	genInfo, err := GenerateTestCompiler(spec, md, p, hooks, hooksTable, cgOpts)
+	pkgName := "sim" + strings.ToLower(md.Language)
+
+	binName := safeTCIdentifierName(md.Language)
+	binName = binName[2:] // remove initial "tc".
+	binName = strings.ToLower(binName)
+	binName = "test" + binName
+	genInfo, err := GenerateBinaryMainGo(spec, md, p, hooks, hooksTable, pkgName, ".sim", binName, cgOpts)
 	if err != nil {
 		return fmt.Errorf("generate test compiler: %w", err)
 	}

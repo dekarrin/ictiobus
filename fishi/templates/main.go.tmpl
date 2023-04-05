@@ -36,11 +36,7 @@ var (
 	quietMode bool
 	version *bool = flag.Bool("version", false, "Print the version of {{ .BinName }} and exit")
 {{if .IncludeSimulation }}
-	doSimulation      *bool = flag.Bool("sim", false, "Run analysis on a series of simulated parse trees intended to cover all rules")
-	simSDTSShowTrees  *bool = flag.Bool("sim-sdts-trees", false, "Show full simulated parse trees that caused SDTS validation errors")
-	simSDTSShowGraphs *bool = flag.Bool("sim-sdts-graphs", false, "Show dependency graph for each simulated tree that caused SDTS validation errors")
-	simSDTSFirstOnly  *bool = flag.Bool("sim-sdts-first", false, "Show only the first error found in SDTS validation of simulated trees")
-	simSDTSSkip       *int  = flag.Int("sim-sdts-skip", 0, "Skip the first N errors found in SDTS validation of simulated trees")
+
 {{end -}}
 )
 
