@@ -71,7 +71,7 @@ var (
 	//go:embed templates/frontend.go.tmpl
 	TemplateFrontend string
 
-	//go:embed templates/irmain.go.tmpl
+	//go:embed templates/main.go.tmpl
 	TemplateMainFile string
 )
 
@@ -268,11 +268,6 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 		return strings.ToLower(s)
 	}
 
-	// create a directory to save things in
-	err = os.RemoveAll(genPath)
-	if err != nil {
-		return gci, fmt.Errorf("removing old temp dir: %w", err)
-	}
 	err = os.MkdirAll(genPath, 0766)
 	if err != nil {
 		return gci, fmt.Errorf("creating temp dir: %w", err)
@@ -338,6 +333,20 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 
 	// wait for the hooks package to be copied; we'll need it for go mod tidy
 	<-hooksDone
+
+	// wipe any existing go module stuff
+	err = os.RemoveAll(filepath.Join(genPath, "go.mod"))
+	if err != nil {
+		return gci, fmt.Errorf("removing existing go.mod: %w", err)
+	}
+	err = os.RemoveAll(filepath.Join(genPath, "go.sum"))
+	if err != nil {
+		return gci, fmt.Errorf("removing existing go.sum: %w", err)
+	}
+	err = os.RemoveAll(filepath.Join(genPath, "vendor"))
+	if err != nil {
+		return gci, fmt.Errorf("removing existing vendor directory: %w", err)
+	}
 
 	// shell out to run go module stuff
 	goModInitCmd := exec.Command("go", "mod", "init", mainFillData.BinPkg)
@@ -421,6 +430,9 @@ func createFuncMap() template.FuncMap {
 		"rquote": func(s string) string {
 			s = strings.ReplaceAll(s, "`", "` + \"`\" + `")
 			return fmt.Sprintf("`%s`", s)
+		},
+		"title": func(s string) string {
+			return titleCaser.String(s)
 		},
 	}
 }
