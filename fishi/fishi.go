@@ -45,6 +45,10 @@ type Options struct {
 //
 // valOpts is not required to be set, and if nil will be treated as if it were
 // set to an empty struct.
+//
+// No binary is generated as part of this, but source is which is then executed.
+// If PreserveBinarySource is set in cgOpts, the source will be left in the
+// .sim directory.
 func ValidateSimulatedInput(spec Spec, md SpecMetadata, p ictiobus.Parser, hooks, hooksTable string, cgOpts CodegenOptions, valOpts *trans.ValidationOptions) error {
 	pkgName := "sim" + strings.ToLower(md.Language)
 
@@ -62,10 +66,12 @@ func ValidateSimulatedInput(spec Spec, md SpecMetadata, p ictiobus.Parser, hooks
 		return fmt.Errorf("execute test compiler: %w", err)
 	}
 
-	// if we got here, no errors. delete the test compiler and its directory
-	err = os.RemoveAll(genInfo.Path)
-	if err != nil {
-		return fmt.Errorf("remove test compiler: %w", err)
+	if !cgOpts.PreserveBinarySource {
+		// if we got here, no errors. delete the test compiler and its directory
+		err = os.RemoveAll(genInfo.Path)
+		if err != nil {
+			return fmt.Errorf("remove test compiler: %w", err)
+		}
 	}
 
 	return nil

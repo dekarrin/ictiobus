@@ -71,7 +71,7 @@ var (
 	//go:embed templates/frontend.go.tmpl
 	TemplateFrontend string
 
-	//go:embed templates/main.go.tmpl
+	//go:embed templates/irmain.go.tmpl
 	TemplateMainFile string
 )
 
@@ -117,6 +117,12 @@ type CodegenOptions struct {
 	// specific type instead of requiring an explicit type instantiation when
 	// called.
 	IRType string
+
+	// PreserveBinarySource is whether to keep the source files for any
+	// generated binary after the binary has been successfully
+	// compiled/executed. Normally, these files are removed, but preserving them
+	// allows for diagnostics on the generated source.
+	PreserveBinarySource bool
 }
 
 // GeneratedCodeInfo contains information about the generated code.
@@ -138,16 +144,16 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 
 	args := []string{"run", gci.MainFile, "-sim"}
 	if valOptions.FullDepGraphs {
-		args = append(args, "-sim-sdts-graphs")
+		args = append(args, "-sim-graphs")
 	}
 	if valOptions.ParseTrees {
-		args = append(args, "-sim-sdts-trees")
+		args = append(args, "-sim-trees")
 	}
 	if !valOptions.ShowAllErrors {
-		args = append(args, "-sim-sdts-first")
+		args = append(args, "-sim-first-err")
 	}
 	if valOptions.SkipErrors != 0 {
-		args = append(args, "-sim-sdts-skip", fmt.Sprintf("%d", valOptions.SkipErrors))
+		args = append(args, "-sim-skip-errs", fmt.Sprintf("%d", valOptions.SkipErrors))
 	}
 	cmd := exec.Command("go", args...)
 	cmd.Dir = gci.Path

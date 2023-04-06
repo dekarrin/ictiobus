@@ -34,6 +34,10 @@ Flags:
 		Set the location of the pre-compiled parser cache to the given CFF
 		format file as opposed to the default of './parser.cff'.
 
+	--preserve-bin-source
+		Do not delete source files for any generated binary after compiling the
+		binary.
+
 	--no-cache
 		Disable the loading of any cached frontend components, even if a
 		pre-built one is available.
@@ -45,30 +49,32 @@ Flags:
 	--version
 		Print the version of the ictiobus compiler-compiler and exit.
 
-	--val-sdts-off
-		Disable validatione of the SDTS of the resulting fishi.
+	--sim-off
+		Disable simulation of the language once built. This will disable SDTS
+		validation, as live simulation is the only way to do this due to the
+		lack of support for dynamic loading of the hooks package in Go.
 
-	--val-sdts-trees
+	--sim-trees
 		If problems are detected with the SDTS of the resulting fishi during
 		SDTS validation, show the parse tree(s) that caused the problem.
 
 		Has no effect if -val-sdts-off is set.
 
-	--val-sdts-graphs
+	--sim-graphs
 		If problems are detected with the SDTS of the resulting fishi during
 		SDTS validation, show the full resulting dependency graph(s) that caused
 		the issue (if any).
 
 		Has no effect if -val-sdts-off is set.
 
-	--val-sdts-first
+	--sim-first-err
 		If problems are detected with the SDTS of the resulting fishi during
 		SDTS validation, show only the problem(s) found in the first simulated
 		parse tree (after any skipped by -val-sdts-skip) and then stop.
 
 		Has no effect if -val-sdts-off is set.
 
-	--val-sdts-skip N
+	--sim-skip-errs N
 		If problems are detected with the SDTS of the resulting fishi during
 		SDTS validation, skip the first N simulated parse trees in the output.
 		Combine with -val-sdts-first to view a specific parse tree.
@@ -122,6 +128,10 @@ Flags:
 	--tmpl-sdts FILE
 		Use the provided file as the template for outputting the generated SDTS
 		file instead of the default embedded within the binary.
+
+	--tmpl-main FILE
+		Use the provided file as the template for outputting generated binary
+		main file instead of the default embedded within the binary.
 
 	--tmpl-frontend FILE
 		Use the provided file as the template for outputting the generated
@@ -270,31 +280,33 @@ var (
 )
 
 var (
-	quietMode     bool
-	noGen         bool
-	genAST        bool
-	genTree       bool
-	showSpec      bool
-	parserCff     string
-	lang          string
-	dumpPreFormat *bool   = pflag.Bool("pre-format", false, "Dump the generated code before running through gofmt")
-	pkg           *string = pflag.String("pkg", "fe", "The name of the package to place generated files in")
-	dest          *string = pflag.String("dest", "./fe", "The name of the directory to place the generated package in")
-	langVer       *string = pflag.String("lang-ver", "v0.0.0", "The version of the language to generate")
-	noCache       *bool   = pflag.Bool("no-cache", false, "Disable use of cached frontend components, even if available")
-	noCacheOutput *bool   = pflag.Bool("no-cache-out", false, "Disable writing of cached frontend components, even if one was generated")
+	quietMode         bool
+	noGen             bool
+	genAST            bool
+	genTree           bool
+	showSpec          bool
+	parserCff         string
+	lang              string
+	preserveBinSource *bool   = pflag.Bool("preserve-bin-source", false, "Preserve the source of any generated binary files")
+	dumpPreFormat     *bool   = pflag.Bool("pre-format", false, "Dump the generated code before running through gofmt")
+	pkg               *string = pflag.String("pkg", "fe", "The name of the package to place generated files in")
+	dest              *string = pflag.String("dest", "./fe", "The name of the directory to place the generated package in")
+	langVer           *string = pflag.String("lang-ver", "v0.0.0", "The version of the language to generate")
+	noCache           *bool   = pflag.Bool("no-cache", false, "Disable use of cached frontend components, even if available")
+	noCacheOutput     *bool   = pflag.Bool("no-cache-out", false, "Disable writing of cached frontend components, even if one was generated")
 
-	valSDTSOff        *bool = pflag.Bool("val-sdts-off", false, "Disable validation of the SDTS of the resulting fishi")
-	valSDTSShowTrees  *bool = pflag.Bool("val-sdts-trees", false, "Show trees that caused SDTS validation errors")
-	valSDTSShowGraphs *bool = pflag.Bool("val-sdts-graphs", false, "Show full generated dependency graph output for parse trees that caused SDTS validation errors")
-	valSDTSFirstOnly  *bool = pflag.Bool("val-sdts-first", false, "Show only the first error found in SDTS validation")
-	valSDTSSkip       *int  = pflag.Int("val-sdts-skip", 0, "Skip the first N errors found in SDTS validation in output")
+	valSDTSOff        *bool = pflag.Bool("sim-off", false, "Disable input simulation of the language once built")
+	valSDTSShowTrees  *bool = pflag.Bool("sim-trees", false, "Show parse trees that caused errors during simulation")
+	valSDTSShowGraphs *bool = pflag.Bool("sim-graphs", false, "Show full generated dependency graph output for parse trees that caused errors during simulation")
+	valSDTSFirstOnly  *bool = pflag.Bool("sim-first-err", false, "Show only the first error found in SDTS validation")
+	valSDTSSkip       *int  = pflag.Int("sim-skip-errs", 0, "Skip the first N errors found in SDTS validation in output")
 
 	tmplTokens *string = pflag.String("tmpl-tokens", "", "A template file to replace the embedded tokens template with")
 	tmplLexer  *string = pflag.String("tmpl-lexer", "", "A template file to replace the embedded lexer template with")
 	tmplParser *string = pflag.String("tmpl-parser", "", "A template file to replace the embedded parser template with")
 	tmplSDTS   *string = pflag.String("tmpl-sdts", "", "A template file to replace the embedded SDTS template with")
 	tmplFront  *string = pflag.String("tmpl-frontend", "", "A template file to replace the embedded frontend template with")
+	tmplMain   *string = pflag.String("tmpl-main", "", "A template file to replace the embedded main.go template with")
 
 	parserLL      *bool = pflag.Bool("ll", false, "Generate an LL(1) parser")
 	parserSLR     *bool = pflag.Bool("slr", false, "Generate a simple LR(1) parser")
@@ -388,9 +400,10 @@ func main() {
 	}
 
 	cgOpts := fishi.CodegenOptions{
-		DumpPreFormat: *dumpPreFormat,
-		IRType:        *irType,
-		TemplateFiles: map[string]string{},
+		DumpPreFormat:        *dumpPreFormat,
+		IRType:               *irType,
+		TemplateFiles:        map[string]string{},
+		PreserveBinarySource: *preserveBinSource,
 	}
 	if *tmplTokens != "" {
 		cgOpts.TemplateFiles[fishi.ComponentTokens] = *tmplTokens
@@ -406,6 +419,9 @@ func main() {
 	}
 	if *tmplFront != "" {
 		cgOpts.TemplateFiles[fishi.ComponentFrontend] = *tmplFront
+	}
+	if *tmplMain != "" {
+		cgOpts.TemplateFiles[fishi.ComponentMainFile] = *tmplMain
 	}
 	if len(cgOpts.TemplateFiles) == 0 {
 		// just nil it
@@ -562,9 +578,6 @@ func main() {
 						fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 						returnCode = ExitErrGeneration
 						return
-					}
-					if !quietMode {
-						fmt.Printf("Done simulating input; removing .sim...\n")
 					}
 				}
 			}
