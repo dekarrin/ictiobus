@@ -170,11 +170,25 @@ func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, p ictiobus.Parser, ho
 	}
 
 	cmd := exec.Command("go", "build", "-o", binName, gci.MainFile)
+	//cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
 	cmd.Dir = gci.Path
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return err
+	}
+
+	// Move it to the target location.
+	if err := os.Rename(filepath.Join(gci.Path, binName), binPath); err != nil {
+		return err
+	}
+
+	// unless requested to preserve the source, remove the generated source
+	// directory.
+	if !opts.PreserveBinarySource {
+		if err := os.RemoveAll(gci.Path); err != nil {
+			return err
+		}
 	}
 
 	return nil

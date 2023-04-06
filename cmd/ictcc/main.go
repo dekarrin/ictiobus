@@ -26,6 +26,15 @@ Flags:
 		checked for errors but no other action is taken (unless specified by
 		other flags).
 
+	-d/--diag FILE
+		Generate a diagnostics binary for the target language. Assuming there
+		are no issues with the FISHI spec, this will generate a binary that can
+		analyze files written in the target language and output the result of
+		frontend analysis. This can be useful for testing out the frontend on
+		files quickly and efficiently, as it also includes further options
+		useful for debugging purposes, such as debugging lexed tokens and the
+		parser itself.
+
 	-q/--quiet
 		Do not show progress messages. This does not affect error messages or
 		warning output.
@@ -108,7 +117,7 @@ Flags:
 		Set the version of the language to generate a frontend for. Defaults to
 		"v0.0.0".
 
-	--pre-format
+	--debug-templates
 		Enable dumping of the fishi filled template files before they are passed
 		to the formatter. This allows debugging of the template files when
 		editing them, since they must be valid go code to be formatted.
@@ -280,15 +289,17 @@ var (
 )
 
 var (
-	quietMode         bool
-	noGen             bool
-	genAST            bool
-	genTree           bool
-	showSpec          bool
-	parserCff         string
-	lang              string
+	quietMode bool
+	noGen     bool
+	genAST    bool
+	genTree   bool
+	showSpec  bool
+	parserCff string
+	lang      string
+
+	diagnosticsBin    *string = pflag.StringP("diag", "d", "", "Generate binary that has the generated frontend and uses it to analyze the target language")
 	preserveBinSource *bool   = pflag.Bool("preserve-bin-source", false, "Preserve the source of any generated binary files")
-	dumpPreFormat     *bool   = pflag.Bool("pre-format", false, "Dump the generated code before running through gofmt")
+	debugTemplates    *bool   = pflag.Bool("debug-templates", false, "Dump the filled templates before running through gofmt")
 	pkg               *string = pflag.String("pkg", "fe", "The name of the package to place generated files in")
 	dest              *string = pflag.String("dest", "./fe", "The name of the directory to place the generated package in")
 	langVer           *string = pflag.String("lang-ver", "v0.0.0", "The version of the language to generate")
@@ -369,6 +380,19 @@ func main() {
 		return
 	}
 
+	// mutually exclusive and required options for diagnostics bin generation.
+	if *diagnosticsBin != "" {
+		if noGen {
+			fmt.Fprintf(os.Stderr, "ERROR: Diagnostics binary generation canont be enabled if -n/--no-gen is specified\n")
+			returnCode = ExitErrInvalidFlags
+			return
+		} else if *irType == "" || *hooksPath == "" {
+			fmt.Fprintf(os.Stderr, "ERROR: diagnostics binary generation requires both --ir and --hooks to be set\n")
+			returnCode = ExitErrInvalidFlags
+			return
+		}
+	}
+
 	// create a spec metadata object
 	md := fishi.SpecMetadata{
 		Language:       lang,
@@ -400,7 +424,7 @@ func main() {
 	}
 
 	cgOpts := fishi.CodegenOptions{
-		DumpPreFormat:        *dumpPreFormat,
+		DumpPreFormat:        *debugTemplates,
 		IRType:               *irType,
 		TemplateFiles:        map[string]string{},
 		PreserveBinarySource: *preserveBinSource,
@@ -580,6 +604,21 @@ func main() {
 						return
 					}
 				}
+			}
+		}
+
+		// generate diagnostics output if requested
+		if *diagnosticsBin != "" {
+			// already checked required flags
+			if !quietMode {
+				fmt.Printf("Generating diagnostics binary in %s...\n", *diagnosticsBin)
+			}
+
+			err := fishi.GenerateDiagnosticsBinary(spec, md, p, *hooksPath, *hooksTableName, *pkg, *diagnosticsBin, cgOpts)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
+				returnCode = ExitErrGeneration
+				return
 			}
 		}
 
