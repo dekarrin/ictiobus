@@ -142,18 +142,18 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 		valOptions = &trans.ValidationOptions{}
 	}
 
-	args := []string{"run", gci.MainFile, "-sim"}
+	args := []string{"run", gci.MainFile, "--sim"}
 	if valOptions.FullDepGraphs {
-		args = append(args, "-sim-graphs")
+		args = append(args, "--sim-graphs")
 	}
 	if valOptions.ParseTrees {
-		args = append(args, "-sim-trees")
+		args = append(args, "--sim-trees")
 	}
 	if !valOptions.ShowAllErrors {
-		args = append(args, "-sim-first-err")
+		args = append(args, "--sim-first-err")
 	}
 	if valOptions.SkipErrors != 0 {
-		args = append(args, "-sim-skip-errs", fmt.Sprintf("%d", valOptions.SkipErrors))
+		args = append(args, "--sim-skip-errs", fmt.Sprintf("%d", valOptions.SkipErrors))
 	}
 	cmd := exec.Command("go", args...)
 	cmd.Dir = gci.Path

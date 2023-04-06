@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"bufio"
     "os"
-	"flag"
 	"path/filepath"
 
 	"{{ .BinPkg }}/internal/{{ .HooksPkg }}"
@@ -27,6 +26,8 @@ import (
 {{- end}}
 
 	"github.com/dekarrin/ictiobus/trans"
+
+	"github.com/spf13/pflag"
 )
 
 const (
@@ -46,32 +47,17 @@ var (
 
 // flags
 var (
-	quietMode bool
-	lexerTrace  bool
-	parserTrace bool
-	printTrees        *bool = flag.Bool("t", false, "Print the parse trees of each file read to stdout")
-	version			  *bool = flag.Bool("version", false, "Print the version of {{ .BinName }} and exit")
-	doSimulation      *bool = flag.Bool("sim", false, "Run analysis on a series of simulated parse trees intended to cover all rules and then exit")
-	simSDTSShowTrees  *bool = flag.Bool("sim-trees", false, "Show full simulated parse trees that caused SDTS validation errors")
-	simSDTSShowGraphs *bool = flag.Bool("sim-graphs", false, "Show dependency graph for each simulated tree that caused SDTS validation errors")
-	simSDTSFirstOnly  *bool = flag.Bool("sim-first-errs", false, "Show only the first error found in SDTS validation of simulated trees")
-	simSDTSSkip       *int  = flag.Int("sim-skip-errs", 0, "Skip the first N errors found in SDTS validation of simulated trees")
+	quietMode         *bool = pflag.BoolP("quiet", "q", false, "Quiet mode; disables output of the IR")
+	lexerTrace        *bool = pflag.BoolP("debug-lexer", "l", false, "Print the lexer trace to stdout")
+	parserTrace       *bool = pflag.BoolP("debug-parser", "p", false, "Print the parser trace to stdout") 
+	printTrees        *bool = pflag.Bool("t", false, "Print the parse trees of each file read to stdout")
+	version			  *bool = pflag.Bool("version", false, "Print the version of {{ .BinName }} and exit")
+	doSimulation      *bool = pflag.Bool("sim", false, "Run analysis on a series of simulated parse trees intended to cover all rules and then exit")
+	simSDTSShowTrees  *bool = pflag.Bool("sim-trees", false, "Show full simulated parse trees that caused SDTS validation errors")
+	simSDTSShowGraphs *bool = pflag.Bool("sim-graphs", false, "Show dependency graph for each simulated tree that caused SDTS validation errors")
+	simSDTSFirstOnly  *bool = pflag.Bool("sim-first-errs", false, "Show only the first error found in SDTS validation of simulated trees")
+	simSDTSSkip       *int  = pflag.Int("sim-skip-errs", 0, "Skip the first N errors found in SDTS validation of simulated trees")
 )
-
-// init flags
-func init() {
-	const (
-		quietUsage       = "Quiet mode; disables output of the IR"
-		lexerUsage		 = "Print the lexer trace to stdout"
-		parserUsage		 = "Print the parser trace to stdout"
-	)
-	flag.BoolVar(&quietMode, "quiet", false, quietUsage)
-	flag.BoolVar(&quietMode, "q", false, quietUsage+" (shorthand)")
-	flag.BoolVar(&lexerTrace, "debug-lexer", false, lexerUsage)
-	flag.BoolVar(&lexerTrace, "l", false, lexerUsage+" (shorthand)")
-	flag.BoolVar(&parserTrace, "debug-parser", false, parserUsage)
-	flag.BoolVar(&parserTrace, "p", false, parserUsage+" (shorthand)")
-}
 
 func main() {
 	// preserve possibly-set exit code while also checking for panic and
@@ -86,7 +72,7 @@ func main() {
 		}
 	}()
 
-	flag.Parse()
+	pflag.Parse()
 
 	if *version {
 		fmt.Println(versionString)
@@ -94,8 +80,8 @@ func main() {
 	}
 
 	opts := {{ .FrontendPkg }}.FrontendOptions{
-		LexerTrace: lexerTrace,
-		ParserTrace: parserTrace,
+		LexerTrace: *lexerTrace,
+		ParserTrace: *parserTrace,
 	}
 
 	hooksMapping := {{ .HooksPkg }}.{{ .HooksTableExpr }}
@@ -123,13 +109,13 @@ func main() {
 			return
 		}
 
-		if !quietMode {
+		if !*quietMode {
 			fmt.Printf("Simulation completed with no errors\n")
 		}
 		return
 	}
 
-	files := flag.Args()
+	files := pflag.Args()
 	if len(files) == 0 {
 		fmt.Fprintf(os.Stderr, "No files specified\n")
 		returnCode = ExitErrNoFiles
@@ -159,7 +145,7 @@ func main() {
 			return
 		}
 
-		if !quietMode {
+		if !*quietMode {
 			fmt.Println("=== Analysis of %s ===\n%s\n\n", filepath.Base(f), ir)
 		}
 	}
