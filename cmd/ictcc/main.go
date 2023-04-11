@@ -611,7 +611,7 @@ func main() {
 		if *diagnosticsBin != "" {
 			// already checked required flags
 			if !quietMode {
-				fmt.Printf("Generating diagnostics binary in %s...\n", *diagnosticsBin)
+				fmt.Printf("Generating diagnostics binary code in .gen...\n")
 			}
 
 			err := fishi.GenerateDiagnosticsBinary(spec, md, p, *hooksPath, *hooksTableName, *pkg, *diagnosticsBin, cgOpts)
@@ -619,6 +619,10 @@ func main() {
 				fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 				returnCode = ExitErrGeneration
 				return
+			}
+
+			if !quietMode {
+				fmt.Printf("Built diagnosticis binary '%s'\n", *diagnosticsBin)
 			}
 		}
 

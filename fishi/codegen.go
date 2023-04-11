@@ -178,10 +178,6 @@ func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, p ictiobus.Parser, ho
 		return err
 	}
 
-	fmt.Printf("Generated binary: %s\n", gci.Path)
-	fmt.Printf("binName: %s\n", binName)
-	fmt.Printf("binPath: %s\n", binPath)
-
 	// Move it to the target location.
 	if err := os.Rename(filepath.Join(gci.Path, binName), binPath); err != nil {
 		return err
