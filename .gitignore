@@ -4,6 +4,7 @@
 /.testout
 /ictcc
 /.sim
+/.gen
 
 # mac
 .DS_Store

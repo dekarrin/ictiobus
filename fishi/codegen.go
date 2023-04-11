@@ -164,7 +164,7 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 
 func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, pkgName string, binPath string, opts CodegenOptions) error {
 	binName := filepath.Base(binPath)
-	gci, err := GenerateBinaryMainGo(spec, md, p, hooksPkgDir, hooksExpr, pkgName, binName, ".gen", opts)
+	gci, err := GenerateBinaryMainGo(spec, md, p, hooksPkgDir, hooksExpr, pkgName, ".gen", binName, opts)
 	if err != nil {
 		return err
 	}
@@ -177,6 +177,10 @@ func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, p ictiobus.Parser, ho
 	if err := cmd.Run(); err != nil {
 		return err
 	}
+
+	fmt.Printf("Generated binary: %s\n", gci.Path)
+	fmt.Printf("binName: %s\n", binName)
+	fmt.Printf("binPath: %s\n", binPath)
 
 	// Move it to the target location.
 	if err := os.Rename(filepath.Join(gci.Path, binName), binPath); err != nil {
