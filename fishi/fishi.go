@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/dekarrin/ictiobus"
@@ -33,9 +34,10 @@ type Options struct {
 }
 
 // ValidateSimulatedInput generates a lightweight compiler with the spec'd
-// frontend in a special directory (".sim" in the local directory) and then runs
-// SDTS validation on a variety of parse tree inputs designed to cover all the
-// productions of the grammar at least once.
+// frontend in a special directory (".sim" in the local directory or in the path
+// specified by pathPrefix, if set) and then runs SDTS validation on a variety
+// of parse tree inputs designed to cover all the productions of the grammar at
+// least once.
 //
 // If running validation with the test compiler succeeds, it and the directory
 // it was generated in are deleted. If it fails, the directory is left in place
@@ -49,14 +51,19 @@ type Options struct {
 // No binary is generated as part of this, but source is which is then executed.
 // If PreserveBinarySource is set in cgOpts, the source will be left in the
 // .sim directory.
-func ValidateSimulatedInput(spec Spec, md SpecMetadata, p ictiobus.Parser, hooks, hooksTable string, cgOpts CodegenOptions, valOpts *trans.ValidationOptions) error {
+func ValidateSimulatedInput(spec Spec, md SpecMetadata, p ictiobus.Parser, hooks, hooksTable string, pathPrefix string, cgOpts CodegenOptions, valOpts *trans.ValidationOptions) error {
 	pkgName := "sim" + strings.ToLower(md.Language)
 
 	binName := safeTCIdentifierName(md.Language)
 	binName = binName[2:] // remove initial "tc".
 	binName = strings.ToLower(binName)
 	binName = "test" + binName
-	genInfo, err := GenerateBinaryMainGo(spec, md, p, hooks, hooksTable, pkgName, ".sim", binName, cgOpts)
+
+	outDir := ".sim"
+	if pathPrefix != "" {
+		outDir = filepath.Join(pathPrefix, outDir)
+	}
+	genInfo, err := GenerateBinaryMainGo(spec, md, p, hooks, hooksTable, pkgName, outDir, binName, cgOpts)
 	if err != nil {
 		return fmt.Errorf("generate test compiler: %w", err)
 	}

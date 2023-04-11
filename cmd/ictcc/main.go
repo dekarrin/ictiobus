@@ -117,6 +117,11 @@ Flags:
 		Set the version of the language to generate a frontend for. Defaults to
 		"v0.0.0".
 
+	--prefix PATH
+		Set the prefix to use for all generated files. Defaults to the current
+		working directory name. If used, this path will be prepended to all
+		generated files. This prefix does *not* apply to input files.
+
 	--debug-templates
 		Enable dumping of the fishi filled template files before they are passed
 		to the formatter. This allows debugging of the template files when
@@ -242,6 +247,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -297,6 +303,7 @@ var (
 	parserCff string
 	lang      string
 
+	pathPrefix                = pflag.String("prefix", "", "Path to prepend to path of all generated files")
 	diagnosticsBin    *string = pflag.StringP("diag", "d", "", "Generate binary that has the generated frontend and uses it to analyze the target language")
 	preserveBinSource *bool   = pflag.Bool("preserve-bin-source", false, "Preserve the source of any generated binary files")
 	debugTemplates    *bool   = pflag.Bool("debug-templates", false, "Dump the filled templates before running through gofmt")
@@ -540,106 +547,114 @@ func main() {
 		printSpec(spec)
 	}
 
-	if !noGen {
-		// okay, first try to create a parser
-		var p ictiobus.Parser
-		var parserWarns []fishi.Warning
-		// if one is selected, use that one
-		if parserType != nil {
-			if !quietMode {
-				fmt.Printf("Creating %s parser from spec...\n", *parserType)
-			}
-			p, parserWarns, err = spec.CreateParser(*parserType, allowAmbig)
-		} else {
-			if !quietMode {
-				fmt.Printf("Creating most restrictive parser from spec...\n")
-			}
-			p, parserWarns, err = spec.CreateMostRestrictiveParser(allowAmbig)
-		}
-
-		for _, warn := range parserWarns {
-			const warnPrefix = "WARN: "
-			// indent all except the first line
-			warnStr := rosed.Edit(warnPrefix+warn.Message).
-				LinesFrom(1).
-				IndentOpts(len(warnPrefix), rosed.Options{IndentStr: " "}).
-				String()
-
-			fmt.Fprintf(os.Stderr, "%s\n", warnStr)
-		}
-		fmt.Fprintf(os.Stderr, "\n")
-
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-			returnCode = ExitErrParser
-			return
-		}
-
+	if noGen {
 		if !quietMode {
-			fmt.Printf("Successfully generated %s parser from grammar\n", p.Type().String())
+			fmt.Printf("(code generation skipped due to flags)\n")
 		}
+		return
+	}
 
-		// create a test compiler and output it
-		if !*valSDTSOff {
-			if *irType == "" {
-				fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing --ir parameter\n")
+	// code gen time!
+
+	// okay, first try to create a parser
+	var p ictiobus.Parser
+	var parserWarns []fishi.Warning
+	// if one is selected, use that one
+	if parserType != nil {
+		if !quietMode {
+			fmt.Printf("Creating %s parser from spec...\n", *parserType)
+		}
+		p, parserWarns, err = spec.CreateParser(*parserType, allowAmbig)
+	} else {
+		if !quietMode {
+			fmt.Printf("Creating most restrictive parser from spec...\n")
+		}
+		p, parserWarns, err = spec.CreateMostRestrictiveParser(allowAmbig)
+	}
+
+	for _, warn := range parserWarns {
+		const warnPrefix = "WARN: "
+		// indent all except the first line
+		warnStr := rosed.Edit(warnPrefix+warn.Message).
+			LinesFrom(1).
+			IndentOpts(len(warnPrefix), rosed.Options{IndentStr: " "}).
+			String()
+
+		fmt.Fprintf(os.Stderr, "%s\n", warnStr)
+	}
+	fmt.Fprintf(os.Stderr, "\n")
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		returnCode = ExitErrParser
+		return
+	}
+
+	if !quietMode {
+		fmt.Printf("Successfully generated %s parser from grammar\n", p.Type().String())
+	}
+
+	// create a test compiler and output it
+	if !*valSDTSOff {
+		if *irType == "" {
+			fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing --ir parameter\n")
+		} else {
+			if *hooksPath == "" {
+				fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing --hooks parameter\n")
 			} else {
-				if *hooksPath == "" {
-					fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing --hooks parameter\n")
-				} else {
-					if !quietMode {
-						fmt.Printf("Generating parser simulation binary in .sim...\n")
-					}
-					di := trans.ValidationOptions{
-						ParseTrees:    *valSDTSShowTrees,
-						FullDepGraphs: *valSDTSShowGraphs,
-						ShowAllErrors: !*valSDTSFirstOnly,
-						SkipErrors:    *valSDTSSkip,
-					}
+				if !quietMode {
+					fmt.Printf("Generating parser simulation binary in .sim...\n")
+				}
+				di := trans.ValidationOptions{
+					ParseTrees:    *valSDTSShowTrees,
+					FullDepGraphs: *valSDTSShowGraphs,
+					ShowAllErrors: !*valSDTSFirstOnly,
+					SkipErrors:    *valSDTSSkip,
+				}
 
-					err := fishi.ValidateSimulatedInput(spec, md, p, *hooksPath, *hooksTableName, cgOpts, &di)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
-						returnCode = ExitErrGeneration
-						return
-					}
+				err := fishi.ValidateSimulatedInput(spec, md, p, *hooksPath, *hooksTableName, *pathPrefix, cgOpts, &di)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
+					returnCode = ExitErrGeneration
+					return
 				}
 			}
 		}
+	}
 
-		// generate diagnostics output if requested
-		if *diagnosticsBin != "" {
-			// already checked required flags
-			if !quietMode {
-				fmt.Printf("Generating diagnostics binary code in .gen...\n")
-			}
-
-			err := fishi.GenerateDiagnosticsBinary(spec, md, p, *hooksPath, *hooksTableName, *pkg, *diagnosticsBin, cgOpts)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
-				returnCode = ExitErrGeneration
-				return
-			}
-
-			if !quietMode {
-				fmt.Printf("Built diagnosticis binary '%s'\n", *diagnosticsBin)
-			}
-		}
-
-		// assuming it worked, now generate the final output
+	// generate diagnostics output if requested
+	if *diagnosticsBin != "" {
+		// already checked required flags
 		if !quietMode {
-			fmt.Printf("Generating compiler frontend in %s...\n", *dest)
+			fmt.Printf("Generating diagnostics binary code in .gen...\n")
 		}
-		err := fishi.GenerateCompilerGo(spec, md, *pkg, *dest, &cgOpts)
+
+		err := fishi.GenerateDiagnosticsBinary(spec, md, p, *hooksPath, *hooksTableName, *pkg, *diagnosticsBin, *pathPrefix, cgOpts)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+			fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 			returnCode = ExitErrGeneration
 			return
 		}
-	} else if !quietMode {
-		fmt.Printf("(code generation skipped due to flags)\n")
+
+		if !quietMode {
+			fmt.Printf("Built diagnosticis binary '%s'\n", *diagnosticsBin)
+		}
 	}
 
+	// assuming it worked, now generate the final output
+	if !quietMode {
+		fmt.Printf("Generating compiler frontend in %s...\n", *dest)
+	}
+	feDest := *dest
+	if *pathPrefix != "" {
+		feDest = filepath.Join(*pathPrefix, feDest)
+	}
+	err = fishi.GenerateCompilerGo(spec, md, *pkg, feDest, &cgOpts)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		returnCode = ExitErrGeneration
+		return
+	}
 }
 
 // return from flags the parser type selected and whether ambiguity is allowed.
