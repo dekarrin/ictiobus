@@ -118,9 +118,13 @@ Flags:
 		"v0.0.0".
 
 	--prefix PATH
-		Set the prefix to use for all generated files. Defaults to the current
-		working directory name. If used, this path will be prepended to all
-		generated files. This prefix does *not* apply to input files.
+		Set the prefix to use for all generated source files. Defaults to the
+		current working directory. If used, generated source files will be be
+		output to their location with this prefix instead of in a directory
+		(".sim", ".gen", and the generated frontend source package folder)
+		located in the current working directory. Combine with
+		--preserve-bin-source to aid in debugging. Does not affect diagnostic
+		binary output location.
 
 	--debug-templates
 		Enable dumping of the fishi filled template files before they are passed
@@ -303,7 +307,7 @@ var (
 	parserCff string
 	lang      string
 
-	pathPrefix                = pflag.String("prefix", "", "Path to prepend to path of all generated files")
+	pathPrefix                = pflag.String("prefix", "", "Path to prepend to path of all generated source files")
 	diagnosticsBin    *string = pflag.StringP("diag", "d", "", "Generate binary that has the generated frontend and uses it to analyze the target language")
 	preserveBinSource *bool   = pflag.Bool("preserve-bin-source", false, "Preserve the source of any generated binary files")
 	debugTemplates    *bool   = pflag.Bool("debug-templates", false, "Dump the filled templates before running through gofmt")
@@ -603,7 +607,11 @@ func main() {
 				fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing --hooks parameter\n")
 			} else {
 				if !quietMode {
-					fmt.Printf("Generating parser simulation binary in .sim...\n")
+					simGenDir := ".sim"
+					if *pathPrefix != "" {
+						simGenDir = filepath.Join(*pathPrefix, simGenDir)
+					}
+					fmt.Printf("Generating parser simulation binary in %s...\n", simGenDir)
 				}
 				di := trans.ValidationOptions{
 					ParseTrees:    *valSDTSShowTrees,
@@ -626,7 +634,11 @@ func main() {
 	if *diagnosticsBin != "" {
 		// already checked required flags
 		if !quietMode {
-			fmt.Printf("Generating diagnostics binary code in .gen...\n")
+			diagGenDir := ".gen"
+			if *pathPrefix != "" {
+				diagGenDir = filepath.Join(*pathPrefix, diagGenDir)
+			}
+			fmt.Printf("Generating diagnostics binary code in %s...\n", diagGenDir)
 		}
 
 		err := fishi.GenerateDiagnosticsBinary(spec, md, p, *hooksPath, *hooksTableName, *pkg, *diagnosticsBin, *pathPrefix, cgOpts)
@@ -643,7 +655,11 @@ func main() {
 
 	// assuming it worked, now generate the final output
 	if !quietMode {
-		fmt.Printf("Generating compiler frontend in %s...\n", *dest)
+		feGenDir := *dest
+		if *pathPrefix != "" {
+			feGenDir = filepath.Join(*pathPrefix, feGenDir)
+		}
+		fmt.Printf("Generating compiler frontend in %s...\n", feGenDir)
 	}
 	feDest := *dest
 	if *pathPrefix != "" {

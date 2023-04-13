@@ -165,7 +165,7 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, pkgName string, binPath string, pathPrefix string, opts CodegenOptions) error {
 	binName := filepath.Base(binPath)
 
-	outDir := ".dir"
+	outDir := ".gen"
 	if pathPrefix != "" {
 		outDir = filepath.Join(pathPrefix, outDir)
 	}
