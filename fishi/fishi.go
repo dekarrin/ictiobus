@@ -1,11 +1,8 @@
 package fishi
 
 import (
-	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,9 +12,6 @@ import (
 	"github.com/dekarrin/ictiobus/fishi/syntax"
 	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
-	"github.com/gomarkdown/markdown"
-	mkast "github.com/gomarkdown/markdown/ast"
-	mkparser "github.com/gomarkdown/markdown/parser"
 )
 
 type Results struct {
@@ -83,58 +77,6 @@ func ValidateSimulatedInput(spec Spec, md SpecMetadata, p ictiobus.Parser, hooks
 
 	return nil
 }
-
-func GetFishiFromMarkdown(mdText []byte) []byte {
-	doc := markdown.Parse(mdText, mkparser.New())
-	var scanner fishiScanner
-	fishi := markdown.Render(doc, scanner)
-	return fishi
-}
-
-// Preprocess does a preprocess step on the source, which as of now includes
-// stripping comments and normalizing end of lines to \n.
-func Preprocess(source []byte) []byte {
-	toBuf := make([]byte, len(source))
-	copy(toBuf, source)
-	scanner := bufio.NewScanner(bytes.NewBuffer(toBuf))
-	var preprocessed strings.Builder
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasSuffix(line, "\r\n") || strings.HasPrefix(line, "\n\r") {
-			line = line[0 : len(line)-2]
-		} else {
-			line = strings.TrimSuffix(line, "\n")
-		}
-		line, _, _ = strings.Cut(line, "#")
-		preprocessed.WriteString(line)
-		preprocessed.WriteRune('\n')
-	}
-
-	return []byte(preprocessed.String())
-}
-
-type fishiScanner bool
-
-func (fs fishiScanner) RenderNode(w io.Writer, node mkast.Node, entering bool) mkast.WalkStatus {
-	if !entering {
-		return mkast.GoToNext
-	}
-
-	codeBlock, ok := node.(*mkast.CodeBlock)
-	if !ok || codeBlock == nil {
-		return mkast.GoToNext
-	}
-
-	if strings.ToLower(strings.TrimSpace(string(codeBlock.Info))) == "fishi" {
-		w.Write(codeBlock.Literal)
-	}
-	return mkast.GoToNext
-}
-
-func (fs fishiScanner) RenderHeader(w io.Writer, ast mkast.Node) {}
-func (fs fishiScanner) RenderFooter(w io.Writer, ast mkast.Node) {}
-
 func ParseMarkdownFile(filename string, opts Options) (Results, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
