@@ -51,9 +51,18 @@ func NewCodeReader(r io.Reader) (*CodeReader, error) {
 		}
 
 		if err != nil && err != io.EOF {
-
+			return nil, err
 		}
 	}
+
+	gatheredFishi := GetFishiFromMarkdown(allInput)
+	fishiSource := Preprocess(gatheredFishi)
+
+	cr := &CodeReader{
+		r: bytes.NewReader(fishiSource),
+	}
+
+	return cr, nil
 }
 
 // Preprocess does a preprocess step on the source, which as of now includes

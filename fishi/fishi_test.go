@@ -1,9 +1,11 @@
 package fishi
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 
+	"github.com/dekarrin/ictiobus/fishi/format"
 	"github.com/dekarrin/ictiobus/types"
 
 	"github.com/stretchr/testify/assert"
@@ -12,7 +14,12 @@ import (
 func Test_WithFakeInput(t *testing.T) {
 	assert := assert.New(t)
 
-	_, actual := Parse([]byte(testInput), Options{ParserCFF: "../fishi-parser.cff", ReadCache: true, WriteCache: true})
+	r, err := format.NewCodeReader(bytes.NewReader([]byte(testInput)))
+	if !assert.NoError(err) {
+		return
+	}
+
+	_, actual := Parse(r, Options{ParserCFF: "../fishi-parser.cff", ReadCache: true, WriteCache: true})
 
 	assert.NoError(actual)
 

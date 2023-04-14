@@ -1,14 +1,17 @@
 package fishi
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/fishi/fe"
+	"github.com/dekarrin/ictiobus/fishi/format"
 	"github.com/dekarrin/ictiobus/fishi/syntax"
 	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
@@ -78,12 +81,18 @@ func ValidateSimulatedInput(spec Spec, md SpecMetadata, p ictiobus.Parser, hooks
 	return nil
 }
 func ParseMarkdownFile(filename string, opts Options) (Results, error) {
-	data, err := os.ReadFile(filename)
+	f, err := os.Open(filename)
 	if err != nil {
 		return Results{}, err
 	}
 
-	res, err := ParseMarkdown(data, opts)
+	bufF := bufio.NewReader(f)
+	r, err := format.NewCodeReader(bufF)
+	if err != nil {
+		return Results{}, err
+	}
+
+	res, err := Parse(r, opts)
 	if err != nil {
 		return res, err
 	}
@@ -91,41 +100,26 @@ func ParseMarkdownFile(filename string, opts Options) (Results, error) {
 	return res, nil
 }
 
-func ParseMarkdown(mdText []byte, opts Options) (Results, error) {
-
-	// TODO: read in filename, based on it check for cached version
-
-	// debug steps: output source after preprocess
-	// output token stream
-	// output grammar constructed
-	// output parser table and type
-
-	source := GetFishiFromMarkdown(mdText)
-	return Parse(source, opts)
-}
-
-// Parse converts the fishi source code provided into an AST.
-func Parse(source []byte, opts Options) (Results, error) {
+// Parse converts the fishi source code read from the given reader into an AST.
+func Parse(r io.Reader, opts Options) (Results, error) {
 	// get the frontend
 	fishiFront, err := GetFrontend(opts)
 	if err != nil {
 		return Results{}, fmt.Errorf("could not get frontend: %w", err)
 	}
 
-	preprocessedSource := Preprocess(source)
-
-	r := Results{}
+	res := Results{}
 	// now, try to make a parse tree
-	nodes, pt, err := fishiFront.AnalyzeString(string(preprocessedSource))
-	r.Tree = pt // need to do this before we return
+	nodes, pt, err := fishiFront.Analyze(r)
+	res.Tree = pt // need to do this before we return
 	if err != nil {
-		return r, err
+		return res, err
 	}
-	r.AST = &AST{
+	res.AST = &AST{
 		Nodes: nodes,
 	}
 
-	return r, nil
+	return res, nil
 }
 
 // GetFrontend gets the frontend for the fishi compiler-compiler. If cffFile is
