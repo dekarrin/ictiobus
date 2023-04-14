@@ -213,7 +213,9 @@ func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, p ictiobus.Parser, ho
 // or var name.
 //
 // opts must be non-nil and IRType must be set.
-func GenerateBinaryMainGo(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, fePkgName string, genPath string, binName string, opts CodegenOptions) (GeneratedCodeInfo, error) {
+//
+// TODO: turn this ugly signature into a struct.
+func GenerateBinaryMainGo(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, formatPkgDir string, formatCall string, fePkgName string, genPath string, binName string, opts CodegenOptions) (GeneratedCodeInfo, error) {
 	if opts.IRType == "" {
 		return GeneratedCodeInfo{}, fmt.Errorf("IRType must be set in options")
 	}
@@ -225,56 +227,9 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 
 	gci := GeneratedCodeInfo{}
 
-	// what is the name of our hooks package? find out by reading the first go
-	// file in the package.
-	hooksDirItems, err := os.ReadDir(hooksPkgDir)
+	hooksPkgName, err := readPackageName(hooksPkgDir)
 	if err != nil {
-		return gci, fmt.Errorf("reading hooks package dir: %w", err)
-	}
-
-	var hooksPkgName string
-	for _, item := range hooksDirItems {
-		if !item.IsDir() && strings.ToLower(filepath.Ext(item.Name())) == ".go" {
-			// read the file to find the package name
-			goFilePath := filepath.Join(hooksPkgDir, item.Name())
-			goFile, err := os.Open(goFilePath)
-			if err != nil {
-				return gci, fmt.Errorf("reading go file in hooks package: %w", err)
-			}
-
-			// buffered reading
-			r := bufio.NewReader(goFile)
-
-			// now find the package name in the file
-			for hooksPkgName == "" {
-				str, err := r.ReadString('\n')
-				strTrimmed := strings.TrimSpace(str)
-
-				// is it a line starting with "package"?
-				if strings.HasPrefix(strTrimmed, "package") {
-					lineItems := strings.Split(strTrimmed, " ")
-					if len(lineItems) == 2 {
-						hooksPkgName = lineItems[1]
-						break
-					}
-				}
-
-				// ofc if err is somefin else
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
-					return gci, fmt.Errorf("reading go file in hooks package: %w", err)
-				}
-			}
-		}
-
-		if hooksPkgName != "" {
-			break
-		}
-	}
-	if hooksPkgName == "" {
-		return gci, fmt.Errorf("could not find package name for hooks package; make sure files are gofmt'd")
+		return gci, fmt.Errorf("reading hooks package name: %w", err)
 	}
 	if hooksPkgName == fePkgName {
 		// double it to avoid name collision
@@ -708,6 +663,8 @@ type cgMainData struct {
 	IRTypePackage     string
 	IRType            string
 	IncludeSimulation bool
+	FormatPackage     string
+	FormatCall        string
 }
 
 // codegenData for template fill.
@@ -895,4 +852,60 @@ func copyDirToTargetAsync(srcDir string, targetDir string) (copyResult chan erro
 	}()
 
 	return ch, nil
+}
+
+func readPackageName(dir string) (string, error) {
+	// what is the name of our hooks package? find out by reading the first go
+	// file in the package.
+	dirItems, err := os.ReadDir(dir)
+	if err != nil {
+		return "", err
+	}
+
+	var pkgName string
+	for _, item := range dirItems {
+		if !item.IsDir() && strings.ToLower(filepath.Ext(item.Name())) == ".go" {
+			// read the file to find the package name
+			goFilePath := filepath.Join(dir, item.Name())
+			goFile, err := os.Open(goFilePath)
+			if err != nil {
+				return "", err
+			}
+
+			// buffered reading
+			r := bufio.NewReader(goFile)
+
+			// now find the package name in the file
+			for pkgName == "" {
+				str, err := r.ReadString('\n')
+				strTrimmed := strings.TrimSpace(str)
+
+				// is it a line starting with "package"?
+				if strings.HasPrefix(strTrimmed, "package") {
+					lineItems := strings.Split(strTrimmed, " ")
+					if len(lineItems) == 2 {
+						pkgName = lineItems[1]
+						break
+					}
+				}
+
+				// ofc if err is somefin else
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					return "", err
+				}
+			}
+		}
+
+		if pkgName != "" {
+			break
+		}
+	}
+	if pkgName == "" {
+		return "", fmt.Errorf("could not find package name; make sure files are gofmt'd")
+	}
+
+	return pkgName, nil
 }

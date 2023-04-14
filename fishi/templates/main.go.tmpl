@@ -25,6 +25,10 @@ import (
 	"{{ .IRTypePackage }}"
 {{- end}}
 
+{{if .FormatPackage -}}
+	"{{ .FormatPackage }}"
+{{- end}}
+
 	"github.com/dekarrin/ictiobus/trans"
 
 	"github.com/spf13/pflag"
@@ -122,6 +126,7 @@ func main() {
 		return
 	}
 	
+	var r io.Reader
 	for _, f := range files {
 		file, err := os.Open(f)
 		if err != nil {
@@ -130,7 +135,17 @@ func main() {
 			return
 		}
 
-		r := bufio.NewReader(file)
+		r = bufio.NewReader(file)
+
+{{if .FormatCall -}}
+		// format the input
+		r, err = {{ .FormatCall }}(r)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", f, err)
+			returnCode = ExitErr
+			return
+		}
+{{- end}}
 
 		ir, pt, err := langFront.Analyze(r)
 
