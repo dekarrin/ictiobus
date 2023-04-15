@@ -613,7 +613,7 @@ func main() {
 		if !*flagQuietMode {
 			// tell user if the diagnostic binary cannot do preformatting based
 			// on flags
-			if *flagDiagFormatPkg != "" {
+			if *flagDiagFormatPkg == "" {
 				fmt.Printf("Format preprocessing disabled in diagnostics bin; set -f to enable\n")
 			}
 
