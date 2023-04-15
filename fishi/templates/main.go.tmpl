@@ -43,7 +43,7 @@ const (
 )
 
 const (
-	versionString = "{{ .BinName }} {{ .BinVersion }}"
+	versionString = "{{ .BinName }} {{ .Version }}{{if ne .Lang "Unspecified" }} (for {{ .Lang }}){{end}}"
 )
 
 var (
@@ -52,16 +52,16 @@ var (
 
 // flags
 var (
-	quietMode         *bool = pflag.BoolP("quiet", "q", false, "Quiet mode; disables output of the IR")
-	lexerTrace        *bool = pflag.BoolP("debug-lexer", "l", false, "Print the lexer trace to stdout")
-	parserTrace       *bool = pflag.BoolP("debug-parser", "p", false, "Print the parser trace to stdout") 
-	printTrees        *bool = pflag.Bool("t", false, "Print the parse trees of each file read to stdout")
-	version			  *bool = pflag.Bool("version", false, "Print the version of {{ .BinName }} and exit")
-	doSimulation      *bool = pflag.Bool("sim", false, "Run analysis on a series of simulated parse trees intended to cover all rules and then exit")
-	simSDTSShowTrees  *bool = pflag.Bool("sim-trees", false, "Show full simulated parse trees that caused SDTS validation errors")
-	simSDTSShowGraphs *bool = pflag.Bool("sim-graphs", false, "Show dependency graph for each simulated tree that caused SDTS validation errors")
-	simSDTSFirstOnly  *bool = pflag.Bool("sim-first-errs", false, "Show only the first error found in SDTS validation of simulated trees")
-	simSDTSSkip       *int  = pflag.Int("sim-skip-errs", 0, "Skip the first N errors found in SDTS validation of simulated trees")
+	flagQuietMode		= pflag.BoolP("quiet", "q", false, "Quiet mode; disables output of the IR")
+	flagLexerTrace		= pflag.BoolP("debug-lexer", "l", false, "Print the lexer trace to stdout")
+	flagParserTrace		= pflag.BoolP("debug-parser", "p", false, "Print the parser trace to stdout") 
+	flagPrintTrees		= pflag.Bool("t", false, "Print the parse trees of each file read to stdout")
+	flagVersion			= pflag.Bool("version", false, "Print the version of {{ .BinName }} and exit")
+	flagSim				= pflag.Bool("sim", false, "Run analysis on a series of simulated parse trees intended to cover all rules and then exit")
+	flagSimTrees		= pflag.Bool("sim-trees", false, "Show full simulated parse trees that caused SDTS validation errors")
+	flagSimGraphs 		= pflag.Bool("sim-graphs", false, "Show dependency graph for each simulated tree that caused SDTS validation errors")
+	flagSimFirstErr  	= pflag.Bool("sim-first-err", false, "Show only the first error found in SDTS validation of simulated trees")
+	flagSimSkipErrs		= pflag.Int("sim-skip-errs", 0, "Skip the first N errors found in SDTS validation of simulated trees")
 )
 
 func main() {
@@ -79,20 +79,20 @@ func main() {
 
 	pflag.Parse()
 
-	if *version {
+	if *flagVersion {
 		fmt.Println(versionString)
 		return
 	}
 
 	opts := {{ .FrontendPkg }}.FrontendOptions{
-		LexerTrace: *lexerTrace,
-		ParserTrace: *parserTrace,
+		LexerTrace: *flagLexerTrace,
+		ParserTrace: *flagParserTrace,
 	}
 
 	hooksMapping := {{ .HooksPkg }}.{{ .HooksTableExpr }}
 	langFront := {{ .FrontendPkg }}.Frontend(hooksMapping, &opts)
 
-	if *doSimulation {
+	if *flagSim {
 		hooksMapping := {{ .HooksPkg }}.{{ .HooksTableExpr }}
 
 		langFront := {{ .FrontendPkg }}.Frontend(hooksMapping, nil)
@@ -101,10 +101,10 @@ func main() {
 		valProd := langFront.Lexer.FakeLexemeProducer(true, "")
 
 		di := trans.ValidationOptions{
-			ParseTrees:    *simSDTSShowTrees,
-			FullDepGraphs: *simSDTSShowGraphs,
-			ShowAllErrors: !*simSDTSFirstOnly,
-			SkipErrors:    *simSDTSSkip,
+			ParseTrees:    *flagSimTrees,
+			FullDepGraphs: *flagSimGraphs,
+			ShowAllErrors: !*flagSimFirstErr,
+			SkipErrors:    *flagSimSkipErrs,
 		}
 
 		sddErr := langFront.SDT.Validate(langFront.Parser.Grammar(), langFront.IRAttribute, di, valProd)
@@ -114,7 +114,7 @@ func main() {
 			return
 		}
 
-		if !*quietMode {
+		if !*flagQuietMode {
 			fmt.Printf("Simulation completed with no errors\n")
 		}
 		return
@@ -151,7 +151,7 @@ func main() {
 		ir, pt, err := langFront.Analyze(r)
 
 		// parse tree might be valid no matter what, so we print it first
-		if *printTrees {
+		if *flagPrintTrees {
 			fmt.Println(pt.String())
 		}
 
@@ -161,7 +161,7 @@ func main() {
 			return
 		}
 
-		if !*quietMode {
+		if !*flagQuietMode {
 			fmt.Printf("=== Analysis of %s ===\n%s\n\n", filepath.Base(f), ir)
 		}
 	}

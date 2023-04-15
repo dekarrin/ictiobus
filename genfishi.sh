@@ -7,6 +7,6 @@
 	--dest .testout \
 	-l fishi -v 1.0.0 \
 	--hooks fishi/syntax \
-	-d diag \
+	-d fishic \
 	-f fishi/format \
 	fishi.md "$@"

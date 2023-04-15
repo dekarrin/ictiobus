@@ -337,7 +337,8 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	mainFillData := cgMainData{
 		BinPkg:            "github.com/dekarrin/ictiobus/langexec/" + safePkgIdent(md.Language),
 		BinName:           params.BinName,
-		BinVersion:        md.Version,
+		Version:           md.Version,
+		Lang:              md.Language,
 		HooksPkg:          hooksPkgName,
 		HooksTableExpr:    params.HooksExpr,
 		FormatPkg:         formatPkgName,
@@ -720,10 +721,12 @@ type codegenTemplate struct {
 }
 
 // codegen data for template fill of main.go
+// TODO: combine with cgData?
 type cgMainData struct {
 	BinPkg            string
 	BinName           string
-	BinVersion        string
+	Version           string
+	Lang              string
 	HooksPkg          string
 	HooksTableExpr    string
 	ImportFormatPkg   bool

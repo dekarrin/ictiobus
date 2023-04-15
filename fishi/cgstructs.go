@@ -4,6 +4,8 @@ import "github.com/dekarrin/ictiobus"
 
 // File cgstructs.go contains structs used as part of code generation.
 
+// TODO: move most structs from codegen to here.
+
 // MainBinaryParams is paramters for generating a main.go file for a binary.
 // Unless otherwise specified, all fields are required.
 type MainBinaryParams struct {
