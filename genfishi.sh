@@ -5,6 +5,8 @@
 ./ictcc --clr \
 	--ir '[]github.com/dekarrin/ictiobus/fishi/syntax.Block' \
 	--dest .testout \
-	-l fishi --lang-ver 1.0.0 \
+	-l fishi -v 1.0.0 \
 	--hooks fishi/syntax \
+	-d diag \
+	-f fishi/format \
 	fishi.md "$@"
