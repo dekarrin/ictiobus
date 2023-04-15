@@ -325,77 +325,56 @@ var (
 )
 
 var (
-	quietMode bool
-	noGen     bool
-	genAST    bool
-	genTree   bool
-	showSpec  bool
-	parserCff string
-	lang      string
+	flagQuietMode = pflag.BoolP("quiet", "q", false, "Suppress progress messages and other supplementary output")
+	flagNoGen     = pflag.BoolP("no-gen", "n", false, "Do not attempt to generate the parser")
+	flagGenAST    = pflag.BoolP("ast", "a", false, "Print the AST of the analyzed fishi")
+	flagGenTree   = pflag.BoolP("tree", "t", false, "Print the parse trees of each analyzed fishi file")
+	flagShowSpec  = pflag.BoolP("spec", "s", false, "Print the FISHI spec interpreted from the analyzed fishi")
+	flagParserCff = pflag.StringP("parser", "p", "fishi-parser.cff", "Use the specified parser CFF cache file instead of default")
+	flagLang      = pflag.StringP("lang", "l", "Unspecified", "The name of the languae being generated")
+	flagLangVer   = pflag.StringP("lang-ver", "v", "v0.0.0", "The version of the language to generate")
 
-	diagnosticsBin = pflag.StringP("diag", "d", "", "Generate binary that has the generated frontend and uses it to analyze the target language")
-	diagFormatPkg  = pflag.StringP("diag-format-pkg", "f", "", "The package containing format functions for the diagnostic binary to call on input prior to passing to frontend analysis")
-	diagFormatCall = pflag.StringP("diag-format-call", "c", "NewCodeReader", "The function within the diag-format-pkg to call to open a reader on input prior to passing to frontend analysis")
+	flagDiagBin        = pflag.StringP("diag", "d", "", "Generate binary that has the generated frontend and uses it to analyze the target language")
+	flagDiagFormatPkg  = pflag.StringP("diag-format-pkg", "f", "", "The package containing format functions for the diagnostic binary to call on input prior to passing to frontend analysis")
+	flagDiagFormatCall = pflag.StringP("diag-format-call", "c", "NewCodeReader", "The function within the diag-format-pkg to call to open a reader on input prior to passing to frontend analysis")
 
-	pathPrefix        = pflag.String("prefix", "", "Path to prepend to path of all generated source files")
-	preserveBinSource = pflag.Bool("preserve-bin-source", false, "Preserve the source of any generated binary files")
-	debugTemplates    = pflag.Bool("debug-templates", false, "Dump the filled templates before running through gofmt")
-	pkg               = pflag.String("pkg", "fe", "The name of the package to place generated files in")
-	dest              = pflag.String("dest", "./fe", "The name of the directory to place the generated package in")
-	langVer           = pflag.String("lang-ver", "v0.0.0", "The version of the language to generate")
-	noCache           = pflag.Bool("no-cache", false, "Disable use of cached frontend components, even if available")
-	noCacheOutput     = pflag.Bool("no-cache-out", false, "Disable writing of cached frontend components, even if one was generated")
+	flagPathPrefix        = pflag.String("prefix", "", "Path to prepend to path of all generated source files")
+	flagPreserveBinSource = pflag.Bool("preserve-bin-source", false, "Preserve the source of any generated binary files")
+	flagDebugTemplates    = pflag.Bool("debug-templates", false, "Dump the filled templates before running through gofmt")
+	flagPkg               = pflag.String("pkg", "fe", "The name of the package to place generated files in")
+	flagDest              = pflag.String("dest", "./fe", "The name of the directory to place the generated package in")
+	flagNoCache           = pflag.Bool("no-cache", false, "Disable use of cached frontend components, even if available")
+	flagNoCacheOutput     = pflag.Bool("no-cache-out", false, "Disable writing of cached frontend components, even if one was generated")
 
-	valSDTSOff        = pflag.Bool("sim-off", false, "Disable input simulation of the language once built")
-	valSDTSShowTrees  = pflag.Bool("sim-trees", false, "Show parse trees that caused errors during simulation")
-	valSDTSShowGraphs = pflag.Bool("sim-graphs", false, "Show full generated dependency graph output for parse trees that caused errors during simulation")
-	valSDTSFirstOnly  = pflag.Bool("sim-first-err", false, "Show only the first error found in SDTS validation")
-	valSDTSSkip       = pflag.Int("sim-skip-errs", 0, "Skip the first N errors found in SDTS validation in output")
+	flagSimOff          = pflag.Bool("sim-off", false, "Disable input simulation of the language once built")
+	flagSimTrees        = pflag.Bool("sim-trees", false, "Show parse trees that caused errors during simulation")
+	flagSimGraphs       = pflag.Bool("sim-graphs", false, "Show full generated dependency graph output for parse trees that caused errors during simulation")
+	flagSimFirstErrOnly = pflag.Bool("sim-first-err", false, "Show only the first error found in SDTS validation")
+	flagSimSkipErrs     = pflag.Int("sim-skip-errs", 0, "Skip the first N errors found in SDTS validation in output")
 
-	tmplTokens = pflag.String("tmpl-tokens", "", "A template file to replace the embedded tokens template with")
-	tmplLexer  = pflag.String("tmpl-lexer", "", "A template file to replace the embedded lexer template with")
-	tmplParser = pflag.String("tmpl-parser", "", "A template file to replace the embedded parser template with")
-	tmplSDTS   = pflag.String("tmpl-sdts", "", "A template file to replace the embedded SDTS template with")
-	tmplFront  = pflag.String("tmpl-frontend", "", "A template file to replace the embedded frontend template with")
-	tmplMain   = pflag.String("tmpl-main", "", "A template file to replace the embedded main.go template with")
+	flagTmplTokens = pflag.String("tmpl-tokens", "", "A template file to replace the embedded tokens template with")
+	flagTmplLexer  = pflag.String("tmpl-lexer", "", "A template file to replace the embedded lexer template with")
+	flagTmplParser = pflag.String("tmpl-parser", "", "A template file to replace the embedded parser template with")
+	flagTmplSDTS   = pflag.String("tmpl-sdts", "", "A template file to replace the embedded SDTS template with")
+	flagTmplFront  = pflag.String("tmpl-frontend", "", "A template file to replace the embedded frontend template with")
+	flagTmplMain   = pflag.String("tmpl-main", "", "A template file to replace the embedded main.go template with")
 
-	parserLL      = pflag.Bool("ll", false, "Generate an LL(1) parser")
-	parserSLR     = pflag.Bool("slr", false, "Generate a simple LR(1) parser")
-	parserCLR     = pflag.Bool("clr", false, "Generate a canonical LR(1) parser")
-	parserLALR    = pflag.Bool("lalr", false, "Generate a canonical LR(1) parser")
-	parserNoAmbig = pflag.Bool("no-ambig", false, "Disallow ambiguity in grammar even if creating a parser that can auto-resolve it")
+	flagParserLL      = pflag.Bool("ll", false, "Generate an LL(1) parser")
+	flagParserSLR     = pflag.Bool("slr", false, "Generate a simple LR(1) parser")
+	flagParserCLR     = pflag.Bool("clr", false, "Generate a canonical LR(1) parser")
+	flagParserLALR    = pflag.Bool("lalr", false, "Generate a canonical LR(1) parser")
+	flagParserNoAmbig = pflag.Bool("no-ambig", false, "Disallow ambiguity in grammar even if creating a parser that can auto-resolve it")
 
-	lexerTrace  = pflag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
-	parserTrace = pflag.Bool("debug-parser", false, "Print the parser trace to stdout")
+	flagLexerTrace  = pflag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
+	flagParserTrace = pflag.Bool("debug-parser", false, "Print the parser trace to stdout")
 
-	hooksPath      = pflag.String("hooks", "", "The path to the hooks directory to use for the generated parser. Required for SDTS validation.")
-	hooksTableName = pflag.String("hooks-table", "HooksTable", "Function call or name of exported var in 'hooks' that has the hooks table.")
+	flagHooksPath      = pflag.String("hooks", "", "The path to the hooks directory to use for the generated parser. Required for SDTS validation.")
+	flagHooksTableName = pflag.String("hooks-table", "HooksTable", "Function call or name of exported var in 'hooks' that has the hooks table.")
 
-	irType = pflag.String("ir", "", "The fully-qualified type of IR to generate.")
+	flagIRType = pflag.String("ir", "", "The fully-qualified type of IR to generate.")
 
-	version = pflag.Bool("version", false, "Print the version of ictcc and exit")
+	flagVersion = pflag.Bool("version", false, "Print the version of ictcc and exit")
 )
-
-func init() {
-	const (
-		quietUsage       = "Do not print progress messages"
-		noGenUsage       = "Do not generate the parser"
-		genASTUsage      = "Print the AST of the analyzed fishi"
-		genTreeUsage     = "Print the parse trees of each analyzed fishi file"
-		genSpecUsage     = "Print the FISHI spec interpreted from the analyzed fishi"
-		parserCffUsage   = "Use the specified parser CFF cache file instead of default"
-		parserCffDefault = "fishi-parser.cff"
-		langUsage        = "The name of the languae being generated"
-		langDefault      = "Unspecified"
-	)
-	pflag.BoolVarP(&noGen, "no-gen", "n", false, noGenUsage)
-	pflag.BoolVarP(&genAST, "ast", "a", false, genASTUsage)
-	pflag.BoolVarP(&showSpec, "spec", "s", false, genSpecUsage)
-	pflag.BoolVarP(&genTree, "tree", "t", false, genTreeUsage)
-	pflag.StringVarP(&parserCff, "parser", "p", parserCffDefault, parserCffUsage)
-	pflag.StringVarP(&lang, "lang", "l", langDefault, langUsage)
-	pflag.BoolVarP(&quietMode, "quiet", "q", false, quietUsage)
-}
 
 func main() {
 	// basic function to check if panic is happening and recover it while also
@@ -415,18 +394,18 @@ func main() {
 
 	pflag.Parse()
 
-	if *version {
+	if *flagVersion {
 		fmt.Println(GetVersionString())
 		return
 	}
 
 	// mutually exclusive and required options for diagnostics bin generation.
-	if *diagnosticsBin != "" {
-		if noGen {
+	if *flagDiagBin != "" {
+		if *flagNoGen {
 			fmt.Fprintf(os.Stderr, "ERROR: Diagnostics binary generation canont be enabled if -n/--no-gen is specified\n")
 			returnCode = ExitErrInvalidFlags
 			return
-		} else if *irType == "" || *hooksPath == "" {
+		} else if *flagIRType == "" || *flagHooksPath == "" {
 			fmt.Fprintf(os.Stderr, "ERROR: diagnostics binary generation requires both --ir and --hooks to be set\n")
 			returnCode = ExitErrInvalidFlags
 			return
@@ -435,7 +414,7 @@ func main() {
 		// you cannot set ONLY the formatting call
 		flagInfoDiagFormatCall := pflag.Lookup("diag-format-call")
 		// don't error check; all we'd do is panic
-		if flagInfoDiagFormatCall.Changed && *diagFormatPkg == "" {
+		if flagInfoDiagFormatCall.Changed && *flagDiagFormatPkg == "" {
 			fmt.Fprintf(os.Stderr, "ERROR: -c/--diag-format-call cannot be set without -f/--diag-format-pkg\n")
 			returnCode = ExitErrInvalidFlags
 			return
@@ -458,8 +437,8 @@ func main() {
 
 	// create a spec metadata object
 	md := fishi.SpecMetadata{
-		Language:       lang,
-		Version:        *langVer,
+		Language:       *flagLang,
+		Version:        *flagLangVer,
 		InvocationArgs: invocation,
 	}
 
@@ -479,36 +458,36 @@ func main() {
 	}
 
 	fo := fishi.Options{
-		ParserCFF:   parserCff,
-		ReadCache:   !*noCache,
-		WriteCache:  !*noCacheOutput,
-		LexerTrace:  *lexerTrace,
-		ParserTrace: *parserTrace,
+		ParserCFF:   *flagParserCff,
+		ReadCache:   !*flagNoCache,
+		WriteCache:  !*flagNoCacheOutput,
+		LexerTrace:  *flagLexerTrace,
+		ParserTrace: *flagParserTrace,
 	}
 
 	cgOpts := fishi.CodegenOptions{
-		DumpPreFormat:        *debugTemplates,
-		IRType:               *irType,
+		DumpPreFormat:        *flagDebugTemplates,
+		IRType:               *flagIRType,
 		TemplateFiles:        map[string]string{},
-		PreserveBinarySource: *preserveBinSource,
+		PreserveBinarySource: *flagPreserveBinSource,
 	}
-	if *tmplTokens != "" {
-		cgOpts.TemplateFiles[fishi.ComponentTokens] = *tmplTokens
+	if *flagTmplTokens != "" {
+		cgOpts.TemplateFiles[fishi.ComponentTokens] = *flagTmplTokens
 	}
-	if *tmplLexer != "" {
-		cgOpts.TemplateFiles[fishi.ComponentLexer] = *tmplLexer
+	if *flagTmplLexer != "" {
+		cgOpts.TemplateFiles[fishi.ComponentLexer] = *flagTmplLexer
 	}
-	if *tmplParser != "" {
-		cgOpts.TemplateFiles[fishi.ComponentParser] = *tmplParser
+	if *flagTmplParser != "" {
+		cgOpts.TemplateFiles[fishi.ComponentParser] = *flagTmplParser
 	}
-	if *tmplSDTS != "" {
-		cgOpts.TemplateFiles[fishi.ComponentSDTS] = *tmplSDTS
+	if *flagTmplSDTS != "" {
+		cgOpts.TemplateFiles[fishi.ComponentSDTS] = *flagTmplSDTS
 	}
-	if *tmplFront != "" {
-		cgOpts.TemplateFiles[fishi.ComponentFrontend] = *tmplFront
+	if *flagTmplFront != "" {
+		cgOpts.TemplateFiles[fishi.ComponentFrontend] = *flagTmplFront
 	}
-	if *tmplMain != "" {
-		cgOpts.TemplateFiles[fishi.ComponentMainFile] = *tmplMain
+	if *flagTmplMain != "" {
+		cgOpts.TemplateFiles[fishi.ComponentMainFile] = *flagTmplMain
 	}
 	if len(cgOpts.TemplateFiles) == 0 {
 		// just nil it
@@ -516,7 +495,7 @@ func main() {
 	}
 
 	// now that args are gathered, parse markdown files into an AST
-	if !quietMode {
+	if !*flagQuietMode {
 		files := textfmt.Pluralize(len(args), "FISHI input file", "-s")
 		fmt.Printf("Reading %s...\n", files)
 	}
@@ -535,13 +514,13 @@ func main() {
 
 		// parse tree is per-file, so we do this immediately even on error, as
 		// it may be useful
-		if res.Tree != nil && genTree {
+		if res.Tree != nil && *flagGenTree {
 			fmt.Printf("%s\n", trans.AddAttributes(*res.Tree).String())
 		}
 
 		if err != nil {
 			// results may be valid even if there is an error
-			if joinedAST != nil && genAST {
+			if joinedAST != nil && *flagGenAST {
 				fmt.Printf("%s\n", res.AST.String())
 			}
 
@@ -560,12 +539,12 @@ func main() {
 		panic("joinedAST is nil; should not be possible")
 	}
 
-	if genAST {
+	if *flagGenAST {
 		fmt.Printf("%s\n", joinedAST.String())
 	}
 
 	// attempt to turn AST into a fishi.Spec
-	if !quietMode {
+	if !*flagQuietMode {
 		fmt.Printf("Generating language spec from FISHI...\n")
 	}
 	spec, warnings, err := fishi.NewSpec(*joinedAST)
@@ -599,12 +578,12 @@ func main() {
 	}
 
 	// we officially have a spec. try to print it if requested
-	if showSpec {
+	if *flagShowSpec {
 		printSpec(spec)
 	}
 
-	if noGen {
-		if !quietMode {
+	if *flagNoGen {
+		if !*flagQuietMode {
 			fmt.Printf("(code generation skipped due to flags)\n")
 		}
 		return
@@ -615,12 +594,12 @@ func main() {
 	var parserWarns []fishi.Warning
 	// if one is selected, use that one
 	if parserType != nil {
-		if !quietMode {
+		if !*flagQuietMode {
 			fmt.Printf("Creating %s parser from spec...\n", *parserType)
 		}
 		p, parserWarns, err = spec.CreateParser(*parserType, allowAmbig)
 	} else {
-		if !quietMode {
+		if !*flagQuietMode {
 			fmt.Printf("Creating most restrictive parser from spec...\n")
 		}
 		p, parserWarns, err = spec.CreateMostRestrictiveParser(allowAmbig)
@@ -646,33 +625,33 @@ func main() {
 		return
 	}
 
-	if !quietMode {
+	if !*flagQuietMode {
 		fmt.Printf("Successfully generated %s parser from grammar\n", p.Type().String())
 	}
 
 	// create a test compiler and output it
-	if !*valSDTSOff {
-		if *irType == "" {
+	if !*flagSimOff {
+		if *flagIRType == "" {
 			fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing --ir parameter\n")
 		} else {
-			if *hooksPath == "" {
+			if *flagHooksPath == "" {
 				fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing --hooks parameter\n")
 			} else {
-				if !quietMode {
+				if !*flagQuietMode {
 					simGenDir := ".sim"
-					if *pathPrefix != "" {
-						simGenDir = filepath.Join(*pathPrefix, simGenDir)
+					if *flagPathPrefix != "" {
+						simGenDir = filepath.Join(*flagPathPrefix, simGenDir)
 					}
 					fmt.Printf("Generating parser simulation binary in %s...\n", simGenDir)
 				}
 				di := trans.ValidationOptions{
-					ParseTrees:    *valSDTSShowTrees,
-					FullDepGraphs: *valSDTSShowGraphs,
-					ShowAllErrors: !*valSDTSFirstOnly,
-					SkipErrors:    *valSDTSSkip,
+					ParseTrees:    *flagSimTrees,
+					FullDepGraphs: *flagSimGraphs,
+					ShowAllErrors: !*flagSimFirstErrOnly,
+					SkipErrors:    *flagSimSkipErrs,
 				}
 
-				err := fishi.ValidateSimulatedInput(spec, md, p, *hooksPath, *hooksTableName, *pathPrefix, cgOpts, &di)
+				err := fishi.ValidateSimulatedInput(spec, md, p, *flagHooksPath, *flagHooksTableName, *flagPathPrefix, cgOpts, &di)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 					returnCode = ExitErrGeneration
@@ -683,20 +662,20 @@ func main() {
 	}
 
 	// generate diagnostics output if requested
-	if *diagnosticsBin != "" {
+	if *flagDiagBin != "" {
 		// already checked required flags
-		if !quietMode {
+		if !*flagQuietMode {
 			// tell user if the diagnostic binary cannot do preformatting based
 			// on flags
-			if *diagFormatPkg != "" {
+			if *flagDiagFormatPkg != "" {
 				fmt.Printf("Format preprocessing disabled in diagnostics bin; set -f to enable\n")
 			}
 
 			// TODO: probably should make this a constant in fishi instead of
 			// having ictcc just magically know about it
 			diagGenDir := ".gen"
-			if *pathPrefix != "" {
-				diagGenDir = filepath.Join(*pathPrefix, diagGenDir)
+			if *flagPathPrefix != "" {
+				diagGenDir = filepath.Join(*flagPathPrefix, diagGenDir)
 			}
 			fmt.Printf("Generating diagnostics binary code in %s...\n", diagGenDir)
 		}
@@ -705,35 +684,35 @@ func main() {
 		// otherwise we'll always pass in a non-empty string for the format call
 		// even when diagFormatPkg is empty, which is not allowed.
 		var formatCall string
-		if *diagFormatPkg != "" {
-			formatCall = *diagFormatCall
+		if *flagDiagFormatPkg != "" {
+			formatCall = *flagDiagFormatCall
 		}
 
-		err := fishi.GenerateDiagnosticsBinary(spec, md, p, *hooksPath, *hooksTableName, *diagFormatPkg, formatCall, *pkg, *diagnosticsBin, *pathPrefix, cgOpts)
+		err := fishi.GenerateDiagnosticsBinary(spec, md, p, *flagHooksPath, *flagHooksTableName, *flagDiagFormatPkg, formatCall, *flagPkg, *flagDiagBin, *flagPathPrefix, cgOpts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 			returnCode = ExitErrGeneration
 			return
 		}
 
-		if !quietMode {
-			fmt.Printf("Built diagnostics binary '%s'\n", *diagnosticsBin)
+		if !*flagQuietMode {
+			fmt.Printf("Built diagnostics binary '%s'\n", *flagDiagBin)
 		}
 	}
 
 	// assuming it worked, now generate the final output
-	if !quietMode {
-		feGenDir := *dest
-		if *pathPrefix != "" {
-			feGenDir = filepath.Join(*pathPrefix, feGenDir)
+	if !*flagQuietMode {
+		feGenDir := *flagDest
+		if *flagPathPrefix != "" {
+			feGenDir = filepath.Join(*flagPathPrefix, feGenDir)
 		}
 		fmt.Printf("Generating compiler frontend in %s...\n", feGenDir)
 	}
-	feDest := *dest
-	if *pathPrefix != "" {
-		feDest = filepath.Join(*pathPrefix, feDest)
+	feDest := *flagDest
+	if *flagPathPrefix != "" {
+		feDest = filepath.Join(*flagPathPrefix, feDest)
 	}
-	err = fishi.GenerateCompilerGo(spec, md, *pkg, feDest, &cgOpts)
+	err = fishi.GenerateCompilerGo(spec, md, *flagPkg, feDest, &cgOpts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		returnCode = ExitErrGeneration
@@ -748,29 +727,29 @@ func main() {
 // err will be non-nil if there is an invalid combination of CLI flags.
 func parserSelectionFromFlags() (t *types.ParserType, allowAmbig bool, err error) {
 	// enforce mutual exclusion of cli args
-	if (*parserLL && (*parserCLR || *parserSLR || *parserLALR)) ||
-		(*parserCLR && (*parserSLR || *parserLALR)) ||
-		(*parserSLR && *parserLALR) {
+	if (*flagParserLL && (*flagParserCLR || *flagParserSLR || *flagParserLALR)) ||
+		(*flagParserCLR && (*flagParserSLR || *flagParserLALR)) ||
+		(*flagParserSLR && *flagParserLALR) {
 
 		err = fmt.Errorf("cannot specify more than one parser type")
 		return
 	}
 
-	allowAmbig = !*parserNoAmbig
+	allowAmbig = !*flagParserNoAmbig
 
-	if *parserLL {
+	if *flagParserLL {
 		t = new(types.ParserType)
 		*t = types.ParserLL1
 
 		// allowAmbig auto false for LL(1)
 		allowAmbig = false
-	} else if *parserSLR {
+	} else if *flagParserSLR {
 		t = new(types.ParserType)
 		*t = types.ParserSLR1
-	} else if *parserCLR {
+	} else if *flagParserCLR {
 		t = new(types.ParserType)
 		*t = types.ParserCLR1
-	} else if *parserLALR {
+	} else if *flagParserLALR {
 		t = new(types.ParserType)
 		*t = types.ParserLALR1
 	}
