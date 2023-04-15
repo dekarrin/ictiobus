@@ -292,38 +292,6 @@ import (
 	"github.com/dekarrin/rosed"
 )
 
-const (
-	// ExitSuccess is the exit code for a successful run.
-	ExitSuccess = iota
-
-	// ExitErrNoFiles is the code returned as exit status when no files are
-	// provided to the invocation.
-	ExitErrNoFiles
-
-	// ExitErrInvalidFlags is used if the combination of flags specified is
-	// invalid.
-	ExitErrInvalidFlags
-
-	// ExitErrSyntax is the code returned as exit status when a syntax error
-	// occurs.
-	ExitErrSyntax
-
-	// ExitErrParser is the code returned as exit status when there is an error
-	// generating the parser.
-	ExitErrParser
-
-	// ExitErrGeneration is the code returned as exit status when there is an
-	// error creating the generated files.
-	ExitErrGeneration
-
-	// ExitErrOther is a generic error code for any other error.
-	ExitErrOther
-)
-
-var (
-	returnCode = ExitSuccess
-)
-
 var (
 	flagQuietMode = pflag.BoolP("quiet", "q", false, "Suppress progress messages and other supplementary output")
 	flagNoGen     = pflag.BoolP("no-gen", "n", false, "Do not attempt to generate the parser")
@@ -377,17 +345,7 @@ var (
 )
 
 func main() {
-	// basic function to check if panic is happening and recover it while also
-	// preserving possibly-set exit code.
-	defer func() {
-		if panicErr := recover(); panicErr != nil {
-			// we are panicking, make sure we dont lose the panic just because
-			// we checked
-			panic("unrecoverable panic occured")
-		} else {
-			os.Exit(returnCode)
-		}
-	}()
+	defer preservePanicOrExitWithStatus()
 
 	// gather options and arguments
 	invocation := strings.Join(os.Args[1:], " ")
@@ -402,12 +360,10 @@ func main() {
 	// mutually exclusive and required options for diagnostics bin generation.
 	if *flagDiagBin != "" {
 		if *flagNoGen {
-			fmt.Fprintf(os.Stderr, "ERROR: Diagnostics binary generation canont be enabled if -n/--no-gen is specified\n")
-			returnCode = ExitErrInvalidFlags
+			errInvalidFlags("Diagnostics bin generation cannot be enabled due to -n/--no-gen")
 			return
 		} else if *flagIRType == "" || *flagHooksPath == "" {
-			fmt.Fprintf(os.Stderr, "ERROR: diagnostics binary generation requires both --ir and --hooks to be set\n")
-			returnCode = ExitErrInvalidFlags
+			errInvalidFlags("Diagnostics bin generation requires both --ir and --hooks to be set")
 			return
 		}
 
@@ -415,8 +371,7 @@ func main() {
 		flagInfoDiagFormatCall := pflag.Lookup("diag-format-call")
 		// don't error check; all we'd do is panic
 		if flagInfoDiagFormatCall.Changed && *flagDiagFormatPkg == "" {
-			fmt.Fprintf(os.Stderr, "ERROR: -c/--diag-format-call cannot be set without -f/--diag-format-pkg\n")
-			returnCode = ExitErrInvalidFlags
+			errInvalidFlags("-c/--diag-format-call cannot be set without -f/--diag-format-pkg")
 			return
 		}
 	} else {
@@ -424,15 +379,27 @@ func main() {
 		flagInfoDiagFormatPkg := pflag.Lookup("diag-format-pkg")
 		flagInfoDiagFormatCall := pflag.Lookup("diag-format-call")
 		if flagInfoDiagFormatPkg.Changed {
-			fmt.Fprintf(os.Stderr, "ERROR: -f/--diag-format-pkg cannot be set without -d/--diagnostics-bin\n")
-			returnCode = ExitErrInvalidFlags
+			errInvalidFlags("-f/--diag-format-pkg cannot be set without -d/--diagnostics-bin")
 			return
 		}
 		if flagInfoDiagFormatCall.Changed {
-			fmt.Fprintf(os.Stderr, "ERROR: -c/--diag-format-call cannot be set without -d/--diagnostics-bin\n")
-			returnCode = ExitErrInvalidFlags
+			errInvalidFlags("-c/--diag-format-call cannot be set without -d/--diagnostics-bin")
 			return
 		}
+	}
+
+	parserType, allowAmbig, err := parserSelectionFromFlags()
+	if err != nil {
+		errInvalidFlags(err.Error())
+		return
+	}
+
+	// check args before gathering flags
+	args := pflag.Args()
+
+	if len(args) < 1 {
+		errNoFiles("No files given to process")
+		return
 	}
 
 	// create a spec metadata object
@@ -440,21 +407,6 @@ func main() {
 		Language:       *flagLang,
 		Version:        *flagLangVer,
 		InvocationArgs: invocation,
-	}
-
-	args := pflag.Args()
-
-	if len(args) < 1 {
-		fmt.Fprintf(os.Stderr, "No files given to process\n")
-		returnCode = ExitErrNoFiles
-		return
-	}
-
-	parserType, allowAmbig, err := parserSelectionFromFlags()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-		returnCode = ExitErrInvalidFlags
-		return
 	}
 
 	fo := fishi.Options{
@@ -525,11 +477,9 @@ func main() {
 			}
 
 			if syntaxErr, ok := err.(*types.SyntaxError); ok {
-				fmt.Fprintf(os.Stderr, "%s:\n%s\n", file, syntaxErr.FullMessage())
-				returnCode = ExitErrSyntax
+				errSyntax(file, syntaxErr.FullMessage())
 			} else {
-				fmt.Fprintf(os.Stderr, "%s: %s\n", file, err.Error())
-				returnCode = ExitErrOther
+				errOther(fmt.Sprintf("%s: %s", file, err.Error()))
 			}
 			return
 		}
@@ -568,11 +518,9 @@ func main() {
 		// token/syntax error output. Allow specification of file in anyfin that
 		// can return a SyntaxError and have all token sources include that.
 		if syntaxErr, ok := err.(*types.SyntaxError); ok {
-			fmt.Fprintf(os.Stderr, "%s\n", syntaxErr.FullMessage())
-			returnCode = ExitErrSyntax
+			errSyntax("", syntaxErr.FullMessage())
 		} else {
-			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-			returnCode = ExitErrOther
+			errOther(err.Error())
 		}
 		return
 	}
@@ -620,8 +568,7 @@ func main() {
 	fmt.Fprintf(os.Stderr, "\n")
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-		returnCode = ExitErrParser
+		errParser(err.Error())
 		return
 	}
 
@@ -653,8 +600,7 @@ func main() {
 
 				err := fishi.ValidateSimulatedInput(spec, md, p, *flagHooksPath, *flagHooksTableName, *flagPathPrefix, cgOpts, &di)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
-					returnCode = ExitErrGeneration
+					errGeneration(err.Error())
 					return
 				}
 			}
@@ -690,8 +636,7 @@ func main() {
 
 		err := fishi.GenerateDiagnosticsBinary(spec, md, p, *flagHooksPath, *flagHooksTableName, *flagDiagFormatPkg, formatCall, *flagPkg, *flagDiagBin, *flagPathPrefix, cgOpts)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
-			returnCode = ExitErrGeneration
+			errGeneration(err.Error())
 			return
 		}
 
@@ -714,8 +659,7 @@ func main() {
 	}
 	err = fishi.GenerateCompilerGo(spec, md, *flagPkg, feDest, &cgOpts)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-		returnCode = ExitErrGeneration
+		errGeneration(err.Error())
 		return
 	}
 }
