@@ -1,62 +1,67 @@
-package fishi
+package format
 
 import (
-	"bytes"
-	"fmt"
 	"testing"
-
-	"github.com/dekarrin/ictiobus/types"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_WithFakeInput(t *testing.T) {
-	assert := assert.New(t)
-
-	r := bytes.NewReader([]byte(testInput))
-
-	_, actual := Parse(r, Options{ParserCFF: "../fishi-parser.cff", ReadCache: true, WriteCache: true})
-
-	assert.NoError(actual)
-
-	if actual != nil {
-		actualSynt, ok := actual.(*types.SyntaxError)
-		if ok {
-			fmt.Println(actualSynt.FullMessage())
-		}
+func Test_GetFishiFromMarkdown(t *testing.T) {
+	testCases := []struct {
+		name   string
+		input  string
+		expect string
+	}{
+		{
+			name: "fishi and text",
+			input: "Test block\n" +
+				"only include the fishi block\n" +
+				"```fishi\n" +
+				"%%tokens\n" +
+				"\n" +
+				"%token test\n" +
+				"```\n",
+			expect: "%%tokens\n" +
+				"\n" +
+				"%token test\n",
+		},
+		{
+			name: "two fishi blocks",
+			input: "Test block\n" +
+				"only include the fishi blocks\n" +
+				"```fishi\n" +
+				"%%tokens\n" +
+				"\n" +
+				"%token test\n" +
+				"```\n" +
+				"some more text\n" +
+				"```fishi\n" +
+				"\n" +
+				"%token 7\n" +
+				"%%actions\n" +
+				"\n" +
+				"%set go\n" +
+				"```\n" +
+				"other text\n",
+			expect: "%%tokens\n" +
+				"\n" +
+				"%token test\n" +
+				"\n" +
+				"%token 7\n" +
+				"%%actions\n" +
+				"\n" +
+				"%set go\n",
+		},
 	}
-}
 
-func Test_SelfHostedMarkdown_Spec(t *testing.T) {
-	assert := assert.New(t)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
 
-	res, err := ParseMarkdownFile("../fishi.md", Options{ParserCFF: "../fishi-parser.cff", ReadCache: true, WriteCache: true})
-	if !assert.NoError(err) {
-		return
-	}
+			actual := GetFishiFromMarkdown([]byte(tc.input))
 
-	_, _, actualErr := NewSpec(*res.AST)
-
-	if actualErr != nil {
-		actualSynt, ok := actualErr.(*types.SyntaxError)
-		if ok {
-			fmt.Println(actualSynt.FullMessage())
-		}
-	}
-}
-
-func Test_SelfHostedMarkdown(t *testing.T) {
-	assert := assert.New(t)
-
-	_, actual := ParseMarkdownFile("../fishi.md", Options{ParserCFF: "../fishi-parser.cff", ReadCache: true, WriteCache: true})
-
-	assert.NoError(actual)
-
-	if actual != nil {
-		actualSynt, ok := actual.(*types.SyntaxError)
-		if ok {
-			fmt.Println(actualSynt.FullMessage())
-		}
+			assert.Equal(tc.expect, string(actual))
+		})
 	}
 }
 

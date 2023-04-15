@@ -2,21 +2,19 @@ package fishi
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/fishi/fe"
+	"github.com/dekarrin/ictiobus/fishi/format"
 	"github.com/dekarrin/ictiobus/fishi/syntax"
 	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
-	"github.com/gomarkdown/markdown"
-	mkast "github.com/gomarkdown/markdown/ast"
-	mkparser "github.com/gomarkdown/markdown/parser"
 )
 
 type Results struct {
@@ -25,76 +23,87 @@ type Results struct {
 }
 
 type Options struct {
-	ParserCFF         string
-	ReadCache         bool
-	WriteCache        bool
-	SDTSValidate      bool
-	SDTSValShowTrees  bool
-	SDTSValShowGraphs bool
-	SDTSValAllTrees   bool
-	SDTSValSkipTrees  int
-	LexerTrace        bool
-	ParserTrace       bool
+	ParserCFF   string
+	ReadCache   bool
+	WriteCache  bool
+	LexerTrace  bool
+	ParserTrace bool
 }
 
-func GetFishiFromMarkdown(mdText []byte) []byte {
-	doc := markdown.Parse(mdText, mkparser.New())
-	var scanner fishiScanner
-	fishi := markdown.Render(doc, scanner)
-	return fishi
-}
+// ValidateSimulatedInput generates a lightweight compiler with the spec'd
+// frontend in a special directory (".sim" in the local directory or in the path
+// specified by pathPrefix, if set) and then runs SDTS validation on a variety
+// of parse tree inputs designed to cover all the productions of the grammar at
+// least once.
+//
+// If running validation with the test compiler succeeds, it and the directory
+// it was generated in are deleted. If it fails, the directory is left in place
+// for inspection.
+//
+// IRType is required to be set in cgOpts.
+//
+// valOpts is not required to be set, and if nil will be treated as if it were
+// set to an empty struct.
+//
+// No binary is generated as part of this, but source is which is then executed.
+// If PreserveBinarySource is set in cgOpts, the source will be left in the
+// .sim directory.
+func ValidateSimulatedInput(spec Spec, md SpecMetadata, p ictiobus.Parser, hooks, hooksTable string, pathPrefix string, cgOpts CodegenOptions, valOpts *trans.ValidationOptions) error {
+	pkgName := "sim" + strings.ToLower(md.Language)
 
-// Preprocess does a preprocess step on the source, which as of now includes
-// stripping comments and normalizing end of lines to \n.
-func Preprocess(source []byte) []byte {
-	toBuf := make([]byte, len(source))
-	copy(toBuf, source)
-	scanner := bufio.NewScanner(bytes.NewBuffer(toBuf))
-	var preprocessed strings.Builder
+	binName := safeTCIdentifierName(md.Language)
+	binName = binName[2:] // remove initial "tc".
+	binName = strings.ToLower(binName)
+	binName = "test" + binName
 
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasSuffix(line, "\r\n") || strings.HasPrefix(line, "\n\r") {
-			line = line[0 : len(line)-2]
-		} else {
-			line = strings.TrimSuffix(line, "\n")
+	outDir := ".sim"
+	if pathPrefix != "" {
+		outDir = filepath.Join(pathPrefix, outDir)
+	}
+
+	// not setting the format package and call here because we don't need
+	// preformatting to run verification simulation.
+	genInfo, err := GenerateBinaryMainGo(spec, md, MainBinaryParams{
+		Parser:          p,
+		HooksPkgDir:     hooks,
+		HooksExpr:       hooksTable,
+		FrontendPkgName: pkgName,
+		GenPath:         outDir,
+		BinName:         binName,
+		Opts:            cgOpts,
+	})
+	if err != nil {
+		return fmt.Errorf("generate test compiler: %w", err)
+	}
+
+	err = ExecuteTestCompiler(genInfo, valOpts)
+	if err != nil {
+		return fmt.Errorf("execute test compiler: %w", err)
+	}
+
+	if !cgOpts.PreserveBinarySource {
+		// if we got here, no errors. delete the test compiler and its directory
+		err = os.RemoveAll(genInfo.Path)
+		if err != nil {
+			return fmt.Errorf("remove test compiler: %w", err)
 		}
-		line, _, _ = strings.Cut(line, "#")
-		preprocessed.WriteString(line)
-		preprocessed.WriteRune('\n')
 	}
 
-	return []byte(preprocessed.String())
+	return nil
 }
-
-type fishiScanner bool
-
-func (fs fishiScanner) RenderNode(w io.Writer, node mkast.Node, entering bool) mkast.WalkStatus {
-	if !entering {
-		return mkast.GoToNext
-	}
-
-	codeBlock, ok := node.(*mkast.CodeBlock)
-	if !ok || codeBlock == nil {
-		return mkast.GoToNext
-	}
-
-	if strings.ToLower(strings.TrimSpace(string(codeBlock.Info))) == "fishi" {
-		w.Write(codeBlock.Literal)
-	}
-	return mkast.GoToNext
-}
-
-func (fs fishiScanner) RenderHeader(w io.Writer, ast mkast.Node) {}
-func (fs fishiScanner) RenderFooter(w io.Writer, ast mkast.Node) {}
-
 func ParseMarkdownFile(filename string, opts Options) (Results, error) {
-	data, err := os.ReadFile(filename)
+	f, err := os.Open(filename)
 	if err != nil {
 		return Results{}, err
 	}
 
-	res, err := ParseMarkdown(data, opts)
+	bufF := bufio.NewReader(f)
+	r, err := format.NewCodeReader(bufF)
+	if err != nil {
+		return Results{}, err
+	}
+
+	res, err := Parse(r, opts)
 	if err != nil {
 		return res, err
 	}
@@ -102,41 +111,26 @@ func ParseMarkdownFile(filename string, opts Options) (Results, error) {
 	return res, nil
 }
 
-func ParseMarkdown(mdText []byte, opts Options) (Results, error) {
-
-	// TODO: read in filename, based on it check for cached version
-
-	// debug steps: output source after preprocess
-	// output token stream
-	// output grammar constructed
-	// output parser table and type
-
-	source := GetFishiFromMarkdown(mdText)
-	return Parse(source, opts)
-}
-
-// Parse converts the fishi source code provided into an AST.
-func Parse(source []byte, opts Options) (Results, error) {
+// Parse converts the fishi source code read from the given reader into an AST.
+func Parse(r io.Reader, opts Options) (Results, error) {
 	// get the frontend
 	fishiFront, err := GetFrontend(opts)
 	if err != nil {
 		return Results{}, fmt.Errorf("could not get frontend: %w", err)
 	}
 
-	preprocessedSource := Preprocess(source)
-
-	r := Results{}
+	res := Results{}
 	// now, try to make a parse tree
-	nodes, pt, err := fishiFront.AnalyzeString(string(preprocessedSource))
-	r.Tree = pt // need to do this before we return
+	nodes, pt, err := fishiFront.Analyze(r)
+	res.Tree = pt // need to do this before we return
 	if err != nil {
-		return r, err
+		return res, err
 	}
-	r.AST = &AST{
+	res.AST = &AST{
 		Nodes: nodes,
 	}
 
-	return r, nil
+	return res, nil
 }
 
 // GetFrontend gets the frontend for the fishi compiler-compiler. If cffFile is
@@ -171,23 +165,6 @@ func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.Block], error) {
 			fmt.Fprintf(os.Stderr, "writing parser to disk: %s\n", err.Error())
 		} else {
 			fmt.Printf("wrote parser to %q\n", opts.ParserCFF)
-		}
-	}
-
-	// validate our SDTS if we were asked to
-	if opts.SDTSValidate {
-		valProd := fishiFront.Lexer.FakeLexemeProducer(true, "")
-
-		di := trans.ValidationOptions{
-			ParseTrees:    opts.SDTSValShowTrees,
-			FullDepGraphs: opts.SDTSValShowGraphs,
-			ShowAllErrors: opts.SDTSValAllTrees,
-			SkipErrors:    opts.SDTSValSkipTrees,
-		}
-
-		sddErr := fishiFront.SDT.Validate(fishiFront.Parser.Grammar(), fishiFront.IRAttribute, di, valProd)
-		if sddErr != nil {
-			return ictiobus.Frontend[[]syntax.Block]{}, fmt.Errorf("sdd validation error: %w", sddErr)
 		}
 	}
 

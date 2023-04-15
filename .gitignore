@@ -1,9 +1,12 @@
 # vim
 *.swp
 
-/testout
+/.testout
 /ictcc
 /.sim
+/.gen
+/diag
+/fishic
 
 # mac
 .DS_Store

@@ -44,7 +44,6 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	//bootLx.RegisterClass(tcDirDefault, "tokens")
 	bootLx.RegisterClass(TCDirDiscard, "tokens")
 	bootLx.RegisterClass(TCDirPriority, "tokens")
-	bootLx.RegisterClass(TCInt, "tokens")
 	bootLx.RegisterClass(TCDirState, "tokens")
 	bootLx.RegisterClass(TCLineStartFreeformText, "tokens")
 	bootLx.RegisterClass(TCLineStartEscseq, "tokens")
@@ -100,7 +99,7 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 
 	// actions patterns
 	bootLx.AddPattern(`\s+`, lex.Discard(), "actions", 0)
-	bootLx.AddPattern(`(?:{(?:&|\.)(?:[0-9]+)?}|{[0-9]+}|{\^}|{[A-Za-z][^{}]*}|[\s{}]+)\.[\$A-Za-z][\$A-Za-z0-9_]*`, lex.LexAs(TCAttrRef.ID()), "actions", 0)
+	bootLx.AddPattern(`(?:{(?:&|\.)(?:[0-9]+)?}|{[0-9]+}|{\^}|{[A-Za-z][^{}]*}|[^\s{}]+)\.[\$A-Za-z][\$A-Za-z0-9_]*`, lex.LexAs(TCAttrRef.ID()), "actions", 0)
 	bootLx.AddPattern(`,`, lex.Discard(), "actions", 0)
 	bootLx.AddPattern(`[0-9]+`, lex.LexAs(TCInt.ID()), "actions", 0)
 	bootLx.AddPattern(`{[A-Za-z][^}]*}`, lex.LexAs(TCNonterminal.ID()), "actions", 0)

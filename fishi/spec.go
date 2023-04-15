@@ -450,6 +450,11 @@ func analyzeASTActionsContentSlice(
 						synErr := types.NewSyntaxErrorFromToken("invalid attrRef: "+err.Error(), semAct.LHS.Src)
 						return nil, warnings, synErr
 					}
+					// make shore we aren't trying to set somefin starting with a '$'; those are reserved
+					if strings.HasPrefix(sdd.Attribute.Name, "$") {
+						synErr := types.NewSyntaxErrorFromToken("cannot create attribute starting with reserved marker '$'", semAct.LHS.Src)
+						return nil, warnings, synErr
+					}
 
 					// do the same for each arg to the hook
 					if len(semAct.With) > 0 {
@@ -722,25 +727,27 @@ func analzyeASTTokensContentSlice(
 
 // r is rule to check against, only first production is checked.
 func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.Grammar, r grammar.Rule) (trans.AttrRef, error) {
+	var ar trans.AttrRef
 	if astRef.Head {
-		return trans.AttrRef{
+		ar = trans.AttrRef{
 			Relation: trans.NodeRelation{
 				Type: trans.RelHead,
 			},
 			Name: astRef.Attribute,
-		}, nil
+		}
 	} else if astRef.SymInProd {
 		// make sure the rule has the right number of symbols
 		if astRef.Occurance >= len(r.Productions[0]) {
-			return trans.AttrRef{}, fmt.Errorf("symbol index out of range; production only has %d symbols", len(r.Productions[0]))
+			symCount := textfmt.Pluralize(len(r.Productions[0]), "symbol", "-s")
+			return trans.AttrRef{}, fmt.Errorf("symbol index out of range; production only has %s (%s)", symCount, r.Productions[0])
 		}
-		return trans.AttrRef{
+		ar = trans.AttrRef{
 			Relation: trans.NodeRelation{
 				Type:  trans.RelSymbol,
 				Index: astRef.Occurance,
 			},
 			Name: astRef.Attribute,
-		}, nil
+		}
 	} else if astRef.NontermInProd {
 		// make sure that the rule has that number of non-terminals
 		nontermCount := 0
@@ -752,13 +759,13 @@ func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.Grammar, r grammar.R
 		if astRef.Occurance >= nontermCount {
 			return trans.AttrRef{}, fmt.Errorf("non-terminal index out of range; production only has %d non-terminals", nontermCount)
 		}
-		return trans.AttrRef{
+		ar = trans.AttrRef{
 			Relation: trans.NodeRelation{
 				Type:  trans.RelNonTerminal,
 				Index: astRef.Occurance,
 			},
 			Name: astRef.Attribute,
-		}, nil
+		}
 	} else if astRef.TermInProd {
 		// make sure that the rule has that number of terminals
 		termCount := 0
@@ -770,13 +777,13 @@ func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.Grammar, r grammar.R
 		if astRef.Occurance >= termCount {
 			return trans.AttrRef{}, fmt.Errorf("terminal index out of range; production only has %d terminals", termCount)
 		}
-		return trans.AttrRef{
+		ar = trans.AttrRef{
 			Relation: trans.NodeRelation{
 				Type:  trans.RelTerminal,
 				Index: astRef.Occurance,
 			},
 			Name: astRef.Attribute,
-		}, nil
+		}
 	} else {
 		// it's an instance of a particular symbol. find out the symbol index.
 		symIndexes := []int{}
@@ -791,14 +798,48 @@ func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.Grammar, r grammar.R
 		if astRef.Occurance >= len(symIndexes) {
 			return trans.AttrRef{}, fmt.Errorf("symbol index out of range; production only has %d instances of %s", len(symIndexes), astRef.Symbol)
 		}
-		return trans.AttrRef{
+		ar = trans.AttrRef{
 			Relation: trans.NodeRelation{
 				Type:  trans.RelSymbol,
 				Index: symIndexes[astRef.Occurance],
 			},
 			Name: astRef.Attribute,
-		}, nil
+		}
 	}
+
+	valErr := validateParsedAttrRef(ar, g, r)
+	if valErr != nil {
+		return ar, valErr
+	}
+	return ar, nil
+}
+
+// it is assumed that the parsed ref refers to an existing symbol; not checking
+// that here.
+func validateParsedAttrRef(ar trans.AttrRef, g grammar.Grammar, r grammar.Rule) error {
+	// need to know if we are dealing with a terminal or not
+	isTerm := false
+
+	// no need to check RelHead; by definition this cannot be a terminal
+	if ar.Relation.Type == trans.RelSymbol {
+		isTerm = g.IsTerminal(r.Productions[0][ar.Relation.Index])
+	} else {
+		isTerm = ar.Relation.Type == trans.RelTerminal
+	}
+
+	if isTerm {
+		// then anyfin we take from it, glub, must start with '$'
+		if ar.Name != "$text" && ar.Name != "$ft" {
+			return fmt.Errorf("referred-to terminal %q only has '$text' and '$ft' attributes", ar.Name)
+		}
+	} else {
+		// then we cannot take '$text' from it and it's an error.
+		if ar.Name == "$text" {
+			return fmt.Errorf("referred-to non-terminal %q does not have lexed text attribute \"$text\"", ar.Name)
+		}
+	}
+
+	return nil
 }
 
 func putEntryTokenInCorrectPosForDiscardCheck(first, second *types.Token, discardIsFirst *bool, tok types.Token) {

@@ -235,7 +235,7 @@ For tokens state:
 %!%[Tt][Oo][Kk][Ee][Nn]                            %token dir-token
 %human %!%token directive
 
-%!%![Dd][Ii][Ss][Cc][Aa][Rr][Dd]                   %token dir-discard
+%!%[Dd][Ii][Ss][Cc][Aa][Rr][Dd]                   %token dir-discard
 %human %!%discard directive
 
 %!%[Pp][Rr][Ii][Oo][Rr][Ii][Tt][Yy]                %token dir-priority
@@ -279,7 +279,7 @@ For actions state:
 
 \s+                      %discard
 
-(?:{(?:&|\.)(?:[0-9]+)?}|{[0-9]+}|{\^}|{[A-Za-z][^{}]*}|[\s{}]+)\.[\$A-Za-z][\$A-Za-z0-9_]*
+(?:{(?:&|\.)(?:[0-9]+)?}|{[0-9]+}|{\^}|{[A-Za-z][^{}]*}|[^\s{}]+)\.[\$A-Za-z][\$A-Za-z0-9_]*
 %token attr-ref    %human attribute reference literal
 
 [0-9]+
