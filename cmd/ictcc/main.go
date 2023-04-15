@@ -33,7 +33,10 @@ Flags:
 		frontend analysis. This can be useful for testing out the frontend on
 		files quickly and efficiently, as it also includes further options
 		useful for debugging purposes, such as debugging lexed tokens and the
-		parser itself.
+		parser itself. Note that by default the diagnostics binary will only
+		accept text input in the language accepted by the specified frontend; to
+		allow it to perform reading of specialized formats and/or perform
+		preprocessing, use the -f/--diag-format-pkg flag.
 
 	-q/--quiet
 		Do not show progress messages. This does not affect error messages or
@@ -42,6 +45,37 @@ Flags:
 	-p/--parser FILE
 		Set the location of the pre-compiled parser cache to the given CFF
 		format file as opposed to the default of './parser.cff'.
+
+	-f/--diag-format-pkg DIR
+		Enable special format reading in the generated diagnostics binary by
+		wrapping any io.Reader opened on input files in another io.Reader that
+		handles reading the format of the input file. This is performed by
+		calling a function in the package located in the specified file, by
+		default this function is called 'NewCodeReader' but can be changed by
+		specifying the --diag-format-call flag. The function must take an
+		io.Reader and return a new io.Reader that reads source code from the
+		given io.Reader and performs any preprocessing required on it. This
+		allows the diagnostics binary to read files that are not simply text
+		files directly ready to be accepted by the frontend. If not set, the
+		diagnostics binary will not perform any preprocessing on input files and
+		assumes that any input can be directly accepted by the frontend. This
+		flag is only useful if -d/--diag is also set.
+
+	-c/--diag-format-call NAME
+		Set the name of the function to call in the package specified by
+		-f/--diag-format-pkg to get an io.Reader that can read specialized
+		formats. Defaults to 'NewCodeReader'. This function is used by the
+		diagnostics binary to do format reading and preprocessing on input prior
+		to analysis by the frontend. This flag is only useful if -d/--diag is
+		also set.
+
+	-l/--lang NAME
+		Set the name of the language to generate a frontend for. Defaults to
+		"Unspecified".
+
+	--lang-ver VERSION
+		Set the version of the language to generate a frontend for. Defaults to
+		"v0.0.0".
 
 	--preserve-bin-source
 		Do not delete source files for any generated binary after compiling the
@@ -108,14 +142,6 @@ Flags:
 	--dest DIR
 		Set the destination directory to place generated files in. Defaults to a
 		directory named 'fe' in the current working directory.
-
-	-l/--lang NAME
-		Set the name of the language to generate a frontend for. Defaults to
-		"Unspecified".
-
-	--lang-ver VERSION
-		Set the version of the language to generate a frontend for. Defaults to
-		"v0.0.0".
 
 	--prefix PATH
 		Set the prefix to use for all generated source files. Defaults to the
@@ -307,44 +333,47 @@ var (
 	parserCff string
 	lang      string
 
-	pathPrefix                = pflag.String("prefix", "", "Path to prepend to path of all generated source files")
-	diagnosticsBin    *string = pflag.StringP("diag", "d", "", "Generate binary that has the generated frontend and uses it to analyze the target language")
-	preserveBinSource *bool   = pflag.Bool("preserve-bin-source", false, "Preserve the source of any generated binary files")
-	debugTemplates    *bool   = pflag.Bool("debug-templates", false, "Dump the filled templates before running through gofmt")
-	pkg               *string = pflag.String("pkg", "fe", "The name of the package to place generated files in")
-	dest              *string = pflag.String("dest", "./fe", "The name of the directory to place the generated package in")
-	langVer           *string = pflag.String("lang-ver", "v0.0.0", "The version of the language to generate")
-	noCache           *bool   = pflag.Bool("no-cache", false, "Disable use of cached frontend components, even if available")
-	noCacheOutput     *bool   = pflag.Bool("no-cache-out", false, "Disable writing of cached frontend components, even if one was generated")
+	diagnosticsBin = pflag.StringP("diag", "d", "", "Generate binary that has the generated frontend and uses it to analyze the target language")
+	diagFormatPkg  = pflag.StringP("diag-format-pkg", "f", "", "The package containing format functions for the diagnostic binary to call on input prior to passing to frontend analysis")
+	diagFormatCall = pflag.StringP("diag-format-call", "c", "NewCodeReader", "The function within the diag-format-pkg to call to open a reader on input prior to passing to frontend analysis")
 
-	valSDTSOff        *bool = pflag.Bool("sim-off", false, "Disable input simulation of the language once built")
-	valSDTSShowTrees  *bool = pflag.Bool("sim-trees", false, "Show parse trees that caused errors during simulation")
-	valSDTSShowGraphs *bool = pflag.Bool("sim-graphs", false, "Show full generated dependency graph output for parse trees that caused errors during simulation")
-	valSDTSFirstOnly  *bool = pflag.Bool("sim-first-err", false, "Show only the first error found in SDTS validation")
-	valSDTSSkip       *int  = pflag.Int("sim-skip-errs", 0, "Skip the first N errors found in SDTS validation in output")
+	pathPrefix        = pflag.String("prefix", "", "Path to prepend to path of all generated source files")
+	preserveBinSource = pflag.Bool("preserve-bin-source", false, "Preserve the source of any generated binary files")
+	debugTemplates    = pflag.Bool("debug-templates", false, "Dump the filled templates before running through gofmt")
+	pkg               = pflag.String("pkg", "fe", "The name of the package to place generated files in")
+	dest              = pflag.String("dest", "./fe", "The name of the directory to place the generated package in")
+	langVer           = pflag.String("lang-ver", "v0.0.0", "The version of the language to generate")
+	noCache           = pflag.Bool("no-cache", false, "Disable use of cached frontend components, even if available")
+	noCacheOutput     = pflag.Bool("no-cache-out", false, "Disable writing of cached frontend components, even if one was generated")
 
-	tmplTokens *string = pflag.String("tmpl-tokens", "", "A template file to replace the embedded tokens template with")
-	tmplLexer  *string = pflag.String("tmpl-lexer", "", "A template file to replace the embedded lexer template with")
-	tmplParser *string = pflag.String("tmpl-parser", "", "A template file to replace the embedded parser template with")
-	tmplSDTS   *string = pflag.String("tmpl-sdts", "", "A template file to replace the embedded SDTS template with")
-	tmplFront  *string = pflag.String("tmpl-frontend", "", "A template file to replace the embedded frontend template with")
-	tmplMain   *string = pflag.String("tmpl-main", "", "A template file to replace the embedded main.go template with")
+	valSDTSOff        = pflag.Bool("sim-off", false, "Disable input simulation of the language once built")
+	valSDTSShowTrees  = pflag.Bool("sim-trees", false, "Show parse trees that caused errors during simulation")
+	valSDTSShowGraphs = pflag.Bool("sim-graphs", false, "Show full generated dependency graph output for parse trees that caused errors during simulation")
+	valSDTSFirstOnly  = pflag.Bool("sim-first-err", false, "Show only the first error found in SDTS validation")
+	valSDTSSkip       = pflag.Int("sim-skip-errs", 0, "Skip the first N errors found in SDTS validation in output")
 
-	parserLL      *bool = pflag.Bool("ll", false, "Generate an LL(1) parser")
-	parserSLR     *bool = pflag.Bool("slr", false, "Generate a simple LR(1) parser")
-	parserCLR     *bool = pflag.Bool("clr", false, "Generate a canonical LR(1) parser")
-	parserLALR    *bool = pflag.Bool("lalr", false, "Generate a canonical LR(1) parser")
-	parserNoAmbig *bool = pflag.Bool("no-ambig", false, "Disallow ambiguity in grammar even if creating a parser that can auto-resolve it")
+	tmplTokens = pflag.String("tmpl-tokens", "", "A template file to replace the embedded tokens template with")
+	tmplLexer  = pflag.String("tmpl-lexer", "", "A template file to replace the embedded lexer template with")
+	tmplParser = pflag.String("tmpl-parser", "", "A template file to replace the embedded parser template with")
+	tmplSDTS   = pflag.String("tmpl-sdts", "", "A template file to replace the embedded SDTS template with")
+	tmplFront  = pflag.String("tmpl-frontend", "", "A template file to replace the embedded frontend template with")
+	tmplMain   = pflag.String("tmpl-main", "", "A template file to replace the embedded main.go template with")
 
-	lexerTrace  *bool = pflag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
-	parserTrace *bool = pflag.Bool("debug-parser", false, "Print the parser trace to stdout")
+	parserLL      = pflag.Bool("ll", false, "Generate an LL(1) parser")
+	parserSLR     = pflag.Bool("slr", false, "Generate a simple LR(1) parser")
+	parserCLR     = pflag.Bool("clr", false, "Generate a canonical LR(1) parser")
+	parserLALR    = pflag.Bool("lalr", false, "Generate a canonical LR(1) parser")
+	parserNoAmbig = pflag.Bool("no-ambig", false, "Disallow ambiguity in grammar even if creating a parser that can auto-resolve it")
 
-	hooksPath      *string = pflag.String("hooks", "", "The path to the hooks directory to use for the generated parser. Required for SDTS validation.")
-	hooksTableName *string = pflag.String("hooks-table", "HooksTable", "Function call or name of exported var in 'hooks' that has the hooks table.")
+	lexerTrace  = pflag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
+	parserTrace = pflag.Bool("debug-parser", false, "Print the parser trace to stdout")
 
-	irType *string = pflag.String("ir", "", "The fully-qualified type of IR to generate.")
+	hooksPath      = pflag.String("hooks", "", "The path to the hooks directory to use for the generated parser. Required for SDTS validation.")
+	hooksTableName = pflag.String("hooks-table", "HooksTable", "Function call or name of exported var in 'hooks' that has the hooks table.")
 
-	version *bool = pflag.Bool("version", false, "Print the version of ictcc and exit")
+	irType = pflag.String("ir", "", "The fully-qualified type of IR to generate.")
+
+	version = pflag.Bool("version", false, "Print the version of ictcc and exit")
 )
 
 func init() {
@@ -399,6 +428,29 @@ func main() {
 			return
 		} else if *irType == "" || *hooksPath == "" {
 			fmt.Fprintf(os.Stderr, "ERROR: diagnostics binary generation requires both --ir and --hooks to be set\n")
+			returnCode = ExitErrInvalidFlags
+			return
+		}
+
+		// you cannot set ONLY the formatting call
+		flagInfoDiagFormatCall := pflag.Lookup("diag-format-call")
+		// don't error check; all we'd do is panic
+		if flagInfoDiagFormatCall.Changed && *diagFormatPkg == "" {
+			fmt.Fprintf(os.Stderr, "ERROR: -c/--diag-format-call cannot be set without -f/--diag-format-pkg\n")
+			returnCode = ExitErrInvalidFlags
+			return
+		}
+	} else {
+		// otherwise, it makes no sense to set --diag-format-pkg or --diag-format-call; disallow this
+		flagInfoDiagFormatPkg := pflag.Lookup("diag-format-pkg")
+		flagInfoDiagFormatCall := pflag.Lookup("diag-format-call")
+		if flagInfoDiagFormatPkg.Changed {
+			fmt.Fprintf(os.Stderr, "ERROR: -f/--diag-format-pkg cannot be set without -d/--diagnostics-bin\n")
+			returnCode = ExitErrInvalidFlags
+			return
+		}
+		if flagInfoDiagFormatCall.Changed {
+			fmt.Fprintf(os.Stderr, "ERROR: -c/--diag-format-call cannot be set without -d/--diagnostics-bin\n")
 			returnCode = ExitErrInvalidFlags
 			return
 		}
@@ -558,9 +610,7 @@ func main() {
 		return
 	}
 
-	// code gen time!
-
-	// okay, first try to create a parser
+	// spec completed and no-gen not set; try to create a parser
 	var p ictiobus.Parser
 	var parserWarns []fishi.Warning
 	// if one is selected, use that one
@@ -575,6 +625,8 @@ func main() {
 		}
 		p, parserWarns, err = spec.CreateMostRestrictiveParser(allowAmbig)
 	}
+
+	// code gen time! 38D
 
 	for _, warn := range parserWarns {
 		const warnPrefix = "WARN: "
@@ -634,6 +686,14 @@ func main() {
 	if *diagnosticsBin != "" {
 		// already checked required flags
 		if !quietMode {
+			// tell user if the diagnostic binary cannot do preformatting based
+			// on flags
+			if *diagFormatPkg != "" {
+				fmt.Printf("Format preprocessing disabled in diagnostics bin; set -f to enable\n")
+			}
+
+			// TODO: probably should make this a constant in fishi instead of
+			// having ictcc just magically know about it
 			diagGenDir := ".gen"
 			if *pathPrefix != "" {
 				diagGenDir = filepath.Join(*pathPrefix, diagGenDir)
@@ -641,7 +701,15 @@ func main() {
 			fmt.Printf("Generating diagnostics binary code in %s...\n", diagGenDir)
 		}
 
-		err := fishi.GenerateDiagnosticsBinary(spec, md, p, *hooksPath, *hooksTableName, *pkg, *diagnosticsBin, *pathPrefix, cgOpts)
+		// only specify a format call if a format package was specified,
+		// otherwise we'll always pass in a non-empty string for the format call
+		// even when diagFormatPkg is empty, which is not allowed.
+		var formatCall string
+		if *diagFormatPkg != "" {
+			formatCall = *diagFormatCall
+		}
+
+		err := fishi.GenerateDiagnosticsBinary(spec, md, p, *hooksPath, *hooksTableName, *diagFormatPkg, formatCall, *pkg, *diagnosticsBin, *pathPrefix, cgOpts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 			returnCode = ExitErrGeneration
@@ -649,7 +717,7 @@ func main() {
 		}
 
 		if !quietMode {
-			fmt.Printf("Built diagnosticis binary '%s'\n", *diagnosticsBin)
+			fmt.Printf("Built diagnostics binary '%s'\n", *diagnosticsBin)
 		}
 	}
 

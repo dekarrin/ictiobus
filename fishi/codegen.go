@@ -162,14 +162,40 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 	return cmd.Run()
 }
 
-func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, pkgName string, binPath string, pathPrefix string, opts CodegenOptions) error {
+// GenerateDiagnosticsBinary generates a binary that can read input written in
+// the language specified by the given Spec and SpecMetadata and print out basic
+// information about the analysis, with the goal of printing out the
+// constructed intermediate representation from analyzed files.
+//
+// The args formatPkgDir and formatCall are used to specify preformatting for
+// code that that the generated binary will analyze. If set, io.Readers that are
+// opened on code input will be passed to the function specified by formatCall.
+// If formatCall is set, formatPkgDir must also be set, even if it is already
+// specified by another parameter. formatCall must be the name of a function
+// within the package specified by formatPkgDir which takes an io.Reader and
+// returns a new io.Reader that wraps the one passed in and returns preformatted
+// code ready to be analyzed by the generated frontend.
+//
+// TODO: turn this huge signature into a struct for everyfin from p to opts.
+func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, formatPkgDir string, formatCall string, pkgName string, binPath string, pathPrefix string, opts CodegenOptions) error {
 	binName := filepath.Base(binPath)
 
 	outDir := ".gen"
 	if pathPrefix != "" {
 		outDir = filepath.Join(pathPrefix, outDir)
 	}
-	gci, err := GenerateBinaryMainGo(spec, md, p, hooksPkgDir, hooksExpr, pkgName, outDir, binName, opts)
+
+	gci, err := GenerateBinaryMainGo(spec, md, MainBinaryParams{
+		Parser:          p,
+		HooksPkgDir:     hooksPkgDir,
+		HooksExpr:       hooksExpr,
+		FormatPkgDir:    formatPkgDir,
+		FormatCall:      formatCall,
+		FrontendPkgName: pkgName,
+		GenPath:         outDir,
+		BinName:         binName,
+		Opts:            opts,
+	})
 	if err != nil {
 		return err
 	}
@@ -213,27 +239,50 @@ func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, p ictiobus.Parser, ho
 // or var name.
 //
 // opts must be non-nil and IRType must be set.
-//
-// TODO: turn this ugly signature into a struct.
-func GenerateBinaryMainGo(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, formatPkgDir string, formatCall string, fePkgName string, genPath string, binName string, opts CodegenOptions) (GeneratedCodeInfo, error) {
-	if opts.IRType == "" {
+func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (GeneratedCodeInfo, error) {
+	if params.Opts.IRType == "" {
 		return GeneratedCodeInfo{}, fmt.Errorf("IRType must be set in options")
 	}
+	if params.FormatPkgDir != "" && params.FormatCall == "" {
+		return GeneratedCodeInfo{}, fmt.Errorf("formatCall must be set if formatPkgDir is set")
+	}
+	if params.FormatPkgDir == "" && params.FormatCall != "" {
+		return GeneratedCodeInfo{}, fmt.Errorf("formatPkgDir must be set if formatCall is set")
+	}
 
-	irFQPackage, irType, irPackage, irErr := ParseFQType(opts.IRType)
+	// we need a separate import for the format package only if it's not the same
+	// as the hooks package.
+	separateFormatImport := params.FormatPkgDir != params.HooksPkgDir && params.FormatPkgDir != ""
+
+	irFQPackage, irType, irPackage, irErr := ParseFQType(params.Opts.IRType)
 	if irErr != nil {
 		return GeneratedCodeInfo{}, fmt.Errorf("parsing IRType: %w", irErr)
 	}
 
 	gci := GeneratedCodeInfo{}
 
-	hooksPkgName, err := readPackageName(hooksPkgDir)
+	hooksPkgName, err := readPackageName(params.HooksPkgDir)
 	if err != nil {
 		return gci, fmt.Errorf("reading hooks package name: %w", err)
 	}
-	if hooksPkgName == fePkgName {
+
+	var formatPkgName string
+	if params.FormatPkgDir != "" {
+		formatPkgName, err = readPackageName(params.FormatPkgDir)
+		if err != nil {
+			return gci, fmt.Errorf("reading format package name: %w", err)
+		}
+	}
+
+	if hooksPkgName == params.FrontendPkgName {
 		// double it to avoid name collision
-		fePkgName += "_" + fePkgName
+		params.FrontendPkgName += "_" + params.FrontendPkgName
+	}
+
+	// only worry about formatPkgName if the dir is not the same as hooks.
+	if params.FormatPkgDir != params.HooksPkgDir && formatPkgName == params.FrontendPkgName {
+		// double it to avoid name collision
+		params.FrontendPkgName += "_" + params.FrontendPkgName
 	}
 
 	safePkgIdent := func(s string) string {
@@ -242,21 +291,31 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 		return strings.ToLower(s)
 	}
 
-	err = os.MkdirAll(genPath, 0766)
+	err = os.MkdirAll(params.GenPath, 0766)
 	if err != nil {
-		return gci, fmt.Errorf("creating temp dir: %w", err)
+		return gci, fmt.Errorf("creating dir for generated code: %w", err)
 	}
 
 	// start copying the hooks package
-	hooksDestPath := filepath.Join(genPath, "internal", hooksPkgName)
-	hooksDone, err := copyDirToTargetAsync(hooksPkgDir, hooksDestPath)
+	hooksDestPath := filepath.Join(params.GenPath, "internal", hooksPkgName)
+	hooksDone, err := copyDirToTargetAsync(params.HooksPkgDir, hooksDestPath)
 	if err != nil {
 		return gci, fmt.Errorf("copying hooks package: %w", err)
 	}
+	// start copying the format package if set and if it's not the same as the
+	// hooks package.
+	var formatDone <-chan error
+	if separateFormatImport {
+		formatDestPath := filepath.Join(params.GenPath, "internal", formatPkgName)
+		formatDone, err = copyDirToTargetAsync(params.FormatPkgDir, formatDestPath)
+		if err != nil {
+			return gci, fmt.Errorf("copying format package: %w", err)
+		}
+	}
 
 	// generate the compiler code
-	fePkgPath := filepath.Join(genPath, "internal", fePkgName)
-	err = GenerateCompilerGo(spec, md, fePkgName, fePkgPath, &opts)
+	fePkgPath := filepath.Join(params.GenPath, "internal", params.FrontendPkgName)
+	err = GenerateCompilerGo(spec, md, params.FrontendPkgName, fePkgPath, &params.Opts)
 	if err != nil {
 		return gci, fmt.Errorf("generating compiler: %w", err)
 	}
@@ -264,7 +323,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 	// since GenerateCompilerGo ensures the directory exists, we can now copy
 	// the encoded parser into it as well.
 	parserPath := filepath.Join(fePkgPath, "parser.cff")
-	err = ictiobus.SaveParserToDisk(p, parserPath)
+	err = ictiobus.SaveParserToDisk(params.Parser, parserPath)
 	if err != nil {
 		return gci, fmt.Errorf("writing parser: %w", err)
 	}
@@ -277,11 +336,14 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 	// export template with main file
 	mainFillData := cgMainData{
 		BinPkg:            "github.com/dekarrin/ictiobus/langexec/" + safePkgIdent(md.Language),
-		BinName:           binName,
+		BinName:           params.BinName,
 		BinVersion:        md.Version,
 		HooksPkg:          hooksPkgName,
-		HooksTableExpr:    hooksExpr,
-		FrontendPkg:       fePkgName,
+		HooksTableExpr:    params.HooksExpr,
+		FormatPkg:         formatPkgName,
+		FormatCall:        params.FormatCall,
+		ImportFormatPkg:   separateFormatImport,
+		FrontendPkg:       params.FrontendPkgName,
 		IRTypePackage:     irFQPackage,
 		IRType:            irType,
 		IncludeSimulation: true,
@@ -292,7 +354,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 	}
 
 	// initialize templates
-	err = initTemplates(renderFiles, fnMap, opts.TemplateFiles)
+	err = initTemplates(renderFiles, fnMap, params.Opts.TemplateFiles)
 	if err != nil {
 		return gci, err
 	}
@@ -300,7 +362,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 	// finally, render the main file
 	rf := renderFiles[ComponentMainFile]
 	mainFileRelPath := rf.outFile
-	err = renderTemplateToFile(rf.tmpl, mainFillData, filepath.Join(genPath, mainFileRelPath), opts.DumpPreFormat)
+	err = renderTemplateToFile(rf.tmpl, mainFillData, filepath.Join(params.GenPath, mainFileRelPath), params.Opts.DumpPreFormat)
 	if err != nil {
 		return gci, err
 	}
@@ -308,16 +370,21 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 	// wait for the hooks package to be copied; we'll need it for go mod tidy
 	<-hooksDone
 
+	// if we have a format package, wait for it to be copied
+	if formatDone != nil {
+		<-formatDone
+	}
+
 	// wipe any existing go module stuff
-	err = os.RemoveAll(filepath.Join(genPath, "go.mod"))
+	err = os.RemoveAll(filepath.Join(params.GenPath, "go.mod"))
 	if err != nil {
 		return gci, fmt.Errorf("removing existing go.mod: %w", err)
 	}
-	err = os.RemoveAll(filepath.Join(genPath, "go.sum"))
+	err = os.RemoveAll(filepath.Join(params.GenPath, "go.sum"))
 	if err != nil {
 		return gci, fmt.Errorf("removing existing go.sum: %w", err)
 	}
-	err = os.RemoveAll(filepath.Join(genPath, "vendor"))
+	err = os.RemoveAll(filepath.Join(params.GenPath, "vendor"))
 	if err != nil {
 		return gci, fmt.Errorf("removing existing vendor directory: %w", err)
 	}
@@ -325,21 +392,21 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPk
 	// shell out to run go module stuff
 	goModInitCmd := exec.Command("go", "mod", "init", mainFillData.BinPkg)
 	goModInitCmd.Env = os.Environ()
-	goModInitCmd.Dir = genPath
+	goModInitCmd.Dir = params.GenPath
 	goModInitOutput, err := goModInitCmd.CombinedOutput()
 	if err != nil {
 		return gci, fmt.Errorf("initializing generated module with binary: %w\n%s", err, string(goModInitOutput))
 	}
 	goModTidyCmd := exec.Command("go", "mod", "tidy")
 	goModTidyCmd.Env = os.Environ()
-	goModTidyCmd.Dir = genPath
+	goModTidyCmd.Dir = params.GenPath
 	goModTidyOutput, err := goModTidyCmd.CombinedOutput()
 	if err != nil {
 		return gci, fmt.Errorf("tidying generated module with binary: %w\n%s", err, string(goModTidyOutput))
 	}
 
 	// if we got here, all output has been written to the temp dir.
-	gci.Path = genPath
+	gci.Path = params.GenPath
 	gci.MainFile = mainFileRelPath
 
 	return gci, nil
@@ -659,12 +726,13 @@ type cgMainData struct {
 	BinVersion        string
 	HooksPkg          string
 	HooksTableExpr    string
+	ImportFormatPkg   bool
+	FormatPkg         string
+	FormatCall        string
 	FrontendPkg       string
 	IRTypePackage     string
 	IRType            string
 	IncludeSimulation bool
-	FormatPackage     string
-	FormatCall        string
 }
 
 // codegenData for template fill.

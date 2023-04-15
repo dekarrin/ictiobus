@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// CodeReader is a reader that can be used to read fishi code from a stream
+// CodeReader is an implementation of io.Reader that reads fishi code from input
 // containing markdown-formatted text with fishi codeblocks. It will gather all
 // fishi codeblocks immediately on open and then read bytes from them as Read is
 // called. Preprocessing may also be done at that time. The CodeReader will

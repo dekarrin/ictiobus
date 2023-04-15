@@ -60,7 +60,18 @@ func ValidateSimulatedInput(spec Spec, md SpecMetadata, p ictiobus.Parser, hooks
 	if pathPrefix != "" {
 		outDir = filepath.Join(pathPrefix, outDir)
 	}
-	genInfo, err := GenerateBinaryMainGo(spec, md, p, hooks, hooksTable, pkgName, outDir, binName, cgOpts)
+
+	// not setting the format package and call here because we don't need
+	// preformatting to run verification simulation.
+	genInfo, err := GenerateBinaryMainGo(spec, md, MainBinaryParams{
+		Parser:          p,
+		HooksPkgDir:     hooks,
+		HooksExpr:       hooksTable,
+		FrontendPkgName: pkgName,
+		GenPath:         outDir,
+		BinName:         binName,
+		Opts:            cgOpts,
+	})
 	if err != nil {
 		return fmt.Errorf("generate test compiler: %w", err)
 	}

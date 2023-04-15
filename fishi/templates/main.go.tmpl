@@ -25,8 +25,8 @@ import (
 	"{{ .IRTypePackage }}"
 {{- end}}
 
-{{if .FormatPackage -}}
-	"{{ .FormatPackage }}"
+{{if .ImportFormatPkg -}}
+	"{{ .BinPkg }}/internal/{{ .FormatPkg }}"
 {{- end}}
 
 	"github.com/dekarrin/ictiobus/trans"
@@ -139,7 +139,7 @@ func main() {
 
 {{if .FormatCall -}}
 		// format the input
-		r, err = {{ .FormatCall }}(r)
+		r, err = {{ .FormatPkg }}.{{ .FormatCall }}(r)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", f, err)
 			returnCode = ExitErr
