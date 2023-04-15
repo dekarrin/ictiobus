@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/dekarrin/ictiobus/types"
 )
 
 const (
@@ -55,19 +57,16 @@ func errInvalidFlags(msg string) {
 	exitErr(ExitErrInvalidFlags, msg)
 }
 
-// errSyntax sets the exit status to ExitErrSyntax and prints the given error
-// message to stderr. Does *NOT* prepend with "ERROR: " in order to allow the
-// filename to be printed before the error message, but will still automatically
-// end the message with a newline. If filename is set to "", it will not be
-// prepended and the msg will be printed as-is.
+// errSyntax sets the exit status to ExitErrSyntax and prints an error message
+// given by the syntax error to stderr.
 //
 // Caller is responsible for exiting main immediately after this function
 // returns.
-func errSyntax(filename string, msg string) {
-	if filename != "" {
-		fmt.Fprintf(os.Stderr, "%s:\n", filename)
+func errSyntax(filename string, synErr *types.SyntaxError) {
+	if filename == "" {
+		filename = "<INPUT>"
 	}
-	fmt.Fprintf(os.Stderr, "%s\n", msg)
+	fmt.Fprintf(os.Stderr, "%s\n", synErr.MessageForFile(filename))
 	exitStatus = ExitErrSyntax
 }
 

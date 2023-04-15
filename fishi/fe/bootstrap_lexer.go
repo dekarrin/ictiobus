@@ -44,7 +44,6 @@ func CreateBootstrapLexer() ictiobus.Lexer {
 	//bootLx.RegisterClass(tcDirDefault, "tokens")
 	bootLx.RegisterClass(TCDirDiscard, "tokens")
 	bootLx.RegisterClass(TCDirPriority, "tokens")
-	bootLx.RegisterClass(TCInt, "tokens")
 	bootLx.RegisterClass(TCDirState, "tokens")
 	bootLx.RegisterClass(TCLineStartFreeformText, "tokens")
 	bootLx.RegisterClass(TCLineStartEscseq, "tokens")

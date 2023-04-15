@@ -57,6 +57,20 @@ func (se SyntaxError) FullMessage() string {
 	return errMsg
 }
 
+// MessageForFile returns the full error message in the format of
+// filename:line:pos: message, followed by the syntax error itself.
+func (se SyntaxError) MessageForFile(filename string) string {
+	var msg string
+
+	if se.line != 0 {
+		msg = fmt.Sprintf("%s:%d:%d: %s\n%s", filename, se.line, se.pos, se.message, se.SourceLineWithCursor())
+	} else {
+		msg = fmt.Sprintf("%s: %s", filename, msg)
+	}
+
+	return msg
+}
+
 // SourceLineWithCursor returns the source offending code on one line and
 // directly under it a cursor showing where the error occured.
 //

@@ -477,7 +477,7 @@ func main() {
 			}
 
 			if syntaxErr, ok := err.(*types.SyntaxError); ok {
-				errSyntax(file, syntaxErr.FullMessage())
+				errSyntax(file, syntaxErr)
 			} else {
 				errOther(fmt.Sprintf("%s: %s", file, err.Error()))
 			}
@@ -518,7 +518,7 @@ func main() {
 		// token/syntax error output. Allow specification of file in anyfin that
 		// can return a SyntaxError and have all token sources include that.
 		if syntaxErr, ok := err.(*types.SyntaxError); ok {
-			errSyntax("", syntaxErr.FullMessage())
+			errSyntax("", syntaxErr)
 		} else {
 			errOther(err.Error())
 		}
