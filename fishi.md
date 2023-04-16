@@ -297,6 +297,8 @@ For actions state:
 (?:->|%!%[Pp][Rr][Oo][Dd])
 %token dir-prod    %human %!%prod directive '->'
 
+\(\)               %discard
+
 (?:\(|%!%[Ww][Ii][Tt][Hh])
 %token dir-with    %human %!%with directive '('
 
@@ -304,7 +306,6 @@ For actions state:
 %token dir-hook    %human %!%hook directive '='
 
 \)                 %discard
-\(\)               %discard
 ,                  %discard
 
 (?::|%!%[Ss][Ee][Tt])

@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"reflect"
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
@@ -427,12 +426,11 @@ func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, pt *types.ParseTree, err erro
 		return ir, &parseTree, fmt.Errorf("requested final IR attribute %q from root node but got %d values back", fe.IRAttribute, len(attrVals))
 	}
 	irUncast := attrVals[0]
-	ir, ok := irUncast.(E)
+	var ok bool
+	ir, ok = irUncast.(E)
 	if !ok {
 		// type mismatch; use reflections to collect type for err reporting
-		irType := reflect.TypeOf(ir).Name()
-		actualType := reflect.TypeOf(irUncast).Name()
-		return ir, &parseTree, fmt.Errorf("expected final IR attribute %q to be of type %q at the root node, but result was of type %q", fe.IRAttribute, irType, actualType)
+		return ir, &parseTree, fmt.Errorf("expected final IR attribute %q to be of type %T at the root node, but result was of type %T", fe.IRAttribute, ir, irUncast)
 	}
 
 	return ir, &parseTree, nil
