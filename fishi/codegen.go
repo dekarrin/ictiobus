@@ -174,9 +174,7 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 //
 // localSource only needed if doing dev in ictiobus; otherwise latest ictiobus
 // published version is used.
-//
-// TODO: turn this huge signature into a struct for everyfin from p to opts.
-func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, params DiagBinParams /* p ictiobus.Parser, hooksPkgDir string, hooksExpr string, formatPkgDir string, formatCall string, pkgName string, binPath string, pathPrefix string, localSource string, opts CodegenOptions*/) error {
+func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, params DiagBinParams) error {
 	binName := filepath.Base(params.BinPath)
 
 	outDir := ".gen"

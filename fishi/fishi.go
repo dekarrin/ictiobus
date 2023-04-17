@@ -51,7 +51,7 @@ type Options struct {
 // localSource is an optional path to a local copy of ictiobus to use instead of
 // the currently published latest version. This is useful for debugging while
 // developing ictiobus itself.
-func ValidateSimulatedInput(spec Spec, md SpecMetadata, params SimulatedInputParams /*p ictiobus.Parser, hooks, hooksTable string, pathPrefix string, localSource string, cgOpts CodegenOptions, valOpts *trans.ValidationOptions*/) error {
+func ValidateSimulatedInput(spec Spec, md SpecMetadata, params SimulatedInputParams) error {
 	pkgName := "sim" + strings.ToLower(md.Language)
 
 	binName := safeTCIdentifierName(md.Language)
