@@ -13,7 +13,6 @@ import (
 	"github.com/dekarrin/ictiobus/fishi/fe"
 	"github.com/dekarrin/ictiobus/fishi/format"
 	"github.com/dekarrin/ictiobus/fishi/syntax"
-	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
 )
 
@@ -48,7 +47,11 @@ type Options struct {
 // No binary is generated as part of this, but source is which is then executed.
 // If PreserveBinarySource is set in cgOpts, the source will be left in the
 // .sim directory.
-func ValidateSimulatedInput(spec Spec, md SpecMetadata, p ictiobus.Parser, hooks, hooksTable string, pathPrefix string, cgOpts CodegenOptions, valOpts *trans.ValidationOptions) error {
+//
+// localSource is an optional path to a local copy of ictiobus to use instead of
+// the currently published latest version. This is useful for debugging while
+// developing ictiobus itself.
+func ValidateSimulatedInput(spec Spec, md SpecMetadata, params SimulatedInputParams /*p ictiobus.Parser, hooks, hooksTable string, pathPrefix string, localSource string, cgOpts CodegenOptions, valOpts *trans.ValidationOptions*/) error {
 	pkgName := "sim" + strings.ToLower(md.Language)
 
 	binName := safeTCIdentifierName(md.Language)
@@ -57,31 +60,32 @@ func ValidateSimulatedInput(spec Spec, md SpecMetadata, p ictiobus.Parser, hooks
 	binName = "test" + binName
 
 	outDir := ".sim"
-	if pathPrefix != "" {
-		outDir = filepath.Join(pathPrefix, outDir)
+	if params.PathPrefix != "" {
+		outDir = filepath.Join(params.PathPrefix, outDir)
 	}
 
 	// not setting the format package and call here because we don't need
 	// preformatting to run verification simulation.
 	genInfo, err := GenerateBinaryMainGo(spec, md, MainBinaryParams{
-		Parser:          p,
-		HooksPkgDir:     hooks,
-		HooksExpr:       hooksTable,
-		FrontendPkgName: pkgName,
-		GenPath:         outDir,
-		BinName:         binName,
-		Opts:            cgOpts,
+		Parser:              params.Parser,
+		HooksPkgDir:         params.HooksPkgDir,
+		HooksExpr:           params.HooksExpr,
+		FrontendPkgName:     pkgName,
+		GenPath:             outDir,
+		BinName:             binName,
+		Opts:                params.Opts,
+		LocalIctiobusSource: params.LocalIctiobusSource,
 	})
 	if err != nil {
 		return fmt.Errorf("generate test compiler: %w", err)
 	}
 
-	err = ExecuteTestCompiler(genInfo, valOpts)
+	err = ExecuteTestCompiler(genInfo, params.ValidationOpts)
 	if err != nil {
 		return fmt.Errorf("execute test compiler: %w", err)
 	}
 
-	if !cgOpts.PreserveBinarySource {
+	if !params.Opts.PreserveBinarySource {
 		// if we got here, no errors. delete the test compiler and its directory
 		err = os.RemoveAll(genInfo.Path)
 		if err != nil {

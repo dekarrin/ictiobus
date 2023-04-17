@@ -73,7 +73,7 @@ Flags:
 		Set the name of the language to generate a frontend for. Defaults to
 		"Unspecified".
 
-	--lang-ver VERSION
+	-v/--lang-ver VERSION
 		Set the version of the language to generate a frontend for. Defaults to
 		"v0.0.0".
 
@@ -235,6 +235,12 @@ Flags:
 		and array/slice notation are allowed; maps are not (but types that have
 		map as an underlying type are allowed).
 
+	--dev
+		Enable development mode. This will cause generated binaries to use the
+		local version of ictiobus instead of the latest release. If this flag is
+		enabled, it is assumed that the ictiobus package is located in the
+		current working directory.
+
 Each markdown file given is scanned for fishi codeblocks. They are all combined
 into a single fishi code block and parsed. Each markdown file is parsed
 separately but their resulting ASTs are combined into a single FISHI spec for a
@@ -275,10 +281,13 @@ immediately exit with a success code after parsing the input.
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/mod/modfile"
 
 	"github.com/spf13/pflag"
 
@@ -342,7 +351,19 @@ var (
 	flagIRType = pflag.String("ir", "", "The fully-qualified type of IR to generate.")
 
 	flagVersion = pflag.Bool("version", false, "Print the version of ictcc and exit")
+
+	flagDev = pflag.Bool("dev", false, "Enable development mode so generated binaries use the version of ictiobus in the current working dir")
 )
+
+// DevModeInfo is info on dev mode that is gathered by reading CLI flags.
+type DevModeInfo struct {
+	// Enabled is whether develepment mode is enabled.
+	Enabled bool
+
+	// LocalIctiobusSource is the path to the local ictiobus source code. By
+	// default this is taken from the current working directory.
+	LocalIctiobusSource string
+}
 
 func main() {
 	defer preservePanicOrExitWithStatus()
@@ -391,6 +412,12 @@ func main() {
 	parserType, allowAmbig, err := parserSelectionFromFlags()
 	if err != nil {
 		errInvalidFlags(err.Error())
+		return
+	}
+
+	devInfo, err := devModeInfoFromFlags()
+	if err != nil {
+		errInvalidFlags("--dev: " + err.Error())
 		return
 	}
 
@@ -598,7 +625,17 @@ func main() {
 					SkipErrors:    *flagSimSkipErrs,
 				}
 
-				err := fishi.ValidateSimulatedInput(spec, md, p, *flagHooksPath, *flagHooksTableName, *flagPathPrefix, cgOpts, &di)
+				simParams := fishi.SimulatedInputParams{
+					Parser:              p,
+					HooksPkgDir:         *flagHooksPath,
+					HooksExpr:           *flagHooksTableName,
+					PathPrefix:          *flagPathPrefix,
+					LocalIctiobusSource: devInfo.LocalIctiobusSource,
+					Opts:                cgOpts,
+					ValidationOpts:      &di,
+				}
+
+				err := fishi.ValidateSimulatedInput(spec, md, simParams)
 				if err != nil {
 					errGeneration(err.Error())
 					return
@@ -634,7 +671,20 @@ func main() {
 			formatCall = *flagDiagFormatCall
 		}
 
-		err := fishi.GenerateDiagnosticsBinary(spec, md, p, *flagHooksPath, *flagHooksTableName, *flagDiagFormatPkg, formatCall, *flagPkg, *flagDiagBin, *flagPathPrefix, cgOpts)
+		diagParams := fishi.DiagBinParams{
+			Parser:              p,
+			HooksPkgDir:         *flagHooksPath,
+			HooksExpr:           *flagHooksTableName,
+			FormatPkgDir:        *flagDiagFormatPkg,
+			FormatCall:          formatCall,
+			FrontendPkgName:     *flagPkg,
+			BinPath:             *flagDiagBin,
+			LocalIctiobusSource: devInfo.LocalIctiobusSource,
+			Opts:                cgOpts,
+			PathPrefix:          *flagPathPrefix,
+		}
+
+		err := fishi.GenerateDiagnosticsBinary(spec, md, diagParams)
 		if err != nil {
 			errGeneration(err.Error())
 			return
@@ -662,6 +712,48 @@ func main() {
 		errGeneration(err.Error())
 		return
 	}
+}
+
+func devModeInfoFromFlags() (DevModeInfo, error) {
+	dmi := DevModeInfo{}
+
+	if *flagDev {
+		dmi.Enabled = true
+
+		// if user wants to enable dev mode, make sure that the current working
+		// directory is the root of ictiobus by checking for a go.mod file and
+		// then reading it to verify that it is for ictiobus.
+
+		curDir, err := os.Getwd()
+		if err != nil {
+			return dmi, err
+		}
+		var modBytes []byte
+		if modBytes, err = os.ReadFile(filepath.Join(curDir, "go.mod")); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return dmi, fmt.Errorf("current working directory does not contain a go.mod file")
+			} else {
+				return dmi, err
+			}
+		}
+		ictiobusModFile, err := modfile.ParseLax("go.mod", modBytes, nil)
+		if err != nil {
+			return dmi, fmt.Errorf("go.mod: %w", err)
+		}
+
+		if ictiobusModFile.Module == nil {
+			return dmi, fmt.Errorf("go.mod: module directive is missing")
+		}
+
+		if ictiobusModFile.Module.Mod.Path != "github.com/dekarrin/ictiobus" {
+			return dmi, fmt.Errorf("local module is %s, not github.com/dekarrin/ictiobus", ictiobusModFile.Module.Mod.Path)
+		}
+
+		// all checks done, set the local source path
+		dmi.LocalIctiobusSource = curDir
+	}
+
+	return dmi, nil
 }
 
 // return from flags the parser type selected and whether ambiguity is allowed.

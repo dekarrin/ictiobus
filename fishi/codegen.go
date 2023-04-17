@@ -8,7 +8,6 @@ import (
 	"go/format"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -17,6 +16,7 @@ import (
 
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/internal/shellout"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/trans"
@@ -155,11 +155,7 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 	if valOptions.SkipErrors != 0 {
 		args = append(args, "--sim-skip-errs", fmt.Sprintf("%d", valOptions.SkipErrors))
 	}
-	cmd := exec.Command("go", args...)
-	cmd.Dir = gci.Path
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	return shellout.ExecFG(gci.Path, nil, "go", args...)
 }
 
 // GenerateDiagnosticsBinary generates a binary that can read input written in
@@ -176,47 +172,47 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 // returns a new io.Reader that wraps the one passed in and returns preformatted
 // code ready to be analyzed by the generated frontend.
 //
+// localSource only needed if doing dev in ictiobus; otherwise latest ictiobus
+// published version is used.
+//
 // TODO: turn this huge signature into a struct for everyfin from p to opts.
-func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, formatPkgDir string, formatCall string, pkgName string, binPath string, pathPrefix string, opts CodegenOptions) error {
-	binName := filepath.Base(binPath)
+func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, params DiagBinParams /* p ictiobus.Parser, hooksPkgDir string, hooksExpr string, formatPkgDir string, formatCall string, pkgName string, binPath string, pathPrefix string, localSource string, opts CodegenOptions*/) error {
+	binName := filepath.Base(params.BinPath)
 
 	outDir := ".gen"
-	if pathPrefix != "" {
-		outDir = filepath.Join(pathPrefix, outDir)
+	if params.PathPrefix != "" {
+		outDir = filepath.Join(params.PathPrefix, outDir)
 	}
 
 	gci, err := GenerateBinaryMainGo(spec, md, MainBinaryParams{
-		Parser:          p,
-		HooksPkgDir:     hooksPkgDir,
-		HooksExpr:       hooksExpr,
-		FormatPkgDir:    formatPkgDir,
-		FormatCall:      formatCall,
-		FrontendPkgName: pkgName,
-		GenPath:         outDir,
-		BinName:         binName,
-		Opts:            opts,
+		Parser:              params.Parser,
+		HooksPkgDir:         params.HooksPkgDir,
+		HooksExpr:           params.HooksExpr,
+		FormatPkgDir:        params.FormatPkgDir,
+		FormatCall:          params.FormatCall,
+		FrontendPkgName:     params.FrontendPkgName,
+		GenPath:             outDir,
+		BinName:             binName,
+		Opts:                params.Opts,
+		LocalIctiobusSource: params.LocalIctiobusSource,
 	})
 	if err != nil {
 		return err
 	}
 
-	cmd := exec.Command("go", "build", "-o", binName, gci.MainFile)
 	//cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
-	cmd.Dir = gci.Path
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+	if err := shellout.ExecFG(gci.Path, nil, "go", "build", "-o", binName, gci.MainFile); err != nil {
 		return err
 	}
 
 	// Move it to the target location.
-	if err := os.Rename(filepath.Join(gci.Path, binName), binPath); err != nil {
+	if err := os.Rename(filepath.Join(gci.Path, binName), params.BinPath); err != nil {
 		return err
 	}
 
 	// unless requested to preserve the source, remove the generated source
 	// directory.
-	if !opts.PreserveBinarySource {
+	if !params.Opts.PreserveBinarySource {
 		if err := os.RemoveAll(gci.Path); err != nil {
 			return err
 		}
@@ -391,19 +387,23 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	}
 
 	// shell out to run go module stuff
-	goModInitCmd := exec.Command("go", "mod", "init", mainFillData.BinPkg)
-	goModInitCmd.Env = os.Environ()
-	goModInitCmd.Dir = params.GenPath
-	goModInitOutput, err := goModInitCmd.CombinedOutput()
+	shell := shellout.Shell{Dir: params.GenPath, Env: os.Environ()}
+	goModInitOutput, err := shell.Exec("go", "mod", "init", mainFillData.BinPkg)
 	if err != nil {
-		return gci, fmt.Errorf("initializing generated module with binary: %w\n%s", err, string(goModInitOutput))
+		return gci, fmt.Errorf("initializing generated module with binary: %w\n%s", err, goModInitOutput)
 	}
-	goModTidyCmd := exec.Command("go", "mod", "tidy")
-	goModTidyCmd.Env = os.Environ()
-	goModTidyCmd.Dir = params.GenPath
-	goModTidyOutput, err := goModTidyCmd.CombinedOutput()
+
+	goModTidyOutput, err := shell.Exec("go", "mod", "tidy")
 	if err != nil {
-		return gci, fmt.Errorf("tidying generated module with binary: %w\n%s", err, string(goModTidyOutput))
+		return gci, fmt.Errorf("tidying generated module with binary: %w\n%s", err, goModTidyOutput)
+	}
+
+	if params.LocalIctiobusSource != "" {
+		// make shore we use the latest version of ictiobus in the generated code
+		goRepOutput, err := shell.Exec("go", "mod", "edit", "-replace", "github.com/dekarrin/ictiobus/="+params.LocalIctiobusSource)
+		if err != nil {
+			return gci, fmt.Errorf("replacing ictiobus with local source: %w\n%s", err, goRepOutput)
+		}
 	}
 
 	// if we got here, all output has been written to the temp dir.
