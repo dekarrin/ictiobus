@@ -1,6 +1,12 @@
-package fe
+// Package fetok contains the token classes for the frontend. It is in a
+// separate package so that it can be imported and used by external packages
+// while still allowing those external packages to be imported by the rest of
+// the frontend, such as the fishi syntax package.
+package fetoken
 
-import "github.com/dekarrin/ictiobus/lex"
+import (
+	"github.com/dekarrin/ictiobus/lex"
+)
 
 var (
 

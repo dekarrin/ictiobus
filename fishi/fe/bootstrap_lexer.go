@@ -3,6 +3,8 @@ package fe
 import (
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/lex"
+
+	. "github.com/dekarrin/ictiobus/fishi/fe/fetoken"
 )
 
 func CreateBootstrapLexer() ictiobus.Lexer {

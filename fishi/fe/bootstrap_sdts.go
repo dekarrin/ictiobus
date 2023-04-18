@@ -3,6 +3,8 @@ package fe
 import (
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/trans"
+
+	. "github.com/dekarrin/ictiobus/fishi/fe/fetoken"
 )
 
 func CreateBootstrapSDTS() ictiobus.SDTS {

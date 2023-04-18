@@ -7,6 +7,8 @@ import (
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/stretchr/testify/assert"
+
+	. "github.com/dekarrin/ictiobus/fishi/fe/fetoken"
 )
 
 func Test_Fishi_Lexer_AttrRef_Terminal(t *testing.T) {

@@ -5,6 +5,8 @@ import (
 
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/grammar"
+
+	. "github.com/dekarrin/ictiobus/fishi/fe/fetoken"
 )
 
 func CreateBootstrapParser() (ictiobus.Parser, []string) {
