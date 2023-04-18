@@ -803,6 +803,22 @@ func copyDirToTargetAsync(srcDir string, targetDir string) (copyResult chan erro
 	return ch, nil
 }
 
+func inferImportPathFromDir(dir string) {
+	// first, get the full realpath, absolute.
+
+	// check subsequent parent dirs. if any of them have a go.mod file, read it
+	// and get the module name. The import path is the module name + the relative
+	// path from the module root to the dir.
+
+	// next, try to get GOPATH. if it is not set, default to $HOME/go.
+	// - split by pathsep
+	// - for each path: get it as real path, absolute. if it + /src is a prefix
+	// of the full path, then the import path is the path after the prefix.
+	//
+	// next, get GOROOT from runtime. if it + /src is a prefix of the full path,
+	// then the import path is the path after the prefix.
+}
+
 func readPackageName(dir string) (string, error) {
 	// what is the name of our hooks package? find out by reading the first go
 	// file in the package.
