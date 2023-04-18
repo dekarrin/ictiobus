@@ -398,7 +398,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 
 	if params.LocalIctiobusSource != "" {
 		// make shore we use the latest version of ictiobus in the generated code
-		goRepOutput, err := shell.Exec("go", "mod", "edit", "-replace", "github.com/dekarrin/ictiobus/="+params.LocalIctiobusSource)
+		goRepOutput, err := shell.Exec("go", "mod", "edit", "-replace", "github.com/dekarrin/ictiobus="+params.LocalIctiobusSource)
 		if err != nil {
 			return gci, fmt.Errorf("replacing ictiobus with local source: %w\n%s", err, goRepOutput)
 		}
