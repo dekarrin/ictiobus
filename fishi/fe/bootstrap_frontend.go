@@ -6,6 +6,8 @@ import (
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
+
+	"github.com/dekarrin/ictiobus/fishi/syntax"
 )
 
 type FrontendOptions struct {
@@ -19,7 +21,7 @@ type FrontendOptions struct {
 // possibly built from scratch). Up to one Lexer, up to one Parser, and up to
 // one SDTS are allowed to be provided; doing so will replace the bootstrap
 // version of that component with the provided one.
-func Frontend[IRType any](hooks map[string]trans.AttributeSetter, opts FrontendOptions, useComp ...interface{}) ictiobus.Frontend[IRType] {
+func Frontend(hooks map[string]trans.AttributeSetter, opts FrontendOptions, useComp ...interface{}) ictiobus.Frontend[[]syntax.Block] {
 	var providedLx ictiobus.Lexer
 	var providedParser ictiobus.Parser
 	var providedSDTS ictiobus.SDTS
@@ -51,7 +53,7 @@ func Frontend[IRType any](hooks map[string]trans.AttributeSetter, opts FrontendO
 		}
 	}
 
-	fe := ictiobus.Frontend[IRType]{
+	fe := ictiobus.Frontend[[]syntax.Block]{
 		Language:    "fishi",
 		Version:     "1.0.0-bootstrap",
 		IRAttribute: "ast",

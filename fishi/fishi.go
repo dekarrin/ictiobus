@@ -160,7 +160,7 @@ func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.Block], error) {
 		ParserTrace: opts.ParserTrace,
 	}
 
-	fishiFront := fe.Frontend[[]syntax.Block](syntax.HooksTable, feOpts, preloadedParser)
+	fishiFront := fe.Frontend(syntax.HooksTable, feOpts, preloadedParser)
 
 	// check the parser encoding if we generated a new one:
 	if preloadedParser == nil && opts.ParserCFF != "" && opts.WriteCache {
