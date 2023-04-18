@@ -44,14 +44,17 @@ const (
 	ComponentMainFile = "main"
 )
 
-// Names of each file that is generated.
+// Names of each file that is generated. Each is a format string that is passed
+// through fmt.Sprintf. The first argument to it is the name of the package
+// (not fully qualified, just the simple name of it) and the second is the name
+// of the tokens package (also not fully qualified)
 const (
-	GeneratedTokensFilename   = "tokens.ict.go"
-	GeneratedLexerFilename    = "lexer.ict.go"
-	GeneratedParserFilename   = "parser.ict.go"
-	GeneratedSDTSFilename     = "sdts.ict.go"
-	GeneratedFrontendFilename = "frontend.ict.go"
-	GeneratedMainFilename     = "main.ict.go"
+	GeneratedTokensFilename   = "%[1]s/%[2]s/tokens.ict.go"
+	GeneratedLexerFilename    = "%[1]s/lexer.ict.go"
+	GeneratedParserFilename   = "%[1]s/parser.ict.go"
+	GeneratedSDTSFilename     = "%[1]s/sdts.ict.go"
+	GeneratedFrontendFilename = "%[1]s/frontend.ict.go"
+	GeneratedMainFilename     = "%[1]s/main.ict.go"
 )
 
 // Default template strings for each component of the generated compiler.
@@ -100,39 +103,6 @@ var (
 		ComponentMainFile: TemplateMainFile,
 	}
 )
-
-type CodegenOptions struct {
-	// DumpPreFormat will dump the generated code before it is formatted.
-	DumpPreFormat bool
-
-	// TemplateFiles is a map of template names to a path to a custom template
-	// file for that template. If entries are detected under the key of one of
-	// the ComponentX constants, the path in it is parsed as a template file and
-	// used for outputting the generated code for that component instead of the
-	// default embedded template.
-	TemplateFiles map[string]string
-
-	// IRType is the fully-qualified type of the intermediate representation in
-	// the frontend. This is used to make the Frontend function return a
-	// specific type instead of requiring an explicit type instantiation when
-	// called.
-	IRType string
-
-	// PreserveBinarySource is whether to keep the source files for any
-	// generated binary after the binary has been successfully
-	// compiled/executed. Normally, these files are removed, but preserving them
-	// allows for diagnostics on the generated source.
-	PreserveBinarySource bool
-}
-
-// GeneratedCodeInfo contains information about the generated code.
-type GeneratedCodeInfo struct {
-	// MainFile is the path to the main executable file, relative to Path.
-	MainFile string
-
-	// Path is the location of the root of the generated code.
-	Path string
-}
 
 // ExecuteTestCompiler runs the compiler pointed to by gci in validation mode.
 //
@@ -219,7 +189,7 @@ func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, params DiagBinParams)
 	return nil
 }
 
-// GenerateTestCompiler generates (but does not yet run) a test compiler for the
+// GenerateBinaryMainGo generates (but does not yet run) a test compiler for the
 // given spec and pre-created parser, using the provided hooks package. Once it
 // is created, it will be able to be executed by calling go run on the provided
 // mainfile from the outDir.
@@ -309,7 +279,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 
 	// generate the compiler code
 	fePkgPath := filepath.Join(params.GenPath, "internal", params.FrontendPkgName)
-	err = GenerateCompilerGo(spec, md, params.FrontendPkgName, fePkgPath, &params.Opts)
+	err = GenerateFrontendGo(spec, md, params.FrontendPkgName, fePkgPath, &params.Opts)
 	if err != nil {
 		return gci, fmt.Errorf("generating compiler: %w", err)
 	}
@@ -411,12 +381,12 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	return gci, nil
 }
 
-// GenerateCompilerGo generates the source code for a compiler that can handle a
-// fishi spec. The source code is placed in the given directory. This does *not*
-// copy the hooks package, it only outputs the compiler code.
+// GenerateFrontendGo generates the source code for a compiler frontend that can
+// handle a fishi spec. The source code is placed in the given directory. This
+// does *not* copy the hooks package, it only outputs the frontend code.
 //
 // If opts is nil, the default options will be used.
-func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, opts *CodegenOptions) error {
+func GenerateFrontendGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, opts *CodegenOptions) error {
 	if opts == nil {
 		opts = &CodegenOptions{}
 	}
@@ -711,98 +681,6 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 
 	// done, return finished data
 	return data
-}
-
-type codegenTemplate struct {
-	tmpl    *template.Template
-	outFile string
-}
-
-// codegen data for template fill of main.go
-// TODO: combine with cgData?
-type cgMainData struct {
-	BinPkg            string
-	BinName           string
-	Version           string
-	Lang              string
-	HooksPkg          string
-	HooksTableExpr    string
-	ImportFormatPkg   bool
-	FormatPkg         string
-	FormatCall        string
-	FrontendPkg       string
-	IRTypePackage     string
-	IRType            string
-	IncludeSimulation bool
-}
-
-// codegenData for template fill.
-type cgData struct {
-	FrontendPackage string
-	Lang            string
-	Version         string
-	IRAttribute     string
-	IRType          string
-	IRPackage       string
-	Command         string
-	CommandArgs     string
-	Classes         []cgClass
-	Patterns        cgPatterns
-	Rules           []cgRule
-	Bindings        []cgBinding
-}
-
-type cgPatterns struct {
-	DefaultState     cgStatePatterns
-	NonDefaultStates []cgStatePatterns
-}
-
-type cgStatePatterns struct {
-	State   string
-	Classes []cgClass
-	Entries []cgPatternEntry
-}
-
-type cgPatternEntry struct {
-	Regex    string
-	Action   string
-	Priority int
-}
-
-type cgBinding struct {
-	Head        string
-	Productions []cgSDTSProd
-}
-
-type cgSDTSProd struct {
-	Symbols     []string
-	Attribute   string
-	Hook        string
-	Args        []cgArg
-	Synthetic   bool
-	ForRelType  string
-	ForRelIndex int
-}
-
-type cgArg struct {
-	RelType   string
-	RelIndex  int
-	Attribute string
-}
-
-type cgRule struct {
-	Head        string
-	Productions []cgGramProd
-}
-
-type cgGramProd struct {
-	Symbols []string
-}
-
-type cgClass struct {
-	Name  string
-	ID    string
-	Human string
 }
 
 func safeTCIdentifierName(str string) string {

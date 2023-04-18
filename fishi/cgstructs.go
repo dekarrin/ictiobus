@@ -1,13 +1,46 @@
 package fishi
 
 import (
+	"text/template"
+
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/trans"
 )
 
 // File cgstructs.go contains structs used as part of code generation.
 
-// TODO: move most structs from codegen to here.
+type CodegenOptions struct {
+	// DumpPreFormat will dump the generated code before it is formatted.
+	DumpPreFormat bool
+
+	// TemplateFiles is a map of template names to a path to a custom template
+	// file for that template. If entries are detected under the key of one of
+	// the ComponentX constants, the path in it is parsed as a template file and
+	// used for outputting the generated code for that component instead of the
+	// default embedded template.
+	TemplateFiles map[string]string
+
+	// IRType is the fully-qualified type of the intermediate representation in
+	// the frontend. This is used to make the Frontend function return a
+	// specific type instead of requiring an explicit type instantiation when
+	// called.
+	IRType string
+
+	// PreserveBinarySource is whether to keep the source files for any
+	// generated binary after the binary has been successfully
+	// compiled/executed. Normally, these files are removed, but preserving them
+	// allows for diagnostics on the generated source.
+	PreserveBinarySource bool
+}
+
+// GeneratedCodeInfo contains information about the generated code.
+type GeneratedCodeInfo struct {
+	// MainFile is the path to the main executable file, relative to Path.
+	MainFile string
+
+	// Path is the location of the root of the generated code.
+	Path string
+}
 
 // MainBinaryParams is paramters for generating a main.go file for a binary.
 // Unless otherwise specified, all fields are required.
@@ -132,4 +165,96 @@ type SimulatedInputParams struct {
 	// ValidationOpts are options for executing the validation itself. This can
 	// be nil and if so will be treated as an empty struct.
 	ValidationOpts *trans.ValidationOptions
+}
+
+type codegenTemplate struct {
+	tmpl    *template.Template
+	outFile string
+}
+
+// codegen data for template fill of main.go
+// TODO: combine with cgData?
+type cgMainData struct {
+	BinPkg            string
+	BinName           string
+	Version           string
+	Lang              string
+	HooksPkg          string
+	HooksTableExpr    string
+	ImportFormatPkg   bool
+	FormatPkg         string
+	FormatCall        string
+	FrontendPkg       string
+	IRTypePackage     string
+	IRType            string
+	IncludeSimulation bool
+}
+
+// codegenData for template fill.
+type cgData struct {
+	FrontendPackage string
+	Lang            string
+	Version         string
+	IRAttribute     string
+	IRType          string
+	IRPackage       string
+	Command         string
+	CommandArgs     string
+	Classes         []cgClass
+	Patterns        cgPatterns
+	Rules           []cgRule
+	Bindings        []cgBinding
+}
+
+type cgPatterns struct {
+	DefaultState     cgStatePatterns
+	NonDefaultStates []cgStatePatterns
+}
+
+type cgStatePatterns struct {
+	State   string
+	Classes []cgClass
+	Entries []cgPatternEntry
+}
+
+type cgPatternEntry struct {
+	Regex    string
+	Action   string
+	Priority int
+}
+
+type cgBinding struct {
+	Head        string
+	Productions []cgSDTSProd
+}
+
+type cgSDTSProd struct {
+	Symbols     []string
+	Attribute   string
+	Hook        string
+	Args        []cgArg
+	Synthetic   bool
+	ForRelType  string
+	ForRelIndex int
+}
+
+type cgArg struct {
+	RelType   string
+	RelIndex  int
+	Attribute string
+}
+
+type cgRule struct {
+	Head        string
+	Productions []cgGramProd
+}
+
+type cgGramProd struct {
+	Symbols []string
+}
+
+type cgClass struct {
+	Name  string
+	ID    string
+	Human string
 }
