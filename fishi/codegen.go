@@ -44,17 +44,14 @@ const (
 	ComponentMainFile = "main"
 )
 
-// Names of each file that is generated. Each is a format string that is passed
-// through fmt.Sprintf. The first argument to it is the name of the package
-// (not fully qualified, just the simple name of it) and the second is the name
-// of the tokens package (also not fully qualified)
+// Names of each file that is generated.
 const (
-	GeneratedTokensFilename   = "%[1]s/%[2]s/tokens.ict.go"
-	GeneratedLexerFilename    = "%[1]s/lexer.ict.go"
-	GeneratedParserFilename   = "%[1]s/parser.ict.go"
-	GeneratedSDTSFilename     = "%[1]s/sdts.ict.go"
-	GeneratedFrontendFilename = "%[1]s/frontend.ict.go"
-	GeneratedMainFilename     = "%[1]s/main.ict.go"
+	GeneratedTokensFilename   = "tokens.ict.go"
+	GeneratedLexerFilename    = "lexer.ict.go"
+	GeneratedParserFilename   = "parser.ict.go"
+	GeneratedSDTSFilename     = "sdts.ict.go"
+	GeneratedFrontendFilename = "frontend.ict.go"
+	GeneratedMainFilename     = "main.ict.go"
 )
 
 // Default template strings for each component of the generated compiler.
@@ -398,10 +395,15 @@ func GenerateFrontendGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, opts
 		return fmt.Errorf("creating target dir: %w", err)
 	}
 
+	err = os.MkdirAll(filepath.Join(pkgDir, pkgName+"token"), 0755)
+	if err != nil {
+		return fmt.Errorf("creating target dir: %w", err)
+	}
+
 	fnMap := createFuncMap()
 
 	renderFiles := map[string]codegenTemplate{
-		ComponentTokens:   {nil, GeneratedTokensFilename},
+		ComponentTokens:   {nil, filepath.Join(pkgName+"token", GeneratedTokensFilename)},
 		ComponentLexer:    {nil, GeneratedLexerFilename},
 		ComponentParser:   {nil, GeneratedParserFilename},
 		ComponentSDTS:     {nil, GeneratedSDTSFilename},
