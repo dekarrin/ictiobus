@@ -707,7 +707,7 @@ func main() {
 	if *flagPathPrefix != "" {
 		feDest = filepath.Join(*flagPathPrefix, feDest)
 	}
-	err = fishi.GenerateCompilerGo(spec, md, *flagPkg, feDest, &cgOpts)
+	err = fishi.GenerateFrontendGo(spec, md, *flagPkg, feDest, &cgOpts)
 	if err != nil {
 		errGeneration(err.Error())
 		return

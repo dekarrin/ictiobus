@@ -358,17 +358,17 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 		return gci, fmt.Errorf("initializing generated module with binary: %w\n%s", err, goModInitOutput)
 	}
 
-	goModTidyOutput, err := shell.Exec("go", "mod", "tidy")
-	if err != nil {
-		return gci, fmt.Errorf("tidying generated module with binary: %w\n%s", err, goModTidyOutput)
-	}
-
 	if params.LocalIctiobusSource != "" {
 		// make shore we use the latest version of ictiobus in the generated code
 		goRepOutput, err := shell.Exec("go", "mod", "edit", "-replace", "github.com/dekarrin/ictiobus="+params.LocalIctiobusSource)
 		if err != nil {
 			return gci, fmt.Errorf("replacing ictiobus with local source: %w\n%s", err, goRepOutput)
 		}
+	}
+
+	goModTidyOutput, err := shell.Exec("go", "mod", "tidy")
+	if err != nil {
+		return gci, fmt.Errorf("tidying generated module with binary: %w\n%s", err, goModTidyOutput)
 	}
 
 	// if we got here, all output has been written to the temp dir.
