@@ -174,6 +174,8 @@ type codegenTemplate struct {
 
 // codegen data for template fill of main.go
 // TODO: combine with cgData?
+// TODO: betta notation for which is a full import path and which is a package
+// name. (Perhaps -PkgImport vs -PkgName ?)
 type cgMainData struct {
 	BinPkg            string
 	BinName           string
@@ -182,6 +184,8 @@ type cgMainData struct {
 	HooksPkg          string
 	HooksTableExpr    string
 	ImportFormatPkg   bool
+	TokenPkgName      string
+	FrontendPkgImport string
 	FormatPkg         string
 	FormatCall        string
 	FrontendPkg       string
@@ -192,18 +196,20 @@ type cgMainData struct {
 
 // codegenData for template fill.
 type cgData struct {
-	FrontendPackage string
-	Lang            string
-	Version         string
-	IRAttribute     string
-	IRType          string
-	IRPackage       string
-	Command         string
-	CommandArgs     string
-	Classes         []cgClass
-	Patterns        cgPatterns
-	Rules           []cgRule
-	Bindings        []cgBinding
+	FrontendPackage   string
+	Lang              string
+	Version           string
+	IRAttribute       string
+	IRType            string
+	IRPackage         string
+	TokenPkgName      string
+	FrontendPkgImport string
+	Command           string
+	CommandArgs       string
+	Classes           []cgClass
+	Patterns          cgPatterns
+	Rules             []cgRule
+	Bindings          []cgBinding
 }
 
 type cgPatterns struct {

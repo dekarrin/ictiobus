@@ -276,7 +276,9 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 
 	// generate the compiler code
 	fePkgPath := filepath.Join(params.GenPath, "internal", params.FrontendPkgName)
-	err = GenerateFrontendGo(spec, md, params.FrontendPkgName, fePkgPath, &params.Opts)
+	binPkg := "github.com/dekarrin/ictiobus/langexec/" + safePkgIdent(md.Language)
+	fePkgImport := filepath.Join(binPkg, "internal", params.FrontendPkgName)
+	err = GenerateFrontendGo(spec, md, params.FrontendPkgName, fePkgPath, fePkgImport, &params.Opts)
 	if err != nil {
 		return gci, fmt.Errorf("generating compiler: %w", err)
 	}
@@ -296,7 +298,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 
 	// export template with main file
 	mainFillData := cgMainData{
-		BinPkg:            "github.com/dekarrin/ictiobus/langexec/" + safePkgIdent(md.Language),
+		BinPkg:            binPkg,
 		BinName:           params.BinName,
 		Version:           md.Version,
 		Lang:              md.Language,
@@ -304,6 +306,8 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 		HooksTableExpr:    params.HooksExpr,
 		FormatPkg:         formatPkgName,
 		FormatCall:        params.FormatCall,
+		FrontendPkgImport: fePkgImport,
+		TokenPkgName:      params.FrontendPkgName + "token",
 		ImportFormatPkg:   separateFormatImport,
 		FrontendPkg:       params.FrontendPkgName,
 		IRTypePackage:     irFQPackage,
@@ -383,12 +387,12 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 // does *not* copy the hooks package, it only outputs the frontend code.
 //
 // If opts is nil, the default options will be used.
-func GenerateFrontendGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, opts *CodegenOptions) error {
+func GenerateFrontendGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, pkgImport string, opts *CodegenOptions) error {
 	if opts == nil {
 		opts = &CodegenOptions{}
 	}
 
-	data := createTemplateFillData(spec, md, pkgName, opts.IRType)
+	data := createTemplateFillData(spec, md, pkgName, opts.IRType, pkgImport)
 
 	err := os.MkdirAll(pkgDir, 0755)
 	if err != nil {
@@ -527,14 +531,16 @@ func renderTemplateToFile(tmpl *template.Template, data interface{}, dest string
 	return nil
 }
 
-func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType string) cgData {
+func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType string, fePkgImport string) cgData {
 	// fill initial from metadata
 	data := cgData{
-		FrontendPackage: pkgName,
-		Lang:            md.Language,
-		Version:         md.Version,
-		Command:         CommandName,
-		CommandArgs:     md.InvocationArgs,
+		FrontendPackage:   pkgName,
+		TokenPkgName:      pkgName + "token",
+		FrontendPkgImport: fePkgImport,
+		Lang:              md.Language,
+		Version:           md.Version,
+		Command:           CommandName,
+		CommandArgs:       md.InvocationArgs,
 	}
 
 	// if IR type is specified, use it
@@ -801,22 +807,6 @@ func copyDirToTargetAsync(srcDir string, targetDir string) (copyResult chan erro
 	}()
 
 	return ch, nil
-}
-
-func inferImportPathFromDir(dir string) {
-	// first, get the full realpath, absolute.
-
-	// check subsequent parent dirs. if any of them have a go.mod file, read it
-	// and get the module name. The import path is the module name + the relative
-	// path from the module root to the dir.
-
-	// next, try to get GOPATH. if it is not set, default to $HOME/go.
-	// - split by pathsep
-	// - for each path: get it as real path, absolute. if it + /src is a prefix
-	// of the full path, then the import path is the path after the prefix.
-	//
-	// next, get GOROOT from runtime. if it + /src is a prefix of the full path,
-	// then the import path is the path after the prefix.
 }
 
 func readPackageName(dir string) (string, error) {

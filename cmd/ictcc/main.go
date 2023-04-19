@@ -283,8 +283,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"go/build"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"golang.org/x/mod/modfile"
@@ -707,7 +709,17 @@ func main() {
 	if *flagPathPrefix != "" {
 		feDest = filepath.Join(*flagPathPrefix, feDest)
 	}
-	err = fishi.GenerateFrontendGo(spec, md, *flagPkg, feDest, &cgOpts)
+
+	// attempt to infer the import path for the frontend package for template
+	// fill
+	var feImportPath string
+	feImportPath, err = inferImportPathFromDir(feDest)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "WARN: failed to infer import path for generated frontend: "+err.Error()+"\n; output will have syntax errors\n")
+		feImportPath = "<FE_IMPORT_PATH>"
+	}
+
+	err = fishi.GenerateFrontendGo(spec, md, *flagPkg, feDest, feImportPath, &cgOpts)
 	if err != nil {
 		errGeneration(err.Error())
 		return
@@ -992,4 +1004,122 @@ func sddRefToPrintedString(ref trans.AttrRef, g grammar.Grammar, r grammar.Rule)
 
 	// now the easy part, add the attribute name
 	return fmt.Sprintf("%s.%s", symName, ref.Name)
+}
+
+func inferImportPathFromDir(dir string) (string, error) {
+	getRealPath := func(path string) (string, error) {
+		// first, get the full realpath, absolute:
+		nonSym, err := filepath.EvalSymlinks(path)
+		if err != nil {
+			return "", err
+		}
+		abs, err := filepath.Abs(nonSym)
+		if err != nil {
+			return "", err
+		}
+
+		return abs, nil
+	}
+
+	// first, get the full realpath, absolute:
+	absDir, err := getRealPath(dir)
+	if err != nil {
+		return "", err
+	}
+
+	checkDir := absDir
+	candidateImport := ""
+	foundGoMod := false
+	// climb the directory and check to see if there's a go.mod file
+
+	for !foundGoMod {
+		// check if there's a go.mod file in this dir
+		goModPath := filepath.Join(checkDir, "go.mod")
+		if _, err := os.Stat(goModPath); err == nil {
+			// there's a go.mod file here. read it and get the module name
+			goModFile, err := os.ReadFile(goModPath)
+			if err != nil {
+				return "", err
+			}
+
+			// parse the go.mod file
+			goMod, err := modfile.Parse(goModPath, goModFile, nil)
+			if err != nil {
+				return "", err
+			}
+
+			// get the module name
+			moduleName := goMod.Module.Mod.Path
+
+			// the import path is the module name + the relative path from the module
+			// root to the dir.
+			relPath, err := filepath.Rel(checkDir, absDir)
+			if err != nil {
+				return "", err
+			}
+
+			candidateImport = filepath.Join(moduleName, relPath)
+			foundGoMod = true
+		} else {
+			// no go.mod file here. check the parent dir.
+			parentDir := filepath.Dir(checkDir)
+			if parentDir == checkDir {
+				// we're at the root of the filesystem. we're done.
+				break
+			}
+
+			checkDir = parentDir
+		}
+	}
+
+	if foundGoMod {
+		return candidateImport, nil
+	}
+
+	// next, try to get GOPATH:
+	goPath, goPathSet := os.LookupEnv("GOPATH")
+	if !goPathSet {
+		goPath = build.Default.GOPATH
+	}
+	goPathParts := filepath.SplitList(goPath)
+
+	for _, goPathPart := range goPathParts {
+		absGoPathDir, err := getRealPath(goPathPart)
+		if err != nil {
+			return "", fmt.Errorf("GOPATH: %w", err)
+		}
+		goSrcPath := filepath.Join(absGoPathDir, "src")
+
+		// check if absGoPathDir + /src is a prefix of absPath
+		if strings.HasPrefix(absDir, goSrcPath) {
+			// the import path is the path after the prefix.
+			relPath, err := filepath.Rel(goSrcPath, absDir)
+			if err != nil {
+				return "", err
+			}
+
+			return relPath, nil
+		}
+	}
+
+	// finally, check GOROOT:
+	goRoot := runtime.GOROOT()
+	absGoRootDir, err := getRealPath(goRoot)
+	if err != nil {
+		return "", fmt.Errorf("GOROOT: %w", err)
+	}
+	goSrcPath := filepath.Join(absGoRootDir, "src")
+
+	// check if absGoRootDir + /src is a prefix of absPath
+	if strings.HasPrefix(absDir, goSrcPath) {
+		// the import path is the path after the prefix.
+		relPath, err := filepath.Rel(goSrcPath, absDir)
+		if err != nil {
+			return "", err
+		}
+
+		return relPath, nil
+	}
+
+	return "", fmt.Errorf("path is not within a module, GOPATH, or GOROOT: %s", dir)
 }
