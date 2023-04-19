@@ -1,6 +1,9 @@
 # ictiobus
 Lexer/parser generator in pure Go. Generates parsers written in Go, exclusively.
 
+The current compiler specification language is self-described in BNF-ish syntax
+called "FISHI" and is located in the [fishi.md](./fishi.md) file.
+
 Ictiobus is intended to be implementations of the techniques given in the
 textbook "Compilers: Principles, Techniques, and Tools", by Aho, Lam, Sethi, and
 Ullman (otherwise known as the "Purple Dragon Book"). It is first and foremost
