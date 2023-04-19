@@ -590,10 +590,10 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 			switch pat.Action.Type {
 			case lex.ActionScan:
 				tokData := tokCgClasses[pat.Action.ClassID]
-				entry.Action = fmt.Sprintf("lex.LexAs(%s.ID())", tokData.Name)
+				entry.Action = fmt.Sprintf("lex.LexAs(%s.%s.ID())", data.TokenPkgName, tokData.Name)
 			case lex.ActionScanAndState:
 				tokData := tokCgClasses[pat.Action.ClassID]
-				entry.Action = fmt.Sprintf("lex.LexAndSwapState(%s.ID(), %q)", tokData.Name, pat.Action.State)
+				entry.Action = fmt.Sprintf("lex.LexAndSwapState(%s.%s.ID(), %q)", data.TokenPkgName, tokData.Name, pat.Action.State)
 			case lex.ActionState:
 				entry.Action = fmt.Sprintf("lex.SwapState(%q)", pat.Action.State)
 			case lex.ActionNone:
