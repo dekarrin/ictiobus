@@ -16,6 +16,8 @@ import (
     "{{ .FrontendPkgImport }}/{{ .TokenPkgName }}"
 )
 
+{{$tokPkg := .TokenPkgName}}
+
 var (
     //go:embed parser.cff
     parserData []byte
@@ -28,7 +30,7 @@ func Grammar() grammar.Grammar {
     g := grammar.Grammar{}
 
 {{range .Classes -}}
-{{"    "}}g.AddTerm({{ .TokenPkgName }}.{{ .Name }}.ID(), {{ .TokenPkgName }}.{{ .Name }})
+{{"    "}}g.AddTerm({{ $tokPkg }}.{{ .Name }}.ID(), {{ $tokPkg }}.{{ .Name }})
 {{end}}
 {{range .Rules}}{{/* no space removal here */}}
 {{- $head := .Head}}

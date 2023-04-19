@@ -277,7 +277,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	// generate the compiler code
 	fePkgPath := filepath.Join(params.GenPath, "internal", params.FrontendPkgName)
 	binPkg := "github.com/dekarrin/ictiobus/langexec/" + safePkgIdent(md.Language)
-	fePkgImport := filepath.Join(binPkg, "internal", params.FrontendPkgName)
+	fePkgImport := filepath.ToSlash(filepath.Join(binPkg, "internal", params.FrontendPkgName))
 	err = GenerateFrontendGo(spec, md, params.FrontendPkgName, fePkgPath, fePkgImport, &params.Opts)
 	if err != nil {
 		return gci, fmt.Errorf("generating compiler: %w", err)

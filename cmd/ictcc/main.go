@@ -716,7 +716,7 @@ func main() {
 	feImportPath, err = inferImportPathFromDir(feDest)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "WARN: failed to infer import path for generated frontend: "+err.Error()+"\n; output will have syntax errors\n")
-		feImportPath = "<FE_IMPORT_PATH>"
+		feImportPath = "FE_IMPORT_PATH"
 	}
 
 	err = fishi.GenerateFrontendGo(spec, md, *flagPkg, feDest, feImportPath, &cgOpts)
@@ -1018,7 +1018,7 @@ func inferImportPathFromDir(dir string) (string, error) {
 			return "", err
 		}
 
-		return abs, nil
+		return filepath.ToSlash(abs), nil
 	}
 
 	// first, get the full realpath, absolute:
@@ -1073,7 +1073,7 @@ func inferImportPathFromDir(dir string) (string, error) {
 	}
 
 	if foundGoMod {
-		return candidateImport, nil
+		return filepath.ToSlash(candidateImport), nil
 	}
 
 	// next, try to get GOPATH:
@@ -1098,7 +1098,7 @@ func inferImportPathFromDir(dir string) (string, error) {
 				return "", err
 			}
 
-			return relPath, nil
+			return filepath.ToSlash(relPath), nil
 		}
 	}
 
@@ -1118,7 +1118,7 @@ func inferImportPathFromDir(dir string) (string, error) {
 			return "", err
 		}
 
-		return relPath, nil
+		return filepath.ToSlash(relPath), nil
 	}
 
 	return "", fmt.Errorf("path is not within a module, GOPATH, or GOROOT: %s", dir)
