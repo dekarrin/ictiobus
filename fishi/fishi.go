@@ -2,7 +2,6 @@ package fishi
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,9 +12,12 @@ import (
 	"github.com/dekarrin/ictiobus/fishi/fe"
 	"github.com/dekarrin/ictiobus/fishi/format"
 	"github.com/dekarrin/ictiobus/fishi/syntax"
-	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
 )
+
+// This type alias is dum8!!!!!!!! Just make the callers import syntax, it's not
+// like it's unexported ::::/
+type AST = syntax.AST
 
 type Results struct {
 	AST  *AST
@@ -48,7 +50,11 @@ type Options struct {
 // No binary is generated as part of this, but source is which is then executed.
 // If PreserveBinarySource is set in cgOpts, the source will be left in the
 // .sim directory.
-func ValidateSimulatedInput(spec Spec, md SpecMetadata, p ictiobus.Parser, hooks, hooksTable string, pathPrefix string, cgOpts CodegenOptions, valOpts *trans.ValidationOptions) error {
+//
+// localSource is an optional path to a local copy of ictiobus to use instead of
+// the currently published latest version. This is useful for debugging while
+// developing ictiobus itself.
+func ValidateSimulatedInput(spec Spec, md SpecMetadata, params SimulatedInputParams) error {
 	pkgName := "sim" + strings.ToLower(md.Language)
 
 	binName := safeTCIdentifierName(md.Language)
@@ -57,31 +63,32 @@ func ValidateSimulatedInput(spec Spec, md SpecMetadata, p ictiobus.Parser, hooks
 	binName = "test" + binName
 
 	outDir := ".sim"
-	if pathPrefix != "" {
-		outDir = filepath.Join(pathPrefix, outDir)
+	if params.PathPrefix != "" {
+		outDir = filepath.Join(params.PathPrefix, outDir)
 	}
 
 	// not setting the format package and call here because we don't need
 	// preformatting to run verification simulation.
 	genInfo, err := GenerateBinaryMainGo(spec, md, MainBinaryParams{
-		Parser:          p,
-		HooksPkgDir:     hooks,
-		HooksExpr:       hooksTable,
-		FrontendPkgName: pkgName,
-		GenPath:         outDir,
-		BinName:         binName,
-		Opts:            cgOpts,
+		Parser:              params.Parser,
+		HooksPkgDir:         params.HooksPkgDir,
+		HooksExpr:           params.HooksExpr,
+		FrontendPkgName:     pkgName,
+		GenPath:             outDir,
+		BinName:             binName,
+		Opts:                params.Opts,
+		LocalIctiobusSource: params.LocalIctiobusSource,
 	})
 	if err != nil {
 		return fmt.Errorf("generate test compiler: %w", err)
 	}
 
-	err = ExecuteTestCompiler(genInfo, valOpts)
+	err = ExecuteTestCompiler(genInfo, params.ValidationOpts)
 	if err != nil {
 		return fmt.Errorf("execute test compiler: %w", err)
 	}
 
-	if !cgOpts.PreserveBinarySource {
+	if !params.Opts.PreserveBinarySource {
 		// if we got here, no errors. delete the test compiler and its directory
 		err = os.RemoveAll(genInfo.Path)
 		if err != nil {
@@ -91,6 +98,7 @@ func ValidateSimulatedInput(spec Spec, md SpecMetadata, p ictiobus.Parser, hooks
 
 	return nil
 }
+
 func ParseMarkdownFile(filename string, opts Options) (Results, error) {
 	f, err := os.Open(filename)
 	if err != nil {
@@ -121,14 +129,12 @@ func Parse(r io.Reader, opts Options) (Results, error) {
 
 	res := Results{}
 	// now, try to make a parse tree
-	nodes, pt, err := fishiFront.Analyze(r)
+	ast, pt, err := fishiFront.Analyze(r)
 	res.Tree = pt // need to do this before we return
 	if err != nil {
 		return res, err
 	}
-	res.AST = &AST{
-		Nodes: nodes,
-	}
+	res.AST = &ast
 
 	return res, nil
 }
@@ -136,37 +142,13 @@ func Parse(r io.Reader, opts Options) (Results, error) {
 // GetFrontend gets the frontend for the fishi compiler-compiler. If cffFile is
 // provided, it is used to load the cached parser from disk. Otherwise, a new
 // frontend is created.
-func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.Block], error) {
-	// check for preload
-	var preloadedParser ictiobus.Parser
-	if opts.ParserCFF != "" && opts.ReadCache {
-		var err error
-		preloadedParser, err = ictiobus.GetParserFromDisk(opts.ParserCFF)
-		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				preloadedParser = nil
-			} else {
-				return ictiobus.Frontend[[]syntax.Block]{}, fmt.Errorf("loading cachefile %q: %w", opts.ParserCFF, err)
-			}
-		}
-	}
-
+func GetFrontend(opts Options) (ictiobus.Frontend[syntax.AST], error) {
 	feOpts := fe.FrontendOptions{
 		LexerTrace:  opts.LexerTrace,
 		ParserTrace: opts.ParserTrace,
 	}
 
-	fishiFront := fe.Frontend[[]syntax.Block](syntax.HooksTable, feOpts, preloadedParser)
-
-	// check the parser encoding if we generated a new one:
-	if preloadedParser == nil && opts.ParserCFF != "" && opts.WriteCache {
-		err := ictiobus.SaveParserToDisk(fishiFront.Parser, opts.ParserCFF)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "writing parser to disk: %s\n", err.Error())
-		} else {
-			fmt.Printf("wrote parser to %q\n", opts.ParserCFF)
-		}
-	}
+	fishiFront := fe.Frontend(syntax.HooksTable, &feOpts)
 
 	return fishiFront, nil
 }
@@ -177,7 +159,7 @@ func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.Block], error) {
 // map type are supported.
 //
 // For example, ParseFQType("[]*github.com/ictiobus/fishi.Options") would return
-// "github.com/ictiobus/fishi", "[]*fishi.Options", nil.
+// "github.com/ictiobus/fishi", "[]*fishi.Options", "fishi", nil.
 func ParseFQType(fqType string) (pkg, typeName, pkgName string, err error) {
 	fqOriginal := fqType
 
@@ -201,4 +183,25 @@ func ParseFQType(fqType string) (pkg, typeName, pkgName string, err error) {
 	irType := preType + pkgName + "." + typeParts[len(typeParts)-1]
 
 	return fqPackage, irType, pkgName, nil
+}
+
+// MakeFQType makes a fully-qualified type name from the given package and type.
+// The typeName may include the package name, but it is not required and will be
+// ignored in favor of using pkg. Pkg must be the fully-qualified package name.
+func MakeFQType(pkg, typeName string) string {
+	preType := ""
+	for strings.HasPrefix(typeName, "[]") || strings.HasPrefix(typeName, "*") {
+		if strings.HasPrefix(typeName, "[]") {
+			preType += "[]"
+			typeName = typeName[2:]
+		} else {
+			preType += "*"
+			typeName = typeName[1:]
+		}
+	}
+
+	typeParts := strings.Split(typeName, ".")
+	rawTypeName := typeParts[len(typeParts)-1]
+
+	return preType + pkg + "." + rawTypeName
 }

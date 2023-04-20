@@ -7,6 +7,7 @@ require (
 	github.com/gomarkdown/markdown v0.0.0-20221013030248-663e2500819c
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.2
+	golang.org/x/mod v0.8.0
 	golang.org/x/text v0.8.0
 )
 

@@ -12,7 +12,11 @@ import (
 
     "github.com/dekarrin/ictiobus"
     "github.com/dekarrin/ictiobus/grammar"
+
+    "{{ .FrontendPkgImport }}/{{ .TokenPkgName }}"
 )
+
+{{$tokPkg := .TokenPkgName}}
 
 var (
     //go:embed parser.cff
@@ -26,7 +30,7 @@ func Grammar() grammar.Grammar {
     g := grammar.Grammar{}
 
 {{range .Classes -}}
-{{"    "}}g.AddTerm({{ .Name }}.ID(), {{ .Name }})
+{{"    "}}g.AddTerm({{ $tokPkg }}.{{ .Name }}.ID(), {{ $tokPkg }}.{{ .Name }})
 {{end}}
 {{range .Rules}}{{/* no space removal here */}}
 {{- $head := .Head}}

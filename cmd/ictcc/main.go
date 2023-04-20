@@ -42,10 +42,6 @@ Flags:
 		Do not show progress messages. This does not affect error messages or
 		warning output.
 
-	-p/--parser FILE
-		Set the location of the pre-compiled parser cache to the given CFF
-		format file as opposed to the default of './parser.cff'.
-
 	-f/--diag-format-pkg DIR
 		Enable special format reading in the generated diagnostics binary by
 		wrapping any io.Reader opened on input files in another io.Reader that
@@ -73,21 +69,13 @@ Flags:
 		Set the name of the language to generate a frontend for. Defaults to
 		"Unspecified".
 
-	--lang-ver VERSION
+	-v/--lang-ver VERSION
 		Set the version of the language to generate a frontend for. Defaults to
 		"v0.0.0".
 
 	--preserve-bin-source
 		Do not delete source files for any generated binary after compiling the
 		binary.
-
-	--no-cache
-		Disable the loading of any cached frontend components, even if a
-		pre-built one is available.
-
-	--no-cache-out
-		Disable writing of any frontend components cache, even if a component
-		was built by the invocation.
 
 	--version
 		Print the version of the ictiobus compiler-compiler and exit.
@@ -235,6 +223,12 @@ Flags:
 		and array/slice notation are allowed; maps are not (but types that have
 		map as an underlying type are allowed).
 
+	--dev
+		Enable development mode. This will cause generated binaries to use the
+		local version of ictiobus instead of the latest release. If this flag is
+		enabled, it is assumed that the ictiobus package is located in the
+		current working directory.
+
 Each markdown file given is scanned for fishi codeblocks. They are all combined
 into a single fishi code block and parsed. Each markdown file is parsed
 separately but their resulting ASTs are combined into a single FISHI spec for a
@@ -275,10 +269,15 @@ immediately exit with a success code after parsing the input.
 package main
 
 import (
+	"errors"
 	"fmt"
+	"go/build"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+
+	"golang.org/x/mod/modfile"
 
 	"github.com/spf13/pflag"
 
@@ -298,7 +297,7 @@ var (
 	flagGenAST    = pflag.BoolP("ast", "a", false, "Print the AST of the analyzed fishi")
 	flagGenTree   = pflag.BoolP("tree", "t", false, "Print the parse trees of each analyzed fishi file")
 	flagShowSpec  = pflag.BoolP("spec", "s", false, "Print the FISHI spec interpreted from the analyzed fishi")
-	flagParserCff = pflag.StringP("parser", "p", "fishi-parser.cff", "Use the specified parser CFF cache file instead of default")
+	flagParserCff = pflag.StringP("parser", "p", "fishi-parser.cff", "(UNUSED) Use the specified parser CFF cache file instead of default")
 	flagLang      = pflag.StringP("lang", "l", "Unspecified", "The name of the languae being generated")
 	flagLangVer   = pflag.StringP("lang-ver", "v", "v0.0.0", "The version of the language to generate")
 
@@ -311,8 +310,8 @@ var (
 	flagDebugTemplates    = pflag.Bool("debug-templates", false, "Dump the filled templates before running through gofmt")
 	flagPkg               = pflag.String("pkg", "fe", "The name of the package to place generated files in")
 	flagDest              = pflag.String("dest", "./fe", "The name of the directory to place the generated package in")
-	flagNoCache           = pflag.Bool("no-cache", false, "Disable use of cached frontend components, even if available")
-	flagNoCacheOutput     = pflag.Bool("no-cache-out", false, "Disable writing of cached frontend components, even if one was generated")
+	flagNoCache           = pflag.Bool("no-cache", false, "(UNUSED) Disable use of cached frontend components, even if available")
+	flagNoCacheOutput     = pflag.Bool("no-cache-out", false, "(UNUSED) Disable writing of cached frontend components, even if one was generated")
 
 	flagSimOff          = pflag.Bool("sim-off", false, "Disable input simulation of the language once built")
 	flagSimTrees        = pflag.Bool("sim-trees", false, "Show parse trees that caused errors during simulation")
@@ -342,7 +341,19 @@ var (
 	flagIRType = pflag.String("ir", "", "The fully-qualified type of IR to generate.")
 
 	flagVersion = pflag.Bool("version", false, "Print the version of ictcc and exit")
+
+	flagDev = pflag.Bool("dev", false, "Enable development mode so generated binaries use the version of ictiobus in the current working dir")
 )
+
+// DevModeInfo is info on dev mode that is gathered by reading CLI flags.
+type DevModeInfo struct {
+	// Enabled is whether develepment mode is enabled.
+	Enabled bool
+
+	// LocalIctiobusSource is the path to the local ictiobus source code. By
+	// default this is taken from the current working directory.
+	LocalIctiobusSource string
+}
 
 func main() {
 	defer preservePanicOrExitWithStatus()
@@ -391,6 +402,12 @@ func main() {
 	parserType, allowAmbig, err := parserSelectionFromFlags()
 	if err != nil {
 		errInvalidFlags(err.Error())
+		return
+	}
+
+	devInfo, err := devModeInfoFromFlags()
+	if err != nil {
+		errInvalidFlags("--dev: " + err.Error())
 		return
 	}
 
@@ -598,7 +615,17 @@ func main() {
 					SkipErrors:    *flagSimSkipErrs,
 				}
 
-				err := fishi.ValidateSimulatedInput(spec, md, p, *flagHooksPath, *flagHooksTableName, *flagPathPrefix, cgOpts, &di)
+				simParams := fishi.SimulatedInputParams{
+					Parser:              p,
+					HooksPkgDir:         *flagHooksPath,
+					HooksExpr:           *flagHooksTableName,
+					PathPrefix:          *flagPathPrefix,
+					LocalIctiobusSource: devInfo.LocalIctiobusSource,
+					Opts:                cgOpts,
+					ValidationOpts:      &di,
+				}
+
+				err := fishi.ValidateSimulatedInput(spec, md, simParams)
 				if err != nil {
 					errGeneration(err.Error())
 					return
@@ -634,7 +661,20 @@ func main() {
 			formatCall = *flagDiagFormatCall
 		}
 
-		err := fishi.GenerateDiagnosticsBinary(spec, md, p, *flagHooksPath, *flagHooksTableName, *flagDiagFormatPkg, formatCall, *flagPkg, *flagDiagBin, *flagPathPrefix, cgOpts)
+		diagParams := fishi.DiagBinParams{
+			Parser:              p,
+			HooksPkgDir:         *flagHooksPath,
+			HooksExpr:           *flagHooksTableName,
+			FormatPkgDir:        *flagDiagFormatPkg,
+			FormatCall:          formatCall,
+			FrontendPkgName:     *flagPkg,
+			BinPath:             *flagDiagBin,
+			LocalIctiobusSource: devInfo.LocalIctiobusSource,
+			Opts:                cgOpts,
+			PathPrefix:          *flagPathPrefix,
+		}
+
+		err := fishi.GenerateDiagnosticsBinary(spec, md, diagParams)
 		if err != nil {
 			errGeneration(err.Error())
 			return
@@ -657,11 +697,70 @@ func main() {
 	if *flagPathPrefix != "" {
 		feDest = filepath.Join(*flagPathPrefix, feDest)
 	}
-	err = fishi.GenerateCompilerGo(spec, md, *flagPkg, feDest, &cgOpts)
+
+	// attempt to infer the import path for the frontend package for template
+	// fill
+	var feImportPath string
+	feImportPath, err = inferImportPathFromDir(feDest)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "WARN: failed to infer import path for generated frontend: "+err.Error()+"\n; output will have syntax errors\n")
+		feImportPath = "FE_IMPORT_PATH"
+	}
+
+	err = fishi.GenerateFrontendGo(spec, md, *flagPkg, feDest, feImportPath, &cgOpts)
 	if err != nil {
 		errGeneration(err.Error())
 		return
 	}
+
+	parserPath := filepath.Join(feDest, "parser.cff")
+	err = ictiobus.SaveParserToDisk(p, parserPath)
+	if err != nil {
+		errGeneration(err.Error())
+		return
+	}
+}
+
+func devModeInfoFromFlags() (DevModeInfo, error) {
+	dmi := DevModeInfo{}
+
+	if *flagDev {
+		dmi.Enabled = true
+
+		// if user wants to enable dev mode, make sure that the current working
+		// directory is the root of ictiobus by checking for a go.mod file and
+		// then reading it to verify that it is for ictiobus.
+
+		curDir, err := os.Getwd()
+		if err != nil {
+			return dmi, err
+		}
+		var modBytes []byte
+		if modBytes, err = os.ReadFile(filepath.Join(curDir, "go.mod")); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return dmi, fmt.Errorf("current working directory does not contain a go.mod file")
+			} else {
+				return dmi, err
+			}
+		}
+		ictiobusModFile, err := modfile.ParseLax("go.mod", modBytes, nil)
+		if err != nil {
+			return dmi, fmt.Errorf("go.mod: %w", err)
+		}
+
+		if ictiobusModFile.Module == nil {
+			return dmi, fmt.Errorf("go.mod: module directive is missing")
+		}
+
+		if ictiobusModFile.Module.Mod.Path != "github.com/dekarrin/ictiobus" {
+			return dmi, fmt.Errorf("local module is %s, not github.com/dekarrin/ictiobus", ictiobusModFile.Module.Mod.Path)
+		}
+
+		// all checks done, set the local source path
+		dmi.LocalIctiobusSource = curDir
+	}
+
+	return dmi, nil
 }
 
 // return from flags the parser type selected and whether ambiguity is allowed.
@@ -900,4 +999,122 @@ func sddRefToPrintedString(ref trans.AttrRef, g grammar.Grammar, r grammar.Rule)
 
 	// now the easy part, add the attribute name
 	return fmt.Sprintf("%s.%s", symName, ref.Name)
+}
+
+func inferImportPathFromDir(dir string) (string, error) {
+	getRealPath := func(path string) (string, error) {
+		// first, get the full realpath, absolute:
+		nonSym, err := filepath.EvalSymlinks(path)
+		if err != nil {
+			return "", err
+		}
+		abs, err := filepath.Abs(nonSym)
+		if err != nil {
+			return "", err
+		}
+
+		return filepath.ToSlash(abs), nil
+	}
+
+	// first, get the full realpath, absolute:
+	absDir, err := getRealPath(dir)
+	if err != nil {
+		return "", err
+	}
+
+	checkDir := absDir
+	candidateImport := ""
+	foundGoMod := false
+	// climb the directory and check to see if there's a go.mod file
+
+	for !foundGoMod {
+		// check if there's a go.mod file in this dir
+		goModPath := filepath.Join(checkDir, "go.mod")
+		if _, err := os.Stat(goModPath); err == nil {
+			// there's a go.mod file here. read it and get the module name
+			goModFile, err := os.ReadFile(goModPath)
+			if err != nil {
+				return "", err
+			}
+
+			// parse the go.mod file
+			goMod, err := modfile.Parse(goModPath, goModFile, nil)
+			if err != nil {
+				return "", err
+			}
+
+			// get the module name
+			moduleName := goMod.Module.Mod.Path
+
+			// the import path is the module name + the relative path from the module
+			// root to the dir.
+			relPath, err := filepath.Rel(checkDir, absDir)
+			if err != nil {
+				return "", err
+			}
+
+			candidateImport = filepath.Join(moduleName, relPath)
+			foundGoMod = true
+		} else {
+			// no go.mod file here. check the parent dir.
+			parentDir := filepath.Dir(checkDir)
+			if parentDir == checkDir {
+				// we're at the root of the filesystem. we're done.
+				break
+			}
+
+			checkDir = parentDir
+		}
+	}
+
+	if foundGoMod {
+		return filepath.ToSlash(candidateImport), nil
+	}
+
+	// next, try to get GOPATH:
+	goPath, goPathSet := os.LookupEnv("GOPATH")
+	if !goPathSet {
+		goPath = build.Default.GOPATH
+	}
+	goPathParts := filepath.SplitList(goPath)
+
+	for _, goPathPart := range goPathParts {
+		absGoPathDir, err := getRealPath(goPathPart)
+		if err != nil {
+			return "", fmt.Errorf("GOPATH: %w", err)
+		}
+		goSrcPath := filepath.Join(absGoPathDir, "src")
+
+		// check if absGoPathDir + /src is a prefix of absPath
+		if strings.HasPrefix(absDir, goSrcPath) {
+			// the import path is the path after the prefix.
+			relPath, err := filepath.Rel(goSrcPath, absDir)
+			if err != nil {
+				return "", err
+			}
+
+			return filepath.ToSlash(relPath), nil
+		}
+	}
+
+	// finally, check GOROOT:
+	goRoot := runtime.GOROOT()
+	absGoRootDir, err := getRealPath(goRoot)
+	if err != nil {
+		return "", fmt.Errorf("GOROOT: %w", err)
+	}
+	goSrcPath := filepath.Join(absGoRootDir, "src")
+
+	// check if absGoRootDir + /src is a prefix of absPath
+	if strings.HasPrefix(absDir, goSrcPath) {
+		// the import path is the path after the prefix.
+		relPath, err := filepath.Rel(goSrcPath, absDir)
+		if err != nil {
+			return "", err
+		}
+
+		return filepath.ToSlash(relPath), nil
+	}
+
+	return "", fmt.Errorf("path is not within a module, GOPATH, or GOROOT: %s", dir)
 }

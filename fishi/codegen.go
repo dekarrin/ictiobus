@@ -8,7 +8,6 @@ import (
 	"go/format"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -17,6 +16,7 @@ import (
 
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/internal/shellout"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/trans"
@@ -101,39 +101,6 @@ var (
 	}
 )
 
-type CodegenOptions struct {
-	// DumpPreFormat will dump the generated code before it is formatted.
-	DumpPreFormat bool
-
-	// TemplateFiles is a map of template names to a path to a custom template
-	// file for that template. If entries are detected under the key of one of
-	// the ComponentX constants, the path in it is parsed as a template file and
-	// used for outputting the generated code for that component instead of the
-	// default embedded template.
-	TemplateFiles map[string]string
-
-	// IRType is the fully-qualified type of the intermediate representation in
-	// the frontend. This is used to make the Frontend function return a
-	// specific type instead of requiring an explicit type instantiation when
-	// called.
-	IRType string
-
-	// PreserveBinarySource is whether to keep the source files for any
-	// generated binary after the binary has been successfully
-	// compiled/executed. Normally, these files are removed, but preserving them
-	// allows for diagnostics on the generated source.
-	PreserveBinarySource bool
-}
-
-// GeneratedCodeInfo contains information about the generated code.
-type GeneratedCodeInfo struct {
-	// MainFile is the path to the main executable file, relative to Path.
-	MainFile string
-
-	// Path is the location of the root of the generated code.
-	Path string
-}
-
 // ExecuteTestCompiler runs the compiler pointed to by gci in validation mode.
 //
 // If valOptions is nil, the default validation options are used.
@@ -155,11 +122,7 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 	if valOptions.SkipErrors != 0 {
 		args = append(args, "--sim-skip-errs", fmt.Sprintf("%d", valOptions.SkipErrors))
 	}
-	cmd := exec.Command("go", args...)
-	cmd.Dir = gci.Path
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	return shellout.ExecFG(gci.Path, nil, "go", args...)
 }
 
 // GenerateDiagnosticsBinary generates a binary that can read input written in
@@ -176,47 +139,45 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 // returns a new io.Reader that wraps the one passed in and returns preformatted
 // code ready to be analyzed by the generated frontend.
 //
-// TODO: turn this huge signature into a struct for everyfin from p to opts.
-func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, p ictiobus.Parser, hooksPkgDir string, hooksExpr string, formatPkgDir string, formatCall string, pkgName string, binPath string, pathPrefix string, opts CodegenOptions) error {
-	binName := filepath.Base(binPath)
+// localSource only needed if doing dev in ictiobus; otherwise latest ictiobus
+// published version is used.
+func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, params DiagBinParams) error {
+	binName := filepath.Base(params.BinPath)
 
 	outDir := ".gen"
-	if pathPrefix != "" {
-		outDir = filepath.Join(pathPrefix, outDir)
+	if params.PathPrefix != "" {
+		outDir = filepath.Join(params.PathPrefix, outDir)
 	}
 
 	gci, err := GenerateBinaryMainGo(spec, md, MainBinaryParams{
-		Parser:          p,
-		HooksPkgDir:     hooksPkgDir,
-		HooksExpr:       hooksExpr,
-		FormatPkgDir:    formatPkgDir,
-		FormatCall:      formatCall,
-		FrontendPkgName: pkgName,
-		GenPath:         outDir,
-		BinName:         binName,
-		Opts:            opts,
+		Parser:              params.Parser,
+		HooksPkgDir:         params.HooksPkgDir,
+		HooksExpr:           params.HooksExpr,
+		FormatPkgDir:        params.FormatPkgDir,
+		FormatCall:          params.FormatCall,
+		FrontendPkgName:     params.FrontendPkgName,
+		GenPath:             outDir,
+		BinName:             binName,
+		Opts:                params.Opts,
+		LocalIctiobusSource: params.LocalIctiobusSource,
 	})
 	if err != nil {
 		return err
 	}
 
-	cmd := exec.Command("go", "build", "-o", binName, gci.MainFile)
 	//cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
-	cmd.Dir = gci.Path
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+	if err := shellout.ExecFG(gci.Path, nil, "go", "build", "-o", binName, gci.MainFile); err != nil {
 		return err
 	}
 
 	// Move it to the target location.
-	if err := os.Rename(filepath.Join(gci.Path, binName), binPath); err != nil {
+	if err := os.Rename(filepath.Join(gci.Path, binName), params.BinPath); err != nil {
 		return err
 	}
 
 	// unless requested to preserve the source, remove the generated source
 	// directory.
-	if !opts.PreserveBinarySource {
+	if !params.Opts.PreserveBinarySource {
 		if err := os.RemoveAll(gci.Path); err != nil {
 			return err
 		}
@@ -225,7 +186,7 @@ func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, p ictiobus.Parser, ho
 	return nil
 }
 
-// GenerateTestCompiler generates (but does not yet run) a test compiler for the
+// GenerateBinaryMainGo generates (but does not yet run) a test compiler for the
 // given spec and pre-created parser, using the provided hooks package. Once it
 // is created, it will be able to be executed by calling go run on the provided
 // mainfile from the outDir.
@@ -315,7 +276,18 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 
 	// generate the compiler code
 	fePkgPath := filepath.Join(params.GenPath, "internal", params.FrontendPkgName)
-	err = GenerateCompilerGo(spec, md, params.FrontendPkgName, fePkgPath, &params.Opts)
+	binPkg := "github.com/dekarrin/ictiobus/langexec/" + safePkgIdent(md.Language)
+	fePkgImport := filepath.ToSlash(filepath.Join(binPkg, "internal", params.FrontendPkgName))
+
+	feOpts := params.Opts
+	// if we copied the IR, we need to change the import in frontend files so
+	// that they refer to the correct one.
+	if irPackage == hooksPkgName {
+		feIRPkg := filepath.ToSlash(filepath.Join(binPkg, "internal", hooksPkgName))
+		feFQir := MakeFQType(feIRPkg, irType)
+		feOpts.IRType = feFQir
+	}
+	err = GenerateFrontendGo(spec, md, params.FrontendPkgName, fePkgPath, fePkgImport, &feOpts)
 	if err != nil {
 		return gci, fmt.Errorf("generating compiler: %w", err)
 	}
@@ -328,14 +300,14 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 		return gci, fmt.Errorf("writing parser: %w", err)
 	}
 
-	// only fill in the ir package import if ir's package is not not the same as the hooks package
+	// only fill in the ir package import if ir's package is not the same as the hooks package
 	if irPackage == hooksPkgName {
 		irFQPackage = ""
 	}
 
 	// export template with main file
 	mainFillData := cgMainData{
-		BinPkg:            "github.com/dekarrin/ictiobus/langexec/" + safePkgIdent(md.Language),
+		BinPkg:            binPkg,
 		BinName:           params.BinName,
 		Version:           md.Version,
 		Lang:              md.Language,
@@ -343,6 +315,8 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 		HooksTableExpr:    params.HooksExpr,
 		FormatPkg:         formatPkgName,
 		FormatCall:        params.FormatCall,
+		FrontendPkgImport: fePkgImport,
+		TokenPkgName:      params.FrontendPkgName + "token",
 		ImportFormatPkg:   separateFormatImport,
 		FrontendPkg:       params.FrontendPkgName,
 		IRTypePackage:     irFQPackage,
@@ -391,19 +365,23 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	}
 
 	// shell out to run go module stuff
-	goModInitCmd := exec.Command("go", "mod", "init", mainFillData.BinPkg)
-	goModInitCmd.Env = os.Environ()
-	goModInitCmd.Dir = params.GenPath
-	goModInitOutput, err := goModInitCmd.CombinedOutput()
+	shell := shellout.Shell{Dir: params.GenPath, Env: os.Environ()}
+	goModInitOutput, err := shell.Exec("go", "mod", "init", mainFillData.BinPkg)
 	if err != nil {
-		return gci, fmt.Errorf("initializing generated module with binary: %w\n%s", err, string(goModInitOutput))
+		return gci, fmt.Errorf("initializing generated module with binary: %w\n%s", err, goModInitOutput)
 	}
-	goModTidyCmd := exec.Command("go", "mod", "tidy")
-	goModTidyCmd.Env = os.Environ()
-	goModTidyCmd.Dir = params.GenPath
-	goModTidyOutput, err := goModTidyCmd.CombinedOutput()
+
+	if params.LocalIctiobusSource != "" {
+		// make shore we use the latest version of ictiobus in the generated code
+		goRepOutput, err := shell.Exec("go", "mod", "edit", "-replace", "github.com/dekarrin/ictiobus="+params.LocalIctiobusSource)
+		if err != nil {
+			return gci, fmt.Errorf("replacing ictiobus with local source: %w\n%s", err, goRepOutput)
+		}
+	}
+
+	goModTidyOutput, err := shell.Exec("go", "mod", "tidy")
 	if err != nil {
-		return gci, fmt.Errorf("tidying generated module with binary: %w\n%s", err, string(goModTidyOutput))
+		return gci, fmt.Errorf("tidying generated module with binary: %w\n%s", err, goModTidyOutput)
 	}
 
 	// if we got here, all output has been written to the temp dir.
@@ -413,19 +391,24 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	return gci, nil
 }
 
-// GenerateCompilerGo generates the source code for a compiler that can handle a
-// fishi spec. The source code is placed in the given directory. This does *not*
-// copy the hooks package, it only outputs the compiler code.
+// GenerateFrontendGo generates the source code for a compiler frontend that can
+// handle a fishi spec. The source code is placed in the given directory. This
+// does *not* copy the hooks package, it only outputs the frontend code.
 //
 // If opts is nil, the default options will be used.
-func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, opts *CodegenOptions) error {
+func GenerateFrontendGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, pkgImport string, opts *CodegenOptions) error {
 	if opts == nil {
 		opts = &CodegenOptions{}
 	}
 
-	data := createTemplateFillData(spec, md, pkgName, opts.IRType)
+	data := createTemplateFillData(spec, md, pkgName, opts.IRType, pkgImport)
 
 	err := os.MkdirAll(pkgDir, 0755)
+	if err != nil {
+		return fmt.Errorf("creating target dir: %w", err)
+	}
+
+	err = os.MkdirAll(filepath.Join(pkgDir, pkgName+"token"), 0755)
 	if err != nil {
 		return fmt.Errorf("creating target dir: %w", err)
 	}
@@ -433,7 +416,7 @@ func GenerateCompilerGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, opts
 	fnMap := createFuncMap()
 
 	renderFiles := map[string]codegenTemplate{
-		ComponentTokens:   {nil, GeneratedTokensFilename},
+		ComponentTokens:   {nil, filepath.Join(pkgName+"token", GeneratedTokensFilename)},
 		ComponentLexer:    {nil, GeneratedLexerFilename},
 		ComponentParser:   {nil, GeneratedParserFilename},
 		ComponentSDTS:     {nil, GeneratedSDTSFilename},
@@ -557,14 +540,16 @@ func renderTemplateToFile(tmpl *template.Template, data interface{}, dest string
 	return nil
 }
 
-func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType string) cgData {
+func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType string, fePkgImport string) cgData {
 	// fill initial from metadata
 	data := cgData{
-		FrontendPackage: pkgName,
-		Lang:            md.Language,
-		Version:         md.Version,
-		Command:         CommandName,
-		CommandArgs:     md.InvocationArgs,
+		FrontendPackage:   pkgName,
+		TokenPkgName:      pkgName + "token",
+		FrontendPkgImport: fePkgImport,
+		Lang:              md.Language,
+		Version:           md.Version,
+		Command:           CommandName,
+		CommandArgs:       md.InvocationArgs,
 	}
 
 	// if IR type is specified, use it
@@ -614,10 +599,10 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 			switch pat.Action.Type {
 			case lex.ActionScan:
 				tokData := tokCgClasses[pat.Action.ClassID]
-				entry.Action = fmt.Sprintf("lex.LexAs(%s.ID())", tokData.Name)
+				entry.Action = fmt.Sprintf("lex.LexAs(%s.%s.ID())", data.TokenPkgName, tokData.Name)
 			case lex.ActionScanAndState:
 				tokData := tokCgClasses[pat.Action.ClassID]
-				entry.Action = fmt.Sprintf("lex.LexAndSwapState(%s.ID(), %q)", tokData.Name, pat.Action.State)
+				entry.Action = fmt.Sprintf("lex.LexAndSwapState(%s.%s.ID(), %q)", data.TokenPkgName, tokData.Name, pat.Action.State)
 			case lex.ActionState:
 				entry.Action = fmt.Sprintf("lex.SwapState(%q)", pat.Action.State)
 			case lex.ActionNone:
@@ -713,98 +698,6 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 
 	// done, return finished data
 	return data
-}
-
-type codegenTemplate struct {
-	tmpl    *template.Template
-	outFile string
-}
-
-// codegen data for template fill of main.go
-// TODO: combine with cgData?
-type cgMainData struct {
-	BinPkg            string
-	BinName           string
-	Version           string
-	Lang              string
-	HooksPkg          string
-	HooksTableExpr    string
-	ImportFormatPkg   bool
-	FormatPkg         string
-	FormatCall        string
-	FrontendPkg       string
-	IRTypePackage     string
-	IRType            string
-	IncludeSimulation bool
-}
-
-// codegenData for template fill.
-type cgData struct {
-	FrontendPackage string
-	Lang            string
-	Version         string
-	IRAttribute     string
-	IRType          string
-	IRPackage       string
-	Command         string
-	CommandArgs     string
-	Classes         []cgClass
-	Patterns        cgPatterns
-	Rules           []cgRule
-	Bindings        []cgBinding
-}
-
-type cgPatterns struct {
-	DefaultState     cgStatePatterns
-	NonDefaultStates []cgStatePatterns
-}
-
-type cgStatePatterns struct {
-	State   string
-	Classes []cgClass
-	Entries []cgPatternEntry
-}
-
-type cgPatternEntry struct {
-	Regex    string
-	Action   string
-	Priority int
-}
-
-type cgBinding struct {
-	Head        string
-	Productions []cgSDTSProd
-}
-
-type cgSDTSProd struct {
-	Symbols     []string
-	Attribute   string
-	Hook        string
-	Args        []cgArg
-	Synthetic   bool
-	ForRelType  string
-	ForRelIndex int
-}
-
-type cgArg struct {
-	RelType   string
-	RelIndex  int
-	Attribute string
-}
-
-type cgRule struct {
-	Head        string
-	Productions []cgGramProd
-}
-
-type cgGramProd struct {
-	Symbols []string
-}
-
-type cgClass struct {
-	Name  string
-	ID    string
-	Human string
 }
 
 func safeTCIdentifierName(str string) string {

@@ -10,7 +10,11 @@ created by invoking ictiobus with the following command:
 import (
     "github.com/dekarrin/ictiobus"
     "github.com/dekarrin/ictiobus/lex"
+
+    "{{ .FrontendPkgImport }}/{{ .TokenPkgName }}"
 )
+
+{{$tokPkg := .TokenPkgName}}
 
 // Lexer creates and returns the compiled ictiobus Lexer for the language
 // {{ .Lang }}.
@@ -25,7 +29,7 @@ func Lexer(lazy bool) ictiobus.Lexer {
 {{if .Patterns.DefaultState.Entries -}}
 {{"    "}}// default state, shared by all
 {{range .Patterns.DefaultState.Classes -}}
-{{"    "}}lx.RegisterClass({{ .Name }}, "")
+{{"    "}}lx.RegisterClass({{ $tokPkg }}.{{ .Name }}, "")
 {{end}}
 {{range .Patterns.DefaultState.Entries -}}
 {{"    "}}lx.AddPattern({{ .Regex | rquote }}, {{ .Action }}, "", {{ .Priority }})
@@ -35,7 +39,7 @@ func Lexer(lazy bool) ictiobus.Lexer {
 {{$state := .State}}
 {{"    "}}// {{ .State }} state
 {{range .Classes -}}
-{{"    "}}lx.RegisterClass({{ .Name }}, "{{$state}}")
+{{"    "}}lx.RegisterClass({{ $tokPkg }}.{{ .Name }}, "{{$state}}")
 {{end}}
 {{range .Entries -}}
 {{"    "}}lx.AddPattern({{ .Regex | rquote }}, {{ .Action }}, "{{$state}}", {{ .Priority }})
