@@ -6,8 +6,7 @@ cd "$(dirname "$0")"
 
 if ! [ "$1" = "--yes" ]
 then
-  echo "Completely replace current fishi frontend by generating from fishi.md?"
-  read -r replace_it
+  read -r -p "Completely replace current fishi frontend by generating from fishi.md? " replace_it
   replace_it="$(echo "$replace_it" | tr '[:upper:]' '[:lower:]')"
   if ! [ "$replace_it" = 'y' -o "$replace_it" = 'ye' -o "$replace_it" = 'yes' ]
   then
