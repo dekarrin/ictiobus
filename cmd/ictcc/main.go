@@ -724,6 +724,13 @@ func main() {
 		errGeneration(err.Error())
 		return
 	}
+
+	parserPath := filepath.Join(feDest, "parser.cff")
+	err = ictiobus.SaveParserToDisk(p, parserPath)
+	if err != nil {
+		errGeneration(err.Error())
+		return
+	}
 }
 
 func devModeInfoFromFlags() (DevModeInfo, error) {
