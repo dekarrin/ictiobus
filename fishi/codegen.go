@@ -165,8 +165,9 @@ func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, params DiagBinParams)
 		return err
 	}
 
-	//cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
-	if err := shellout.ExecFG(gci.Path, nil, "go", "build", "-o", binName, gci.MainFile); err != nil {
+	env := os.Environ()
+	env = append(env, "CGO_ENABLED=0")
+	if err := shellout.ExecFG(gci.Path, env, "go", "build", "-o", binName, gci.MainFile); err != nil {
 		return err
 	}
 
