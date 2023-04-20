@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# shortcut for running ictcc on fishi.md for when we build a new ictcc bin
+# shortcut for running ictcc on fishi.md for when we build a new ictcc bin.
+# generates a dev binary and used for checking output without actually replacing the current frontend
 
 cd "$(dirname "$0")"
 
