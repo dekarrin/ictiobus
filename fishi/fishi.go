@@ -2,7 +2,6 @@ package fishi
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -144,36 +143,12 @@ func Parse(r io.Reader, opts Options) (Results, error) {
 // provided, it is used to load the cached parser from disk. Otherwise, a new
 // frontend is created.
 func GetFrontend(opts Options) (ictiobus.Frontend[syntax.AST], error) {
-	// check for preload
-	var preloadedParser ictiobus.Parser
-	if opts.ParserCFF != "" && opts.ReadCache {
-		var err error
-		preloadedParser, err = ictiobus.GetParserFromDisk(opts.ParserCFF)
-		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				preloadedParser = nil
-			} else {
-				return ictiobus.Frontend[syntax.AST]{}, fmt.Errorf("loading cachefile %q: %w", opts.ParserCFF, err)
-			}
-		}
-	}
-
 	feOpts := fe.FrontendOptions{
 		LexerTrace:  opts.LexerTrace,
 		ParserTrace: opts.ParserTrace,
 	}
 
-	fishiFront := fe.Frontend(syntax.HooksTable, feOpts, preloadedParser)
-
-	// check the parser encoding if we generated a new one:
-	if preloadedParser == nil && opts.ParserCFF != "" && opts.WriteCache {
-		err := ictiobus.SaveParserToDisk(fishiFront.Parser, opts.ParserCFF)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "writing parser to disk: %s\n", err.Error())
-		} else {
-			fmt.Printf("wrote parser to %q\n", opts.ParserCFF)
-		}
-	}
+	fishiFront := fe.Frontend(syntax.HooksTable, &feOpts)
 
 	return fishiFront, nil
 }

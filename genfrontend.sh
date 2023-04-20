@@ -21,7 +21,7 @@ echo "Building current ictcc bin..."
 ./build.sh || exit 2
 
 echo "Generating new frontend in fishi/fe..."
-./ictcc --clr \
+./ictcc --lalr \
 	--ir 'github.com/dekarrin/ictiobus/fishi/syntax.AST' \
 	--dest fishi/fe \
 	-l FISHI -v 1.0.0 \

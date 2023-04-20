@@ -28,5 +28,3 @@
 *.exe
 __debug_bin.*
 
-# compiled fishi format
-*.cff

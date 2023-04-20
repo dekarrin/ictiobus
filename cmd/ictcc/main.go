@@ -42,10 +42,6 @@ Flags:
 		Do not show progress messages. This does not affect error messages or
 		warning output.
 
-	-p/--parser FILE
-		Set the location of the pre-compiled parser cache to the given CFF
-		format file as opposed to the default of './parser.cff'.
-
 	-f/--diag-format-pkg DIR
 		Enable special format reading in the generated diagnostics binary by
 		wrapping any io.Reader opened on input files in another io.Reader that
@@ -80,14 +76,6 @@ Flags:
 	--preserve-bin-source
 		Do not delete source files for any generated binary after compiling the
 		binary.
-
-	--no-cache
-		Disable the loading of any cached frontend components, even if a
-		pre-built one is available.
-
-	--no-cache-out
-		Disable writing of any frontend components cache, even if a component
-		was built by the invocation.
 
 	--version
 		Print the version of the ictiobus compiler-compiler and exit.
@@ -309,7 +297,7 @@ var (
 	flagGenAST    = pflag.BoolP("ast", "a", false, "Print the AST of the analyzed fishi")
 	flagGenTree   = pflag.BoolP("tree", "t", false, "Print the parse trees of each analyzed fishi file")
 	flagShowSpec  = pflag.BoolP("spec", "s", false, "Print the FISHI spec interpreted from the analyzed fishi")
-	flagParserCff = pflag.StringP("parser", "p", "fishi-parser.cff", "Use the specified parser CFF cache file instead of default")
+	flagParserCff = pflag.StringP("parser", "p", "fishi-parser.cff", "(UNUSED) Use the specified parser CFF cache file instead of default")
 	flagLang      = pflag.StringP("lang", "l", "Unspecified", "The name of the languae being generated")
 	flagLangVer   = pflag.StringP("lang-ver", "v", "v0.0.0", "The version of the language to generate")
 
@@ -322,8 +310,8 @@ var (
 	flagDebugTemplates    = pflag.Bool("debug-templates", false, "Dump the filled templates before running through gofmt")
 	flagPkg               = pflag.String("pkg", "fe", "The name of the package to place generated files in")
 	flagDest              = pflag.String("dest", "./fe", "The name of the directory to place the generated package in")
-	flagNoCache           = pflag.Bool("no-cache", false, "Disable use of cached frontend components, even if available")
-	flagNoCacheOutput     = pflag.Bool("no-cache-out", false, "Disable writing of cached frontend components, even if one was generated")
+	flagNoCache           = pflag.Bool("no-cache", false, "(UNUSED) Disable use of cached frontend components, even if available")
+	flagNoCacheOutput     = pflag.Bool("no-cache-out", false, "(UNUSED) Disable writing of cached frontend components, even if one was generated")
 
 	flagSimOff          = pflag.Bool("sim-off", false, "Disable input simulation of the language once built")
 	flagSimTrees        = pflag.Bool("sim-trees", false, "Show parse trees that caused errors during simulation")

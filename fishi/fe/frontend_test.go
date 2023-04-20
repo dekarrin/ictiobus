@@ -24,7 +24,7 @@ func Test_Fishi_Spec(t *testing.T) {
 	}
 
 	// bring in frontend
-	frontend := fe.Frontend(syntax.HooksTable, fe.FrontendOptions{})
+	frontend := fe.Frontend(syntax.HooksTable, nil)
 
 	// open pre-processing stream
 	r, err := format.NewCodeReader(fileR)

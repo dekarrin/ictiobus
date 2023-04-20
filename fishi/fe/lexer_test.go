@@ -22,14 +22,14 @@ func Test_Fishi_Lexer_AttrRef_Terminal(t *testing.T) {
 			input: `%%actions
 					someAttrRef.value`,
 			expect: []types.Token{
-				lex.NewToken(TCHeaderActions, "%%actions", 0, 0, ""),
+				lex.NewToken(TCHdrActions, "%%actions", 0, 0, ""),
 				lex.NewToken(TCAttrRef, "someAttrRef.value", 0, 0, ""),
 				lex.NewToken(types.TokenEndOfText, "", 0, 0, ""),
 			},
 		},
 	}
 
-	lx := CreateBootstrapLexer()
+	lx := Lexer(true)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// setup
