@@ -23,6 +23,11 @@ produced after a bootstrap frontend was created manually. This frontend was able
 to read in Fishi code and display the AST of it. Therefore, this document was
 updated to reflect that frontend, adjusting both it and the frontend as
 necessary to ensure it could continue to read it.
+* 4/20/23 - v1.0 - The first official spec for FISHI which was used to
+successfully produce a frontend for self-hosting. This version drives the FISHI
+parser as a whole and includes many fixes from the prior draft as well as the
+addition of the `$ft` first token built-in argument in translation scheme
+definition.
 
 ## Overview
 
