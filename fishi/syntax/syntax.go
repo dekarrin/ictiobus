@@ -9,6 +9,81 @@ import (
 	"github.com/dekarrin/ictiobus/types"
 )
 
+// AST is the a8stract syntax tree of a fishi spec.
+type AST struct {
+	Nodes []Block
+}
+
+func (ast AST) String() string {
+	var sb strings.Builder
+
+	sb.WriteRune('<')
+	if len(ast.Nodes) > 0 {
+		sb.WriteRune('\n')
+		for i := range ast.Nodes {
+			n := ast.Nodes[i]
+			switch n.Type() {
+			case BlockTypeError:
+				sb.WriteString("  <ERR>\n")
+			case BlockTypeGrammar:
+				gram := n.Grammar()
+				sb.WriteString("  <GRAMMAR:\n")
+				for j := range gram.Content {
+					cont := gram.Content[j]
+					if cont.State != "" {
+						sb.WriteString("    <RULE-SET FOR STATE " + fmt.Sprintf("%q\n", cont.State))
+					} else {
+						sb.WriteString("    <RULE-SET FOR ALL STATES\n")
+					}
+					for k := range cont.Rules {
+						r := cont.Rules[k]
+						sb.WriteString("      * " + r.String() + "\n")
+					}
+					sb.WriteString("    >\n")
+				}
+				sb.WriteString("  >\n")
+			case BlockTypeTokens:
+				toks := n.Tokens()
+				sb.WriteString("  <TOKENS:\n")
+				for j := range toks.Content {
+					cont := toks.Content[j]
+					if cont.State != "" {
+						sb.WriteString("    <ENTRY-SET FOR STATE " + fmt.Sprintf("%q\n", cont.State))
+					} else {
+						sb.WriteString("    <ENTRY-SET FOR ALL STATES\n")
+					}
+					for k := range cont.Entries {
+						entry := cont.Entries[k]
+						sb.WriteString("      * " + entry.String() + "\n")
+					}
+					sb.WriteString("    >\n")
+				}
+				sb.WriteString("  >\n")
+			case BlockTypeActions:
+				acts := n.Actions()
+				sb.WriteString("  <ACTIONS:\n")
+				for j := range acts.Content {
+					cont := acts.Content[j]
+					if cont.State != "" {
+						sb.WriteString("    <ACTION-SET FOR STATE " + fmt.Sprintf("%q\n", cont.State))
+					} else {
+						sb.WriteString("    <ACTION-SET FOR ALL STATES\n")
+					}
+					for k := range cont.Actions {
+						action := cont.Actions[k]
+						sb.WriteString("      * " + action.String() + "\n")
+					}
+					sb.WriteString("    >\n")
+				}
+				sb.WriteString("  >\n")
+			}
+		}
+	}
+	sb.WriteRune('>')
+
+	return sb.String()
+}
+
 type BlockType int
 
 const (

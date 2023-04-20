@@ -98,11 +98,10 @@ func sdtsFnMakeFishispec(_ trans.SetterInfo, args []interface{}) interface{} {
 	list, ok := args[0].([]Block)
 	if !ok {
 		// can't directly return nil because we'd lose the type information
-		var ast []Block
-		return ast
+		return AST{}
 	}
 
-	return list
+	return AST{Nodes: list}
 }
 
 func sdtsFnBlockListAppend(_ trans.SetterInfo, args []interface{}) interface{} {

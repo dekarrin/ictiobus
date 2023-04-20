@@ -16,6 +16,10 @@ import (
 	"github.com/dekarrin/ictiobus/types"
 )
 
+// This type alias is dum8!!!!!!!! Just make the callers import syntax, it's not
+// like it's unexported ::::/
+type AST = syntax.AST
+
 type Results struct {
 	AST  *AST
 	Tree *types.ParseTree
@@ -95,6 +99,7 @@ func ValidateSimulatedInput(spec Spec, md SpecMetadata, params SimulatedInputPar
 
 	return nil
 }
+
 func ParseMarkdownFile(filename string, opts Options) (Results, error) {
 	f, err := os.Open(filename)
 	if err != nil {
@@ -125,14 +130,12 @@ func Parse(r io.Reader, opts Options) (Results, error) {
 
 	res := Results{}
 	// now, try to make a parse tree
-	nodes, pt, err := fishiFront.Analyze(r)
+	ast, pt, err := fishiFront.Analyze(r)
 	res.Tree = pt // need to do this before we return
 	if err != nil {
 		return res, err
 	}
-	res.AST = &AST{
-		Nodes: nodes,
-	}
+	res.AST = &ast
 
 	return res, nil
 }
@@ -140,7 +143,7 @@ func Parse(r io.Reader, opts Options) (Results, error) {
 // GetFrontend gets the frontend for the fishi compiler-compiler. If cffFile is
 // provided, it is used to load the cached parser from disk. Otherwise, a new
 // frontend is created.
-func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.Block], error) {
+func GetFrontend(opts Options) (ictiobus.Frontend[syntax.AST], error) {
 	// check for preload
 	var preloadedParser ictiobus.Parser
 	if opts.ParserCFF != "" && opts.ReadCache {
@@ -150,7 +153,7 @@ func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.Block], error) {
 			if errors.Is(err, os.ErrNotExist) {
 				preloadedParser = nil
 			} else {
-				return ictiobus.Frontend[[]syntax.Block]{}, fmt.Errorf("loading cachefile %q: %w", opts.ParserCFF, err)
+				return ictiobus.Frontend[syntax.AST]{}, fmt.Errorf("loading cachefile %q: %w", opts.ParserCFF, err)
 			}
 		}
 	}
@@ -181,7 +184,7 @@ func GetFrontend(opts Options) (ictiobus.Frontend[[]syntax.Block], error) {
 // map type are supported.
 //
 // For example, ParseFQType("[]*github.com/ictiobus/fishi.Options") would return
-// "github.com/ictiobus/fishi", "[]*fishi.Options", nil.
+// "github.com/ictiobus/fishi", "[]*fishi.Options", "fishi", nil.
 func ParseFQType(fqType string) (pkg, typeName, pkgName string, err error) {
 	fqOriginal := fqType
 
@@ -205,4 +208,25 @@ func ParseFQType(fqType string) (pkg, typeName, pkgName string, err error) {
 	irType := preType + pkgName + "." + typeParts[len(typeParts)-1]
 
 	return fqPackage, irType, pkgName, nil
+}
+
+// MakeFQType makes a fully-qualified type name from the given package and type.
+// The typeName may include the package name, but it is not required and will be
+// ignored in favor of using pkg. Pkg must be the fully-qualified package name.
+func MakeFQType(pkg, typeName string) string {
+	preType := ""
+	for strings.HasPrefix(typeName, "[]") || strings.HasPrefix(typeName, "*") {
+		if strings.HasPrefix(typeName, "[]") {
+			preType += "[]"
+			typeName = typeName[2:]
+		} else {
+			preType += "*"
+			typeName = typeName[1:]
+		}
+	}
+
+	typeParts := strings.Split(typeName, ".")
+	rawTypeName := typeParts[len(typeParts)-1]
+
+	return preType + pkg + "." + rawTypeName
 }

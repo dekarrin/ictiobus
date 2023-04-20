@@ -5,7 +5,7 @@
 cd "$(dirname "$0")"
 
 ./ictcc --clr \
-	--ir '[]github.com/dekarrin/ictiobus/fishi/syntax.Block' \
+	--ir 'github.com/dekarrin/ictiobus/fishi/syntax.AST' \
 	--dest .testout \
 	-l FISHI -v 1.0.0 \
 	--hooks fishi/syntax \

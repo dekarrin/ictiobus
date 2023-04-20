@@ -278,7 +278,16 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	fePkgPath := filepath.Join(params.GenPath, "internal", params.FrontendPkgName)
 	binPkg := "github.com/dekarrin/ictiobus/langexec/" + safePkgIdent(md.Language)
 	fePkgImport := filepath.ToSlash(filepath.Join(binPkg, "internal", params.FrontendPkgName))
-	err = GenerateFrontendGo(spec, md, params.FrontendPkgName, fePkgPath, fePkgImport, &params.Opts)
+
+	feOpts := params.Opts
+	// if we copied the IR, we need to change the import in frontend files so
+	// that they refer to the correct one.
+	if irPackage == hooksPkgName {
+		feIRPkg := filepath.ToSlash(filepath.Join(binPkg, "internal", hooksPkgName))
+		feFQir := MakeFQType(feIRPkg, irType)
+		feOpts.IRType = feFQir
+	}
+	err = GenerateFrontendGo(spec, md, params.FrontendPkgName, fePkgPath, fePkgImport, &feOpts)
 	if err != nil {
 		return gci, fmt.Errorf("generating compiler: %w", err)
 	}
@@ -291,7 +300,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 		return gci, fmt.Errorf("writing parser: %w", err)
 	}
 
-	// only fill in the ir package import if ir's package is not not the same as the hooks package
+	// only fill in the ir package import if ir's package is not the same as the hooks package
 	if irPackage == hooksPkgName {
 		irFQPackage = ""
 	}

@@ -21,7 +21,7 @@ type FrontendOptions struct {
 // possibly built from scratch). Up to one Lexer, up to one Parser, and up to
 // one SDTS are allowed to be provided; doing so will replace the bootstrap
 // version of that component with the provided one.
-func Frontend(hooks map[string]trans.AttributeSetter, opts FrontendOptions, useComp ...interface{}) ictiobus.Frontend[[]syntax.Block] {
+func Frontend(hooks map[string]trans.AttributeSetter, opts FrontendOptions, useComp ...interface{}) ictiobus.Frontend[syntax.AST] {
 	var providedLx ictiobus.Lexer
 	var providedParser ictiobus.Parser
 	var providedSDTS ictiobus.SDTS
@@ -53,7 +53,7 @@ func Frontend(hooks map[string]trans.AttributeSetter, opts FrontendOptions, useC
 		}
 	}
 
-	fe := ictiobus.Frontend[[]syntax.Block]{
+	fe := ictiobus.Frontend[syntax.AST]{
 		Language:    "fishi",
 		Version:     "1.0.0-bootstrap",
 		IRAttribute: "ast",
