@@ -30,8 +30,16 @@ var (
 	}
 )
 
-func Test_LazyLex_multilineToken(t *testing.T) {
+func Test_LazyLex_multilineTokenSupport(t *testing.T) {
 	nlPlus := NewTokenClass("nl_plus", "'+' on next line")
+
+	useClasses := []types.TokenClass{
+		nlPlus,
+		testClassInt,
+		testClassMult,
+		testClassId,
+	}
+
 	testCases := []struct {
 		name     string
 		classes  []types.TokenClass
@@ -40,13 +48,8 @@ func Test_LazyLex_multilineToken(t *testing.T) {
 		expect   []lexerToken
 	}{
 		{
-			name: "start with single newline",
-			classes: []types.TokenClass{
-				nlPlus,
-				testClassInt,
-				testClassMult,
-				testClassId,
-			},
+			name:    "start with single newline",
+			classes: useClasses,
 			patterns: []box.Pair[string, Action]{
 				box.PairOf(`\n\+`, LexAs(nlPlus.ID())),
 				box.PairOf(`[0-9]+`, LexAs(testClassInt.ID())),
@@ -62,6 +65,106 @@ func Test_LazyLex_multilineToken(t *testing.T) {
 				{line: "+ 2", lineNum: 2, linePos: 1, class: nlPlus, lexed: "\n+"},
 				{line: "+ 2", lineNum: 2, linePos: 3, class: testClassInt, lexed: "2"},
 				{line: "+ 2", lineNum: 2, linePos: 4, class: types.TokenEndOfText},
+			},
+		},
+		{
+			name:    "start with double newline",
+			classes: useClasses,
+			patterns: []box.Pair[string, Action]{
+				box.PairOf(`\n\n\+`, LexAs(nlPlus.ID())),
+				box.PairOf(`[0-9]+`, LexAs(testClassInt.ID())),
+				box.PairOf(`\*`, LexAs(testClassMult.ID())),
+				box.PairOf(`[A-Za-z_][A-Za-z_0-9]*`, LexAs(testClassId.ID())),
+				box.PairOf(`[^\S\n]+`, Discard()),
+			},
+			input: "1 * var \n\n+ 2",
+			expect: []lexerToken{
+				{line: "1 * var ", lineNum: 1, linePos: 1, class: testClassInt, lexed: "1"},
+				{line: "1 * var ", lineNum: 1, linePos: 3, class: testClassMult, lexed: "*"},
+				{line: "1 * var ", lineNum: 1, linePos: 5, class: testClassId, lexed: "var"},
+				{line: "+ 2", lineNum: 3, linePos: 1, class: nlPlus, lexed: "\n\n+"},
+				{line: "+ 2", lineNum: 3, linePos: 3, class: testClassInt, lexed: "2"},
+				{line: "+ 2", lineNum: 3, linePos: 4, class: types.TokenEndOfText},
+			},
+		},
+		{
+			name:    "start with double newline",
+			classes: useClasses,
+			patterns: []box.Pair[string, Action]{
+				box.PairOf(`\n\n\+`, LexAs(nlPlus.ID())),
+				box.PairOf(`[0-9]+`, LexAs(testClassInt.ID())),
+				box.PairOf(`\*`, LexAs(testClassMult.ID())),
+				box.PairOf(`[A-Za-z_][A-Za-z_0-9]*`, LexAs(testClassId.ID())),
+				box.PairOf(`[^\S\n]+`, Discard()),
+			},
+			input: "1 * var \n\n+ 2",
+			expect: []lexerToken{
+				{line: "1 * var ", lineNum: 1, linePos: 1, class: testClassInt, lexed: "1"},
+				{line: "1 * var ", lineNum: 1, linePos: 3, class: testClassMult, lexed: "*"},
+				{line: "1 * var ", lineNum: 1, linePos: 5, class: testClassId, lexed: "var"},
+				{line: "+ 2", lineNum: 3, linePos: 1, class: nlPlus, lexed: "\n\n+"},
+				{line: "+ 2", lineNum: 3, linePos: 3, class: testClassInt, lexed: "2"},
+				{line: "+ 2", lineNum: 3, linePos: 4, class: types.TokenEndOfText},
+			},
+		},
+		{
+			name:    "actual text in middle of newlines",
+			classes: useClasses,
+			patterns: []box.Pair[string, Action]{
+				box.PairOf(`\n\n\+\n`, LexAs(nlPlus.ID())),
+				box.PairOf(`[0-9]+`, LexAs(testClassInt.ID())),
+				box.PairOf(`\*`, LexAs(testClassMult.ID())),
+				box.PairOf(`[A-Za-z_][A-Za-z_0-9]*`, LexAs(testClassId.ID())),
+				box.PairOf(`[^\S\n]+`, Discard()),
+			},
+			input: "1 * var \n\n+\n 2",
+			expect: []lexerToken{
+				{line: "1 * var ", lineNum: 1, linePos: 1, class: testClassInt, lexed: "1"},
+				{line: "1 * var ", lineNum: 1, linePos: 3, class: testClassMult, lexed: "*"},
+				{line: "1 * var ", lineNum: 1, linePos: 5, class: testClassId, lexed: "var"},
+				{line: "+", lineNum: 3, linePos: 1, class: nlPlus, lexed: "\n\n+\n"},
+				{line: " 2", lineNum: 4, linePos: 2, class: testClassInt, lexed: "2"},
+				{line: " 2", lineNum: 4, linePos: 3, class: types.TokenEndOfText},
+			},
+		},
+		{
+			name:    "more text after following newline",
+			classes: useClasses,
+			patterns: []box.Pair[string, Action]{
+				box.PairOf(`\n\+\nA PLUS\n\n`, LexAs(nlPlus.ID())),
+				box.PairOf(`[0-9]+`, LexAs(testClassInt.ID())),
+				box.PairOf(`\*`, LexAs(testClassMult.ID())),
+				box.PairOf(`[A-Za-z_][A-Za-z_0-9]*`, LexAs(testClassId.ID())),
+				box.PairOf(`[^\S\n]+`, Discard()),
+			},
+			input: "1 * var \n+\nA PLUS\n\n 2",
+			expect: []lexerToken{
+				{line: "1 * var ", lineNum: 1, linePos: 1, class: testClassInt, lexed: "1"},
+				{line: "1 * var ", lineNum: 1, linePos: 3, class: testClassMult, lexed: "*"},
+				{line: "1 * var ", lineNum: 1, linePos: 5, class: testClassId, lexed: "var"},
+				{line: "+", lineNum: 2, linePos: 1, class: nlPlus, lexed: "\n+\nA PLUS\n\n"},
+				{line: " 2", lineNum: 5, linePos: 2, class: testClassInt, lexed: "2"},
+				{line: " 2", lineNum: 5, linePos: 3, class: types.TokenEndOfText},
+			},
+		},
+		{
+			name:    "more text after following newline, leading extra whitespace",
+			classes: useClasses,
+			patterns: []box.Pair[string, Action]{
+				box.PairOf(`   \n  \+k\nA PLUS\n\n`, LexAs(nlPlus.ID())),
+				box.PairOf(`[0-9]+`, LexAs(testClassInt.ID())),
+				box.PairOf(`\*`, LexAs(testClassMult.ID())),
+				box.PairOf(`[A-Za-z_][A-Za-z_0-9]*`, LexAs(testClassId.ID())),
+				box.PairOf(`[^\S\n]`, Discard()),
+			},
+			input: "1 * var    \n  +k\nA PLUS\n\n 2",
+			expect: []lexerToken{
+				{line: "1 * var    ", lineNum: 1, linePos: 1, class: testClassInt, lexed: "1"},
+				{line: "1 * var    ", lineNum: 1, linePos: 3, class: testClassMult, lexed: "*"},
+				{line: "1 * var    ", lineNum: 1, linePos: 5, class: testClassId, lexed: "var"},
+				{line: "  +k", lineNum: 2, linePos: 3, class: nlPlus, lexed: "   \n  +k\nA PLUS\n\n"},
+				{line: " 2", lineNum: 5, linePos: 2, class: testClassInt, lexed: "2"},
+				{line: " 2", lineNum: 5, linePos: 3, class: types.TokenEndOfText},
 			},
 		},
 	}
