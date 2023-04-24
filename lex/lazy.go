@@ -6,9 +6,15 @@ import (
 	"math"
 	"regexp"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/dekarrin/ictiobus/types"
+)
+
+var (
+	// regex for newline/whitespace prefix
+	atLeastOneNewlineWSPrefixRegex = regexp.MustCompile(`^\s*\n\s*\S`)
 )
 
 type lazyTokenStream struct {
@@ -220,9 +226,75 @@ func (lx *lazyTokenStream) Next() types.Token {
 
 		actionIdx, lexeme := lx.selectMatch(matches)
 
+		// update source text context tracking BEFORE creating token in case
+		// we need to update it for a token that starts with a newline
+		// TODO: make this efficient
+		var numNewLines int
+		var leadingLineChars string
+		curLine := lx.curLine
+		curPos := lx.curPos
+		curFullLine := lx.curFullLine
+		for _, ch := range lexeme {
+			if ch == '\n' {
+				curLine++
+				curPos = 0
+				numNewLines++
+				leadingLineChars = ""
+			} else if numNewLines > 0 {
+				leadingLineChars += string(ch)
+			}
+			curPos++
+		}
+		if numNewLines > 0 {
+			curFullLine = leadingLineChars + readLineWithoutAdvancing(lx.r)
+		}
+
 		action := stateActions[actionIdx]
 		var tok types.Token
 		var retToken bool
+
+		// if lexeme has a prefix consisting of only whitespace with at least
+		// one newline, and lexeme contains at least one non-whitespace rune,
+		// then the source line info should be updated to point to the first
+		// non-whitespace rune for the creation of the token with that lexeme to
+		// aid in error reporting.
+		if (action.Type == ActionScan || action.Type == ActionScanAndState) && atLeastOneNewlineWSPrefixRegex.MatchString(lexeme) {
+			// find the point where the first non-whitespace rune is
+
+			// Feels like we could have 8een doing this a8ove while looping over
+			// the string; this means that this will 8e the third time we're
+			// doing it!
+			var wsScanNumNewLines int
+			var wsScanLeadingLineChars string
+			var hitNonSpace bool
+			var hitNLAfterNonSpace bool
+			for _, ch := range lexeme {
+				if ch == '\n' {
+					if !hitNonSpace {
+						lx.curLine++
+						lx.curPos = 0
+						wsScanLeadingLineChars = ""
+					} else {
+						hitNLAfterNonSpace = true
+					}
+					wsScanNumNewLines++
+				} else if !unicode.IsSpace(ch) {
+					hitNonSpace = true
+					if wsScanNumNewLines > 0 && !hitNLAfterNonSpace {
+						wsScanLeadingLineChars += string(ch)
+					}
+				} else if wsScanNumNewLines > 0 && !hitNLAfterNonSpace {
+					wsScanLeadingLineChars += string(ch)
+				}
+				if !hitNonSpace {
+					lx.curPos++
+				}
+			}
+			if !hitNLAfterNonSpace {
+				wsScanLeadingLineChars += readLineWithoutAdvancing(lx.r)
+			}
+			lx.curFullLine = wsScanLeadingLineChars
+		}
 
 		switch action.Type {
 		case ActionNone:
@@ -250,23 +322,9 @@ func (lx *lazyTokenStream) Next() types.Token {
 		}
 
 		// update source text context tracking
-		// TODO: make this efficient
-		var numNewLines int
-		var leadingLineChars string
-		for _, ch := range lexeme {
-			if ch == '\n' {
-				lx.curLine++
-				lx.curPos = 0
-				numNewLines++
-				leadingLineChars = ""
-			} else if numNewLines > 0 {
-				leadingLineChars += string(ch)
-			}
-			lx.curPos++
-		}
-		if numNewLines > 0 {
-			lx.curFullLine = leadingLineChars + readLineWithoutAdvancing(lx.r)
-		}
+		lx.curLine = curLine
+		lx.curPos = curPos
+		lx.curFullLine = curFullLine
 
 		// return token if we do that now
 		if retToken {
