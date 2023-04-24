@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/types"
 
 	"github.com/stretchr/testify/assert"
@@ -28,6 +29,115 @@ var (
 		testClassInt,
 	}
 )
+
+func Test_LazyLex_multilineToken(t *testing.T) {
+	nlPlus := NewTokenClass("nl_plus", "'+' on next line")
+	testCases := []struct {
+		name     string
+		classes  []types.TokenClass
+		patterns []box.Pair[string, Action]
+		input    string
+		expect   []lexerToken
+	}{
+		{
+			name: "start with single newline",
+			classes: []types.TokenClass{
+				nlPlus,
+				testClassInt,
+				testClassMult,
+				testClassId,
+			},
+			patterns: []box.Pair[string, Action]{
+				box.PairOf(`\n\+`, LexAs(nlPlus.ID())),
+				box.PairOf(`[0-9]+`, LexAs(testClassInt.ID())),
+				box.PairOf(`\*`, LexAs(testClassMult.ID())),
+				box.PairOf(`[A-Za-z_][A-Za-z_0-9]*`, LexAs(testClassId.ID())),
+				box.PairOf(`[^\S\n]+`, Discard()),
+			},
+			input: "1 * var \n+ 2",
+			expect: []lexerToken{
+				{line: "1 * var ", lineNum: 1, linePos: 1, class: testClassInt, lexed: "1"},
+				{line: "1 * var ", lineNum: 1, linePos: 3, class: testClassMult, lexed: "*"},
+				{line: "1 * var ", lineNum: 1, linePos: 5, class: testClassId, lexed: "var"},
+				{line: "+ 2", lineNum: 2, linePos: 1, class: nlPlus, lexed: "\n+"},
+				{line: "+ 2", lineNum: 2, linePos: 3, class: testClassInt, lexed: "2"},
+				{line: "+ 2", lineNum: 2, linePos: 4, class: types.TokenEndOfText},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// setup
+			assert := assert.New(t)
+			lx := NewLexer(true)
+			for i := range tc.classes {
+				lx.RegisterClass(tc.classes[i], "")
+			}
+			for i := range tc.patterns {
+				err := lx.AddPattern(tc.patterns[i].First, tc.patterns[i].Second, "", 0)
+				if !assert.NoErrorf(err, "adding pattern %d to lexer failed", i) {
+					return
+				}
+			}
+			inputReader := strings.NewReader(tc.input)
+
+			// execute
+			stream, err := lx.Lex(inputReader)
+			if !assert.NoErrorf(err, "error while producing token stream") {
+				return
+			}
+
+			// assert
+
+			// go through each item in the stream and check that it matches
+			// expected
+			tokNum := 0
+			for stream.HasNext() {
+				if tokNum >= len(tc.expect) {
+					assert.Failf("wrong number of produced tokens", "expected stream to produce %d tokens but got more", len(tc.expect))
+					return
+				}
+
+				expectToken := tc.expect[tokNum]
+				actualToken := stream.Next()
+
+				if actualToken.Class().ID() == types.TokenError.ID() {
+					assert.Fail("received error token", "error: %s", actualToken.Lexeme())
+				}
+
+				var mismatched bool
+
+				if !assert.Equal(expectToken.Class().ID(), actualToken.Class().ID(), "token #%d, class mismatch", tokNum) {
+					mismatched = true
+				}
+				if !assert.Equal(expectToken.FullLine(), actualToken.FullLine(), "token #%d, full-line mismatch", tokNum) {
+					mismatched = true
+				}
+				if !assert.Equal(expectToken.Line(), actualToken.Line(), "token #%d, line number mismatch", tokNum) {
+					mismatched = true
+				}
+				if !assert.Equal(expectToken.LinePos(), actualToken.LinePos(), "token #%d, line position mismatch", tokNum) {
+					mismatched = true
+				}
+				if !assert.Equal(expectToken.Lexeme(), actualToken.Lexeme(), "token #%d, lexeme mismatch", tokNum) {
+					mismatched = true
+				}
+
+				if mismatched {
+					expectLine := expectToken.FullLine()
+					actualLine := actualToken.FullLine()
+					assert.Failf("token mismatch", "expected token #%d to be %s (LINE: %q) but got %s (LINE: %q)", tokNum, expectToken, expectLine, actualToken, actualLine)
+				}
+
+				tokNum++
+			}
+			if tokNum != len(tc.expect) {
+				assert.Failf("wrong number of produced tokens", "expected stream to produce %d tokens but got %d", len(tc.expect), tokNum)
+			}
+		})
+	}
+}
 
 func Test_LazyLex_singleStateLex(t *testing.T) {
 	testCases := []struct {
