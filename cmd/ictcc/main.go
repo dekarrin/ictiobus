@@ -73,7 +73,7 @@ Flags:
 		Set the version of the language to generate a frontend for. Defaults to
 		"v0.0.0".
 
-	-p/--preprocess
+	-p/--preproc
 		Show the output of running preprocessing on input files. This will show
 		the exact code that is going to be parsed by ictcc before such parsing
 		occurs.
@@ -307,7 +307,7 @@ var (
 	flagShowSpec  = pflag.BoolP("spec", "s", false, "Print the FISHI spec interpreted from the analyzed fishi")
 	flagLang      = pflag.StringP("lang", "l", "Unspecified", "The name of the languae being generated")
 	flagLangVer   = pflag.StringP("lang-ver", "v", "v0.0.0", "The version of the language to generate")
-	flagPreproc   = pflag.BoolP("preprocess", "p", false, "Print the preprocessed FISHI code before compiling it")
+	flagPreproc   = pflag.BoolP("preproc", "p", false, "Print the preprocessed FISHI code before compiling it")
 
 	flagDiagBin        = pflag.StringP("diag", "d", "", "Generate binary that has the generated frontend and uses it to analyze the target language")
 	flagDiagFormatPkg  = pflag.StringP("diag-format-pkg", "f", "", "The package containing format functions for the diagnostic binary to call on input prior to passing to frontend analysis")
@@ -745,6 +745,7 @@ func printPreproc(file string) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	// dont do direct fs IO
 	bufF := bufio.NewReader(f)
