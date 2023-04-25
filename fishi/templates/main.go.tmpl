@@ -63,6 +63,9 @@ var (
 	flagSimGraphs 		= pflag.Bool("sim-graphs", false, "Show dependency graph for each simulated tree that caused SDTS validation errors")
 	flagSimFirstErr  	= pflag.Bool("sim-first-err", false, "Show only the first error found in SDTS validation of simulated trees")
 	flagSimSkipErrs		= pflag.Int("sim-skip-errs", 0, "Skip the first N errors found in SDTS validation of simulated trees")
+{{if .FormatCall -}}
+	flagPreproc         = pflag.Bool("preproc", false, "Print the input file(s) to stdout after reading their format and preprocessing them")
+{{- end}}
 )
 
 func main() {
@@ -127,15 +130,36 @@ func main() {
 		returnCode = ExitErrNoFiles
 		return
 	}
-	
+
+	// track open files so we can close them
+	openFiles := make([]*os.File, 0, len(files))
+	defer func() {
+		for _, f := range openFiles {
+			f.Close()
+		}
+	}()
+
 	var r io.Reader
 	for _, f := range files {
+{{if .FormatCall -}}
+		// do preloading step of reading and immediately outputting the preprocessed file
+		if *flagPreproc {
+			err := printPreproc(f)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", f, err)
+				returnCode = ExitErr
+				return
+			}
+		}
+{{- end}}
+
 		file, err := os.Open(f)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", f, err)
 			returnCode = ExitErr
 			return
 		}
+		openFiles = append(openFiles, file)
 
 		r = bufio.NewReader(file)
 
@@ -172,3 +196,38 @@ func main() {
 		}
 	}
 }
+
+{{if .FormatCall -}}
+func printPreproc(file string) error {
+	f, err := os.Open(file)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	// dont do direct fs IO
+	bufF := bufio.NewReader(f)
+
+	cr, err := {{ .FormatPkg }}.{{ .FormatCall }}(bufF)
+	if err != nil {
+		return err
+	}
+
+	// open a buffered reader on our code reader so we can read it line
+	// by line
+	bufCR := bufio.NewReader(cr)
+
+	// read file line by line and print each line as it is read
+	for {
+		line, err := bufCR.ReadString('\n')
+		fmt.Print(line)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+	}
+	return nil
+}
+{{end}}
