@@ -73,6 +73,11 @@ Flags:
 		Set the version of the language to generate a frontend for. Defaults to
 		"v0.0.0".
 
+	-p/--preprocess
+		Show the output of running preprocessing on input files. This will show
+		the exact code that is going to be parsed by ictcc before such parsing
+		occurs.
+
 	--preserve-bin-source
 		Do not delete source files for any generated binary after compiling the
 		binary.
@@ -269,9 +274,11 @@ immediately exit with a success code after parsing the input.
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"go/build"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -283,6 +290,7 @@ import (
 
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/fishi"
+	"github.com/dekarrin/ictiobus/fishi/format"
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
@@ -297,9 +305,9 @@ var (
 	flagGenAST    = pflag.BoolP("ast", "a", false, "Print the AST of the analyzed fishi")
 	flagGenTree   = pflag.BoolP("tree", "t", false, "Print the parse trees of each analyzed fishi file")
 	flagShowSpec  = pflag.BoolP("spec", "s", false, "Print the FISHI spec interpreted from the analyzed fishi")
-	flagParserCff = pflag.StringP("parser", "p", "fishi-parser.cff", "(UNUSED) Use the specified parser CFF cache file instead of default")
 	flagLang      = pflag.StringP("lang", "l", "Unspecified", "The name of the languae being generated")
 	flagLangVer   = pflag.StringP("lang-ver", "v", "v0.0.0", "The version of the language to generate")
+	flagPreproc   = pflag.BoolP("preprocess", "p", false, "Print the preprocessed FISHI code before compiling it")
 
 	flagDiagBin        = pflag.StringP("diag", "d", "", "Generate binary that has the generated frontend and uses it to analyze the target language")
 	flagDiagFormatPkg  = pflag.StringP("diag-format-pkg", "f", "", "The package containing format functions for the diagnostic binary to call on input prior to passing to frontend analysis")
@@ -312,6 +320,7 @@ var (
 	flagDest              = pflag.String("dest", "./fe", "The name of the directory to place the generated package in")
 	flagNoCache           = pflag.Bool("no-cache", false, "(UNUSED) Disable use of cached frontend components, even if available")
 	flagNoCacheOutput     = pflag.Bool("no-cache-out", false, "(UNUSED) Disable writing of cached frontend components, even if one was generated")
+	flagParserCff         = pflag.String("parser", "fishi-parser.cff", "(UNUSED) Use the specified parser CFF cache file instead of default")
 
 	flagSimOff          = pflag.Bool("sim-off", false, "Disable input simulation of the language once built")
 	flagSimTrees        = pflag.Bool("sim-trees", false, "Show parse trees that caused errors during simulation")
@@ -471,6 +480,16 @@ func main() {
 	var joinedAST *fishi.AST
 
 	for _, file := range args {
+		// if we've been asked to show preprocessed, do that now by directly
+		// building the CodeReader and reading the entire file.
+		if *flagPreproc {
+			err := printPreproc(file)
+			if err != nil {
+				errOther(err.Error())
+				return
+			}
+		}
+
 		res, err := fishi.ParseMarkdownFile(file, fo)
 
 		if res.AST != nil {
@@ -719,6 +738,38 @@ func main() {
 		errGeneration(err.Error())
 		return
 	}
+}
+
+func printPreproc(file string) error {
+	f, err := os.Open(file)
+	if err != nil {
+		return err
+	}
+
+	// dont do direct fs IO
+	bufF := bufio.NewReader(f)
+
+	cr, err := format.NewCodeReader(bufF)
+	if err != nil {
+		return err
+	}
+
+	// open a buffered reader on our code reader so we can read it line
+	// by line
+	bufCR := bufio.NewReader(cr)
+
+	// read file line by line and print each line as it is read
+	for {
+		line, err := bufCR.ReadString('\n')
+		fmt.Print(line)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+	}
+	return nil
 }
 
 func devModeInfoFromFlags() (DevModeInfo, error) {
