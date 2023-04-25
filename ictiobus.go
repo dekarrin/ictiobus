@@ -26,7 +26,7 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
-	"github.com/dekarrin/ictiobus/internal/decbin"
+	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/parse"
 	"github.com/dekarrin/ictiobus/trans"
@@ -293,15 +293,15 @@ func GetParserFromDisk(filename string) (Parser, error) {
 
 // EncodeParserBytes takes a parser and returns the encoded bytes.
 func EncodeParserBytes(p Parser) []byte {
-	data := decbin.EncString(p.Type().String())
-	data = append(data, decbin.EncBinary(p)...)
+	data := rezi.EncString(p.Type().String())
+	data = append(data, rezi.EncBinary(p)...)
 	return data
 }
 
 // DecodeParserBytes takes bytes and returns the Parser encoded within it.
 func DecodeParserBytes(data []byte) (p Parser, err error) {
 	// first get the string giving the type
-	typeStr, n, err := decbin.DecString(data)
+	typeStr, n, err := rezi.DecString(data)
 	if err != nil {
 		return nil, fmt.Errorf("read parser type: %w", err)
 	}
@@ -324,7 +324,7 @@ func DecodeParserBytes(data []byte) (p Parser, err error) {
 		panic("should never happen: parsed parserType is not valid")
 	}
 
-	_, err = decbin.DecBinary(data[n:], p)
+	_, err = rezi.DecBinary(data[n:], p)
 	return p, err
 }
 

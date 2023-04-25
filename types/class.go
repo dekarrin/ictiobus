@@ -3,7 +3,7 @@ package types
 import (
 	"strings"
 
-	"github.com/dekarrin/ictiobus/internal/decbin"
+	"github.com/dekarrin/ictiobus/internal/rezi"
 )
 
 type TokenClass interface {
@@ -24,7 +24,7 @@ type TokenClass interface {
 type simpleTokenClass string
 
 func (class *simpleTokenClass) UnmarshalBinary(data []byte) error {
-	s, _, err := decbin.DecString(data)
+	s, _, err := rezi.DecString(data)
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func (class *simpleTokenClass) UnmarshalBinary(data []byte) error {
 }
 
 func (class *simpleTokenClass) MarshalBinary() ([]byte, error) {
-	return decbin.EncString(string(*class)), nil
+	return rezi.EncString(string(*class)), nil
 }
 
 func (class *simpleTokenClass) ID() string {

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/internal/box"
-	"github.com/dekarrin/ictiobus/internal/decbin"
+	"github.com/dekarrin/ictiobus/internal/rezi"
 )
 
 type LR0Item struct {
@@ -15,9 +15,9 @@ type LR0Item struct {
 }
 
 func (lr0 LR0Item) MarshalBinary() ([]byte, error) {
-	data := decbin.EncString(lr0.NonTerminal)
-	data = append(data, decbin.EncSliceString(lr0.Left)...)
-	data = append(data, decbin.EncSliceString(lr0.Right)...)
+	data := rezi.EncString(lr0.NonTerminal)
+	data = append(data, rezi.EncSliceString(lr0.Left)...)
+	data = append(data, rezi.EncSliceString(lr0.Right)...)
 
 	return data, nil
 }
@@ -26,19 +26,19 @@ func (lr0 *LR0Item) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
 
-	lr0.NonTerminal, n, err = decbin.DecString(data)
+	lr0.NonTerminal, n, err = rezi.DecString(data)
 	if err != nil {
 		return fmt.Errorf(".NonTerminal: %w", err)
 	}
 	data = data[n:]
 
-	lr0.Left, n, err = decbin.DecSliceString(data)
+	lr0.Left, n, err = rezi.DecSliceString(data)
 	if err != nil {
 		return fmt.Errorf(".Left: %w", err)
 	}
 	data = data[n:]
 
-	lr0.Right, _, err = decbin.DecSliceString(data)
+	lr0.Right, _, err = rezi.DecSliceString(data)
 	if err != nil {
 		return fmt.Errorf(".Right: %w", err)
 	}
@@ -88,8 +88,8 @@ type LR1Item struct {
 }
 
 func (lr1 LR1Item) MarshalBinary() ([]byte, error) {
-	data := decbin.EncBinary(lr1.LR0Item)
-	data = append(data, decbin.EncString(lr1.Lookahead)...)
+	data := rezi.EncBinary(lr1.LR0Item)
+	data = append(data, rezi.EncString(lr1.Lookahead)...)
 	return data, nil
 }
 
@@ -97,13 +97,13 @@ func (lr1 *LR1Item) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
 
-	n, err = decbin.DecBinary(data, &lr1.LR0Item)
+	n, err = rezi.DecBinary(data, &lr1.LR0Item)
 	if err != nil {
 		return fmt.Errorf(".LR0Item: %w", err)
 	}
 	data = data[n:]
 
-	lr1.Lookahead, _, err = decbin.DecString(data)
+	lr1.Lookahead, _, err = rezi.DecString(data)
 	if err != nil {
 		return fmt.Errorf(".Left: %w", err)
 	}

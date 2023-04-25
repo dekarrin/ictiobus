@@ -3,7 +3,7 @@ package grammar
 import (
 	"strings"
 
-	"github.com/dekarrin/ictiobus/internal/decbin"
+	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/slices"
 )
 
@@ -120,11 +120,11 @@ func (p Production) HasSymbol(sym string) bool {
 }
 
 func (p Production) MarshalBinary() ([]byte, error) {
-	return decbin.EncSliceString([]string(p)), nil
+	return rezi.EncSliceString([]string(p)), nil
 }
 
 func (p *Production) UnmarshalBinary(data []byte) error {
-	strSlice, _, err := decbin.DecSliceString(data)
+	strSlice, _, err := rezi.DecSliceString(data)
 	if err != nil {
 		return err
 	}
@@ -140,8 +140,8 @@ type Rule struct {
 }
 
 func (r Rule) MarshalBinary() ([]byte, error) {
-	data := decbin.EncString(r.NonTerminal)
-	data = append(data, decbin.EncSliceBinary(r.Productions)...)
+	data := rezi.EncString(r.NonTerminal)
+	data = append(data, rezi.EncSliceBinary(r.Productions)...)
 	return data, nil
 }
 
@@ -149,13 +149,13 @@ func (r *Rule) UnmarshalBinary(data []byte) error {
 	var n int
 	var err error
 
-	r.NonTerminal, n, err = decbin.DecString(data)
+	r.NonTerminal, n, err = rezi.DecString(data)
 	if err != nil {
 		return err
 	}
 	data = data[n:]
 
-	prodSl, _, err := decbin.DecSliceBinary[*Production](data)
+	prodSl, _, err := rezi.DecSliceBinary[*Production](data)
 	if err != nil {
 		return err
 	}

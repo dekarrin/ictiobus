@@ -11,7 +11,7 @@ import (
 	"github.com/dekarrin/ictiobus/grammar"
 
 	"github.com/dekarrin/ictiobus/internal/box"
-	"github.com/dekarrin/ictiobus/internal/decbin"
+	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/rosed"
@@ -25,18 +25,18 @@ type DFA[E any] struct {
 }
 
 func (dfa DFA[E]) MarshalBytes(conv func(E) []byte) []byte {
-	data := decbin.EncInt(int(dfa.order))
-	data = append(data, decbin.EncString(dfa.Start)...)
+	data := rezi.EncInt(int(dfa.order))
+	data = append(data, rezi.EncString(dfa.Start)...)
 
 	if dfa.states == nil {
-		data = append(data, decbin.EncInt(-1)...)
+		data = append(data, rezi.EncInt(-1)...)
 	} else {
 		stateNames := textfmt.OrderedKeys(dfa.states)
-		data = append(data, decbin.EncInt(len(stateNames))...)
+		data = append(data, rezi.EncInt(len(stateNames))...)
 		for _, stateName := range stateNames {
-			data = append(data, decbin.EncString(stateName)...)
+			data = append(data, rezi.EncString(stateName)...)
 			stateBytes := dfa.states[stateName].MarshalBytes(conv)
-			data = append(data, decbin.EncInt(len(stateBytes))...)
+			data = append(data, rezi.EncInt(len(stateBytes))...)
 			data = append(data, stateBytes...)
 		}
 	}
@@ -50,21 +50,21 @@ func UnmarshalDFABytes[E any](data []byte, conv func([]byte) (E, error)) (DFA[E]
 	var err error
 
 	var iVal int
-	iVal, n, err = decbin.DecInt(data)
+	iVal, n, err = rezi.DecInt(data)
 	if err != nil {
 		return dfa, fmt.Errorf(".order: %w", err)
 	}
 	dfa.order = uint64(iVal)
 	data = data[n:]
 
-	dfa.Start, n, err = decbin.DecString(data)
+	dfa.Start, n, err = rezi.DecString(data)
 	if err != nil {
 		return dfa, fmt.Errorf(".Start: %w", err)
 	}
 	data = data[n:]
 
 	var numStates int
-	numStates, n, err = decbin.DecInt(data)
+	numStates, n, err = rezi.DecInt(data)
 	if err != nil {
 		return dfa, fmt.Errorf(".states: %w", err)
 	}
@@ -76,13 +76,13 @@ func UnmarshalDFABytes[E any](data []byte, conv func([]byte) (E, error)) (DFA[E]
 			var stateBytesLen int
 			var state DFAState[E]
 
-			name, n, err = decbin.DecString(data)
+			name, n, err = rezi.DecString(data)
 			if err != nil {
 				return dfa, fmt.Errorf(".states[%d]: %w", i, err)
 			}
 			data = data[n:]
 
-			stateBytesLen, n, err = decbin.DecInt(data)
+			stateBytesLen, n, err = rezi.DecInt(data)
 			if err != nil {
 				return dfa, fmt.Errorf(".states[%s]: value bytes len: %w", name, err)
 			}

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
-	"github.com/dekarrin/ictiobus/internal/decbin"
+	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/stack"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/types"
@@ -80,9 +80,9 @@ func (lr *lrParser) TableString() string {
 }
 
 func (lr *lrParser) MarshalBinary() ([]byte, error) {
-	data := decbin.EncString(lr.parseType.String())
-	data = append(data, decbin.EncBinary(lr.table)...)
-	data = append(data, decbin.EncBinary(lr.gram)...)
+	data := rezi.EncString(lr.parseType.String())
+	data = append(data, rezi.EncBinary(lr.table)...)
+	data = append(data, rezi.EncBinary(lr.gram)...)
 	return data, nil
 }
 
@@ -91,7 +91,7 @@ func (lr *lrParser) UnmarshalBinary(data []byte) error {
 	var n int
 
 	var parseTypeName string
-	parseTypeName, n, err = decbin.DecString(data)
+	parseTypeName, n, err = rezi.DecString(data)
 	if err != nil {
 		return fmt.Errorf("parseType: %w", err)
 	}
@@ -113,14 +113,14 @@ func (lr *lrParser) UnmarshalBinary(data []byte) error {
 		return fmt.Errorf("unknown parse type: %s", lr.parseType.String())
 	}
 
-	n, err = decbin.DecBinary(data, tableVal)
+	n, err = rezi.DecBinary(data, tableVal)
 	if err != nil {
 		return fmt.Errorf("table: %w", err)
 	}
 	data = data[n:]
 	lr.table = tableVal
 
-	_, err = decbin.DecBinary(data, &lr.gram)
+	_, err = rezi.DecBinary(data, &lr.gram)
 	if err != nil {
 		return fmt.Errorf("gram: %w", err)
 	}
