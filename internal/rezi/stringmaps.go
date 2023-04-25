@@ -1,4 +1,4 @@
-package decbin
+package rezi
 
 // stringmaps.go contains functions for encoding and decoding maps of string to
 // the basic types.

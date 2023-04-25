@@ -1,11 +1,14 @@
-// Package marshal contains functions for marshaling data as binary bytes using
-// a simple encoding scheme. Encoding output length is predictible. For ints and
-// bools, this is accomplished by having constant length of encoded output (8
-// bytes for ints, 1 byte for bools); for types with variable length encoded
-// values such as strings or other types, this is accomplished by placing an
-// encoded integer at the head of the bytes which indicates how many bytes that
-// follow are part of the type being decoded.
-package decbin
+// Package rezi, the Rarefied Encoding (Compressible) Interpreter, contains
+// functions for marshaling data as binary bytes using a simple encoding scheme.
+// Encoding output length is variable based on data size. For bools, this is
+// accomplished by having constant length of encoded output. Encoded ints are
+// represented as one or more bytes depending on their value, with values closer
+// to 0 taking up fewer bytes. Encoded strings are represented by an encoded int
+// that gives the unicode codepoint count followed by the contents of the
+// string encoded as UTF-8. For other types, an encoded integer is placed at the
+// head of the bytes which indicates how many bytes that follow are part of the
+// value being decoded.
+package rezi
 
 // TODO: rename this decbin
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dekarrin/ictiobus/internal/decbin"
+	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/types"
 )
 
@@ -18,13 +18,13 @@ func (lc *lexerClass) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
 
-	lc.id, n, err = decbin.DecString(data)
+	lc.id, n, err = rezi.DecString(data)
 	if err != nil {
 		return err
 	}
 	data = data[n:]
 
-	lc.name, _, err = decbin.DecString(data)
+	lc.name, _, err = rezi.DecString(data)
 	if err != nil {
 		return err
 	}
@@ -33,8 +33,8 @@ func (lc *lexerClass) UnmarshalBinary(data []byte) error {
 }
 
 func (lc *lexerClass) MarshalBinary() ([]byte, error) {
-	data := decbin.EncString(lc.id)
-	data = append(data, decbin.EncString(lc.name)...)
+	data := rezi.EncString(lc.id)
+	data = append(data, rezi.EncString(lc.name)...)
 	return data, nil
 }
 

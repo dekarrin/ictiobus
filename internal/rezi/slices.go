@@ -1,4 +1,4 @@
-package decbin
+package rezi
 
 // slices.go contains functions for encoding and decoding slices of basic types.
 

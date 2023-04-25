@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/dekarrin/ictiobus/internal/box"
-	"github.com/dekarrin/ictiobus/internal/decbin"
 	"github.com/dekarrin/ictiobus/internal/matrix"
+	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/rosed"
 )
@@ -19,11 +19,11 @@ func (M LL1Table) MarshalBinary() ([]byte, error) {
 	var data []byte
 	xOrdered := textfmt.OrderedKeys(M)
 
-	data = append(data, decbin.EncInt(len(M))...)
+	data = append(data, rezi.EncInt(len(M))...)
 	for _, x := range xOrdered {
 		col := M[x]
-		data = append(data, decbin.EncString(x)...)
-		data = append(data, decbin.EncMapStringToBinary(col)...)
+		data = append(data, rezi.EncString(x)...)
+		data = append(data, rezi.EncMapStringToBinary(col)...)
 	}
 
 	return data, nil
@@ -36,7 +36,7 @@ func (M *LL1Table) UnmarshalBinary(data []byte) error {
 	newM := LL1Table{}
 
 	var numEntries int
-	numEntries, n, err = decbin.DecInt(data)
+	numEntries, n, err = rezi.DecInt(data)
 	if err != nil {
 		return err
 	}
@@ -44,14 +44,14 @@ func (M *LL1Table) UnmarshalBinary(data []byte) error {
 
 	for i := 0; i < numEntries; i++ {
 		var x string
-		x, n, err = decbin.DecString(data)
+		x, n, err = rezi.DecString(data)
 		if err != nil {
 			return err
 		}
 		data = data[n:]
 
 		var ptrMap map[string]*Production
-		ptrMap, n, err = decbin.DecMapStringToBinary[*Production](data)
+		ptrMap, n, err = rezi.DecMapStringToBinary[*Production](data)
 		if err != nil {
 			return err
 		}

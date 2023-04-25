@@ -1,4 +1,4 @@
-package decbin
+package rezi
 
 // basictypes.go contains functions for encoding and decoding ints, strings,
 // bools, and objects that directly implement BinaryUnmarshaler and

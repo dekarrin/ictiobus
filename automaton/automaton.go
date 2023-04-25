@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/dekarrin/ictiobus/internal/decbin"
+	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 )
 
@@ -15,8 +15,8 @@ type FATransition struct {
 }
 
 func (t FATransition) MarshalBinary() ([]byte, error) {
-	data := decbin.EncString(t.input)
-	data = append(data, decbin.EncString(t.next)...)
+	data := rezi.EncString(t.input)
+	data = append(data, rezi.EncString(t.next)...)
 	return data, nil
 }
 
@@ -24,13 +24,13 @@ func (t *FATransition) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
 
-	t.input, n, err = decbin.DecString(data)
+	t.input, n, err = rezi.DecString(data)
 	if err != nil {
 		return fmt.Errorf(".input: %w", err)
 	}
 	data = data[n:]
 
-	t.next, _, err = decbin.DecString(data)
+	t.next, _, err = rezi.DecString(data)
 	if err != nil {
 		return fmt.Errorf(".next: %w", err)
 	}
@@ -110,15 +110,15 @@ type DFAState[E any] struct {
 }
 
 func (ds DFAState[E]) MarshalBytes(conv func(E) []byte) []byte {
-	data := decbin.EncInt(int(ds.ordering))
-	data = append(data, decbin.EncString(ds.name)...)
+	data := rezi.EncInt(int(ds.ordering))
+	data = append(data, rezi.EncString(ds.name)...)
 
 	convData := conv(ds.value)
 
-	data = append(data, decbin.EncInt(len(convData))...)
+	data = append(data, rezi.EncInt(len(convData))...)
 	data = append(data, convData...)
-	data = append(data, decbin.EncMapStringToBinary(ds.transitions)...)
-	data = append(data, decbin.EncBool(ds.accepting)...)
+	data = append(data, rezi.EncMapStringToBinary(ds.transitions)...)
+	data = append(data, rezi.EncBool(ds.accepting)...)
 	return data
 }
 
@@ -128,21 +128,21 @@ func UnmarshalDFAStateBytes[E any](data []byte, conv func([]byte) (E, error)) (D
 	var err error
 
 	var iVal int
-	iVal, n, err = decbin.DecInt(data)
+	iVal, n, err = rezi.DecInt(data)
 	if err != nil {
 		return ds, fmt.Errorf(".ordering: %w", err)
 	}
 	data = data[n:]
 	ds.ordering = uint64(iVal)
 
-	ds.name, n, err = decbin.DecString(data)
+	ds.name, n, err = rezi.DecString(data)
 	if err != nil {
 		return ds, fmt.Errorf(".name: %w", err)
 	}
 	data = data[n:]
 
 	var convLen int
-	convLen, n, err = decbin.DecInt(data)
+	convLen, n, err = rezi.DecInt(data)
 	if err != nil {
 		return ds, fmt.Errorf("get value data len: %w", err)
 	}
@@ -158,7 +158,7 @@ func UnmarshalDFAStateBytes[E any](data []byte, conv func([]byte) (E, error)) (D
 	data = data[convLen:]
 
 	var ptrMap map[string]*FATransition
-	ptrMap, n, err = decbin.DecMapStringToBinary[*FATransition](data)
+	ptrMap, n, err = rezi.DecMapStringToBinary[*FATransition](data)
 	if err != nil {
 		return ds, fmt.Errorf(".transitions: %w", err)
 	}
@@ -176,7 +176,7 @@ func UnmarshalDFAStateBytes[E any](data []byte, conv func([]byte) (E, error)) (D
 	}
 	data = data[n:]
 
-	ds.accepting, _, err = decbin.DecBool(data)
+	ds.accepting, _, err = rezi.DecBool(data)
 	if err != nil {
 		return ds, fmt.Errorf(".accepting: %w", err)
 	}

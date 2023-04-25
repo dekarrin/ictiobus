@@ -10,7 +10,7 @@ import (
 	"github.com/dekarrin/ictiobus/types"
 
 	"github.com/dekarrin/ictiobus/internal/box"
-	"github.com/dekarrin/ictiobus/internal/decbin"
+	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/stack"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
@@ -54,8 +54,8 @@ type marshaledTokenClass struct {
 }
 
 func (m marshaledTokenClass) MarshalBinary() ([]byte, error) {
-	data := decbin.EncString(m.id)
-	data = append(data, decbin.EncString(m.human)...)
+	data := rezi.EncString(m.id)
+	data = append(data, rezi.EncString(m.human)...)
 	return data, nil
 }
 
@@ -63,13 +63,13 @@ func (m *marshaledTokenClass) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
 
-	m.id, n, err = decbin.DecString(data)
+	m.id, n, err = rezi.DecString(data)
 	if err != nil {
 		return err
 	}
 	data = data[n:]
 
-	m.human, _, err = decbin.DecString(data)
+	m.human, _, err = rezi.DecString(data)
 	if err != nil {
 		return err
 	}
@@ -78,8 +78,8 @@ func (m *marshaledTokenClass) UnmarshalBinary(data []byte) error {
 }
 
 func (g Grammar) MarshalBinary() ([]byte, error) {
-	data := decbin.EncMapStringToInt(g.rulesByName)
-	rulesData := decbin.EncSliceBinary(g.rules)
+	data := rezi.EncMapStringToInt(g.rulesByName)
+	rulesData := rezi.EncSliceBinary(g.rules)
 	data = append(data, rulesData...)
 
 	serializedTerminals := map[string]marshaledTokenClass{}
@@ -90,8 +90,8 @@ func (g Grammar) MarshalBinary() ([]byte, error) {
 		}
 	}
 
-	data = append(data, decbin.EncMapStringToBinary(serializedTerminals)...)
-	data = append(data, decbin.EncString(g.Start)...)
+	data = append(data, rezi.EncMapStringToBinary(serializedTerminals)...)
+	data = append(data, rezi.EncString(g.Start)...)
 	return data, nil
 }
 
@@ -99,13 +99,13 @@ func (g *Grammar) UnmarshalBinary(data []byte) error {
 	var n int
 	var err error
 
-	g.rulesByName, n, err = decbin.DecMapStringToInt(data)
+	g.rulesByName, n, err = rezi.DecMapStringToInt(data)
 	if err != nil {
 		return fmt.Errorf("rulesByName: %w", err)
 	}
 	data = data[n:]
 
-	rulesSl, n, err := decbin.DecSliceBinary[*Rule](data)
+	rulesSl, n, err := rezi.DecSliceBinary[*Rule](data)
 	if err != nil {
 		return fmt.Errorf("rules: %w", err)
 	}
@@ -122,7 +122,7 @@ func (g *Grammar) UnmarshalBinary(data []byte) error {
 	data = data[n:]
 
 	var serializedTerminals map[string]*marshaledTokenClass
-	serializedTerminals, n, err = decbin.DecMapStringToBinary[*marshaledTokenClass](data)
+	serializedTerminals, n, err = rezi.DecMapStringToBinary[*marshaledTokenClass](data)
 	if err != nil {
 		return fmt.Errorf("terminals: %w", err)
 	}
@@ -135,7 +135,7 @@ func (g *Grammar) UnmarshalBinary(data []byte) error {
 		}
 	}
 
-	g.Start, _, err = decbin.DecString(data)
+	g.Start, _, err = rezi.DecString(data)
 	if err != nil {
 		return fmt.Errorf("start: %w", err)
 	}

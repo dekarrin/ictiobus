@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dekarrin/ictiobus/internal/decbin"
+	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -96,8 +96,8 @@ func Test_DFAState_MarshalUnmarshalBinary(t *testing.T) {
 			assert := assert.New(t)
 
 			encoded := tc.input.MarshalBytes(func(d dummy) []byte {
-				data := decbin.EncString(d.val1)
-				data = append(data, decbin.EncInt(d.val2)...)
+				data := rezi.EncString(d.val1)
+				data = append(data, rezi.EncInt(d.val2)...)
 				return data
 			})
 
@@ -106,13 +106,13 @@ func Test_DFAState_MarshalUnmarshalBinary(t *testing.T) {
 				var n int
 				var err error
 
-				d.val1, n, err = decbin.DecString(data)
+				d.val1, n, err = rezi.DecString(data)
 				if err != nil {
 					return d, fmt.Errorf(".val1: %w", err)
 				}
 				data = data[n:]
 
-				d.val2, _, err = decbin.DecInt(data)
+				d.val2, _, err = rezi.DecInt(data)
 				if err != nil {
 					return d, fmt.Errorf(".val2: %w", err)
 				}

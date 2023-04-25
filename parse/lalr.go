@@ -8,7 +8,7 @@ import (
 	"github.com/dekarrin/ictiobus/automaton"
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
-	"github.com/dekarrin/ictiobus/internal/decbin"
+	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/rosed"
@@ -151,29 +151,29 @@ type lalr1Table struct {
 }
 
 func (lalr1 *lalr1Table) MarshalBinary() ([]byte, error) {
-	data := decbin.EncBinary(lalr1.gPrime)
-	data = append(data, decbin.EncString(lalr1.gStart)...)
-	data = append(data, decbin.EncMapStringToBinary(lalr1.itemCache)...)
-	data = append(data, decbin.EncSliceString(lalr1.gTerms)...)
-	data = append(data, decbin.EncSliceString(lalr1.gNonTerms)...)
-	data = append(data, decbin.EncBool(lalr1.allowAmbig)...)
+	data := rezi.EncBinary(lalr1.gPrime)
+	data = append(data, rezi.EncString(lalr1.gStart)...)
+	data = append(data, rezi.EncMapStringToBinary(lalr1.itemCache)...)
+	data = append(data, rezi.EncSliceString(lalr1.gTerms)...)
+	data = append(data, rezi.EncSliceString(lalr1.gNonTerms)...)
+	data = append(data, rezi.EncBool(lalr1.allowAmbig)...)
 
 	// now the long part, the dfa
 	dfaBytes := lalr1.dfa.MarshalBytes(func(s box.SVSet[grammar.LR1Item]) []byte {
 		keys := s.Elements()
 		sort.Strings(keys)
 
-		innerData := decbin.EncInt(len(keys))
+		innerData := rezi.EncInt(len(keys))
 		for _, k := range keys {
 			v := s.Get(k)
 
-			innerData = append(innerData, decbin.EncString(k)...)
-			innerData = append(innerData, decbin.EncBinary(v)...)
+			innerData = append(innerData, rezi.EncString(k)...)
+			innerData = append(innerData, rezi.EncBinary(v)...)
 		}
 
 		return innerData
 	})
-	data = append(data, decbin.EncInt(len(dfaBytes))...)
+	data = append(data, rezi.EncInt(len(dfaBytes))...)
 	data = append(data, dfaBytes...)
 
 	return data, nil
@@ -183,20 +183,20 @@ func (lalr1 *lalr1Table) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
 
-	n, err = decbin.DecBinary(data, &lalr1.gPrime)
+	n, err = rezi.DecBinary(data, &lalr1.gPrime)
 	if err != nil {
 		return fmt.Errorf(".gPrime: %w", err)
 	}
 	data = data[n:]
 
-	lalr1.gStart, n, err = decbin.DecString(data)
+	lalr1.gStart, n, err = rezi.DecString(data)
 	if err != nil {
 		return fmt.Errorf(".gStart: %w", err)
 	}
 	data = data[n:]
 
 	var ptrMap map[string]*grammar.LR1Item
-	ptrMap, n, err = decbin.DecMapStringToBinary[*grammar.LR1Item](data)
+	ptrMap, n, err = rezi.DecMapStringToBinary[*grammar.LR1Item](data)
 	if err != nil {
 		return fmt.Errorf(".itemCache: %w", err)
 	}
@@ -210,26 +210,26 @@ func (lalr1 *lalr1Table) UnmarshalBinary(data []byte) error {
 	}
 	data = data[n:]
 
-	lalr1.gTerms, n, err = decbin.DecSliceString(data)
+	lalr1.gTerms, n, err = rezi.DecSliceString(data)
 	if err != nil {
 		return fmt.Errorf(".gTerms: %w", err)
 	}
 	data = data[n:]
 
-	lalr1.gNonTerms, n, err = decbin.DecSliceString(data)
+	lalr1.gNonTerms, n, err = rezi.DecSliceString(data)
 	if err != nil {
 		return fmt.Errorf(".gNonTerms: %w", err)
 	}
 	data = data[n:]
 
-	lalr1.allowAmbig, n, err = decbin.DecBool(data)
+	lalr1.allowAmbig, n, err = rezi.DecBool(data)
 	if err != nil {
 		return fmt.Errorf(".allowAmbig: %w", err)
 	}
 	data = data[n:]
 
 	var dfaBytesLen int
-	dfaBytesLen, n, err = decbin.DecInt(data)
+	dfaBytesLen, n, err = rezi.DecInt(data)
 	if err != nil {
 		// TODO: rename all .dfa-ish fields to actually be dfa
 		return fmt.Errorf(".dfa: %w", err)
@@ -247,7 +247,7 @@ func (lalr1 *lalr1Table) UnmarshalBinary(data []byte) error {
 		var numEntries int
 		set := box.NewSVSet[grammar.LR1Item]()
 
-		numEntries, innerN, innerErr = decbin.DecInt(b)
+		numEntries, innerN, innerErr = rezi.DecInt(b)
 		if innerErr != nil {
 			return nil, fmt.Errorf("get entry count: %w", innerErr)
 		}
@@ -256,13 +256,13 @@ func (lalr1 *lalr1Table) UnmarshalBinary(data []byte) error {
 			var k string
 			var v grammar.LR1Item
 
-			k, innerN, innerErr = decbin.DecString(b)
+			k, innerN, innerErr = rezi.DecString(b)
 			if innerErr != nil {
 				return nil, fmt.Errorf("entry[%d]: %w", i, innerErr)
 			}
 			b = b[innerN:]
 
-			innerN, innerErr = decbin.DecBinary(b, &v)
+			innerN, innerErr = rezi.DecBinary(b, &v)
 			if innerErr != nil {
 				return nil, fmt.Errorf("entry[%s]: %w", k, innerErr)
 			}
