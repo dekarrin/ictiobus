@@ -144,7 +144,7 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, params DiagBinParams) error {
 	binName := filepath.Base(params.BinPath)
 
-	outDir := ".gen"
+	outDir := DiagGenerationDir
 	if params.PathPrefix != "" {
 		outDir = filepath.Join(params.PathPrefix, outDir)
 	}
