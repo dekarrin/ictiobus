@@ -660,8 +660,6 @@ func main() {
 				fmt.Printf("Format preprocessing disabled in diagnostics bin; set -f to enable\n")
 			}
 
-			// TODO: probably should make this a constant in fishi instead of
-			// having ictcc just magically know about it
 			diagGenDir := fishi.DiagGenerationDir
 			if *flagPathPrefix != "" {
 				diagGenDir = filepath.Join(*flagPathPrefix, diagGenDir)
@@ -880,8 +878,6 @@ func printSpec(spec fishi.Spec) {
 		} else {
 			fmt.Printf("State %s:\n", state)
 		}
-
-		// TODO: sort output pats by priority
 
 		for _, pat := range pats {
 			fmt.Printf("* %s => ", pat.Regex.String())

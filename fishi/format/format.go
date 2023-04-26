@@ -55,7 +55,7 @@ func NewCodeReader(r io.Reader) (*CodeReader, error) {
 		}
 	}
 
-	gatheredFishi := GetFishiFromMarkdown(allInput)
+	gatheredFishi := ExtractFishiBlocksFromMarkdown(allInput)
 	fishiSource := Preprocess(gatheredFishi)
 
 	cr := &CodeReader{

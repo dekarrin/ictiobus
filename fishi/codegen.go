@@ -491,18 +491,13 @@ func initTemplates(renderFiles map[string]codegenTemplate, fnMap template.FuncMa
 
 			templateStr := string(templateBytes)
 
-			// TODO: p shore it's not actually necessary to reassign the results
-			// of calling Parse(); check l8er.
-			rf.tmpl, err = rf.tmpl.Parse(templateStr)
+			_, err = rf.tmpl.Parse(templateStr)
 			if err != nil {
 				return fmt.Errorf("parsing custom %s template %s: %w", comp, fileBasename, err)
 			}
 		} else {
 			// use default embedded template string
-
-			// TODO: p shore it's not actually necessary to reassign the results
-			// of calling Parse(); check l8er.
-			rf.tmpl, err = rf.tmpl.Parse(defaultTemplates[comp])
+			_, err = rf.tmpl.Parse(defaultTemplates[comp])
 			if err != nil {
 				return fmt.Errorf("parsing default %s template: %w", comp, err)
 			}
