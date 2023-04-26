@@ -57,7 +57,6 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 
 	// first get an annotated parse tree
 	root := AddAttributes(tree)
-	// TODO: allow the annotated parse tree to be printed for debug output
 	depGraphs := DepGraph(root, sdts)
 
 	// TODO: this is actually fine as long as we got exactly ONE with the root

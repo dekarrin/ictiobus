@@ -284,7 +284,7 @@ func (slr *slrTable) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (slr *slrTable) GetDFA() string {
+func (slr *slrTable) DFAString() string {
 	var sb strings.Builder
 	automaton.OutputSetValuedDFA(&sb, slr.lr0)
 	return sb.String()

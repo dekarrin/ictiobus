@@ -78,12 +78,12 @@ type Parser interface {
 	// debugging.
 	RegisterTraceListener(func(s string))
 
-	// GetDFA returns a string representation of the DFA for this parser, if one
+	// DFAString returns a string representation of the DFA for this parser, if one
 	// so exists. Will return the empty string if the parser is not of the type
 	// to have a DFA.
 	//
 	// TODO: remove the Get part, it's a Java-ism. Maybe DFAString() ?
-	GetDFA() string
+	DFAString() string
 
 	// Grammar returns the grammar that this parser can parse.
 	Grammar() grammar.Grammar

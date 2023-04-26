@@ -37,7 +37,6 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 			continue
 		}
 
-		// TODO: betta explanation of what happened using the info in the error
 		if len(evalErr.depGraphs) > 0 {
 			// disconnected depgraph error
 

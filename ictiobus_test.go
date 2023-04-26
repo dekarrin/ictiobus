@@ -73,7 +73,7 @@ func Test_EncodeDecodeParserBytes(t *testing.T) {
 
 			assert.Equal(p.Type(), p2.Type(), "type of decoded parser does not match original parser")
 			assert.Equal(p.TableString(), p2.TableString(), "parsing table of decoded parser does not match original parser")
-			assert.Equal(p.GetDFA(), p2.GetDFA(), "DFA of decoded parser does not match original parser")
+			assert.Equal(p.DFAString(), p2.DFAString(), "DFA of decoded parser does not match original parser")
 		})
 	}
 }

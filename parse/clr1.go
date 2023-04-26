@@ -286,7 +286,7 @@ func (clr1 *canonicalLR1Table) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (clr1 *canonicalLR1Table) GetDFA() string {
+func (clr1 *canonicalLR1Table) DFAString() string {
 	var sb strings.Builder
 	automaton.OutputSetValuedDFA(&sb, clr1.lr1)
 	return sb.String()
