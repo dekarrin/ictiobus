@@ -590,8 +590,6 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 			}
 
 			// figure out our action string
-			// TODO: kind of fragile, directly putting code in as a string,
-			// probably should be templated, but works for now
 			switch pat.Action.Type {
 			case lex.ActionScan:
 				tokData := tokCgClasses[pat.Action.ClassID]
@@ -738,23 +736,7 @@ func safeTCIdentifierName(str string) string {
 // error if scanning the package and directory creation was successful. later,
 // pushes the first error that occurs while copying the contents of a file to
 // the channel, or nil to the channel if the copy was successful.
-//
-// TODO: this should be a go dir, not a package.
 func copyDirToTargetAsync(srcDir string, targetDir string) (copyResult chan error, err error) {
-	/*
-		pkgs, err := packages.Load(nil, goPackage)
-		if err != nil {
-			return nil, fmt.Errorf("scanning package: %w", err)
-		}
-		if len(pkgs) != 1 {
-			return nil, fmt.Errorf("expected one package, got %d", len(pkgs))
-		}
-
-		pkg := pkgs[0]
-
-		// Permissions:
-		// rwxr-xr-x = 755*/
-
 	// read the list of files in the source directory
 	srcFiles, err := os.ReadDir(srcDir)
 	if err != nil {
