@@ -1603,9 +1603,6 @@ func Test_RangeMap_Add(t *testing.T) {
 		},
 	}
 
-	// TODO: find out why above test panics, then add final test cases for
-	// last case in Add.
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := assert.New(t)

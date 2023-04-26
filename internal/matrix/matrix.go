@@ -1,7 +1,5 @@
 package matrix
 
-// TODO: merge with box API
-
 // Matrix2 is a 2d mapping of coordinates to values. Do not use a Matrix2 by
 // itself, use NewMatrix2.
 type Matrix2[EX, EY comparable, V any] map[EX]map[EY]V

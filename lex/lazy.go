@@ -115,7 +115,7 @@ func (lx *lexerTemplate) LazyLex(input io.Reader) (types.TokenStream, error) {
 
 		for i := range statePats {
 			act := statePats[i].act
-			src := statePats[i].src
+			src := statePats[i].rx.String()
 			superRegex.WriteString("(" + src + ")")
 			if i+1 < len(statePats) {
 				superRegex.WriteRune('|')
