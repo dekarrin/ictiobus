@@ -81,8 +81,6 @@ type Parser interface {
 	// DFAString returns a string representation of the DFA for this parser, if one
 	// so exists. Will return the empty string if the parser is not of the type
 	// to have a DFA.
-	//
-	// TODO: remove the Get part, it's a Java-ism. Maybe DFAString() ?
 	DFAString() string
 
 	// Grammar returns the grammar that this parser can parse.
@@ -231,7 +229,6 @@ func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigWarn
 			bigParseGenErr += fmt.Sprintf("\nCLR(1) generation: %s", err.Error())
 
 			// what about an SLR parser?
-			// TODO: SLR fails and panics on some inputs (such as FISHI spec), fix this
 			//parser, ambigWarns, err = NewSLRParser(g, allowAmbiguous) lol no SLR(1) currently has an error
 			if err != nil {
 				//bigParseGenErr += fmt.Sprintf("\nSLR(1) generation: %s", err.Error())
