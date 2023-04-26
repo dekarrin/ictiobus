@@ -110,8 +110,8 @@ type SDTS interface {
 	// set will be the one that is used.
 	SetHooks(hooks map[string]trans.AttributeSetter)
 
-	// BindInheritedAttribute creates a new SDD binding for setting the value of
-	// an inherited attribute with name attrName. The production that the
+	// BindInheritedAttribute creates a new SDTS binding for setting the value
+	// of an inherited attribute with name attrName. The production that the
 	// inherited attribute is set on is specified with forProd, which must have
 	// its Type set to something other than RelHead (inherited attributes can be
 	// set only on production symbols).
@@ -128,7 +128,7 @@ type SDTS interface {
 	// to determine the dependency graph for later execution.
 	BindInheritedAttribute(head string, prod []string, attrName string, hook string, withArgs []trans.AttrRef, forProd trans.NodeRelation) error
 
-	// BindSynthesizedAttribute creates a new SDD binding for setting the value
+	// BindSynthesizedAttribute creates a new SDTS binding for setting the value
 	// of a synthesized attribute with name attrName. The attribute is set on
 	// the symbol at the head of the rule that the binding is being created for.
 	//
@@ -169,9 +169,9 @@ type SDTS interface {
 	// SDDBindings for a node for each node in the tree and on completion,
 	// returns the requested attributes values from the root node. Execution
 	// order is automatically determined by taking the dependency graph of the
-	// SDD; cycles are not supported. Do note that this does not require the SDD
-	// to be S-attributed or L-attributed, only that it not have cycles in its
-	// value dependency graph.
+	// SDTS; cycles are not supported. Do note that this does not require the
+	// SDTS to be S-attributed or L-attributed, only that it not have cycles in
+	// its value dependency graph.
 	Evaluate(tree types.ParseTree, attributes ...string) ([]interface{}, error)
 
 	// Validate checks whether this SDTS is valid for the given grammar. It will

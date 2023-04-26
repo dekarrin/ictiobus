@@ -37,8 +37,6 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 			},
 		},
 		{
-			// TODO: this rule is literally impossible to fill all unless
-			// returning multiple
 			name: "1 rule, multi-production (terms only)",
 			input: MustParse(`
 					S -> a | b  ;
@@ -697,7 +695,7 @@ func Test_Grammar_RemoveEpsilons(t *testing.T) {
 }
 
 func Test_Grammar_RemoveUnitProductions(t *testing.T) {
-	// TODO: make all tests have this input form its super convenient
+	// TODO: make all tests have this input form for grammars, its super convenient
 	testCases := []struct {
 		name      string
 		terminals []string
@@ -838,7 +836,6 @@ func Test_Grammar_RemoveUnitProductions(t *testing.T) {
 }
 
 func Test_Grammar_RemoveLeftRecursion(t *testing.T) {
-	// TODO: make all tests have this input form its super convenient
 	testCases := []struct {
 		name      string
 		terminals []string
@@ -953,7 +950,6 @@ func Test_Grammar_RemoveLeftRecursion(t *testing.T) {
 }
 
 func Test_Grammar_LeftFactor(t *testing.T) {
-	// TODO: make all tests have this input form its super convenient
 	testCases := []struct {
 		name      string
 		terminals []string
@@ -998,7 +994,6 @@ func Test_Grammar_LeftFactor(t *testing.T) {
 }
 
 func Test_Grammar_FIRST(t *testing.T) {
-	// TODO: make all tests have this input form its super convenient
 	testCases := []struct {
 		name      string
 		terminals []string
@@ -1110,7 +1105,6 @@ func Test_Grammar_FIRST(t *testing.T) {
 }
 
 func Test_Grammar_FOLLOW(t *testing.T) {
-	// TODO: make all tests have this input form its super convenient
 	testCases := []struct {
 		name      string
 		terminals []string
@@ -1390,7 +1384,6 @@ func Test_Grammar_FOLLOW(t *testing.T) {
 }
 
 func Test_Grammar_IsLL1(t *testing.T) {
-	// TODO: make all tests have this input form its super convenient
 	testCases := []struct {
 		name      string
 		terminals []string

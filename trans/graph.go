@@ -337,7 +337,7 @@ func DepGraphString(dg *DirectedGraph[DepNode]) string {
 // Returns one node from each of the connected sub-graphs of the dependency
 // tree. If the entire dependency graph is connected, there will be only 1 item
 // in the returned slice.
-func DepGraph(aptRoot AnnotatedParseTree, sdd *sdtsImpl) []*DirectedGraph[DepNode] {
+func DepGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*DirectedGraph[DepNode] {
 	type treeAndParent struct {
 		Tree   *AnnotatedParseTree
 		Parent *AnnotatedParseTree
@@ -345,9 +345,6 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sdtsImpl) []*DirectedGraph[DepNod
 	// no parent set on first node; it's the root
 	treeStack := stack.Stack[treeAndParent]{Of: []treeAndParent{{Tree: &aptRoot}}}
 
-	// TODO: yeahhhhhhhhhhh this should probs be map of APTNodeID -> map[AttrRef]*DG
-	// or SOMEFIN that isn't subject to attribute name collision, which this is
-	// atm.
 	depNodes := map[APTNodeID]map[string]*DirectedGraph[DepNode]{}
 
 	for treeStack.Len() > 0 {
@@ -357,7 +354,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sdtsImpl) []*DirectedGraph[DepNod
 
 		// what semantic rule would apply to this?
 		ruleHead, ruleProd := curTree.Rule()
-		binds := sdd.Bindings(ruleHead, ruleProd)
+		binds := sdts.Bindings(ruleHead, ruleProd)
 
 		// sanity check each node on visit to be shore it's got a non-empty ID.
 		if curTree.ID() == IDZero {
@@ -488,7 +485,6 @@ func DepGraph(aptRoot AnnotatedParseTree, sdd *sdtsImpl) []*DirectedGraph[DepNod
 		}
 	}
 
-	// TODO: go through the entire graph and enshore it is totally connected
 	var connectedSubGraphs []*DirectedGraph[DepNode]
 
 	for k := range depNodes {
