@@ -88,7 +88,7 @@ func constructSimpleLRParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTab
 				alpha := item.Left
 				beta := item.Right
 
-				var followA box.ISet[string]
+				var followA box.Set[string]
 				if A != table.gPrime.StartSymbol() {
 					// we'll need this later, glub 38)
 					followA = table.gPrime.FOLLOW(A)
@@ -436,7 +436,7 @@ func (slr *slrTable) Action(i, a string) LRAction {
 		alpha := item.Left
 		beta := item.Right
 
-		var followA box.ISet[string]
+		var followA box.Set[string]
 		if A != slr.gPrime.StartSymbol() {
 			// we'll need this later, glub 38)
 			followA = slr.gPrime.FOLLOW(A)

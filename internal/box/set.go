@@ -6,9 +6,7 @@ import (
 	"strings"
 )
 
-// TODO: just name this Set. The ISet was to distinguish from a non-box Set type
-// it used to be in the same package with, but that no longer exists.
-type ISet[E any] interface {
+type Set[E any] interface {
 	Container[E]
 
 	// Add adds the given element to the Set. If the element is already in the
@@ -16,7 +14,7 @@ type ISet[E any] interface {
 	Add(element E)
 
 	// AddAll adds all elements in s2 to the Set.
-	AddAll(s2 ISet[E])
+	AddAll(s2 Set[E])
 
 	// Remove removes the given element from the Set. If the element is already
 	// not in the set, no effect occurs.
@@ -29,7 +27,7 @@ type ISet[E any] interface {
 	Len() int
 
 	// Copy returns a copy of the Set.
-	Copy() ISet[E]
+	Copy() Set[E]
 
 	// Equal returns whether a Set equals another value. It should check if the
 	// value implements Set and if so, does a comparison of the elements and
@@ -46,19 +44,19 @@ type ISet[E any] interface {
 	StringOrdered() string
 
 	// Union returns a new Set that is the union of s and o.
-	Union(s2 ISet[E]) ISet[E]
+	Union(s2 Set[E]) Set[E]
 
 	// Intersection returns a new Set that contains the elements that are in both
 	// s and o.
-	Intersection(s2 ISet[E]) ISet[E]
+	Intersection(s2 Set[E]) Set[E]
 
 	// Difference returns a new Set that contains the elements that are in the
 	// set but not in s2.
-	Difference(s2 ISet[E]) ISet[E]
+	Difference(s2 Set[E]) Set[E]
 
 	// DisjointWith returns whether the set is disjoint (contains no elements
 	// of) s2.
-	DisjointWith(s2 ISet[E]) bool
+	DisjointWith(s2 Set[E]) bool
 
 	// Empty returns whether the set is empty.
 	Empty() bool
@@ -69,7 +67,7 @@ type ISet[E any] interface {
 
 // VSet is a set that contains values mapped to items.
 type VSet[E any, V any] interface {
-	ISet[E]
+	Set[E]
 
 	// Set assigns the value of the element. The element is added if it isn'
 	// already in the set, and that element is assigned the given data value.
@@ -94,7 +92,7 @@ func NewSVSet[V any](of ...map[string]V) SVSet[V] {
 	return bs
 }
 
-func (s SVSet[V]) Copy() ISet[string] {
+func (s SVSet[V]) Copy() Set[string] {
 	return NewSVSet(s)
 }
 
@@ -133,7 +131,7 @@ func (s SVSet[V]) Elements() []string {
 	return elems
 }
 
-func (s SVSet[V]) AddAll(s2 ISet[string]) {
+func (s SVSet[V]) AddAll(s2 Set[string]) {
 	// if this is also a VSet[string, E], then we go by value
 	valuedSet, isValued := s2.(VSet[string, V])
 	if isValued {
@@ -148,7 +146,7 @@ func (s SVSet[V]) AddAll(s2 ISet[string]) {
 	}
 }
 
-func (s SVSet[V]) Union(s2 ISet[string]) ISet[string] {
+func (s SVSet[V]) Union(s2 Set[string]) Set[string] {
 	newSet := s.Copy()
 
 	newSet.AddAll(s)
@@ -159,7 +157,7 @@ func (s SVSet[V]) Union(s2 ISet[string]) ISet[string] {
 
 // Intersection returns a new Set that contains the elements that are in both
 // s and o.
-func (s SVSet[V]) Intersection(s2 ISet[string]) ISet[string] {
+func (s SVSet[V]) Intersection(s2 Set[string]) Set[string] {
 	newSet := NewSVSet[V]()
 
 	for k := range s {
@@ -174,7 +172,7 @@ func (s SVSet[V]) Intersection(s2 ISet[string]) ISet[string] {
 
 // Difference returns a new Set that contains the elements that are in s but not
 // in o.
-func (s SVSet[V]) Difference(o ISet[string]) ISet[string] {
+func (s SVSet[V]) Difference(o Set[string]) Set[string] {
 	newSet := NewSVSet(s)
 
 	for _, k := range o.Elements() {
@@ -184,7 +182,7 @@ func (s SVSet[V]) Difference(o ISet[string]) ISet[string] {
 	return newSet
 }
 
-func (s SVSet[V]) DisjointWith(o ISet[string]) bool {
+func (s SVSet[V]) DisjointWith(o Set[string]) bool {
 	for k := range s {
 		if o.Has(k) {
 			return false
@@ -255,10 +253,10 @@ func (s SVSet[V]) String() string {
 // Equal returns whether two sets have the same items. If anything other than a
 // Set[E], *Set[E], they will not be considered equal.
 func (s SVSet[V]) Equal(o any) bool {
-	other, ok := o.(ISet[string])
+	other, ok := o.(Set[string])
 	if !ok {
 		// also okay if its the pointer value, as long as its non-nil
-		otherPtr, ok := o.(*ISet[string])
+		otherPtr, ok := o.(*Set[string])
 		if !ok {
 			return false
 		} else if otherPtr == nil {
@@ -294,7 +292,7 @@ func NewStringSet(of ...map[string]bool) StringSet {
 	return s
 }
 
-func (s StringSet) Copy() ISet[string] {
+func (s StringSet) Copy() Set[string] {
 	newS := NewStringSet()
 
 	for k := range s {
@@ -305,7 +303,7 @@ func (s StringSet) Copy() ISet[string] {
 }
 
 // Union returns a new Set that is the union of s and o.
-func (s StringSet) Union(o ISet[string]) ISet[string] {
+func (s StringSet) Union(o Set[string]) Set[string] {
 	newSet := NewStringSet()
 	newSet.AddAll(s)
 	newSet.AddAll(o)
@@ -315,7 +313,7 @@ func (s StringSet) Union(o ISet[string]) ISet[string] {
 
 // Intersection returns a new Set that contains the elements that are in both
 // s and o.
-func (s StringSet) Intersection(o ISet[string]) ISet[string] {
+func (s StringSet) Intersection(o Set[string]) Set[string] {
 	newSet := NewStringSet()
 
 	for k := range s {
@@ -329,7 +327,7 @@ func (s StringSet) Intersection(o ISet[string]) ISet[string] {
 
 // Difference returns a new Set that contains the elements that are in s but not
 // in o.
-func (s StringSet) Difference(o ISet[string]) ISet[string] {
+func (s StringSet) Difference(o Set[string]) Set[string] {
 	newSet := NewStringSet()
 	newSet.AddAll(s)
 
@@ -340,7 +338,7 @@ func (s StringSet) Difference(o ISet[string]) ISet[string] {
 	return newSet
 }
 
-func (s StringSet) DisjointWith(o ISet[string]) bool {
+func (s StringSet) DisjointWith(o Set[string]) bool {
 	for k := range s {
 		if o.Has(k) {
 			return false
@@ -379,7 +377,7 @@ func (s StringSet) Len() int {
 	return len(s)
 }
 
-func (s StringSet) AddAll(s2 ISet[string]) {
+func (s StringSet) AddAll(s2 Set[string]) {
 	for _, element := range s2.Elements() {
 		s.Add(element)
 	}
@@ -442,10 +440,10 @@ func (s StringSet) String() string {
 // check. To do full Equal on everything, use EqualSlices on the Ofs of the
 // stacks.
 func (s StringSet) Equal(o any) bool {
-	other, ok := o.(ISet[string])
+	other, ok := o.(Set[string])
 	if !ok {
 		// also okay if its the pointer value, as long as its non-nil
-		otherPtr, ok := o.(*ISet[string])
+		otherPtr, ok := o.(*Set[string])
 		if !ok {
 			return false
 		} else if otherPtr == nil {
@@ -511,7 +509,7 @@ func NewKeySet[E comparable](of ...map[E]bool) KeySet[E] {
 	return s
 }
 
-func (s KeySet[E]) Copy() ISet[E] {
+func (s KeySet[E]) Copy() Set[E] {
 	newS := NewKeySet[E]()
 
 	for k := range s {
@@ -522,7 +520,7 @@ func (s KeySet[E]) Copy() ISet[E] {
 }
 
 // Union returns a new Set that is the union of s and o.
-func (s KeySet[E]) Union(o ISet[E]) ISet[E] {
+func (s KeySet[E]) Union(o Set[E]) Set[E] {
 	newSet := NewKeySet[E]()
 	newSet.AddAll(s)
 	newSet.AddAll(o)
@@ -532,7 +530,7 @@ func (s KeySet[E]) Union(o ISet[E]) ISet[E] {
 
 // Intersection returns a new Set that contains the elements that are in both
 // s and o.
-func (s KeySet[E]) Intersection(o ISet[E]) ISet[E] {
+func (s KeySet[E]) Intersection(o Set[E]) Set[E] {
 	newSet := NewKeySet[E]()
 
 	for k := range s {
@@ -546,7 +544,7 @@ func (s KeySet[E]) Intersection(o ISet[E]) ISet[E] {
 
 // Difference returns a new Set that contains the elements that are in s but not
 // in o.
-func (s KeySet[E]) Difference(o ISet[E]) ISet[E] {
+func (s KeySet[E]) Difference(o Set[E]) Set[E] {
 	newSet := NewKeySet[E]()
 	newSet.AddAll(s)
 
@@ -557,7 +555,7 @@ func (s KeySet[E]) Difference(o ISet[E]) ISet[E] {
 	return newSet
 }
 
-func (s KeySet[E]) DisjointWith(o ISet[E]) bool {
+func (s KeySet[E]) DisjointWith(o Set[E]) bool {
 	for k := range s {
 		if o.Has(k) {
 			return false
@@ -596,7 +594,7 @@ func (s KeySet[E]) Len() int {
 	return len(s)
 }
 
-func (s KeySet[E]) AddAll(s2 ISet[E]) {
+func (s KeySet[E]) AddAll(s2 Set[E]) {
 	for _, element := range s2.Elements() {
 		s.Add(element)
 	}
@@ -659,10 +657,10 @@ func (s KeySet[E]) String() string {
 // check. To do full Equal on everything, use EqualSlices on the Ofs of the
 // stacks.
 func (s KeySet[E]) Equal(o any) bool {
-	other, ok := o.(ISet[E])
+	other, ok := o.(Set[E])
 	if !ok {
 		// also okay if its the pointer value, as long as its non-nil
-		otherPtr, ok := o.(*ISet[E])
+		otherPtr, ok := o.(*Set[E])
 		if !ok {
 			return false
 		} else if otherPtr == nil {

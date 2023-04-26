@@ -1706,7 +1706,7 @@ func (g Grammar) LeftFactor() Grammar {
 }
 
 // recursiveFindFollowSet
-func (g Grammar) recursiveFindFollowSet(X string, prevFollowChecks box.ISet[string]) box.ISet[string] {
+func (g Grammar) recursiveFindFollowSet(X string, prevFollowChecks box.Set[string]) box.Set[string] {
 	if X == "" {
 		// there is no follow set. return empty set
 		return box.NewStringSet()
@@ -1925,11 +1925,11 @@ func (g Grammar) IsLL1() bool {
 	return true
 }
 
-func (g Grammar) FOLLOW(X string) box.ISet[string] {
+func (g Grammar) FOLLOW(X string) box.Set[string] {
 	return g.recursiveFindFollowSet(X, box.NewStringSet())
 }
 
-func (g Grammar) FIRST_STRING(X ...string) box.ISet[string] {
+func (g Grammar) FIRST_STRING(X ...string) box.Set[string] {
 	first := box.NewStringSet()
 	epsilonPresent := false
 	for i := range X {
@@ -1953,12 +1953,12 @@ func (g Grammar) FIRST_STRING(X ...string) box.ISet[string] {
 	return first
 }
 
-func (g Grammar) FIRST(X string) box.ISet[string] {
+func (g Grammar) FIRST(X string) box.Set[string] {
 	return g.firstSetSafeRecurse(X, box.NewStringSet())
 }
 
 // TODO: seen should be a util.ISet[string]
-func (g Grammar) firstSetSafeRecurse(X string, seen box.StringSet) box.ISet[string] {
+func (g Grammar) firstSetSafeRecurse(X string, seen box.StringSet) box.Set[string] {
 	seen.Add(X)
 	if strings.ToLower(X) == X {
 		// terminal or epsilon
