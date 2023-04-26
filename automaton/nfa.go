@@ -753,7 +753,5 @@ func NewLR0ViablePrefixNFA(g grammar.Grammar) NFA[grammar.LR0Item] {
 		}
 	}
 
-	// TODO: deterministic construction of NFA
-
 	return nfa
 }
