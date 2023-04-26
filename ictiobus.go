@@ -46,9 +46,6 @@ type Lexer interface {
 	RegisterClass(cl types.TokenClass, forState string)
 	AddPattern(pat string, action lex.Action, forState string, priority int) error
 
-	// TODO: probs drop Getpattern as it's been almost entirely replaced with
-	// FakeLexemeProducer.
-	GetPattern(cl types.TokenClass, forState string) string
 	FakeLexemeProducer(combine bool, state string) map[string]func() string
 
 	SetStartingState(s string)

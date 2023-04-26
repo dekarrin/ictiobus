@@ -72,26 +72,6 @@ func (lx *lexerTemplate) RegisterClass(cl types.TokenClass, forState string) {
 	lx.classes[forState] = stateClasses
 }
 
-// GetPattern returns the pattern that will lex to the given token class. If no
-// pattern lexes to the given token class, an empty string is returned.
-// TODO: probably drop thie function, replaced it almost entirely with
-// FakeLexemeProducer.
-func (lx *lexerTemplate) GetPattern(cl types.TokenClass, forState string) string {
-	statePatterns, ok := lx.patterns[forState]
-	if !ok {
-		return ""
-	}
-
-	for i := range statePatterns {
-		pt := statePatterns[i]
-		if (pt.act.Type == ActionScan || pt.act.Type == ActionScanAndState) && pt.act.ClassID == cl.ID() {
-			return pt.rx.String()
-		}
-	}
-
-	return ""
-}
-
 // Priority can be 0 for "in order added"
 func (lx *lexerTemplate) AddPattern(pat string, action Action, forState string, priority int) error {
 	statePatterns, ok := lx.patterns[forState]
