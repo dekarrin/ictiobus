@@ -236,7 +236,6 @@ func (lalr1 *lalr1Table) UnmarshalBinary(data []byte) error {
 	}
 	data = data[n:]
 	if len(data) < dfaBytesLen {
-		// TODO: make all "not enough bytes" messages be unexpected EOF
 		return fmt.Errorf(".dfa: unexpected EOF")
 	}
 	dfaBytes := data[:dfaBytesLen]

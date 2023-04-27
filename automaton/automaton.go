@@ -148,7 +148,7 @@ func UnmarshalDFAStateBytes[E any](data []byte, conv func([]byte) (E, error)) (D
 	}
 	data = data[n:]
 	if len(data) < convLen {
-		return ds, fmt.Errorf(".value: not enough bytes")
+		return ds, fmt.Errorf(".value: unexpected EOF")
 	}
 	convData := data[:convLen]
 	ds.value, err = conv(convData)

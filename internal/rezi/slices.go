@@ -39,7 +39,7 @@ func DecSliceString(data []byte) ([]string, int, error) {
 	}
 
 	if len(data) < toConsume {
-		return nil, 0, fmt.Errorf("not enough bytes")
+		return nil, 0, fmt.Errorf("unexpected EOF")
 	}
 
 	sl := []string{}
@@ -93,7 +93,7 @@ func DecSliceBinary[E encoding.BinaryUnmarshaler](data []byte) ([]E, int, error)
 	}
 
 	if len(data) < toConsume {
-		return nil, 0, fmt.Errorf("not enough bytes")
+		return nil, 0, fmt.Errorf("unexpected EOF")
 	}
 
 	sl := []E{}
