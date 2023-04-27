@@ -280,7 +280,6 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 			return *pt, nil
 		case LRError:
 			// call error-recovery routine
-			// TODO: error recovery, for now, just report it
 			expMessage := lr.getExpectedString(s)
 			return types.ParseTree{}, types.NewSyntaxErrorFromToken(fmt.Sprintf("unexpected %s; %s", a.Class().Human(), expMessage), a)
 		}
