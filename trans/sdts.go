@@ -59,11 +59,6 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 	root := AddAttributes(tree)
 	depGraphs := DepGraph(root, sdts)
 
-	// TODO: this is actually fine as long as we got exactly ONE with the root
-	// node but is probably not intended. we should warn, not error.
-	//
-	// specifically, also check to see if a disconnected graph in fact has a parent
-	// with no SDT bindings and thus no connection to the child.
 	if len(depGraphs) > 1 {
 		// first, eliminate all depGraphs whose head has a noFlow that applies
 		// to it.
@@ -85,7 +80,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 						break
 					}
 
-					// TODO: things are wonky for inherited, check those separately,
+					// TODO GHI #101: things are wonky for inherited, check those separately,
 					// might need to not assume that Parent is the parent of the
 					// node for the rule the actual binding was set on. Synthesized should be fine though.
 					nodeParentSymbol := node.Data.Parent.Symbol

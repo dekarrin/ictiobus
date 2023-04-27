@@ -12,7 +12,7 @@
 // practical fashion.
 package ictiobus
 
-// HACKING NOTE:
+// DEV NOTE:
 //
 // https://jsmachines.sourceforge.net/machines/lalr1.html is an AMAZING tool for
 // validating LALR(1) grammars quickly.
