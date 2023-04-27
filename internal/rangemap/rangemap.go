@@ -271,9 +271,9 @@ func (rm *RangeMap[E]) Add(start, end E) {
 		newRange := Range[E]{Lo: extendingRange.Lo, Hi: r.Hi}
 
 		// remove all overlapping slices
-		// TODO: efficiency. We could simply assume that we need to remove all
-		// so once we find the index of the first one, we can just remove all
-		// after that.
+		// TODO GHI #94: efficiency. We could simply assume that we need to
+		// remove all so once we find the index of the first one, we can just
+		// remove all after that.
 		for i := 0; i < len(overlapping); i++ {
 			rm.removeRange(overlapping[i])
 		}
@@ -327,9 +327,9 @@ func (rm *RangeMap[E]) Add(start, end E) {
 		newRange := Range[E]{Lo: r.Lo, Hi: extendingRange.Hi}
 
 		// remove all overlapping slices
-		// TODO: efficiency. We could simply assume that we need to remove all
-		// so once we find the index of the first one, we can just remove all
-		// after that.
+		// TODO GHI #94: efficiency. We could simply assume that we need to
+		// remove all so once we find the index of the first one, we can just
+		// remove all after that.
 		for i := 0; i < len(overlapping); i++ {
 			rm.removeRange(overlapping[i])
 		}
@@ -382,9 +382,9 @@ func (rm *RangeMap[E]) Add(start, end E) {
 		newRange := Range[E]{Lo: extendingRange.Lo, Hi: endRange.Hi}
 
 		// remove all overlapping slices
-		// TODO: efficiency. We could simply assume that we need to remove all
-		// so once we find the index of the first one, we can just remove all
-		// after that.
+		// TODO GHI #94: efficiency. We could simply assume that we need to
+		// remove all so once we find the index of the first one, we can just
+		// remove all after that.
 		for i := 0; i < len(overlapping); i++ {
 			rm.removeRange(overlapping[i])
 		}
@@ -432,9 +432,9 @@ func (rm *RangeMap[E]) Add(start, end E) {
 	if len(overlapping) >= 1 && !overlapping[0].Contains(r.Lo) && !overlapping[len(overlapping)-1].Contains(r.Hi) {
 		// remove all overlapping slices
 
-		// TODO: efficiency. We could simply assume that we need to remove all
-		// so once we find the index of the first one, we can just remove all
-		// after that.
+		// TODO GHI #94: efficiency. We could simply assume that we need to
+		// remove all so once we find the index of the first one, we can just
+		// remove all after that.
 		for i := 0; i < len(overlapping); i++ {
 			rm.removeRange(overlapping[i])
 		}

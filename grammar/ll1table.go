@@ -10,9 +10,6 @@ import (
 	"github.com/dekarrin/rosed"
 )
 
-// TODO: this should probably be in a different package, probably `parse`,
-// specifically in the rather light ll1.go file, glub.
-
 type LL1Table matrix.Matrix2[string, string, Production]
 
 func (M LL1Table) MarshalBinary() ([]byte, error) {

@@ -695,7 +695,6 @@ func Test_Grammar_RemoveEpsilons(t *testing.T) {
 }
 
 func Test_Grammar_RemoveUnitProductions(t *testing.T) {
-	// TODO: make all tests have this input form for grammars, its super convenient
 	testCases := []struct {
 		name      string
 		terminals []string

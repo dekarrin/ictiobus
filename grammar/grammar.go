@@ -833,7 +833,7 @@ func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) ([]
 	}
 
 	// put in all symbols that we are totally done with
-	// TODO: we can probs replace using both coveredSymbols and uncoveredSymbols
+	// TODO GHI #90: we can probs replace using both coveredSymbols and uncoveredSymbols
 	// by only using uncoveredSymbols; it's the only one we will iterate on.
 	coveredSymbols := box.NewStringSet()
 
@@ -970,7 +970,7 @@ func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) ([]
 					// may have happened since then, so we need to check it
 					// again.
 					//
-					// TODO: actually we probably don't need the original check
+					// TODO GHI #90: actually we probably don't need the original check
 					// at all. This would cover it. But we could retain cleared
 					// and update THAT as we go.
 					clearedButUncovered.Add(nt)
@@ -1196,7 +1196,7 @@ func (g Grammar) CreateFewestNonTermsAlternationsTable() (map[string]Production,
 							continue
 						}
 
-						// TODO: efficiency. use otherIsConstant to immediately
+						// TODO GHI #91: efficiency. use otherIsConstant to immediately
 						// move to THAT being the candidate instead of just
 						// giving up.
 						otherMinVal, _ := minPossibleVal(calc2)
@@ -1957,7 +1957,6 @@ func (g Grammar) FIRST(X string) box.Set[string] {
 	return g.firstSetSafeRecurse(X, box.NewStringSet())
 }
 
-// TODO: seen should be a util.ISet[string]
 func (g Grammar) firstSetSafeRecurse(X string, seen box.StringSet) box.Set[string] {
 	seen.Add(X)
 	if strings.ToLower(X) == X {
@@ -2105,9 +2104,6 @@ func removeEpsilons(from []Production) []Production {
 }
 
 func getEpsilonRewrites(epsilonableNonterm string, prod Production) []Production {
-	// TODO: ensure that if the production consists of ONLY the epsilonable,
-	// that we also are adding an epsilon production.
-
 	// how many times does it occur?
 	var numOccurances int
 	for i := range prod {
