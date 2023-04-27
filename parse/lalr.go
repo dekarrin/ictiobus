@@ -231,7 +231,6 @@ func (lalr1 *lalr1Table) UnmarshalBinary(data []byte) error {
 	var dfaBytesLen int
 	dfaBytesLen, n, err = rezi.DecInt(data)
 	if err != nil {
-		// TODO: rename all .dfa-ish fields to actually be dfa
 		return fmt.Errorf(".dfa: %w", err)
 	}
 	data = data[n:]
