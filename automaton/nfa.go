@@ -204,7 +204,7 @@ func (nfa NFA[E]) InputSymbols() box.StringSet {
 // MOVE returns the set of states reachable with one transition from some state
 // in X on input a. Purple dragon book calls this function MOVE(T, a) and it is
 // on page 153 as part of algorithm 3.20.
-func (nfa NFA[E]) MOVE(X box.ISet[string], a string) box.StringSet {
+func (nfa NFA[E]) MOVE(X box.Set[string], a string) box.StringSet {
 	moves := box.NewStringSet()
 
 	for _, s := range X.Elements() {
@@ -280,7 +280,7 @@ func directNFAToDFA[E any](nfa NFA[E]) (DFA[E], error) {
 
 // EpsilonClosureOfSet gives the set of states reachable from some state in
 // X using one or more ε-moves.
-func (nfa NFA[E]) EpsilonClosureOfSet(X box.ISet[string]) box.StringSet {
+func (nfa NFA[E]) EpsilonClosureOfSet(X box.Set[string]) box.StringSet {
 	allClosures := box.NewStringSet()
 
 	for _, s := range X.Elements() {
@@ -752,8 +752,6 @@ func NewLR0ViablePrefixNFA(g grammar.Grammar) NFA[grammar.LR0Item] {
 			}
 		}
 	}
-
-	// TODO: deterministic construction of NFA
 
 	return nfa
 }

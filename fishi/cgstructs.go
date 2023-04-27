@@ -173,9 +173,6 @@ type codegenTemplate struct {
 }
 
 // codegen data for template fill of main.go
-// TODO: combine with cgData?
-// TODO: betta notation for which is a full import path and which is a package
-// name. (Perhaps -PkgImport vs -PkgName ?)
 type cgMainData struct {
 	BinPkg            string
 	BinName           string

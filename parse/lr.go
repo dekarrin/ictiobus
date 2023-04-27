@@ -47,9 +47,9 @@ type LRParseTable interface {
 	// produce the same String() output, they are considered equal.
 	String() string
 
-	// GetDFA returns the DFA simulated by the table. Some tables may in fact
+	// DFAString returns the DFA simulated by the table. Some tables may in fact
 	// be the DFA itself along with supplementary info.
-	GetDFA() string
+	DFAString() string
 }
 
 type lrParser struct {
@@ -63,8 +63,8 @@ func (lr *lrParser) Grammar() grammar.Grammar {
 	return lr.gram
 }
 
-func (lr *lrParser) GetDFA() string {
-	return lr.table.GetDFA()
+func (lr *lrParser) DFAString() string {
+	return lr.table.DFAString()
 }
 
 func (lr *lrParser) RegisterTraceListener(listener func(s string)) {
@@ -280,7 +280,6 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 			return *pt, nil
 		case LRError:
 			// call error-recovery routine
-			// TODO: error recovery, for now, just report it
 			expMessage := lr.getExpectedString(s)
 			return types.ParseTree{}, types.NewSyntaxErrorFromToken(fmt.Sprintf("unexpected %s; %s", a.Class().Human(), expMessage), a)
 		}

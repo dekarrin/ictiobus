@@ -550,9 +550,6 @@ func main() {
 	// now check err
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n")
-		// TODO: at this point, it would be v nice to have file in the
-		// token/syntax error output. Allow specification of file in anyfin that
-		// can return a SyntaxError and have all token sources include that.
 		if syntaxErr, ok := err.(*types.SyntaxError); ok {
 			errSyntax("", syntaxErr)
 		} else {
@@ -621,7 +618,7 @@ func main() {
 				fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing --hooks parameter\n")
 			} else {
 				if !*flagQuietMode {
-					simGenDir := ".sim"
+					simGenDir := fishi.SimGenerationDir
 					if *flagPathPrefix != "" {
 						simGenDir = filepath.Join(*flagPathPrefix, simGenDir)
 					}
@@ -663,9 +660,7 @@ func main() {
 				fmt.Printf("Format preprocessing disabled in diagnostics bin; set -f to enable\n")
 			}
 
-			// TODO: probably should make this a constant in fishi instead of
-			// having ictcc just magically know about it
-			diagGenDir := ".gen"
+			diagGenDir := fishi.DiagGenerationDir
 			if *flagPathPrefix != "" {
 				diagGenDir = filepath.Join(*flagPathPrefix, diagGenDir)
 			}
@@ -883,8 +878,6 @@ func printSpec(spec fishi.Spec) {
 		} else {
 			fmt.Printf("State %s:\n", state)
 		}
-
-		// TODO: sort output pats by priority
 
 		for _, pat := range pats {
 			fmt.Printf("* %s => ", pat.Regex.String())

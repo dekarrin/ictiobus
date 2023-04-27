@@ -20,7 +20,7 @@ func (ll *ll1Parser) Grammar() grammar.Grammar {
 	return ll.g
 }
 
-func (ll *ll1Parser) GetDFA() string {
+func (ll *ll1Parser) DFAString() string {
 	return ""
 }
 

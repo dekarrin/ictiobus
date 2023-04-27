@@ -22,7 +22,6 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 
 	const errIndentStr = "    "
 
-	// TODO: one day, maybe trees can be merged, but that's a lot of work
 	treeErrs := []box.Pair[error, *types.ParseTree]{}
 
 	for i := range pts {
@@ -37,7 +36,6 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 			continue
 		}
 
-		// TODO: betta explanation of what happened using the info in the error
 		if len(evalErr.depGraphs) > 0 {
 			// disconnected depgraph error
 
@@ -63,8 +61,6 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 			treeErrs = append(treeErrs, box.PairOf(fmt.Errorf(fullMsg), &localPT))
 			continue
 		}
-
-		// TODO: betta message for kahn sort error
 
 		if err != nil {
 			treeErrs = append(treeErrs, box.PairOf(err, &localPT))

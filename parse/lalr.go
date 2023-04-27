@@ -231,12 +231,10 @@ func (lalr1 *lalr1Table) UnmarshalBinary(data []byte) error {
 	var dfaBytesLen int
 	dfaBytesLen, n, err = rezi.DecInt(data)
 	if err != nil {
-		// TODO: rename all .dfa-ish fields to actually be dfa
 		return fmt.Errorf(".dfa: %w", err)
 	}
 	data = data[n:]
 	if len(data) < dfaBytesLen {
-		// TODO: make all "not enough bytes" messages be unexpected EOF
 		return fmt.Errorf(".dfa: unexpected EOF")
 	}
 	dfaBytes := data[:dfaBytesLen]
@@ -281,7 +279,7 @@ func (lalr1 *lalr1Table) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (lalr1 *lalr1Table) GetDFA() string {
+func (lalr1 *lalr1Table) DFAString() string {
 	var sb strings.Builder
 	automaton.OutputSetValuedDFA(&sb, lalr1.dfa)
 	return sb.String()

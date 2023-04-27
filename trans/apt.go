@@ -8,7 +8,6 @@ import (
 	"github.com/dekarrin/ictiobus/types"
 )
 
-// TODO: merge this with the ParseTree version
 const (
 	treeLevelEmpty               = "        "
 	treeLevelOngoing             = "  |     "
@@ -86,15 +85,7 @@ func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 		}
 	}
 
-	// now that we have the tree, traverse it again to set $first
-	// TODO: appears to 8e noticibly slow. To improve speed, could add a First
-	// attribute to normal parse treee and build it up at parse time.
-	// Yeah it makes more sense to make $ft a property passed to an attribute
-	// setter, from the parse tree.
-	// 8ut we still need to keep it set as an APT property because caller might
-	// want to access the first token of something besides just the thing that
-	// is 8eing set, *in particular* for terminal nodes where SDDs cannot be
-	// set.
+	// now that we have the tree, traverse it again to set $ft
 	annotatedStack = stack.Stack[*AnnotatedParseTree]{Of: []*AnnotatedParseTree{&annoRoot}}
 	for annotatedStack.Len() > 0 {
 		curAnnoNode := annotatedStack.Pop()

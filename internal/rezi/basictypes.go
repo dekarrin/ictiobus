@@ -46,15 +46,32 @@ func DecBool(data []byte) (bool, int, error) {
 
 // EncInt encodes the int value as a slice of bytes. The value can later
 // be decoded with DecInt. No type indicator is included in the output;
-// it is up to the caller to add this if they so wish it.
+// it is up to the caller to add this if they so wish it. Integers up to 64 bits
+// are supported with this encoding scheme.
 //
-// The output will contain a byte specifying how many bytes the integer is in
-// the least-significant nibble, with the sign encoded as the first bit,
-// followed by that many bytes, with the exception of 0 which is encoded as a
-// single 0-byte, and -1 which is encoded as 0x80.
+// The returned slice will be 1 to 9 bytes long. Integers larger in magnitude
+// will result in longer slices; only 0 is encoded as a single byte.
 //
-// TODO: betta description of encoding for negative values and how the
-// non-significant bytes are assumed to be either 0xff or 0x00.
+// Encoded integers start with an info byte that packs the sign and the number
+// of following bytes needed to represent the value together. The sign is
+// encoded as the most significant bit (the first/leftmost bit) of the byte,
+// with 0 being positive and 1 being negative. The next significant 3 bits are
+// unused. The least significant 4 bits contain the number of bytes that are
+// used to encode the integer value. The bits in the info byte can be
+// represented as `SXXXLLLL`, where S is the sign bit, X are unused bits, and L
+// are the bits that encode the remaining length.
+//
+// The remaining bytes give the value being encoded as a 2's complement 64-bit
+// big-endian integer, omitting any leading bytes that would be encoded as 0x00
+// if the integer is positive, or 0xff if the integer is negative. The value 0
+// is special and is encoded as with infobyte 0x00 with no additional bytes.
+// Because two's complement is used and as a result of the rules, -1 also
+// requires no bytes besides the info byte (because it would simply be a series
+// of eight 0xff bytes), and is therefore encoded as 0x80.
+//
+// Additional examples: 1 would be encoded as [0x01 0x01], 2 as [0x01 0x02],
+// 500 as [0x02 0x01 0xf4], etc. -2 would be encoded as [0x81 0xfe], -500 as
+// [0x82 0xfe 0x0c], etc.
 func EncInt(i int) []byte {
 	if i == 0 {
 		return []byte{0x00}

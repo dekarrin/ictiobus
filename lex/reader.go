@@ -150,7 +150,7 @@ func (rr *regexReader) GetMatches(mark string, pairs []int) []string {
 		panic(fmt.Sprintf("invalid mark name: %q", mark))
 	}
 
-	if pairs == nil || len(pairs) == 0 {
+	if len(pairs) == 0 {
 		return nil
 	}
 

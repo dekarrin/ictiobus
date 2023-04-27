@@ -45,7 +45,7 @@ func DecMapStringToInt(data []byte) (map[string]int, int, error) {
 	}
 
 	if len(data) < toConsume {
-		return nil, 0, fmt.Errorf("not enough bytes")
+		return nil, 0, fmt.Errorf("unexpected EOF")
 	}
 
 	m := map[string]int{}
@@ -109,7 +109,7 @@ func DecMapStringToBinary[E encoding.BinaryUnmarshaler](data []byte) (map[string
 	}
 
 	if len(data) < toConsume {
-		return nil, 0, fmt.Errorf("not enough bytes")
+		return nil, 0, fmt.Errorf("unexpected EOF")
 	}
 
 	m := map[string]E{}

@@ -159,9 +159,6 @@ func (u *Unregexer) Derive() string {
 			ch := anyCharsNoNLMap.Call(rune(choice))
 			sb.WriteRune(ch)
 		case syntax.OpBeginLine:
-			// TODO: check prior insertation to see if it was a newline, which
-			// it must be. If it's impossible to insert a newline, then this
-			// regex is impossible to match and we should return a blank string.
 		case syntax.OpBeginText:
 			// if this is not the very first character, then it will never match
 			// anyfin
@@ -199,9 +196,6 @@ func (u *Unregexer) Derive() string {
 			sb.WriteRune('\n')
 		case syntax.OpEndText:
 			// if this is not the very last character, then it will never match
-			// TODO: make this be respected by placing it on the appropriate
-			// place on the stack; this shouldn't be used if, for instance,
-			// another alt works with it.
 			// sawEOTMark = true
 		case syntax.OpLiteral:
 			for _, ch := range regexAST.Rune {
@@ -214,7 +208,6 @@ func (u *Unregexer) Derive() string {
 			// explicitly matches no strings. return empty
 			return ""
 		case syntax.OpNoWordBoundary:
-			// TODO: checks, for now do nothing
 		case syntax.OpPlus:
 			mn := u.MinReps
 			// plus, so we must have at least one
@@ -277,7 +270,6 @@ func (u *Unregexer) Derive() string {
 				}
 			}
 		case syntax.OpWordBoundary:
-			// TODO: checks, for now do nothing
 		default:
 			panic("unimplemented")
 		}

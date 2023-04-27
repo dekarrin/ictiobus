@@ -9,11 +9,9 @@ import (
 	"github.com/dekarrin/ictiobus/types"
 )
 
-// TODO: src is useless as its in pat.
 type patAct struct {
 	priority int
-	src      string
-	pat      *regexp.Regexp
+	rx       *regexp.Regexp
 	act      Action
 }
 
@@ -74,26 +72,6 @@ func (lx *lexerTemplate) RegisterClass(cl types.TokenClass, forState string) {
 	lx.classes[forState] = stateClasses
 }
 
-// GetPattern returns the pattern that will lex to the given token class. If no
-// pattern lexes to the given token class, an empty string is returned.
-// TODO: probably drop thie function, replaced it almost entirely with
-// FakeLexemeProducer.
-func (lx *lexerTemplate) GetPattern(cl types.TokenClass, forState string) string {
-	statePatterns, ok := lx.patterns[forState]
-	if !ok {
-		return ""
-	}
-
-	for i := range statePatterns {
-		pt := statePatterns[i]
-		if (pt.act.Type == ActionScan || pt.act.Type == ActionScanAndState) && pt.act.ClassID == cl.ID() {
-			return pt.src
-		}
-	}
-
-	return ""
-}
-
 // Priority can be 0 for "in order added"
 func (lx *lexerTemplate) AddPattern(pat string, action Action, forState string, priority int) error {
 	statePatterns, ok := lx.patterns[forState]
@@ -126,8 +104,7 @@ func (lx *lexerTemplate) AddPattern(pat string, action Action, forState string, 
 
 	record := patAct{
 		priority: priority,
-		src:      pat,
-		pat:      compiled,
+		rx:       compiled,
 		act:      action,
 	}
 	statePatterns = append(statePatterns, record)
@@ -165,17 +142,17 @@ func (lx *lexerTemplate) FakeLexemeProducer(combine bool, state string) map[stri
 		for i := range patterns {
 			pat := patterns[i]
 			if pat.act.Type == ActionScan || pat.act.Type == ActionScanAndState {
-				ur, ok := unregexers[pat.src]
+				ur, ok := unregexers[pat.rx.String()]
 				if !ok {
 					var err error
-					ur, err = unregex.New(pat.src)
+					ur, err = unregex.New(pat.rx.String())
 					if err != nil {
 						// should never happen
-						panic(fmt.Sprintf("creating unregex for class %s (%q) failed: %v", pat.act.ClassID, pat.src, err))
+						panic(fmt.Sprintf("creating unregex for class %s (%q) failed: %v", pat.act.ClassID, pat.rx.String(), err))
 					}
 					ur.Seed(0)
 					ur.AnyCharsMax = 0x04ff
-					unregexers[pat.src] = ur
+					unregexers[pat.rx.String()] = ur
 				}
 
 				idFuncs, ok := funcsForID[pat.act.ClassID]

@@ -67,7 +67,6 @@ func (spec Spec) ValidateSDTS(opts trans.ValidationOptions) error {
 	// validate the SDTS. the first defined attribute will be the IR attribute.
 	irAttrName := spec.TranslationScheme[0].Attribute.Name
 
-	// TODO: except we would need to check hook here.
 	sdtsErr := sdts.Validate(spec.Grammar, irAttrName, opts, valProd)
 	if sdtsErr != nil {
 		return fmt.Errorf("SDTS validation error: %w", sdtsErr)
@@ -342,7 +341,6 @@ func NewSpec(ast AST) (spec Spec, warnings []Warning, err error) {
 	}
 
 	// go over actionsBlocks to get translation scheme
-	// TODO: when done, put this in a function
 	ls.TranslationScheme, subWarns, err = analyzeASTActionsContentSlice(actionsBlocks, ls.Grammar)
 	if len(subWarns) > 0 {
 		warnings = append(warnings, subWarns...)
@@ -604,7 +602,6 @@ func analzyeASTTokensContentSlice(
 			if entry.Discard {
 				// then there'd betta not be a human directive, a token
 				// directive, or a shift directive.
-				// TODO: grammar should rly enforce this
 
 				// error report on the *2nd* token to break things
 

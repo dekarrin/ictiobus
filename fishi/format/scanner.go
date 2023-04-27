@@ -30,8 +30,7 @@ func (fs fishiScanner) RenderNode(w io.Writer, node mkast.Node, entering bool) m
 func (fs fishiScanner) RenderHeader(w io.Writer, ast mkast.Node) {}
 func (fs fishiScanner) RenderFooter(w io.Writer, ast mkast.Node) {}
 
-// TODO: rename this to somefin that references the fact that it gathers fishi.
-func GetFishiFromMarkdown(mdText []byte) []byte {
+func ExtractFishiBlocksFromMarkdown(mdText []byte) []byte {
 	doc := markdown.Parse(mdText, mkparser.New())
 	var scanner fishiScanner
 	fishi := markdown.Render(doc, scanner)

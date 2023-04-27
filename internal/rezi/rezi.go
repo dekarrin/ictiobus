@@ -10,8 +10,6 @@
 // value being decoded.
 package rezi
 
-// TODO: rename this decbin
-
 import (
 	"encoding"
 	"reflect"

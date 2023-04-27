@@ -148,9 +148,6 @@ func TransformDFA[E1, E2 any](dfa DFA[E1], transform func(old E1) E2) DFA[E2] {
 // DFAToNFA converts the DFA into an equivalent non-deterministic finite automaton
 // type. Note that the type change doesn't suddenly make usage non-deterministic
 // but it does allow for non-deterministic transitions to be added.
-//
-// TODO: generics hell if trying to make this a method on DFA. need to figure
-// that out.
 func DFAToNFA[E any](dfa DFA[E]) NFA[E] {
 	nfa := NFA[E]{
 		Start:  dfa.Start,

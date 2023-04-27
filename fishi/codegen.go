@@ -144,7 +144,7 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, params DiagBinParams) error {
 	binName := filepath.Base(params.BinPath)
 
-	outDir := ".gen"
+	outDir := DiagGenerationDir
 	if params.PathPrefix != "" {
 		outDir = filepath.Join(params.PathPrefix, outDir)
 	}
@@ -491,18 +491,13 @@ func initTemplates(renderFiles map[string]codegenTemplate, fnMap template.FuncMa
 
 			templateStr := string(templateBytes)
 
-			// TODO: p shore it's not actually necessary to reassign the results
-			// of calling Parse(); check l8er.
-			rf.tmpl, err = rf.tmpl.Parse(templateStr)
+			_, err = rf.tmpl.Parse(templateStr)
 			if err != nil {
 				return fmt.Errorf("parsing custom %s template %s: %w", comp, fileBasename, err)
 			}
 		} else {
 			// use default embedded template string
-
-			// TODO: p shore it's not actually necessary to reassign the results
-			// of calling Parse(); check l8er.
-			rf.tmpl, err = rf.tmpl.Parse(defaultTemplates[comp])
+			_, err = rf.tmpl.Parse(defaultTemplates[comp])
 			if err != nil {
 				return fmt.Errorf("parsing default %s template: %w", comp, err)
 			}
@@ -595,8 +590,6 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 			}
 
 			// figure out our action string
-			// TODO: kind of fragile, directly putting code in as a string,
-			// probably should be templated, but works for now
 			switch pat.Action.Type {
 			case lex.ActionScan:
 				tokData := tokCgClasses[pat.Action.ClassID]
@@ -743,23 +736,7 @@ func safeTCIdentifierName(str string) string {
 // error if scanning the package and directory creation was successful. later,
 // pushes the first error that occurs while copying the contents of a file to
 // the channel, or nil to the channel if the copy was successful.
-//
-// TODO: this should be a go dir, not a package.
 func copyDirToTargetAsync(srcDir string, targetDir string) (copyResult chan error, err error) {
-	/*
-		pkgs, err := packages.Load(nil, goPackage)
-		if err != nil {
-			return nil, fmt.Errorf("scanning package: %w", err)
-		}
-		if len(pkgs) != 1 {
-			return nil, fmt.Errorf("expected one package, got %d", len(pkgs))
-		}
-
-		pkg := pkgs[0]
-
-		// Permissions:
-		// rwxr-xr-x = 755*/
-
 	// read the list of files in the source directory
 	srcFiles, err := os.ReadDir(srcDir)
 	if err != nil {

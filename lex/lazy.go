@@ -115,7 +115,7 @@ func (lx *lexerTemplate) LazyLex(input io.Reader) (types.TokenStream, error) {
 
 		for i := range statePats {
 			act := statePats[i].act
-			src := statePats[i].src
+			src := statePats[i].rx.String()
 			superRegex.WriteString("(" + src + ")")
 			if i+1 < len(statePats) {
 				superRegex.WriteRune('|')
@@ -228,7 +228,6 @@ func (lx *lazyTokenStream) Next() types.Token {
 
 		// update source text context tracking BEFORE creating token in case
 		// we need to update it for a token that starts with a newline
-		// TODO: make this efficient
 		var numNewLines int
 		var leadingLineChars string
 		curLine := lx.curLine
@@ -412,7 +411,6 @@ func (lx *lazyTokenStream) tokenForIOError(err error) types.Token {
 func (lx *lazyTokenStream) selectMatch(candidates []string) (int, string) {
 	// we now have our list of matches. which sub-expression(s) matched?
 	// (and consider a blank match to be 'no match' at this time)
-	// TODO: distinguish between blank match and no match in regexReader.
 
 	// toss them all into a 'sparse array' at their index-1 so they have
 	// direct correspondance to the index of the action they imply.

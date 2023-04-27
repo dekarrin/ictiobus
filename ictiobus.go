@@ -12,7 +12,7 @@
 // practical fashion.
 package ictiobus
 
-// HACKING NOTE:
+// DEV NOTE:
 //
 // https://jsmachines.sourceforge.net/machines/lalr1.html is an AMAZING tool for
 // validating LALR(1) grammars quickly.
@@ -46,9 +46,6 @@ type Lexer interface {
 	RegisterClass(cl types.TokenClass, forState string)
 	AddPattern(pat string, action lex.Action, forState string, priority int) error
 
-	// TODO: probs drop Getpattern as it's been almost entirely replaced with
-	// FakeLexemeProducer.
-	GetPattern(cl types.TokenClass, forState string) string
 	FakeLexemeProducer(combine bool, state string) map[string]func() string
 
 	SetStartingState(s string)
@@ -81,12 +78,10 @@ type Parser interface {
 	// debugging.
 	RegisterTraceListener(func(s string))
 
-	// GetDFA returns a string representation of the DFA for this parser, if one
+	// DFAString returns a string representation of the DFA for this parser, if one
 	// so exists. Will return the empty string if the parser is not of the type
 	// to have a DFA.
-	//
-	// TODO: remove the Get part, it's a Java-ism. Maybe DFAString() ?
-	GetDFA() string
+	DFAString() string
 
 	// Grammar returns the grammar that this parser can parse.
 	Grammar() grammar.Grammar
@@ -113,8 +108,8 @@ type SDTS interface {
 	// set will be the one that is used.
 	SetHooks(hooks map[string]trans.AttributeSetter)
 
-	// BindInheritedAttribute creates a new SDD binding for setting the value of
-	// an inherited attribute with name attrName. The production that the
+	// BindInheritedAttribute creates a new SDTS binding for setting the value
+	// of an inherited attribute with name attrName. The production that the
 	// inherited attribute is set on is specified with forProd, which must have
 	// its Type set to something other than RelHead (inherited attributes can be
 	// set only on production symbols).
@@ -131,7 +126,7 @@ type SDTS interface {
 	// to determine the dependency graph for later execution.
 	BindInheritedAttribute(head string, prod []string, attrName string, hook string, withArgs []trans.AttrRef, forProd trans.NodeRelation) error
 
-	// BindSynthesizedAttribute creates a new SDD binding for setting the value
+	// BindSynthesizedAttribute creates a new SDTS binding for setting the value
 	// of a synthesized attribute with name attrName. The attribute is set on
 	// the symbol at the head of the rule that the binding is being created for.
 	//
@@ -172,9 +167,9 @@ type SDTS interface {
 	// SDDBindings for a node for each node in the tree and on completion,
 	// returns the requested attributes values from the root node. Execution
 	// order is automatically determined by taking the dependency graph of the
-	// SDD; cycles are not supported. Do note that this does not require the SDD
-	// to be S-attributed or L-attributed, only that it not have cycles in its
-	// value dependency graph.
+	// SDTS; cycles are not supported. Do note that this does not require the
+	// SDTS to be S-attributed or L-attributed, only that it not have cycles in
+	// its value dependency graph.
 	Evaluate(tree types.ParseTree, attributes ...string) ([]interface{}, error)
 
 	// Validate checks whether this SDTS is valid for the given grammar. It will
@@ -234,7 +229,6 @@ func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigWarn
 			bigParseGenErr += fmt.Sprintf("\nCLR(1) generation: %s", err.Error())
 
 			// what about an SLR parser?
-			// TODO: SLR fails and panics on some inputs (such as FISHI spec), fix this
 			//parser, ambigWarns, err = NewSLRParser(g, allowAmbiguous) lol no SLR(1) currently has an error
 			if err != nil {
 				//bigParseGenErr += fmt.Sprintf("\nSLR(1) generation: %s", err.Error())

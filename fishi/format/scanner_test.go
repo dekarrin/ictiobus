@@ -58,7 +58,7 @@ func Test_GetFishiFromMarkdown(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			actual := GetFishiFromMarkdown([]byte(tc.input))
+			actual := ExtractFishiBlocksFromMarkdown([]byte(tc.input))
 
 			assert.Equal(tc.expect, string(actual))
 		})

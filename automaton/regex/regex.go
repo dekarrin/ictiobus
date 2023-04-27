@@ -4,9 +4,6 @@ import (
 	"github.com/dekarrin/ictiobus/automaton"
 )
 
-// TODO: fill this all in when we want to return to DFA-based impl. for now,
-// lex package just uses the pre-built regex processors bc they are easier glub.
-
 // RegexToDFA takes the given regular expression and converts it into a DFA.
 //
 // This is an implementation of algorithm 3.23 "The McNaughton-Yamada-Thompson

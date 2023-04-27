@@ -139,7 +139,6 @@ func Test_NewLALR1ViablePrefixDFA(t *testing.T) {
 			},*/
 	}
 
-	// TODO: FILL WITH PROPER INFO, IT DOES WORK (IN THEORY)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// setup

@@ -15,6 +15,18 @@ import (
 	"github.com/dekarrin/ictiobus/types"
 )
 
+const (
+	// DiagGenerationDir is the name of the directory in which source code for
+	// the diagnostic binary is placed when it is generated, prior to
+	// compilation.
+	DiagGenerationDir = ".gen"
+
+	// SimGenerationDir is the name of the directory in which source code for
+	// the simulation binary is placed when it is generated, prior to
+	// compilation.
+	SimGenerationDir = ".sim"
+)
+
 // This type alias is dum8!!!!!!!! Just make the callers import syntax, it's not
 // like it's unexported ::::/
 type AST = syntax.AST
@@ -62,7 +74,7 @@ func ValidateSimulatedInput(spec Spec, md SpecMetadata, params SimulatedInputPar
 	binName = strings.ToLower(binName)
 	binName = "test" + binName
 
-	outDir := ".sim"
+	outDir := SimGenerationDir
 	if params.PathPrefix != "" {
 		outDir = filepath.Join(params.PathPrefix, outDir)
 	}

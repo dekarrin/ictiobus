@@ -111,9 +111,9 @@ func main() {
 			SkipErrors:    *flagSimSkipErrs,
 		}
 
-		sddErr := langFront.SDT.Validate(langFront.Parser.Grammar(), langFront.IRAttribute, di, valProd)
-		if sddErr != nil {
-			fmt.Fprintf(os.Stderr, "validation error: %v\n", sddErr.Error())
+		sdtsErr := langFront.SDT.Validate(langFront.Parser.Grammar(), langFront.IRAttribute, di, valProd)
+		if sdtsErr != nil {
+			fmt.Fprintf(os.Stderr, "validation error: %v\n", sdtsErr.Error())
 			returnCode = ExitErr
 			return
 		}

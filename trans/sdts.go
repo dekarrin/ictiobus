@@ -10,7 +10,6 @@ import (
 )
 
 // sdts.go contains the implementation of a Syntax-Directed Translation Scheme.
-// TODO: update terminology to match SDTS; we use SDD improperly here.
 
 type sdtsImpl struct {
 	hooks    map[string]AttributeSetter
@@ -58,14 +57,8 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 
 	// first get an annotated parse tree
 	root := AddAttributes(tree)
-	// TODO: allow the annotated parse tree to be printed for debug output
 	depGraphs := DepGraph(root, sdts)
 
-	// TODO: this is actually fine as long as we got exactly ONE with the root
-	// node but is probably not intended. we should warn, not error.
-	//
-	// specifically, also check to see if a disconnected graph in fact has a parent
-	// with no SDT bindings and thus no connection to the child.
 	if len(depGraphs) > 1 {
 		// first, eliminate all depGraphs whose head has a noFlow that applies
 		// to it.
@@ -87,7 +80,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 						break
 					}
 
-					// TODO: things are wonky for inherited, check those separately,
+					// TODO GHI #101: things are wonky for inherited, check those separately,
 					// might need to not assume that Parent is the parent of the
 					// node for the rule the actual binding was set on. Synthesized should be fine though.
 					nodeParentSymbol := node.Data.Parent.Symbol
@@ -125,7 +118,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 		// if it's *still* more than 1, we have a problem.
 		if len(depGraphs) > 1 {
 			return nil, evalError{
-				msg:              "applying SDD to tree results in evaluation dependency graph with undeclared disconnected segments",
+				msg:              "applying SDTS to tree results in evaluation dependency graph with undeclared disconnected segments",
 				depGraphs:        depGraphs,
 				unexpectedBreaks: unexpectedBreaks,
 			}
@@ -134,7 +127,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 	visitOrder, err := KahnSort(depGraphs[0])
 	if err != nil {
 		return nil, evalError{
-			msg:       fmt.Sprintf("sorting SDD dependency graph: %s", err.Error()),
+			msg:       fmt.Sprintf("sorting SDTS dependency graph: %s", err.Error()),
 			sortError: true,
 		}
 	}
@@ -211,7 +204,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 		val, ok := root.Attributes[attributes[i]]
 		if !ok {
 			return nil, evalError{
-				msg:       fmt.Sprintf("SDD does not set attribute %q on root node", attributes[i]),
+				msg:       fmt.Sprintf("SDTS does not set attribute %q on root node", attributes[i]),
 				sortError: true,
 			}
 		}

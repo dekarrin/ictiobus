@@ -88,7 +88,7 @@ func constructSimpleLRParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTab
 				alpha := item.Left
 				beta := item.Right
 
-				var followA box.ISet[string]
+				var followA box.Set[string]
 				if A != table.gPrime.StartSymbol() {
 					// we'll need this later, glub 38)
 					followA = table.gPrime.FOLLOW(A)
@@ -234,12 +234,10 @@ func (slr *slrTable) UnmarshalBinary(data []byte) error {
 	var dfaBytesLen int
 	dfaBytesLen, n, err = rezi.DecInt(data)
 	if err != nil {
-		// TODO: rename all .dfa-ish fields to actually be dfa
 		return fmt.Errorf(".dfa: %w", err)
 	}
 	data = data[n:]
 	if len(data) < dfaBytesLen {
-		// TODO: make all "not enough bytes" messages be unexpected EOF
 		return fmt.Errorf(".dfa: unexpected EOF")
 	}
 	dfaBytes := data[:dfaBytesLen]
@@ -284,7 +282,7 @@ func (slr *slrTable) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (slr *slrTable) GetDFA() string {
+func (slr *slrTable) DFAString() string {
 	var sb strings.Builder
 	automaton.OutputSetValuedDFA(&sb, slr.lr0)
 	return sb.String()
@@ -436,7 +434,7 @@ func (slr *slrTable) Action(i, a string) LRAction {
 		alpha := item.Left
 		beta := item.Right
 
-		var followA box.ISet[string]
+		var followA box.Set[string]
 		if A != slr.gPrime.StartSymbol() {
 			// we'll need this later, glub 38)
 			followA = slr.gPrime.FOLLOW(A)

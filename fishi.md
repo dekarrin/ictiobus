@@ -361,7 +361,6 @@ The following gives the Syntax-directed translations for the FISHI language.
 : {^}.value = block_list_start({BLOCK}.ast)
 
 
-# TODO: add %prod %all selection.
 %symbol {BLOCK}
 ->: {^}.ast = ident({0}.ast)
 ->: {^}.ast = ident({0}.ast)

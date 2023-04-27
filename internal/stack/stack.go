@@ -81,17 +81,7 @@ func (s Stack[E]) String() string {
 }
 
 // Equal returns whether two stacks have exactly the same contents in the same
-// order. If anything other than a Stack[E], *Stack[E], []E, or *[]E is passed
-// in, they will not be considered equal.
-//
-// TODO: these docs are kind of lies, fix it
-//
-// A Stack[E] *is* considered equal to a *[]E or []E that has the same contents
-// as the Stack in the same order.
-//
-// This does NOT do Equal on the individual items, but rather a simple equality
-// check. To do full Equal on everything, use EqualSlices on the Ofs of the
-// stacks.
+// order. It supports comparing to other stacks, slices, and pointers to either.
 func (s Stack[E]) Equal(o any) bool {
 	other, ok := o.(Stack[E])
 	if !ok {
