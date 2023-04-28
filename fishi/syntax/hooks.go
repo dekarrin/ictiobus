@@ -95,15 +95,11 @@ func SDDErrMsg(msg string, a ...interface{}) string {
 	return fmt.Sprintf(ErrWithMessageString, msg)
 }
 
-func hookArgTypeError(args []interface{}, argNum int, expectedType string) error {
-	return fmt.Errorf("expected arg[%d]'s type to be %s, got %T", argNum, expectedType, args[argNum])
-}
-
 func sdtsFnMakeFishispec(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]Block)
 	if !ok {
 		// can't directly return nil because we'd lose the type information
-		return nil, hookArgTypeError(args, 0, "[]Block")
+		return nil, NewArgTypeError(args, 0, "[]Block")
 	}
 
 	return AST{Nodes: list}, nil
@@ -112,12 +108,12 @@ func sdtsFnMakeFishispec(_ trans.SetterInfo, args []interface{}) (interface{}, e
 func sdtsFnBlockListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]Block)
 	if !ok {
-		return nil, hookArgTypeError(args, 0, "[]Block")
+		return nil, NewArgTypeError(args, 0, "[]Block")
 	}
 
 	toAppend, ok := args[1].(Block)
 	if !ok {
-		return nil, hookArgTypeError(args, 1, "Block")
+		return nil, NewArgTypeError(args, 1, "Block")
 	}
 
 	list = append(list, toAppend)
@@ -127,7 +123,7 @@ func sdtsFnBlockListAppend(_ trans.SetterInfo, args []interface{}) (interface{},
 func sdtsFnBlockListStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	toAppend, ok := args[0].(Block)
 	if !ok {
-		return nil, hookArgTypeError(args, 0, "Block")
+		return nil, NewArgTypeError(args, 0, "Block")
 	}
 
 	return []Block{toAppend}, nil
@@ -136,7 +132,7 @@ func sdtsFnBlockListStart(_ trans.SetterInfo, args []interface{}) (interface{}, 
 func sdtsFnMakeGrammarBlock(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]GrammarContent)
 	if !ok {
-		return nil, hookArgTypeError(args, 0, "[]GrammarContent")
+		return nil, NewArgTypeError(args, 0, "[]GrammarContent")
 	}
 
 	return GrammarBlock{Content: list}, nil
@@ -145,7 +141,7 @@ func sdtsFnMakeGrammarBlock(_ trans.SetterInfo, args []interface{}) (interface{}
 func sdtsFnMakeTokensBlock(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]TokensContent)
 	if !ok {
-		return nil, hookArgTypeError(args, 0, "[]TokensContent")
+		return nil, NewArgTypeError(args, 0, "[]TokensContent")
 	}
 
 	return TokensBlock{Content: list}, nil
@@ -154,7 +150,7 @@ func sdtsFnMakeTokensBlock(_ trans.SetterInfo, args []interface{}) (interface{},
 func sdtsFnMakeActionsBlock(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]ActionsContent)
 	if !ok {
-		return nil, hookArgTypeError(args, 0, "[]ActionsContent")
+		return nil, NewArgTypeError(args, 0, "[]ActionsContent")
 	}
 
 	return ActionsBlock{Content: list}, nil
@@ -163,53 +159,53 @@ func sdtsFnMakeActionsBlock(_ trans.SetterInfo, args []interface{}) (interface{}
 func sdtsFnGrammarContentBlocksStartRuleList(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	rules, ok := args[0].([]GrammarRule)
 	if !ok {
-		return nil, hookArgTypeError(args, 0, "[]GrammarRule")
+		return nil, NewArgTypeError(args, 0, "[]GrammarRule")
 	}
 	toAppend := GrammarContent{
 		Rules: rules,
 		State: "",
 	}
 
-	return []GrammarContent{toAppend}
+	return []GrammarContent{toAppend}, nil
 }
 
-func sdtsFnTokensContentBlocksStartEntryList(_ trans.SetterInfo, args []interface{}) interface{} {
+func sdtsFnTokensContentBlocksStartEntryList(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	entries, ok := args[0].([]TokenEntry)
 	if !ok {
-		entries = []TokenEntry{{Pattern: SDDErrMsg("producing this token entry list: first argument is not a token entry list")}}
+		return nil, NewArgTypeError(args, 0, "[]TokenEntry")
 	}
 	toAppend := TokensContent{
 		Entries: entries,
 		State:   "",
 	}
 
-	return []TokensContent{toAppend}
+	return []TokensContent{toAppend}, nil
 }
 
-func sdtsFnActionsContentBlocksStartSymbolActionsList(_ trans.SetterInfo, args []interface{}) interface{} {
+func sdtsFnActionsContentBlocksStartSymbolActionsList(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	actions, ok := args[0].([]SymbolActions)
 	if !ok {
-		actions = []SymbolActions{{Symbol: SDDErrMsg("producing this symbol actions list: first argument is not a symbol actions list")}}
+		return nil, NewArgTypeError(args, 0, "[]SymbolActions")
 	}
 	toAppend := ActionsContent{
 		Actions: actions,
 		State:   "",
 	}
 
-	return []ActionsContent{toAppend}
+	return []ActionsContent{toAppend}, nil
 }
 
-func sdtsFnActionsContentBlocksPrepend(_ trans.SetterInfo, args []interface{}) interface{} {
+func sdtsFnActionsContentBlocksPrepend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	// state blocks
 	list, ok := args[0].([]ActionsContent)
 	if !ok {
-		list = []ActionsContent{{State: SDDErrMsg("producing this actions content list: first argument is not an actions content list")}}
+		return nil, NewArgTypeError(args, 0, "[]ActionsContent")
 	}
 
 	// stateless block
 	actions, ok := args[1].([]SymbolActions)
 	if !ok {
-		actions = []SymbolActions{{Symbol: SDDErrMsg("producing this actions content list: second argument is not a symbol actions list")}}
+		return nil, NewArgTypeError(args, 1, "[]SymbolActions")
 	}
 	toAppend := ActionsContent{
 		Actions: actions,
@@ -218,20 +214,20 @@ func sdtsFnActionsContentBlocksPrepend(_ trans.SetterInfo, args []interface{}) i
 
 	list = append([]ActionsContent{toAppend}, list...)
 
-	return list
+	return list, nil
 }
 
-func sdtsFnTokensContentBlocksPrepend(_ trans.SetterInfo, args []interface{}) interface{} {
+func sdtsFnTokensContentBlocksPrepend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	// state blocks
 	list, ok := args[0].([]TokensContent)
 	if !ok {
-		list = []TokensContent{{State: SDDErrMsg("producing this tokens content list: first argument is not a tokens content list")}}
+		return nil, NewArgTypeError(args, 0, "[]TokensContent")
 	}
 
 	// stateless block
 	tokens, ok := args[1].([]TokenEntry)
 	if !ok {
-		tokens = []TokenEntry{{Pattern: SDDErrMsg("producing this tokens content list: second argument is not a token entry list")}}
+		return nil, NewArgTypeError(args, 1, "[]TokenEntry")
 	}
 	toAppend := TokensContent{
 		Entries: tokens,
@@ -240,20 +236,20 @@ func sdtsFnTokensContentBlocksPrepend(_ trans.SetterInfo, args []interface{}) in
 
 	list = append([]TokensContent{toAppend}, list...)
 
-	return list
+	return list, nil
 }
 
-func sdtsFnGrammarContentBlocksPrepend(_ trans.SetterInfo, args []interface{}) interface{} {
+func sdtsFnGrammarContentBlocksPrepend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	// state blocks
 	list, ok := args[0].([]GrammarContent)
 	if !ok {
-		list = []GrammarContent{{State: SDDErrMsg("producing this grammar content list: first argument is not a grammar content list")}}
+		return nil, NewArgTypeError(args, 0, "[]GrammarContent")
 	}
 
 	// stateless block
 	rules, ok := args[1].([]GrammarRule)
 	if !ok {
-		rules = []GrammarRule{{Rule: grammar.Rule{NonTerminal: SDDErrMsg("producing this grammar content list: second argument is not a grammar rule list")}}}
+		return nil, NewArgTypeError(args, 1, "[]GrammarRule")
 	}
 	toAppend := GrammarContent{
 		Rules: rules,
@@ -262,21 +258,18 @@ func sdtsFnGrammarContentBlocksPrepend(_ trans.SetterInfo, args []interface{}) i
 
 	list = append([]GrammarContent{toAppend}, list...)
 
-	return list
+	return list, nil
 }
 
-func sdtsFnMakeProdAction(info trans.SetterInfo, args []interface{}) interface{} {
+func sdtsFnMakeProdAction(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 	prodSpec, ok := args[0].(box.Triple[string, interface{}, types.Token])
 	if !ok {
-		prodSpec = box.Triple[string, interface{}, types.Token]{
-			First:  "LITERAL",
-			Second: []string{SDDErrMsg("producing this production action: first argument is not a pair of string, any")},
-		}
+		return nil, NewArgTypeError(args, 0, "box.Triple[string, interface{}, types.Token]")
 	}
 
 	semActions, ok := args[1].([]SemanticAction)
 	if !ok {
-		semActions = []SemanticAction{{Hook: SDDErrMsg("producing this production action: second argument is not a semantic action list")}}
+		return nil, NewArgTypeError(args, 1, "[]SemanticAction")
 	}
 
 	pa := ProductionAction{
@@ -292,14 +285,17 @@ func sdtsFnMakeProdAction(info trans.SetterInfo, args []interface{}) interface{}
 	} else if prodSpec.First == "NEXT" {
 		pa.ProdNext = true
 	} else {
-		pa.ProdLiteral = []string{SDDErrMsg("producing this production action: first argument is not a pair of string/interface{}")}
+		return nil, NewArgError(args, 0, "unknown spec type %q; must be one of \"LITERAL\", \"INDEX\", or \"NEXT\"", prodSpec.First)
 	}
 
-	return pa
+	return pa, nil
 }
 
-func sdtsFnMakeSymbolActions(info trans.SetterInfo, args []interface{}) interface{} {
-	nonTermUntyped := sdtsFnGetNonterminal(trans.SetterInfo{}, args[0:1])
+func sdtsFnMakeSymbolActions(info trans.SetterInfo, args []interface{}) (interface{}, error) {
+	nonTermUntyped, err := sdtsFnGetNonterminal(trans.SetterInfo{}, args[0:1])
+	if err != nil {
+		return nil, err
+	}
 	nonTerm := nonTermUntyped.(string)
 
 	// also grab the nonTerm's token from args
@@ -477,10 +473,10 @@ func sdtsFnAppendStringsTrimmed(_ trans.SetterInfo, args []interface{}) interfac
 	return strings.TrimSpace(str1 + str2)
 }
 
-func sdtsFnGetNonterminal(_ trans.SetterInfo, args []interface{}) interface{} {
+func sdtsFnGetNonterminal(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	str, ok := args[0].(string)
 	if !ok {
-		return ErrString
+		return nil, NewArgTypeError(args, 0, "string")
 	}
 
 	return strings.TrimSpace(str)
