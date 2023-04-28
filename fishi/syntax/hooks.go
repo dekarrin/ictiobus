@@ -87,6 +87,7 @@ var (
 	}
 )
 
+// TODO: remove this function
 func SDDErrMsg(msg string, a ...interface{}) string {
 	if len(a) > 0 {
 		msg = fmt.Sprintf(msg, a...)
@@ -94,33 +95,36 @@ func SDDErrMsg(msg string, a ...interface{}) string {
 	return fmt.Sprintf(ErrWithMessageString, msg)
 }
 
-func sdtsFnMakeFishispec(_ trans.SetterInfo, args []interface{}) interface{} {
+func sdtsArgTypeError(argNum int, expectedType string, actualVal interface{}) error {
+	return fmt.Errorf("expected arg[%d]'s type to be %s, got %T", argNum, expectedType, actualVal)
+}
+
+func sdtsFnMakeFishispec(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]Block)
 	if !ok {
 		// can't directly return nil because we'd lose the type information
-		return AST{}
+		return nil, sdtsArgTypeError(0, "[]Block", args[0])
 	}
 
-	return AST{Nodes: list}
+	return AST{Nodes: list}, nil
 }
 
-func sdtsFnBlockListAppend(_ trans.SetterInfo, args []interface{}) interface{} {
+func sdtsFnBlockListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]Block)
 	if !ok {
-		return []Block{}
+		return nil, sdtsArgTypeError(0, "[]Block", args[0])
 	}
 
 	toAppend, ok := args[1].(Block)
 	if !ok {
-		var errBl ErrorBlock
-		toAppend = errBl
+		return nil, sdtsArgTypeError(1, "Block", args[1])
 	}
 
 	list = append(list, toAppend)
-	return list
+	return list, nil
 }
 
-func sdtsFnBlockListStart(_ trans.SetterInfo, args []interface{}) interface{} {
+func sdtsFnBlockListStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	toAppend, ok := args[0].(Block)
 	if !ok {
 		var errBl ErrorBlock
