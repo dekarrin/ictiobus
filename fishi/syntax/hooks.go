@@ -95,7 +95,7 @@ func SDDErrMsg(msg string, a ...interface{}) string {
 	return fmt.Sprintf(ErrWithMessageString, msg)
 }
 
-func sdtsArgTypeError(args []interface{}, argNum int, expectedType string) error {
+func hookArgTypeError(args []interface{}, argNum int, expectedType string) error {
 	return fmt.Errorf("expected arg[%d]'s type to be %s, got %T", argNum, expectedType, args[argNum])
 }
 
@@ -103,7 +103,7 @@ func sdtsFnMakeFishispec(_ trans.SetterInfo, args []interface{}) (interface{}, e
 	list, ok := args[0].([]Block)
 	if !ok {
 		// can't directly return nil because we'd lose the type information
-		return nil, sdtsArgTypeError(args, 0, "[]Block")
+		return nil, hookArgTypeError(args, 0, "[]Block")
 	}
 
 	return AST{Nodes: list}, nil
@@ -112,12 +112,12 @@ func sdtsFnMakeFishispec(_ trans.SetterInfo, args []interface{}) (interface{}, e
 func sdtsFnBlockListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]Block)
 	if !ok {
-		return nil, sdtsArgTypeError(args, 0, "[]Block")
+		return nil, hookArgTypeError(args, 0, "[]Block")
 	}
 
 	toAppend, ok := args[1].(Block)
 	if !ok {
-		return nil, sdtsArgTypeError(args, 1, "Block")
+		return nil, hookArgTypeError(args, 1, "Block")
 	}
 
 	list = append(list, toAppend)
@@ -127,43 +127,43 @@ func sdtsFnBlockListAppend(_ trans.SetterInfo, args []interface{}) (interface{},
 func sdtsFnBlockListStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	toAppend, ok := args[0].(Block)
 	if !ok {
-		return nil, sdtsArgTypeError(args, 0, "Block")
+		return nil, hookArgTypeError(args, 0, "Block")
 	}
 
 	return []Block{toAppend}, nil
 }
 
-func sdtsFnMakeGrammarBlock(_ trans.SetterInfo, args []interface{}) interface{} {
+func sdtsFnMakeGrammarBlock(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]GrammarContent)
 	if !ok {
-		list = []GrammarContent{{State: SDDErrMsg("producing this grammar content list: first argument is not a grammar content list")}}
+		return nil, hookArgTypeError(args, 0, "[]GrammarContent")
 	}
 
-	return GrammarBlock{Content: list}
+	return GrammarBlock{Content: list}, nil
 }
 
-func sdtsFnMakeTokensBlock(_ trans.SetterInfo, args []interface{}) interface{} {
+func sdtsFnMakeTokensBlock(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]TokensContent)
 	if !ok {
-		list = []TokensContent{{State: SDDErrMsg("producing this tokens content list: first argument is not a tokens content list")}}
+		return nil, hookArgTypeError(args, 0, "[]TokensContent")
 	}
 
-	return TokensBlock{Content: list}
+	return TokensBlock{Content: list}, nil
 }
 
-func sdtsFnMakeActionsBlock(_ trans.SetterInfo, args []interface{}) interface{} {
+func sdtsFnMakeActionsBlock(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]ActionsContent)
 	if !ok {
-		list = []ActionsContent{{State: SDDErrMsg("producing this actions content list: first argument is not an actions content list")}}
+		return nil, hookArgTypeError(args, 0, "[]ActionsContent")
 	}
 
-	return ActionsBlock{Content: list}
+	return ActionsBlock{Content: list}, nil
 }
 
-func sdtsFnGrammarContentBlocksStartRuleList(_ trans.SetterInfo, args []interface{}) interface{} {
+func sdtsFnGrammarContentBlocksStartRuleList(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	rules, ok := args[0].([]GrammarRule)
 	if !ok {
-		rules = []GrammarRule{{Rule: grammar.Rule{NonTerminal: SDDErrMsg("producing this rule list: first argument is not a rule list")}}}
+		return nil, hookArgTypeError(args, 0, "[]GrammarRule")
 	}
 	toAppend := GrammarContent{
 		Rules: rules,
