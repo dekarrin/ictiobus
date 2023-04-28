@@ -13,7 +13,7 @@ func (e *HookArgError) Error() string {
 }
 
 func NewArgTypeError(args []interface{}, argNum int, expectedType string) *HookArgError {
-	return NewArgError(args, argNum, "expected type to be %s, got %T")
+	return NewArgError(args, argNum, "expected type to be %s, got %T", expectedType, args[argNum])
 }
 
 func NewArgError(args []interface{}, argNum int, msg string, a ...interface{}) *HookArgError {
