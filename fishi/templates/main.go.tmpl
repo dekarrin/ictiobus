@@ -30,6 +30,8 @@ import (
 	"{{ .BinPkg }}/internal/{{ .FormatPkg }}"
 {{- end}}
 
+	"github.com/dekarrin/rosed"
+
 	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/ictiobus/fishi"
@@ -116,6 +118,17 @@ func main() {
 		var warns []fishi.Warning
 		for _, w := range sdtsWarns {
 			warns = append(warns, fishi.Warning{Type: fishi.WarnValidation, Message: w})
+		}
+
+		const warnPrefix = "WARN: "
+		for _, w := range warns {
+			// indent all except the first line
+			warnStr := rosed.Edit(warnPrefix+w.Message).
+				LinesFrom(1).
+				IndentOpts(len(warnPrefix), rosed.Options{IndentStr: " "}).
+				String()
+
+			fmt.Fprintf(os.Stderr, "%s\n\n", warnStr)
 		}
 
 		if sdtsErr != nil {
