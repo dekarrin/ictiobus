@@ -1,6 +1,7 @@
 package grammar
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/dekarrin/ictiobus/internal/rezi"
@@ -137,6 +138,67 @@ func (p *Production) UnmarshalBinary(data []byte) error {
 type Rule struct {
 	NonTerminal string
 	Productions []Production
+}
+
+// MustParseRule is like parseRule but panics if it can't.
+func MustParseRule(r string) Rule {
+	rule, err := ParseRule(r)
+	if err != nil {
+		panic(err.Error())
+	}
+	return rule
+}
+
+// ParseRule parses a Rule from a string like "S -> X | Y"
+func ParseRule(r string) (Rule, error) {
+	r = strings.TrimSpace(r)
+	sides := strings.Split(r, "->")
+	if len(sides) != 2 {
+		return Rule{}, fmt.Errorf("not a rule of form 'NONTERM -> SYMBOL SYMBOL | SYMBOL ...': %q", r)
+	}
+	nonTerminal := strings.TrimSpace(sides[0])
+
+	if nonTerminal == "" {
+		return Rule{}, fmt.Errorf("empty nonterminal name not allowed for production rule")
+	}
+
+	// ensure that it isnt an illegal char, only things used should be 'A-Z',
+	// '_', and '-'
+	for _, ch := range nonTerminal {
+		if ('A' > ch || ch > 'Z') && ch != '_' && ch != '-' {
+			return Rule{}, fmt.Errorf("invalid nonterminal name %q; must only be chars A-Z, \"_\", or \"-\"", nonTerminal)
+		}
+	}
+
+	parsedRule := Rule{NonTerminal: nonTerminal}
+
+	productionsString := strings.TrimSpace(sides[1])
+	prodStrings := strings.Split(productionsString, "|")
+	for _, p := range prodStrings {
+		parsedProd := Production{}
+		// split by spaces
+		p = strings.TrimSpace(p)
+		symbols := strings.Split(p, " ")
+		for _, sym := range symbols {
+			sym = strings.TrimSpace(sym)
+
+			if sym == "" {
+				return Rule{}, fmt.Errorf("empty symbol not allowed")
+			}
+
+			if strings.ToLower(sym) == "ε" {
+				// epsilon production
+				parsedProd = Epsilon
+				continue
+			} else {
+				parsedProd = append(parsedProd, sym)
+			}
+		}
+
+		parsedRule.Productions = append(parsedRule.Productions, parsedProd)
+	}
+
+	return parsedRule, nil
 }
 
 func (r Rule) MarshalBinary() ([]byte, error) {

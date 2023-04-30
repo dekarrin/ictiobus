@@ -106,7 +106,7 @@ type SDTS interface {
 	// Calling it multiple times will add to the existing hook table, not
 	// replace it entirely. If there are any duplicate hook names, the last one
 	// set will be the one that is used.
-	SetHooks(hooks map[string]trans.AttributeSetter)
+	SetHooks(hooks trans.HookMap)
 
 	// BindInheritedAttribute creates a new SDTS binding for setting the value
 	// of an inherited attribute with name attrName. The production that the
@@ -170,7 +170,10 @@ type SDTS interface {
 	// SDTS; cycles are not supported. Do note that this does not require the
 	// SDTS to be S-attributed or L-attributed, only that it not have cycles in
 	// its value dependency graph.
-	Evaluate(tree types.ParseTree, attributes ...string) ([]interface{}, error)
+	//
+	// Warn errors are provided in the slice of error and can be populated
+	// regardless of whether the final (actual) error is non-nil.
+	Evaluate(tree types.ParseTree, attributes ...string) (vals []interface{}, warns []error, err error)
 
 	// Validate checks whether this SDTS is valid for the given grammar. It will
 	// create a simulated parse tree that contains a node for every rule of the
@@ -183,7 +186,7 @@ type SDTS interface {
 	// values will be used, which may not behave as expected with the SDTS. To
 	// get one that will use the configured regexes of tokens used for lexing,
 	// call FakeLexemeProducer on a Lexer.
-	Validate(grammar grammar.Grammar, attribute string, debug trans.ValidationOptions, fakeValProducer ...map[string]func() string) error
+	Validate(grammar grammar.Grammar, attribute string, debug trans.ValidationOptions, fakeValProducer ...map[string]func() string) (warns []string, err error)
 }
 
 // NewLexer returns a lexer whose Lex method will immediately lex the entire
@@ -409,8 +412,8 @@ func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, pt *types.ParseTree, err erro
 		return ir, &parseTree, err
 	}
 
-	// semantic analysis
-	attrVals, err := fe.SDT.Evaluate(parseTree, fe.IRAttribute)
+	// semantic analysis (discard warns at this stage)
+	attrVals, _, err := fe.SDT.Evaluate(parseTree, fe.IRAttribute)
 	if err != nil {
 		return ir, &parseTree, err
 	}

@@ -650,7 +650,7 @@ func Test_Grammar_RemoveEpsilons(t *testing.T) {
 			assert := assert.New(t)
 			var expectRules = make([]Rule, len(tc.expect))
 			for i := range tc.expect {
-				expectRules[i] = mustParseRule(tc.expect[i])
+				expectRules[i] = MustParseRule(tc.expect[i])
 			}
 
 			// set up the grammar
@@ -660,7 +660,7 @@ func Test_Grammar_RemoveEpsilons(t *testing.T) {
 				g.AddTerm(class.ID(), class)
 			}
 			for _, r := range tc.rules {
-				parsedRule := mustParseRule(r)
+				parsedRule := MustParseRule(r)
 				for _, alts := range parsedRule.Productions {
 					g.AddRule(parsedRule.NonTerminal, alts)
 				}
@@ -790,7 +790,7 @@ func Test_Grammar_RemoveUnitProductions(t *testing.T) {
 			assert := assert.New(t)
 			var expectRules = make([]Rule, len(tc.expect))
 			for i := range tc.expect {
-				expectRules[i] = mustParseRule(tc.expect[i])
+				expectRules[i] = MustParseRule(tc.expect[i])
 			}
 
 			// set up the grammar
@@ -800,7 +800,7 @@ func Test_Grammar_RemoveUnitProductions(t *testing.T) {
 				g.AddTerm(class.ID(), class)
 			}
 			for _, r := range tc.rules {
-				parsedRule := mustParseRule(r)
+				parsedRule := MustParseRule(r)
 				for _, alts := range parsedRule.Productions {
 					g.AddRule(parsedRule.NonTerminal, alts)
 				}
@@ -1510,7 +1510,7 @@ func setupGrammar(terminals []string, rules []string) Grammar {
 		g.AddTerm(class.ID(), class)
 	}
 	for _, r := range rules {
-		parsedRule := mustParseRule(r)
+		parsedRule := MustParseRule(r)
 		for _, alts := range parsedRule.Productions {
 			g.AddRule(parsedRule.NonTerminal, alts)
 		}

@@ -51,28 +51,36 @@ type SpecMetadata struct {
 
 // ValidateSDTS builds the Lexer and SDTS and runs validation on several
 // simulated parse trees to ensure that the SDTS is valid and works.
-func (spec Spec) ValidateSDTS(opts trans.ValidationOptions) error {
+func (spec Spec) ValidateSDTS(opts trans.ValidationOptions, hooks trans.HookMap) ([]Warning, error) {
 	lx, err := spec.CreateLexer(true)
 	if err != nil {
-		return fmt.Errorf("lexer creation error: %w", err)
+		return nil, fmt.Errorf("lexer creation error: %w", err)
 	}
 
 	valProd := lx.FakeLexemeProducer(true, "")
 
 	sdts, err := spec.CreateSDTS()
 	if err != nil {
-		return fmt.Errorf("SDTS creation error: %w", err)
+		return nil, fmt.Errorf("SDTS creation error: %w", err)
 	}
+
+	sdts.SetHooks(hooks)
 
 	// validate the SDTS. the first defined attribute will be the IR attribute.
 	irAttrName := spec.TranslationScheme[0].Attribute.Name
 
-	sdtsErr := sdts.Validate(spec.Grammar, irAttrName, opts, valProd)
-	if sdtsErr != nil {
-		return fmt.Errorf("SDTS validation error: %w", sdtsErr)
+	allWarnings := []Warning{}
+
+	warns, sdtsErr := sdts.Validate(spec.Grammar, irAttrName, opts, valProd)
+	for _, w := range warns {
+		allWarnings = append(allWarnings, Warning{Type: WarnValidation, Message: w})
 	}
 
-	return nil
+	if sdtsErr != nil {
+		return allWarnings, fmt.Errorf("SDTS validation error: %w", sdtsErr)
+	}
+
+	return allWarnings, nil
 }
 
 // ClassMap is a map of string to token class with that ID.
@@ -116,6 +124,9 @@ func (spec Spec) CreateLexer(lazy bool) (ictiobus.Lexer, error) {
 				}
 			}
 		}
+
+		toBeRegisteredOrd[state] = stateToRegOrd
+		toBeRegisteredSet[state] = stateToRegSet
 	}
 
 	classes := spec.ClassMap()

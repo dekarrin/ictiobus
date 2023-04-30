@@ -47,7 +47,7 @@ type FrontendOptions struct {
 // scheme in the frontend and the external code executed in the backend. The
 // opts parameter allows options to be set on the frontend for debugging and
 // other purposes. If opts is nil, it is treated as an empty FrontendOptions.
-func Frontend(hooks map[string]trans.AttributeSetter, opts *FrontendOptions) ictiobus.Frontend[syntax.AST] {
+func Frontend(hooks trans.HookMap, opts *FrontendOptions) ictiobus.Frontend[syntax.AST] {
 	if opts == nil {
 		opts = &FrontendOptions{}
 	}

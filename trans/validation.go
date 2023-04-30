@@ -14,26 +14,22 @@ import (
 //
 // It will use fake value producer, if provided, to generate lexemes for
 // terminals in the tree; otherwise contrived values will be used.
-func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug ValidationOptions, fakeValProducer ...map[string]func() string) error {
+func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug ValidationOptions, fakeValProducer ...map[string]func() string) (warns []string, err error) {
 	pts, err := g.DeriveFullTree(fakeValProducer...)
 	if err != nil {
-		return fmt.Errorf("deriving fake parse tree: %w", err)
+		return warns, fmt.Errorf("deriving fake parse tree: %w", err)
 	}
 
 	const errIndentStr = "    "
 
 	treeErrs := []box.Pair[error, *types.ParseTree]{}
 
-	for i := range pts {
-		_, err = sdts.Evaluate(pts[i], attribute)
-		localPT := pts[i]
-
-		evalErr, ok := err.(evalError)
+	evalErrToTreeError := func(errFromEval error) error {
+		evalErr, ok := errFromEval.(evalError)
 		if !ok {
-			if err != nil {
-				treeErrs = append(treeErrs, box.PairOf(err, &localPT))
+			if errFromEval != nil {
+				return errFromEval
 			}
-			continue
 		}
 
 		if len(evalErr.depGraphs) > 0 {
@@ -58,12 +54,35 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 				}
 			}
 
-			treeErrs = append(treeErrs, box.PairOf(fmt.Errorf(fullMsg), &localPT))
-			continue
+			return fmt.Errorf(fullMsg)
 		}
 
+		return errFromEval
+	}
+
+	for i := range pts {
+		var evalWarns []error
+		var treeErr error
+		_, evalWarns, err = sdts.Evaluate(pts[i], attribute)
+
+		localPT := pts[i]
+
 		if err != nil {
-			treeErrs = append(treeErrs, box.PairOf(err, &localPT))
+			treeErr = evalErrToTreeError(err)
+		}
+
+		for _, ew := range evalWarns {
+			ewAsTreeErr := evalErrToTreeError(ew)
+			if debug.ParseTrees {
+				treeStr := AddAttributes(localPT).String()
+				warns = append(warns, fmt.Sprintf("Failed Tree %d:\n%s\nParse Tree:\n%s", i+1, ewAsTreeErr.Error(), treeStr))
+			} else {
+				warns = append(warns, fmt.Sprintf("Failed Tree %d: %s", i+1, ewAsTreeErr.Error()))
+			}
+		}
+
+		if treeErr != nil {
+			treeErrs = append(treeErrs, box.PairOf(treeErr, &localPT))
 		}
 	}
 
@@ -123,7 +142,7 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 		finalErr = fmt.Errorf("%s", fullErrStr)
 	}
 
-	return finalErr
+	return warns, finalErr
 }
 
 // highly populated error struct for examination by validation code and internal
