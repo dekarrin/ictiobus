@@ -1,0 +1,22 @@
+name: frontend validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate-frontend-generation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+      - name: Generate new frontend
+        run: ./genfrontend.sh
+      - name: Run tests
+        run: go test -v ./...
