@@ -51,7 +51,7 @@ type SpecMetadata struct {
 
 // ValidateSDTS builds the Lexer and SDTS and runs validation on several
 // simulated parse trees to ensure that the SDTS is valid and works.
-func (spec Spec) ValidateSDTS(opts trans.ValidationOptions, hooks map[string]trans.Hook) ([]Warning, error) {
+func (spec Spec) ValidateSDTS(opts trans.ValidationOptions, hooks trans.HookMap) ([]Warning, error) {
 	lx, err := spec.CreateLexer(true)
 	if err != nil {
 		return nil, fmt.Errorf("lexer creation error: %w", err)
@@ -63,6 +63,8 @@ func (spec Spec) ValidateSDTS(opts trans.ValidationOptions, hooks map[string]tra
 	if err != nil {
 		return nil, fmt.Errorf("SDTS creation error: %w", err)
 	}
+
+	sdts.SetHooks(hooks)
 
 	// validate the SDTS. the first defined attribute will be the IR attribute.
 	irAttrName := spec.TranslationScheme[0].Attribute.Name
@@ -122,6 +124,9 @@ func (spec Spec) CreateLexer(lazy bool) (ictiobus.Lexer, error) {
 				}
 			}
 		}
+
+		toBeRegisteredOrd[state] = stateToRegOrd
+		toBeRegisteredSet[state] = stateToRegSet
 	}
 
 	classes := spec.ClassMap()

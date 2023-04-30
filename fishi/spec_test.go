@@ -35,6 +35,7 @@ func Test_Spec_ValidateSDTS_disconnectedGraph(t *testing.T) {
 		"int": func(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 			return strconv.Atoi(coerceToString(args[0]))
 		},
+		"constant-1": func(info trans.SetterInfo, args []interface{}) (interface{}, error) { return 1, nil },
 	}
 
 	testCases := []struct {
@@ -45,7 +46,7 @@ func Test_Spec_ValidateSDTS_disconnectedGraph(t *testing.T) {
 		expectWarnTypes []WarnType
 	}{
 		{
-			name: "spec",
+			name: "normal spec",
 			spec: Spec{
 				Tokens: []types.TokenClass{
 					lex.NewTokenClass("+", "plus sign"),
@@ -100,6 +101,43 @@ func Test_Spec_ValidateSDTS_disconnectedGraph(t *testing.T) {
 					},
 				},
 			},
+		},
+		{
+			name: "SDTS has disconnected depgraph but still allowed",
+			spec: Spec{
+				Tokens: []types.TokenClass{
+					lex.NewTokenClass("+", "plus sign"),
+					lex.NewTokenClass("*", "mult sign"),
+					lex.NewTokenClass("var", "variable"),
+					lex.NewTokenClass("int", "integer"),
+				},
+				Patterns: map[string][]Pattern{
+					"": {
+						{Regex: regexp.MustCompile(`\s+`), Action: lex.Discard()},
+						{Regex: regexp.MustCompile(`\+`), Action: lex.LexAs("+")},
+						{Regex: regexp.MustCompile(`\*`), Action: lex.LexAs("*")},
+						{Regex: regexp.MustCompile(`\d+`), Action: lex.LexAs("int")},
+						{Regex: regexp.MustCompile(`[A-Za-z_]+`), Action: lex.LexAs("var")},
+					},
+				},
+				Grammar: grammar.MustParse(`
+					E -> E + F | F ;
+					F -> var | int ;
+				`),
+				TranslationScheme: []SDD{
+					{
+						Attribute: trans.AttrRef{Relation: trans.NodeRelation{Type: trans.RelHead}, Name: "val"},
+						Rule:      grammar.MustParseRule("E -> E + F"),
+						Hook:      "constant-1",
+					},
+					{
+						Attribute: trans.AttrRef{Relation: trans.NodeRelation{Type: trans.RelHead}, Name: "val"},
+						Rule:      grammar.MustParseRule("E -> F"),
+						Hook:      "constant-1",
+					},
+				},
+			},
+			expectWarnTypes: []WarnType{WarnValidation},
 		},
 	}
 
