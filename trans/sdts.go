@@ -12,14 +12,14 @@ import (
 // sdts.go contains the implementation of a Syntax-Directed Translation Scheme.
 
 type sdtsImpl struct {
-	hooks    map[string]Hook
+	hooks    HookMap
 	bindings map[string]map[string][]SDDBinding
 }
 
-func (sdts *sdtsImpl) SetHooks(hooks map[string]Hook) {
+func (sdts *sdtsImpl) SetHooks(hooks HookMap) {
 	// only create a new map if we don't already have one
 	if sdts.hooks == nil {
-		sdts.hooks = map[string]Hook{}
+		sdts.hooks = HookMap{}
 	}
 
 	// add each hook to the map

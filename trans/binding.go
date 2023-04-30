@@ -51,7 +51,7 @@ func (bind SDDBinding) Copy() SDDBinding {
 }
 
 // Invoke calls the given binding while visiting an annotated parse tree node.
-func (bind SDDBinding) Invoke(apt *AnnotatedParseTree, hooksTable map[string]Hook) (val interface{}, invokeErr error) {
+func (bind SDDBinding) Invoke(apt *AnnotatedParseTree, hooksTable HookMap) (val interface{}, invokeErr error) {
 	// sanity checks; can we even call this?
 	if bind.Setter == "" {
 		return nil, hookError{msg: "binding has no setter hook defined"}
