@@ -14,9 +14,6 @@ import (
 )
 
 func Test_Spec_ValidateSDTS_disconnectedGraph(t *testing.T) {
-	// A -> A + NUM
-	// NUM -> id | int
-
 	hooksList := map[string]trans.Hook{
 		"add": func(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 			left, ok := args[0].(int)
@@ -56,7 +53,7 @@ func Test_Spec_ValidateSDTS_disconnectedGraph(t *testing.T) {
 					lex.NewTokenClass("int", "integer"),
 				},
 				Patterns: map[string][]Pattern{
-					"": []Pattern{
+					"": {
 						{Regex: regexp.MustCompile(`\s+`), Action: lex.Discard()},
 						{Regex: regexp.MustCompile(`\+`), Action: lex.LexAs("+")},
 						{Regex: regexp.MustCompile(`\d+`), Action: lex.LexAs("int")},
@@ -112,7 +109,7 @@ func Test_Spec_ValidateSDTS_disconnectedGraph(t *testing.T) {
 			assert := assert.New(t)
 
 			// exec
-			warns, err := tc.spec.ValidateSDTS(tc.opts)
+			warns, err := tc.spec.ValidateSDTS(tc.opts, hooksList)
 
 			actualWarnTypesMap := map[WarnType]struct{}{}
 			for _, w := range warns {
