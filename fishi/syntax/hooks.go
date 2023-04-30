@@ -847,11 +847,7 @@ func sdtsFnTokenOptListAppend(_ trans.SetterInfo, args []interface{}) (interface
 }
 
 func sdtsFnStringListStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-	toAppend, ok := args[0].(string)
-	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
-	}
-
+	toAppend := coerceToString(args[0])
 	return []string{toAppend}, nil
 }
 
@@ -968,4 +964,24 @@ func makeFakeInfo(from interface{}, sym, name string) (trans.SetterInfo, error) 
 	}
 
 	return info, nil
+}
+
+func coerceToString(a interface{}) string {
+	// is it just a string? return if so
+	if str, ok := a.(string); ok {
+		return str
+	}
+
+	// otherwise, is it a stringer? call String() and return if so
+	if str, ok := a.(fmt.Stringer); ok {
+		return str.String()
+	}
+
+	// otherwise, is it an error? call Error() and return if so
+	if err, ok := a.(error); ok {
+		return err.Error()
+	}
+
+	// finally, if none of those, get the default formatting and return that
+	return fmt.Sprintf("%v", a)
 }
