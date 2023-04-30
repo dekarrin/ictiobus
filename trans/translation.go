@@ -100,4 +100,4 @@ type SetterInfo struct {
 	Synthetic bool
 }
 
-type AttributeSetter func(info SetterInfo, args []interface{}) interface{}
+type AttributeSetter func(info SetterInfo, args []interface{}) (interface{}, error)

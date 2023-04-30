@@ -109,7 +109,10 @@ func (bind SDDBinding) Invoke(apt *AnnotatedParseTree, hooksTable map[string]Att
 	}()
 
 	// call func
-	val = hookFn(info, args)
+	val, err := hookFn(info, args)
+	if err != nil {
+		return invokeErr, hookError{name: bind.Setter, msg: err.Error()}
+	}
 
 	return val, nil
 }
