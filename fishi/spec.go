@@ -51,7 +51,7 @@ type SpecMetadata struct {
 
 // ValidateSDTS builds the Lexer and SDTS and runs validation on several
 // simulated parse trees to ensure that the SDTS is valid and works.
-func (spec Spec) ValidateSDTS(opts trans.ValidationOptions) ([]Warning, error) {
+func (spec Spec) ValidateSDTS(opts trans.ValidationOptions, hooks map[string]trans.Hook) ([]Warning, error) {
 	lx, err := spec.CreateLexer(true)
 	if err != nil {
 		return nil, fmt.Errorf("lexer creation error: %w", err)

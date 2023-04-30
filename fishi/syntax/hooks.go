@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	HooksTable = map[string]trans.AttributeSetter{
+	HooksTable = map[string]trans.Hook{
 		"make_fishispec":                           sdtsFnMakeFishispec,
 		"block_list_append":                        sdtsFnBlockListAppend,
 		"block_list_start":                         sdtsFnBlockListStart,

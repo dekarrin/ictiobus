@@ -106,7 +106,7 @@ type SDTS interface {
 	// Calling it multiple times will add to the existing hook table, not
 	// replace it entirely. If there are any duplicate hook names, the last one
 	// set will be the one that is used.
-	SetHooks(hooks map[string]trans.AttributeSetter)
+	SetHooks(hooks map[string]trans.Hook)
 
 	// BindInheritedAttribute creates a new SDTS binding for setting the value
 	// of an inherited attribute with name attrName. The production that the

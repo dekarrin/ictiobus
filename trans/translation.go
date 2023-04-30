@@ -100,4 +100,5 @@ type SetterInfo struct {
 	Synthetic bool
 }
 
-type AttributeSetter func(info SetterInfo, args []interface{}) (interface{}, error)
+// Hook is a setter of an attribute.
+type Hook func(info SetterInfo, args []interface{}) (interface{}, error)
