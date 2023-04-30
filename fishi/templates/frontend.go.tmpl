@@ -49,9 +49,9 @@ type FrontendOptions struct {
 // opts parameter allows options to be set on the frontend for debugging and
 // other purposes. If opts is nil, it is treated as an empty FrontendOptions.
 {{- if .IRType}}
-func Frontend(hooks map[string]trans.AttributeSetter, opts *FrontendOptions) ictiobus.Frontend[{{ .IRType }}] {
+func Frontend(hooks trans.HookMap, opts *FrontendOptions) ictiobus.Frontend[{{ .IRType }}] {
 {{else}}
-func Frontend[IRType any](hooks map[string]trans.AttributeSetter, opts *FrontendOptions) ictiobus.Frontend[IRType] {
+func Frontend[IRType any](hooks trans.HookMap, opts *FrontendOptions) ictiobus.Frontend[IRType] {
 {{end -}}
     if opts == nil {
         opts = &FrontendOptions{}
