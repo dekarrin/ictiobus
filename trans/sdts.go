@@ -50,7 +50,7 @@ func (sdts *sdtsImpl) BindingsFor(head string, prod []string, attrRef AttrRef) [
 	return matchingBindings
 }
 
-func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]interface{}, error) {
+func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals []interface{}, warns []error, err error) {
 	// don't check for no hooks being set because it's possible we are going to
 	// be handed an empty parse tree, which will fail for other reasons first
 	// or perhaps will not fail at all.
@@ -58,11 +58,11 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 	// first get an annotated parse tree
 	root := AddAttributes(tree)
 	depGraphs := DepGraph(root, sdts)
+	var unexpectedBreaks [][4]string
 
 	if len(depGraphs) > 1 {
 		// first, eliminate all depGraphs whose head has a noFlow that applies
 		// to it.
-		unexpectedBreaks := [][4]string{}
 		updatedDepGraphs := []*DirectedGraph[DepNode]{}
 		for i := range depGraphs {
 			var isRoot bool
@@ -114,19 +114,65 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 		}
 
 		depGraphs = updatedDepGraphs
+	}
 
-		// if it's *still* more than 1, we have a problem.
-		if len(depGraphs) > 1 {
-			return nil, evalError{
+	var singleAttrRoot *DirectedGraph[DepNode]
+	// if it's *still* more than 1, scan to see if it's only one attrRoot; that is a warning, not an error, unless
+	// asked to be.
+	if len(depGraphs) > 1 {
+		// if exactly one is root with IR, we can just use that.
+		var multipleAttrRoots bool
+
+		for i := range depGraphs {
+			allNodes := depGraphs[i].AllNodes()
+			for j := range allNodes {
+				node := allNodes[j]
+
+				// must be at the end of the eval chain, be for the root of the APT, and be for one of the attributes
+				// listed.
+				if len(node.Edges) == 0 && node.Data.Parent == nil && slices.In(node.Data.Dest.Name, attributes) {
+					if singleAttrRoot != nil {
+						// this is an error; can't have multiple attr-bearing with roots depgraphs, let later things
+						// catch it
+						multipleAttrRoots = true
+						break
+					}
+					// note: taking a shortcut here, strictlly speaking we shouldn't consider this "done" until we
+					// have found EACH attribute, otherwise there will be an error popping up as each attribute is
+					// evaluated later. But this is fine for now, glub.
+					singleAttrRoot = depGraphs[i]
+					break
+				}
+			}
+
+			if multipleAttrRoots {
+				singleAttrRoot = nil
+				break
+			}
+		}
+	}
+
+	// now we deffin8ly have a pro8lem!!!!!!!!
+	if len(depGraphs) > 1 {
+		if singleAttrRoot != nil {
+			warns = append(warns, evalError{
 				msg:              "applying SDTS to tree results in evaluation dependency graph with undeclared disconnected segments",
+				depGraphs:        depGraphs,
+				unexpectedBreaks: unexpectedBreaks,
+			})
+			depGraphs = []*DirectedGraph[DepNode]{singleAttrRoot}
+		} else {
+			return nil, warns, evalError{
+				msg:              "applying SDTS to tree results in evaluation dependency graph with multiple disconnected root segments",
 				depGraphs:        depGraphs,
 				unexpectedBreaks: unexpectedBreaks,
 			}
 		}
 	}
+
 	visitOrder, err := KahnSort(depGraphs[0])
 	if err != nil {
-		return nil, evalError{
+		return nil, warns, evalError{
 			msg:       fmt.Sprintf("sorting SDTS dependency graph: %s", err.Error()),
 			sortError: true,
 		}
@@ -174,22 +220,22 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 					errMsg += fmt.Sprintf(") for rule %s -> %s", nodeRuleHead, nodeRuleProd)
 
 					if hookErr.name == "" {
-						return nil, evalError{
+						return nil, warns, evalError{
 							msg: fmt.Sprintf("%s: no hook set on binding", errMsg),
 						}
 					} else if hookErr.missingHook {
-						return nil, evalError{
+						return nil, warns, evalError{
 							missingHook: hName,
 							msg:         fmt.Sprintf("%s: '%s' is not in the provided hooks table", errMsg, hookErr.name),
 						}
 					} else {
-						return nil, evalError{
+						return nil, warns, evalError{
 							failedHook: hName,
 							msg:        fmt.Sprintf("%s: %s", errMsg, hookErr.Error()),
 						}
 					}
 				} else {
-					return nil, err
+					return nil, warns, err
 				}
 			}
 
@@ -203,7 +249,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 	for i := range attributes {
 		val, ok := root.Attributes[attributes[i]]
 		if !ok {
-			return nil, evalError{
+			return nil, warns, evalError{
 				msg:       fmt.Sprintf("SDTS does not set attribute %q on root node", attributes[i]),
 				sortError: true,
 			}
@@ -211,7 +257,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) ([]in
 		attrValues[i] = val
 	}
 
-	return attrValues, nil
+	return attrValues, warns, nil
 }
 
 func (sdts *sdtsImpl) Bindings(head string, prod []string) []SDDBinding {
