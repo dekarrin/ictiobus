@@ -78,6 +78,24 @@ Flags:
 		the exact code that is going to be parsed by ictcc before such parsing
 		occurs.
 
+	-F/--fatal WARN_TYPE
+		Make warnings of the given type be fatal. If ictcc encounters a warning
+		of that type, it will treat it as an error and immediately fail. The
+		possible values for the type of warning is as follows: "dupe_human",
+		"missing_human", "priority", "unused", "ambig", "validation", "import",
+		"val_args", or "all" to make all errors fatal. This option can be passed
+		more than once to give multiple warning types. See manual for
+		description of when each type of warning could arise.
+
+	-S/--suppress WARN_TYPE
+		Suppress outout of warnings of the given type. No "WARN" message will be
+		printed for that type even if ictcc encounters it. The possible values
+		for the type of warning to suppress is as as follows: "dupe_human",
+		"missing_human", "priority", "unused", "ambig", "validation", "import",
+		"val_args", or "all" to make all errors fatal. This option can be passed
+		more than once to give multiple warning types. See manual for
+		description of when each type of warning could arise.
+
 	--preserve-bin-source
 		Do not delete source files for any generated binary after compiling the
 		binary.
@@ -300,6 +318,9 @@ import (
 )
 
 var (
+	flagWarnFatal    = pflag.StringArrayP("fatal", "F", nil, "Treat given warning as a fatal error")
+	flagWarnSuppress = pflag.StringArrayP("suppress", "S", nil, "Suppress output of given warning")
+
 	flagQuietMode = pflag.BoolP("quiet", "q", false, "Suppress progress messages and other supplementary output")
 	flagNoGen     = pflag.BoolP("no-gen", "n", false, "Do not attempt to generate the parser")
 	flagGenAST    = pflag.BoolP("ast", "a", false, "Print the AST of the analyzed fishi")
@@ -613,7 +634,7 @@ func main() {
 	if !*flagSimOff {
 		if *flagIRType == "" {
 			warn := fishi.Warning{
-				Type:    fishi.WarnValidation,
+				Type:    fishi.WarnValidationArgs,
 				Message: "skipping SDTS validation due to missing --ir parameter",
 			}
 
@@ -621,7 +642,7 @@ func main() {
 		} else {
 			if *flagHooksPath == "" {
 				warn := fishi.Warning{
-					Type:    fishi.WarnValidation,
+					Type:    fishi.WarnValidationArgs,
 					Message: "skipping SDTS validation due to missing --hooks parameter",
 				}
 

@@ -16,6 +16,7 @@ const (
 	WarnUnusedTerminal
 	WarnAmbiguousGrammar
 	WarnValidation
+	WarnValidationArgs
 	WarnImportInference
 )
 
@@ -29,6 +30,7 @@ func WarnTypeAll() []WarnType {
 		WarnUnusedTerminal,
 		WarnAmbiguousGrammar,
 		WarnValidation,
+		WarnValidationArgs,
 		WarnImportInference,
 	}
 
@@ -53,6 +55,8 @@ func (wt WarnType) Short() string {
 		return "validation"
 	case WarnImportInference:
 		return "import"
+	case WarnValidationArgs:
+		return "val_args"
 	default:
 		return fmt.Sprintf("%d", int(wt))
 	}
@@ -76,6 +80,8 @@ func (wt WarnType) String() string {
 		return "WarnValidation"
 	case WarnImportInference:
 		return "WarnImportInference"
+	case WarnValidationArgs:
+		return "WarnValidationArgs"
 	default:
 		return fmt.Sprintf("WarnType(%d)", int(wt))
 	}
