@@ -612,10 +612,20 @@ func main() {
 	// create a test compiler and output it
 	if !*flagSimOff {
 		if *flagIRType == "" {
-			fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing --ir parameter\n")
+			warn := fishi.Warning{
+				Type:    fishi.WarnValidation,
+				Message: "skipping SDTS validation due to missing --ir parameter",
+			}
+
+			fmt.Fprintf(os.Stderr, "WARN: %s\n", warn.Message)
 		} else {
 			if *flagHooksPath == "" {
-				fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing --hooks parameter\n")
+				warn := fishi.Warning{
+					Type:    fishi.WarnValidation,
+					Message: "skipping SDTS validation due to missing --hooks parameter",
+				}
+
+				fmt.Fprintf(os.Stderr, "WARN: %s\n", warn.Message)
 			} else {
 				if !*flagQuietMode {
 					simGenDir := fishi.SimGenerationDir
@@ -717,7 +727,12 @@ func main() {
 	var feImportPath string
 	feImportPath, err = inferImportPathFromDir(feDest)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "WARN: failed to infer import path for generated frontend: "+err.Error()+"\n; output will have syntax errors\n")
+		w := fishi.Warning{
+			Type:    fishi.WarnImportInference,
+			Message: "failed to infer import path for generated frontend: " + err.Error(),
+		}
+
+		fmt.Fprintf(os.Stderr, "WARN: %s\n; output will have syntax errors\n", w)
 		feImportPath = "FE_IMPORT_PATH"
 	}
 

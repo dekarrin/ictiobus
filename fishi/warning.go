@@ -11,6 +11,7 @@ const (
 	WarnUnusedTerminal
 	WarnAmbiguousGrammar
 	WarnValidation
+	WarnImportInference
 )
 
 func (wt WarnType) String() string {
