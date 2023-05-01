@@ -85,7 +85,10 @@ Flags:
 		"missing_human", "priority", "unused", "ambig", "validation", "import",
 		"val_args", or "all" to make all errors fatal. This option can be passed
 		more than once to give multiple warning types. See manual for
-		description of when each type of warning could arise.
+		description of when each type of warning could arise. If a warning is
+		specified as both fatalized and suppressed by options, treating it as
+		fatal takes precedence. Specifying both '-F all' and '-S all' is not
+		allowed.
 
 	-S/--suppress WARN_TYPE
 		Suppress outout of warnings of the given type. No "WARN" message will be
@@ -94,7 +97,10 @@ Flags:
 		"missing_human", "priority", "unused", "ambig", "validation", "import",
 		"val_args", or "all" to make all errors fatal. This option can be passed
 		more than once to give multiple warning types. See manual for
-		description of when each type of warning could arise.
+		description of when each type of warning could arise. If a warning is
+		specified as both fatalized and suppressed by options, treating it as
+		fatal takes precedence. Specifying both '-F all' and '-S all' is not
+		allowed.
 
 	--preserve-bin-source
 		Do not delete source files for any generated binary after compiling the
@@ -406,7 +412,7 @@ func main() {
 		return
 	}
 
-	warnHandling, err := warningHandlingFromFlags()
+	warnHandling, err := warnHandlingFromFlags()
 	if err != nil {
 		errInvalidFlags(err.Error())
 		return
@@ -819,7 +825,62 @@ func printPreproc(file string) error {
 }
 
 func warnHandlingFromFlags() (map[fishi.WarnType]WarnHandling, error) {
+	handling := map[fishi.WarnType]WarnHandling{}
 
+	for _, wt := range fishi.WarnTypeAll() {
+		handling[wt] = WarnHandlingOutput
+	}
+
+	var allFatal bool
+
+	// do fatals first, then do suppressions
+	for i := range *flagWarnFatal {
+		warnType := (*flagWarnFatal)[i]
+
+		if strings.ToLower(warnType) == "all" {
+			allFatal = true
+			for k := range handling {
+				handling[k] = WarnHandlingFatal
+			}
+		} else {
+			wt, err := fishi.ParseShortWarnType(warnType)
+			if err != nil {
+				return nil, err
+			}
+
+			handling[wt] = WarnHandlingFatal
+		}
+	}
+
+	// now do suppressions, and give an error if the user tries to both suppress
+	// and make fatal all flags.
+	for i := range *flagWarnSuppress {
+		warnType := (*flagWarnSuppress)[i]
+
+		if strings.ToLower(warnType) == "all" {
+			if allFatal {
+				return nil, fmt.Errorf("cannot suppress all warns while also treating all as fatal")
+			}
+
+			for k := range handling {
+				if handling[k] != WarnHandlingFatal {
+					handling[k] = WarnHandlingSuppress
+				}
+			}
+		} else {
+			wt, err := fishi.ParseShortWarnType(warnType)
+			if err != nil {
+				return nil, err
+			}
+
+			if handling[wt] != WarnHandlingFatal {
+				// fatal takes precednece
+				handling[wt] = WarnHandlingSuppress
+			}
+		}
+	}
+
+	return handling, nil
 }
 
 func devModeInfoFromFlags() (DevModeInfo, error) {
