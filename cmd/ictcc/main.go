@@ -385,6 +385,14 @@ type DevModeInfo struct {
 	LocalIctiobusSource string
 }
 
+type WarnHandling int
+
+const (
+	WarnHandlingOutput WarnHandling = iota
+	WarnHandlingSuppress
+	WarnHandlingFatal
+)
+
 func main() {
 	defer preservePanicOrExitWithStatus()
 
@@ -395,6 +403,12 @@ func main() {
 
 	if *flagVersion {
 		fmt.Println(GetVersionString())
+		return
+	}
+
+	warnHandling, err := warningHandlingFromFlags()
+	if err != nil {
+		errInvalidFlags(err.Error())
 		return
 	}
 
@@ -802,6 +816,10 @@ func printPreproc(file string) error {
 		}
 	}
 	return nil
+}
+
+func warnHandlingFromFlags() (map[fishi.WarnType]WarnHandling, error) {
+
 }
 
 func devModeInfoFromFlags() (DevModeInfo, error) {
