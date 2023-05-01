@@ -320,7 +320,6 @@ import (
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
-	"github.com/dekarrin/rosed"
 )
 
 var (
@@ -575,17 +574,13 @@ func main() {
 		fmt.Printf("Generating language spec from FISHI...\n")
 	}
 	spec, warnings, err := fishi.NewSpec(*joinedAST)
+	var fatalSpecWarns bool
 	// warnings may be valid even if there is an error
 	if len(warnings) > 0 {
 		for _, warn := range warnings {
-			const warnPrefix = "WARN: "
-			// indent all except the first line
-			warnStr := rosed.Edit(warnPrefix+warn.Message).
-				LinesFrom(1).
-				IndentOpts(len(warnPrefix), rosed.Options{IndentStr: " "}).
-				String()
-
-			fmt.Fprintf(os.Stderr, "%s\n\n", warnStr)
+			if handleWarn(warnHandling, "%s\n\n", warn) {
+				fatalSpecWarns = true
+			}
 		}
 	}
 	// now check err
@@ -596,6 +591,9 @@ func main() {
 		} else {
 			errOther(err.Error())
 		}
+		return
+	} else if fatalSpecWarns {
+		errFatalWarn("fatal warning(s) occured")
 		return
 	}
 
@@ -628,21 +626,19 @@ func main() {
 	}
 
 	// code gen time! 38D
-
+	var fatalParserWarns bool
 	for _, warn := range parserWarns {
-		const warnPrefix = "WARN: "
-		// indent all except the first line
-		warnStr := rosed.Edit(warnPrefix+warn.Message).
-			LinesFrom(1).
-			IndentOpts(len(warnPrefix), rosed.Options{IndentStr: " "}).
-			String()
-
-		fmt.Fprintf(os.Stderr, "%s\n", warnStr)
+		if handleWarn(warnHandling, "%s\n", warn) {
+			fatalParserWarns = true
+		}
 	}
 	fmt.Fprintf(os.Stderr, "\n")
 
 	if err != nil {
 		errParser(err.Error())
+		return
+	} else if fatalParserWarns {
+		errFatalWarn("fatal warning(s) occured")
 		return
 	}
 
@@ -658,7 +654,10 @@ func main() {
 				Message: "skipping SDTS validation due to missing --ir parameter",
 			}
 
-			fmt.Fprintf(os.Stderr, "WARN: %s\n", warn.Message)
+			if handleWarn(warnHandling, "%s\n", warn) {
+				errFatalWarn("fatal warning occured")
+				return
+			}
 		} else {
 			if *flagHooksPath == "" {
 				warn := fishi.Warning{
@@ -666,7 +665,10 @@ func main() {
 					Message: "skipping SDTS validation due to missing --hooks parameter",
 				}
 
-				fmt.Fprintf(os.Stderr, "WARN: %s\n", warn.Message)
+				if handleWarn(warnHandling, "%s\n", warn) {
+					errFatalWarn("fatal warning occured")
+					return
+				}
 			} else {
 				if !*flagQuietMode {
 					simGenDir := fishi.SimGenerationDir
@@ -773,7 +775,11 @@ func main() {
 			Message: "failed to infer import path for generated frontend: " + err.Error(),
 		}
 
-		fmt.Fprintf(os.Stderr, "WARN: %s\n; output will have syntax errors\n", w)
+		if handleWarn(warnHandling, "%s\n; output will have syntax errors\n", w) {
+			errFatalWarn("fatal warning occured")
+			return
+		}
+
 		feImportPath = "FE_IMPORT_PATH"
 	}
 
