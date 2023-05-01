@@ -830,65 +830,6 @@ func printPreproc(file string) error {
 	return nil
 }
 
-func warnHandlingFromFlags() (map[fishi.WarnType]WarnHandling, error) {
-	handling := map[fishi.WarnType]WarnHandling{}
-
-	for _, wt := range fishi.WarnTypeAll() {
-		handling[wt] = WarnHandlingOutput
-	}
-
-	var allFatal bool
-
-	// do fatals first, then do suppressions
-	for i := range *flagWarnFatal {
-		warnType := (*flagWarnFatal)[i]
-
-		if strings.ToLower(warnType) == "all" {
-			allFatal = true
-			for k := range handling {
-				handling[k] = WarnHandlingFatal
-			}
-		} else {
-			wt, err := fishi.ParseShortWarnType(warnType)
-			if err != nil {
-				return nil, err
-			}
-
-			handling[wt] = WarnHandlingFatal
-		}
-	}
-
-	// now do suppressions, and give an error if the user tries to both suppress
-	// and make fatal all flags.
-	for i := range *flagWarnSuppress {
-		warnType := (*flagWarnSuppress)[i]
-
-		if strings.ToLower(warnType) == "all" {
-			if allFatal {
-				return nil, fmt.Errorf("cannot suppress all warns while also treating all as fatal")
-			}
-
-			for k := range handling {
-				if handling[k] != WarnHandlingFatal {
-					handling[k] = WarnHandlingSuppress
-				}
-			}
-		} else {
-			wt, err := fishi.ParseShortWarnType(warnType)
-			if err != nil {
-				return nil, err
-			}
-
-			if handling[wt] != WarnHandlingFatal {
-				// fatal takes precednece
-				handling[wt] = WarnHandlingSuppress
-			}
-		}
-	}
-
-	return handling, nil
-}
-
 func devModeInfoFromFlags() (DevModeInfo, error) {
 	dmi := DevModeInfo{}
 

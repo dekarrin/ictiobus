@@ -3,11 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
-	"github.com/dekarrin/ictiobus/fishi"
 	"github.com/dekarrin/ictiobus/types"
-	"github.com/dekarrin/rosed"
 )
 
 const (
@@ -139,48 +136,4 @@ func preservePanicOrExitWithStatus() {
 	} else {
 		os.Exit(exitStatus)
 	}
-}
-
-// handleWarn handles the warning and returns whether it resulted in a fatal
-// error. If this function returns true the caller should not proceed with
-// normal execution, although it may proceed with printing any additional
-// warnings that have not yet been output.
-//
-// fmtStr is the string to use to print the warning out. If set to "" it will
-// be assumed to be "%s\n".
-func handleWarn(handler map[fishi.WarnType]WarnHandling, fmtStr string, w fishi.Warning) (fatal bool) {
-	if fmtStr == "" {
-		fmtStr = "%s\n"
-	}
-
-	var prefix string
-
-	handleType := handler[w.Type]
-
-	switch handleType {
-	case WarnHandlingSuppress:
-		// do nothing
-		return false
-	case WarnHandlingFatal:
-		fatal = true
-		prefix = errorPrefix
-	case WarnHandlingOutput:
-		fatal = false
-		prefix = warnPrefix
-	}
-
-	msg := w.Message
-	// okay, not suppressed, so output the warning
-	if strings.Contains(msg, "\n") {
-		// rosed will help us here;
-
-		// indent all except the first line
-		msg = rosed.Edit(prefix+msg).
-			LinesFrom(1).
-			IndentOpts(len(prefix), rosed.Options{IndentStr: " "}).
-			String()
-	}
-
-	fmt.Fprintf(os.Stderr, fmtStr, msg)
-	return fatal
 }
