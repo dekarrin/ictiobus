@@ -18,7 +18,8 @@ const (
 )
 
 // WarnHandler handles warnings and can be configured by reading slices of names
-// of warnings. The zero-value is a WarnHandler ready to be used.
+// of warnings. The zero-value is not ready to be used; call NewWarnHandler() or
+// NewWarnHandlerFromCLI to create one.
 type WarnHandler struct {
 	h map[WarnType]WarnHandling
 
@@ -30,10 +31,6 @@ type WarnHandler struct {
 // Suppressed sets the handling for a type of warning to be 'suppression'.
 // Suppressed warnings are not shown in output and no further action is taken.
 func (wh *WarnHandler) Suppressed(wt WarnType) {
-	if wh.h == nil {
-		wh.h = map[WarnType]WarnHandling{}
-	}
-
 	wh.h[wt] = WarnHandlingSuppress
 }
 
@@ -41,20 +38,12 @@ func (wh *WarnHandler) Suppressed(wt WarnType) {
 // are shown with the Error prefix and will cause handling to return a non-nil
 // error containing a message that the warning is treated as a fatal error.
 func (wh *WarnHandler) Fatal(wt WarnType) {
-	if wh.h == nil {
-		wh.h = map[WarnType]WarnHandling{}
-	}
-
 	wh.h[wt] = WarnHandlingFatal
 }
 
 // Output sets the handling for the given warn type to be 'normal'. Normal
 // warnings are shown with the Warn prefix.
 func (wh *WarnHandler) Normal(wt WarnType) {
-	if wh.h == nil {
-		wh.h = map[WarnType]WarnHandling{}
-	}
-
 	wh.h[wt] = WarnHandlingOutput
 }
 
@@ -70,18 +59,18 @@ func (wh *WarnHandler) Handle(w Warning) (fatal error) {
 func (wh *WarnHandler) Handlef(fmtStr string, w Warning) (fatal error) {
 	var prefix string
 
-	handleType := handler[w.Type]
+	handleType := wh.h[w.Type]
 
 	switch handleType {
 	case WarnHandlingSuppress:
 		// do nothing
-		return false
+		return nil
 	case WarnHandlingFatal:
-		fatal = true
-		prefix = errorPrefix
+		fatal = fmt.Errorf("%q warnings are treated as fatal", w.Type.Short())
+		prefix = wh.ErrorPrefix
 	case WarnHandlingOutput:
-		fatal = false
-		prefix = warnPrefix
+		fatal = nil
+		prefix = wh.WarnPrefix
 	}
 
 	msg := w.Message
@@ -96,65 +85,74 @@ func (wh *WarnHandler) Handlef(fmtStr string, w Warning) (fatal error) {
 			String()
 	}
 
-	fmt.Fprintf(os.Stderr, fmtStr, msg)
+	fmt.Fprintf(wh.Output, fmtStr, msg)
 	return fatal
 }
 
-func NewWarnHandlerFromCLI(suppressions, fatals []string) (*WarnHandler, error) {
-	handler := WarnHandler{}
+func NewWarnHandler() *WarnHandler {
+	return &WarnHandler{
+		h:           map[WarnType]WarnHandling{},
+		Output:      os.Stderr,
+		ErrorPrefix: "ERROR: ",
+		WarnPrefix:  "WARN: ",
+	}
+}
 
-	for _, wt := range fishi.WarnTypeAll() {
-		handling[wt] = WarnHandlingOutput
+func NewWarnHandlerFromCLI(suppressions, fatals []string) (*WarnHandler, error) {
+	handler := NewWarnHandler()
+
+	for _, wt := range WarnTypeAll() {
+		handler.h[wt] = WarnHandlingOutput
 	}
 
 	var allFatal bool
 
 	// do fatals first, then do suppressions
-	for i := range *flagWarnFatal {
-		warnType := (*flagWarnFatal)[i]
+	for i := range fatals {
+		warnType := fatals[i]
 
 		if strings.ToLower(warnType) == "all" {
 			allFatal = true
-			for k := range handling {
-				handling[k] = WarnHandlingFatal
+			for k := range handler.h {
+				handler.h[k] = WarnHandlingFatal
 			}
 		} else {
-			wt, err := fishi.ParseShortWarnType(warnType)
+			wt, err := ParseShortWarnType(warnType)
 			if err != nil {
 				return nil, err
 			}
 
-			handling[wt] = WarnHandlingFatal
+			handler.h[wt] = WarnHandlingFatal
 		}
 	}
 
 	// now do suppressions, and give an error if the user tries to both suppress
 	// and make fatal all flags.
-	for i := range *flagWarnSuppress {
-		warnType := (*flagWarnSuppress)[i]
+	for i := range suppressions {
+		warnType := suppressions[i]
 
 		if strings.ToLower(warnType) == "all" {
 			if allFatal {
 				return nil, fmt.Errorf("cannot suppress all warns while also treating all as fatal")
 			}
 
-			for k := range handling {
-				if handling[k] != WarnHandlingFatal {
-					handling[k] = WarnHandlingSuppress
+			for k := range handler.h {
+				if handler.h[k] != WarnHandlingFatal {
+					handler.h[k] = WarnHandlingSuppress
 				}
 			}
 		} else {
-			wt, err := fishi.ParseShortWarnType(warnType)
+			wt, err := ParseShortWarnType(warnType)
 			if err != nil {
 				return nil, err
 			}
 
-			if handling[wt] != WarnHandlingFatal {
+			if handler.h[wt] != WarnHandlingFatal {
 				// fatal takes precednece
-				handling[wt] = WarnHandlingSuppress
+				handler.h[wt] = WarnHandlingSuppress
 			}
 		}
 	}
 
-	return handling, nil
+	return handler, nil
 }

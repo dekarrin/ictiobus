@@ -411,7 +411,7 @@ func main() {
 		return
 	}
 
-	warnHandling, err := warnHandlingFromFlags()
+	warnHandler, err := fishi.NewWarnHandlerFromCLI(*flagWarnSuppress, *flagWarnFatal)
 	if err != nil {
 		errInvalidFlags(err.Error())
 		return
@@ -574,12 +574,12 @@ func main() {
 		fmt.Printf("Generating language spec from FISHI...\n")
 	}
 	spec, warnings, err := fishi.NewSpec(*joinedAST)
-	var fatalSpecWarns bool
+	var fatalSpecWarn error
 	// warnings may be valid even if there is an error
 	if len(warnings) > 0 {
 		for _, warn := range warnings {
-			if handleWarn(warnHandling, "%s\n\n", warn) {
-				fatalSpecWarns = true
+			if wErr := warnHandler.Handlef("%s\n\n", warn); wErr != nil {
+				fatalSpecWarn = wErr
 			}
 		}
 	}
@@ -592,7 +592,7 @@ func main() {
 			errOther(err.Error())
 		}
 		return
-	} else if fatalSpecWarns {
+	} else if fatalSpecWarn != nil {
 		errFatalWarn("fatal warning(s) occured")
 		return
 	}
@@ -626,10 +626,10 @@ func main() {
 	}
 
 	// code gen time! 38D
-	var fatalParserWarns bool
+	var fatalParserWarn error
 	for _, warn := range parserWarns {
-		if handleWarn(warnHandling, "%s\n", warn) {
-			fatalParserWarns = true
+		if wErr := warnHandler.Handle(warn); wErr != nil {
+			fatalParserWarn = wErr
 		}
 	}
 	fmt.Fprintf(os.Stderr, "\n")
@@ -637,7 +637,7 @@ func main() {
 	if err != nil {
 		errParser(err.Error())
 		return
-	} else if fatalParserWarns {
+	} else if fatalParserWarn != nil {
 		errFatalWarn("fatal warning(s) occured")
 		return
 	}
@@ -654,8 +654,8 @@ func main() {
 				Message: "skipping SDTS validation due to missing --ir parameter",
 			}
 
-			if handleWarn(warnHandling, "%s\n", warn) {
-				errFatalWarn("fatal warning occured")
+			if wErr := warnHandler.Handle(warn); wErr != nil {
+				errFatalWarn(wErr.Error())
 				return
 			}
 		} else {
@@ -665,8 +665,8 @@ func main() {
 					Message: "skipping SDTS validation due to missing --hooks parameter",
 				}
 
-				if handleWarn(warnHandling, "%s\n", warn) {
-					errFatalWarn("fatal warning occured")
+				if wErr := warnHandler.Handle(warn); wErr != nil {
+					errFatalWarn(wErr.Error())
 					return
 				}
 			} else {
@@ -775,8 +775,8 @@ func main() {
 			Message: "failed to infer import path for generated frontend: " + err.Error(),
 		}
 
-		if handleWarn(warnHandling, "%s\n; output will have syntax errors\n", w) {
-			errFatalWarn("fatal warning occured")
+		if wErr := warnHandler.Handlef("%s\n; output will have syntax errors\n", w); wErr != nil {
+			errFatalWarn(wErr.Error())
 			return
 		}
 
