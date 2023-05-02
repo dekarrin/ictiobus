@@ -1,7 +1,7 @@
 Simple Markdown file that contains a FISHI spec for an addition and
 multiplication expression language.
 
-This file is suitable as-is to load as a FISHI spec with `ictcc -ns`. Note that
+This file is suitable as-is to load as a FISHI spec with `ictcc -qns`. Note that
 `-n`/`--no-gen` must be specified as there are additional options that must be
 set in order to actually produce a frontend.
 
@@ -69,7 +69,7 @@ evaluating it.
 -> {F}       : {^}.value = identity({0}.value)
 
 %symbol {F}
--> lp {S} rp : {^}.value = identity({0}.value)
+-> lp {S} rp : {^}.value = identity({1}.value)
 -> id        : {^}.value = lookup_value({0}.$text)
 -> int       : {^}.value = int({0}.$text)
 
