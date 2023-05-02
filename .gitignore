@@ -1,6 +1,7 @@
 # vim
 *.swp
 
+/test/simplemath/smc
 /.testout
 /ictcc
 /.sim
