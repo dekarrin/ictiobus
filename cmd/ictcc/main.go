@@ -390,14 +390,6 @@ type DevModeInfo struct {
 	LocalIctiobusSource string
 }
 
-type WarnHandling int
-
-const (
-	WarnHandlingOutput WarnHandling = iota
-	WarnHandlingSuppress
-	WarnHandlingFatal
-)
-
 func main() {
 	defer preservePanicOrExitWithStatus()
 
