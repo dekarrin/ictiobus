@@ -43,6 +43,8 @@ const (
     ExitSuccess = iota
 	ExitErrNoFiles
 	ExitErrSyntax
+	ExitErrInvalidFlags
+	ExitErrFatalWarn
     ExitErr
 )
 
@@ -56,6 +58,9 @@ var (
 
 // flags
 var (
+	flagWarnFatal    = pflag.StringArrayP("fatal", "F", nil, "Treat given warning as a fatal error")
+	flagWarnSuppress = pflag.StringArrayP("suppress", "S", nil, "Suppress output of given warning")
+
 	flagQuietMode		= pflag.BoolP("quiet", "q", false, "Quiet mode; disables output of the IR")
 	flagLexerTrace		= pflag.BoolP("debug-lexer", "l", false, "Print the lexer trace to stdout")
 	flagParserTrace		= pflag.BoolP("debug-parser", "p", false, "Print the parser trace to stdout") 
@@ -91,6 +96,13 @@ func main() {
 		return
 	}
 
+	warnHandler, err := fishi.NewWarnHandlerFromCLI(*flagWarnSuppress, *flagWarnFatal)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", )
+		returnCode = ExitErrInvalidFlags
+		return
+	}
+
 	opts := {{ .FrontendPkg }}.FrontendOptions{
 		LexerTrace: *flagLexerTrace,
 		ParserTrace: *flagParserTrace,
@@ -120,20 +132,20 @@ func main() {
 			warns = append(warns, fishi.Warning{Type: fishi.WarnValidation, Message: w})
 		}
 
-		const warnPrefix = "WARN: "
+		var fatalValWarn error
 		for _, w := range warns {
-			// indent all except the first line
-			warnStr := rosed.Edit(warnPrefix+w.Message).
-				LinesFrom(1).
-				IndentOpts(len(warnPrefix), rosed.Options{IndentStr: " "}).
-				String()
-
-			fmt.Fprintf(os.Stderr, "%s\n\n", warnStr)
+			if wErr := warnHandler.Handlef("%s\n\n", w); wErr != nil {
+				fatalValWarn = wErr
+			}
 		}
 
 		if sdtsErr != nil {
-			fmt.Fprintf(os.Stderr, "validation error: %v\n", sdtsErr.Error())
+			fmt.Fprintf(os.Stderr, "ERROR: %v\n", sdtsErr.Error())
 			returnCode = ExitErr
+			return
+		} else if fatalValWarn != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: %v\n", fatalValWarn.Error())
+			returnCode = ExitErrFatalWarn
 			return
 		}
 
