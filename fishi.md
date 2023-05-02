@@ -240,7 +240,7 @@ For tokens state:
 %!%[Tt][Oo][Kk][Ee][Nn]                            %token dir-token
 %human %!%token directive
 
-%!%[Dd][Ii][Ss][Cc][Aa][Rr][Dd]                   %token dir-discard
+%!%[Dd][Ii][Ss][Cc][Aa][Rr][Dd]                    %token dir-discard
 %human %!%discard directive
 
 %!%[Pp][Rr][Ii][Oo][Rr][Ii][Tt][Yy]                %token dir-priority

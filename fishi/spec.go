@@ -835,15 +835,20 @@ func validateParsedAttrRef(ar trans.AttrRef, g grammar.Grammar, r grammar.Rule) 
 		isTerm = ar.Relation.Type == trans.RelTerminal
 	}
 
+	symName, err := ar.ResolveSymbol(g, r.NonTerminal, r.Productions[0])
+	if err != nil {
+		panic("unresolvable attrRef passed to validateParsedAttrRef")
+	}
+
 	if isTerm {
 		// then anyfin we take from it, glub, must start with '$'
 		if ar.Name != "$text" && ar.Name != "$ft" {
-			return fmt.Errorf("referred-to terminal %q only has '$text' and '$ft' attributes", ar.Name)
+			return fmt.Errorf("referred-to terminal %q only has '$text' and '$ft' attributes", symName)
 		}
 	} else {
 		// then we cannot take '$text' from it and it's an error.
 		if ar.Name == "$text" {
-			return fmt.Errorf("referred-to non-terminal %q does not have lexed text attribute \"$text\"", ar.Name)
+			return fmt.Errorf("referred-to non-terminal %q does not have lexed text attribute \"$text\"", symName)
 		}
 	}
 
