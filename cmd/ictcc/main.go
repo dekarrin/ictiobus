@@ -327,7 +327,7 @@ var (
 	flagWarnSuppress = pflag.StringArrayP("suppress", "S", nil, "Suppress output of given warning")
 
 	flagQuietMode = pflag.BoolP("quiet", "q", false, "Suppress progress messages and other supplementary output")
-	flagNoGen     = pflag.BoolP("no-gen", "n", false, "Do not output generated frontend output files.")
+	flagNoGen     = pflag.BoolP("no-gen", "n", false, "Do not output generated frontend output files")
 	flagGenAST    = pflag.BoolP("ast", "a", false, "Print the AST of the analyzed fishi")
 	flagGenTree   = pflag.BoolP("tree", "t", false, "Print the parse trees of each analyzed fishi file")
 	flagShowSpec  = pflag.BoolP("spec", "s", false, "Print the FISHI spec interpreted from the analyzed fishi")
@@ -370,10 +370,10 @@ var (
 	flagLexerTrace  = pflag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
 	flagParserTrace = pflag.Bool("debug-parser", false, "Print the parser trace to stdout")
 
-	flagHooksPath      = pflag.String("hooks", "", "The path to the hooks directory to use for the generated parser. Required for SDTS validation.")
-	flagHooksTableName = pflag.String("hooks-table", "HooksTable", "Function call or name of exported var in 'hooks' that has the hooks table.")
+	flagHooksPath      = pflag.String("hooks", "", "The path to the hooks directory to use for the generated parser. Required for SDTS validation")
+	flagHooksTableName = pflag.String("hooks-table", "HooksTable", "Function call or name of exported var in 'hooks' that has the hooks table")
 
-	flagIRType = pflag.String("ir", "", "The fully-qualified type of IR to generate.")
+	flagIRType = pflag.String("ir", "", "The fully-qualified type of IR to generate")
 
 	flagVersion = pflag.Bool("version", false, "Print the version of ictcc and exit")
 
