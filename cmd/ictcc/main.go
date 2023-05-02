@@ -327,7 +327,7 @@ var (
 	flagWarnSuppress = pflag.StringArrayP("suppress", "S", nil, "Suppress output of given warning")
 
 	flagQuietMode = pflag.BoolP("quiet", "q", false, "Suppress progress messages and other supplementary output")
-	flagNoGen     = pflag.BoolP("no-gen", "n", false, "Do not attempt to generate the parser")
+	flagNoGen     = pflag.BoolP("no-gen", "n", false, "Do not output generated frontend output files. Skips parser generation if --diag is not set.")
 	flagGenAST    = pflag.BoolP("ast", "a", false, "Print the AST of the analyzed fishi")
 	flagGenTree   = pflag.BoolP("tree", "t", false, "Print the parse trees of each analyzed fishi file")
 	flagShowSpec  = pflag.BoolP("spec", "s", false, "Print the FISHI spec interpreted from the analyzed fishi")
@@ -411,10 +411,7 @@ func main() {
 
 	// mutually exclusive and required options for diagnostics bin generation.
 	if *flagDiagBin != "" {
-		if *flagNoGen {
-			errInvalidFlags("Diagnostics bin generation cannot be enabled due to -n/--no-gen")
-			return
-		} else if *flagIRType == "" || *flagHooksPath == "" {
+		if *flagIRType == "" || *flagHooksPath == "" {
 			errInvalidFlags("Diagnostics bin generation requires both --ir and --hooks to be set")
 			return
 		}
@@ -594,9 +591,10 @@ func main() {
 		printSpec(spec)
 	}
 
-	if *flagNoGen {
+	// if no-gen is set and diagnostics binary not requested, we are done.
+	if *flagNoGen && *flagDiagBin == "" {
 		if !*flagQuietMode {
-			fmt.Printf("(code generation skipped due to flags)\n")
+			fmt.Printf("(parser generation skipped due to flags)\n")
 		}
 		return
 	}
@@ -742,6 +740,14 @@ func main() {
 		if !*flagQuietMode {
 			fmt.Printf("Built diagnostics binary '%s'\n", *flagDiagBin)
 		}
+	}
+
+	// if we are in no-gen mode, do not output anyfin, glub!
+	if *flagNoGen {
+		if !*flagQuietMode {
+			fmt.Printf("(frontend code output skipped due to flags)\n")
+		}
+		return
 	}
 
 	// assuming it worked, now generate the final output
