@@ -327,7 +327,7 @@ var (
 	flagWarnSuppress = pflag.StringArrayP("suppress", "S", nil, "Suppress output of given warning")
 
 	flagQuietMode = pflag.BoolP("quiet", "q", false, "Suppress progress messages and other supplementary output")
-	flagNoGen     = pflag.BoolP("no-gen", "n", false, "Do not output generated frontend output files. Skips parser generation if --diag is not set.")
+	flagNoGen     = pflag.BoolP("no-gen", "n", false, "Do not output generated frontend output files.")
 	flagGenAST    = pflag.BoolP("ast", "a", false, "Print the AST of the analyzed fishi")
 	flagGenTree   = pflag.BoolP("tree", "t", false, "Print the parse trees of each analyzed fishi file")
 	flagShowSpec  = pflag.BoolP("spec", "s", false, "Print the FISHI spec interpreted from the analyzed fishi")
