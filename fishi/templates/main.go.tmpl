@@ -24,7 +24,9 @@ import (
 	"bufio"
     "os"
 	"io"
+{{if .FormatCall -}}
 	"bytes"
+{{- end}}
 	"path/filepath"
 
 	"{{ .BinPkg }}/internal/{{ .HooksPkg }}"
@@ -253,11 +255,13 @@ func main() {
 		}
 
 		if !*flagQuietMode {
-			fmt.Printf("=== Analysis of %s ===\n", filepath.Base(f))
+			if f != "-" {
+				fmt.Printf("=== Analysis of %s ===\n", filepath.Base(f))
+			}
 {{if .IRIsBuiltInType}}
-			fmt.Printf("%v\n\n", ir)
+			fmt.Printf("%v\n", ir)
 {{else}}
-			fmt.Printf("%s\n\n", ir)
+			fmt.Printf("%s\n", ir)
 {{end}}
 		}
 	}
