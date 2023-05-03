@@ -96,7 +96,7 @@ func main() {
 
 	warnHandler, err := fishi.NewWarnHandlerFromCLI(*flagWarnSuppress, *flagWarnFatal)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", )
+		fmt.Fprintf(os.Stderr, "ERR: %s\n", err)
 		returnCode = ExitErrInvalidFlags
 		return
 	}
@@ -138,11 +138,11 @@ func main() {
 		}
 
 		if sdtsErr != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %v\n", sdtsErr.Error())
+			fmt.Fprintf(os.Stderr, "ERR: %v\n", sdtsErr.Error())
 			returnCode = ExitErr
 			return
 		} else if fatalValWarn != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %v\n", fatalValWarn.Error())
+			fmt.Fprintf(os.Stderr, "ERR: %v\n", fatalValWarn.Error())
 			returnCode = ExitErrFatalWarn
 			return
 		}
