@@ -10,6 +10,12 @@ more files and outputs the parsed intermediate representation type
 Usage:
 
 	{{ .BinName }} [flags] file1.md file2.md ...
+	{{ .BinName }} [flags] -
+	{{ .BinName }} [flags] --sim
+
+If '-' is specified for one of the files, {{ .BinName }} will read from stdin
+for that file. If there are multiple '-' given, only the first one actually
+results in reading from stdin.
 */
 package main
 
@@ -18,6 +24,7 @@ import (
 	"bufio"
     "os"
 	"io"
+	"bytes"
 	"path/filepath"
 
 	"{{ .BinPkg }}/internal/{{ .HooksPkg }}"
@@ -168,9 +175,22 @@ func main() {
 		}
 	}()
 
+	var haveReadStdin bool
 	var r io.Reader
 	for _, f := range files {
+		if f == "-" {
+			if haveReadStdin {
+				continue
+			} else {
+				haveReadStdin = true
+			}
+		}
+
 {{if .FormatCall -}}
+		// can't just use os.Stdin because the preprocess print could clober it.
+		// instead, declare a reader and just use that IF we end up needing it.
+		var rewoundStdinReader io.Reader
+		
 		// do preloading step of reading and immediately outputting the preprocessed file
 		if *flagPreproc {
 			err := printPreproc(f)
@@ -182,15 +202,27 @@ func main() {
 		}
 {{- end}}
 
-		file, err := os.Open(f)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", f, err)
-			returnCode = ExitErr
-			return
-		}
-		openFiles = append(openFiles, file)
+		if f == "-" {
+			// read from stdin
+			r = os.Stdin
+{{if .FormatCall -}}
+			if rewoundStdinReader != nil {
+				// stdin already read by preprocess, so use the buffer we tee'd
+				// to instead of os.Stdin directly
+				r = rewoundStdinReader
+			}
+{{- end}}
+		} else {
+			file, err := os.Open(f)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", f, err)
+				returnCode = ExitErr
+				return
+			}
+			openFiles = append(openFiles, file)
 
-		r = bufio.NewReader(file)
+			r = bufio.NewReader(file)
+		}
 
 {{if .FormatCall -}}
 		// format the input
@@ -232,12 +264,24 @@ func main() {
 }
 
 {{if .FormatCall -}}
-func printPreproc(file string) error {
-	f, err := os.Open(file)
-	if err != nil {
-		return err
+// printPreproc will return a 'rewound' version if and only if it is operating
+// on stdin (file is "-"). Else, rewoundStdin will be nil.
+func printPreproc(file string) (rewoundStdin io.Reader, err error) {
+	var f io.Reader
+
+	if file == "-" {
+		// actually, read from stdin.
+		var buf *bytes.Buffer
+		f = io.TeeReader(os.Stdin, buf)
+		rewoundStdin = buf
+	} else {
+		fileReader, err := os.Open(file)
+		if err != nil {
+			return nil, err
+		}
+		defer fileReader.Close()
+		f = fileReader
 	}
-	defer f.Close()
 
 	// dont do direct fs IO
 	bufF := bufio.NewReader(f)

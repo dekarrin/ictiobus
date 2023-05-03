@@ -261,7 +261,8 @@ Flags:
 Each markdown file given is scanned for fishi codeblocks. They are all combined
 into a single fishi code block and parsed. Each markdown file is parsed
 separately but their resulting ASTs are combined into a single FISHI spec for a
-language.
+language. If "-" is specified for one of the markdown files, stdin is read from
+for that file.
 
 The spec is then used to generate a lexer, parser, and SDTS for the language.
 For the parser, if no specific parser is selected via the --ll, --slr, --clr, or
@@ -299,6 +300,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"go/build"
@@ -508,18 +510,48 @@ func main() {
 	}
 	var joinedAST *fishi.AST
 
+	var haveReadStdin bool
 	for _, file := range args {
+		if file == "-" {
+			if haveReadStdin {
+				continue
+			} else {
+				haveReadStdin = true
+			}
+		}
+
+		// can't just use os.Stdin because the preprocess print could clober it.
+		// instead, declare a reader and just use that IF we end up needing it.
+		var rewoundStdinReader io.Reader
+
 		// if we've been asked to show preprocessed, do that now by directly
 		// building the CodeReader and reading the entire file.
 		if *flagPreproc {
-			err := printPreproc(file)
+			// if we just read stdin err we are going to need the 'rewound'
+			// version.
+			rewoundStdinReader, err = printPreproc(file)
 			if err != nil {
 				errOther(err.Error())
 				return
 			}
 		}
 
-		res, err := fishi.ParseMarkdownFile(file, fo)
+		var res fishi.Results
+
+		if file == "-" {
+			// read from stdin
+			var readFrom io.Reader
+
+			readFrom = os.Stdin
+			if rewoundStdinReader != nil {
+				// stdin already read by preprocess, so use the buffer we tee'd
+				// to instead of os.Stdin directly
+				readFrom = rewoundStdinReader
+			}
+			res, err = fishi.ParseMarkdown(readFrom, fo)
+		} else {
+			res, err = fishi.ParseMarkdownFile(file, fo)
+		}
 
 		if res.AST != nil {
 			if joinedAST == nil {
@@ -795,19 +827,31 @@ func main() {
 	}
 }
 
-func printPreproc(file string) error {
-	f, err := os.Open(file)
-	if err != nil {
-		return err
+// printPreproc will return a 'rewound' version if and only if it is operating
+// on stdin (file is "-"). Else, rewoundStdin will be nil.
+func printPreproc(file string) (rewoundStdin io.Reader, err error) {
+	var f io.Reader
+
+	if file == "-" {
+		// actually, read from stdin.
+		var buf *bytes.Buffer
+		f = io.TeeReader(os.Stdin, buf)
+		rewoundStdin = buf
+	} else {
+		fileReader, err := os.Open(file)
+		if err != nil {
+			return nil, err
+		}
+		defer fileReader.Close()
+		f = fileReader
 	}
-	defer f.Close()
 
 	// dont do direct fs IO
 	bufF := bufio.NewReader(f)
 
 	cr, err := format.NewCodeReader(bufF)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// open a buffered reader on our code reader so we can read it line
@@ -822,10 +866,10 @@ func printPreproc(file string) error {
 			if err == io.EOF {
 				break
 			}
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return rewoundStdin, nil
 }
 
 func devModeInfoFromFlags() (DevModeInfo, error) {

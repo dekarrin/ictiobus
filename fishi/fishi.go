@@ -118,7 +118,11 @@ func ParseMarkdownFile(filename string, opts Options) (Results, error) {
 	}
 	defer f.Close()
 
-	bufF := bufio.NewReader(f)
+	return ParseMarkdown(f, opts)
+}
+
+func ParseMarkdown(r io.Reader, opts Options) (Results, error) {
+	bufF := bufio.NewReader(r)
 	r, err := format.NewCodeReader(bufF)
 	if err != nil {
 		return Results{}, err
