@@ -301,11 +301,13 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 		return gci, fmt.Errorf("writing parser: %w", err)
 	}
 
+	var irIsBuiltIn bool
 	// only fill in the ir package import if ir's package is not the builtin
 	// package and if it is not the same as the hooks package
 	if irFQPackage == "builtin" {
 		irFQPackage = ""
 		irType = irTypeBare
+		irIsBuiltIn = true
 	} else if irPackage == hooksPkgName {
 		irFQPackage = ""
 	}
@@ -326,6 +328,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 		FrontendPkg:       params.FrontendPkgName,
 		IRTypePackage:     irFQPackage,
 		IRType:            irType,
+		IRIsBuiltInType:   irIsBuiltIn,
 		IncludeSimulation: true,
 	}
 	fnMap := createFuncMap()

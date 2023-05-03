@@ -188,6 +188,7 @@ type cgMainData struct {
 	FrontendPkg       string
 	IRTypePackage     string
 	IRType            string
+	IRIsBuiltInType   bool
 	IncludeSimulation bool
 }
 
