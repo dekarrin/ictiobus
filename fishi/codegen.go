@@ -216,7 +216,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	// as the hooks package.
 	separateFormatImport := params.FormatPkgDir != params.HooksPkgDir && params.FormatPkgDir != ""
 
-	irFQPackage, irType, irPackage, irErr := ParseFQType(params.Opts.IRType)
+	irFQPackage, irType, irPackage, irTypeBare, irErr := ParseFQType(params.Opts.IRType)
 	if irErr != nil {
 		return GeneratedCodeInfo{}, fmt.Errorf("parsing IRType: %w", irErr)
 	}
@@ -301,8 +301,12 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 		return gci, fmt.Errorf("writing parser: %w", err)
 	}
 
-	// only fill in the ir package import if ir's package is not the same as the hooks package
-	if irPackage == hooksPkgName {
+	// only fill in the ir package import if ir's package is not the builtin
+	// package and if it is not the same as the hooks package
+	if irFQPackage == "builtin" {
+		irFQPackage = ""
+		irType = irTypeBare
+	} else if irPackage == hooksPkgName {
 		irFQPackage = ""
 	}
 
@@ -550,10 +554,16 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 
 	// if IR type is specified, use it
 	if fqIRType != "" {
-		irPkg, irType, _, err := ParseFQType(fqIRType)
+		irPkg, irType, _, irTypeBare, err := ParseFQType(fqIRType)
 		if err == nil {
-			data.IRPackage = irPkg
-			data.IRType = irType
+			if irPkg == "builtin" {
+				// if it's a builtin type there's no need to do the import and
+				// we must also strip the package name from the type
+				data.IRType = irTypeBare
+			} else {
+				data.IRPackage = irPkg
+				data.IRType = irType
+			}
 		}
 	}
 

@@ -171,11 +171,12 @@ func GetFrontend(opts Options) (ictiobus.Frontend[syntax.AST], error) {
 // allowed, but map types are not supported, although types with an underlying
 // map type are supported.
 //
+// Unqualified built-in types are allowed; they will be returned with pkgName
+// 'builtin'.
+//
 // For example, ParseFQType("[]*github.com/ictiobus/fishi.Options") would return
-// "github.com/ictiobus/fishi", "[]*fishi.Options", "fishi", nil.
-func ParseFQType(fqType string) (pkg, typeName, pkgName string, err error) {
-	fqOriginal := fqType
-
+// "github.com/ictiobus/fishi", "[]*fishi.Options", "fishi", "[]*Options", nil.
+func ParseFQType(fqType string) (pkg, typeName, pkgName, bareType string, err error) {
 	preType := ""
 	for strings.HasPrefix(fqType, "[]") || strings.HasPrefix(fqType, "*") {
 		if strings.HasPrefix(fqType, "[]") {
@@ -188,14 +189,16 @@ func ParseFQType(fqType string) (pkg, typeName, pkgName string, err error) {
 	}
 	typeParts := strings.Split(fqType, ".")
 	if len(typeParts) < 2 {
-		return "", "", "", fmt.Errorf("invalid fully-qualified type: %s", fqOriginal)
+		// assume they mean 'builtin'.
+		typeParts = []string{"builtin", fqType}
 	}
 	fqPackage := strings.Join(typeParts[:len(typeParts)-1], ".")
 	pkgParts := strings.Split(fqPackage, "/")
 	pkgName = pkgParts[len(pkgParts)-1]
 	irType := preType + pkgName + "." + typeParts[len(typeParts)-1]
+	bareType = preType + typeParts[len(typeParts)-1]
 
-	return fqPackage, irType, pkgName, nil
+	return fqPackage, irType, pkgName, bareType, nil
 }
 
 // MakeFQType makes a fully-qualified type name from the given package and type.
