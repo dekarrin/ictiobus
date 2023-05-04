@@ -18,14 +18,14 @@ echo "Putting test output in $rundir..."
 any_test_failed=
 
 # assumes we dont put spaces in subdirs of "tests".
-for f in tests/*/
+for f in $(cd tests ; echo */)
 do
   test_failed=
   testdir="$rundir/$f"
   mkdir -p "$testdir"
 
   echo "Test $f..."
-  tests/$f/exec.sh > "$testdir/actual.txt" || test_failed=1
+  tests/$f/exec.sh &2>1 | tee "$testdir/actual.txt" || test_failed=1
   
   if [ -z "$test_failed" ]
   then
