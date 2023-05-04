@@ -10,6 +10,7 @@ testdiag.exe
 /.gen
 /diag
 /fishic
+/.testruns
 *.fishispec
 
 # mac
