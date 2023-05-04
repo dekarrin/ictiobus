@@ -1,8 +1,8 @@
 # vim
 *.swp
 
-/test/simplemath/smc
-/test/simplemath-bad-sdts/smc
+testdiag
+testdiag.exe
 
 /.testout
 /ictcc

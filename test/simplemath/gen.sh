@@ -9,7 +9,7 @@ script_path="$(dirname "$0")"
 	--ir 'int' \
 	-l SimpleMath -v 1.0.0 \
 	--hooks "$script_path/hooks" \
-	-d "$script_path/smc" \
+	-d "$script_path/testdiag" \
 	--dev \
 	-n \
 	"$script_path/simplemath.md" "$@"
