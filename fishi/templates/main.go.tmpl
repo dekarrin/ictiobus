@@ -24,9 +24,7 @@ import (
 	"bufio"
     "os"
 	"io"
-{{if .FormatCall -}}
 	"bytes"
-{{- end}}
 	"path/filepath"
 
 	"{{ .BinPkg }}/internal/{{ .HooksPkg }}"
@@ -208,6 +206,14 @@ func main() {
 				returnCode = ExitErr
 			}
 			return
+		}
+
+		if !*flagQuietMode {
+{{if .IRIsBuiltInType}}
+			fmt.Printf("%v\n", cmdIR)
+{{else}}
+			fmt.Printf("%s\n", cmdIR)
+{{end}}
 		}
 
 		cmdExecuted = true
