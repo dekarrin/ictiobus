@@ -11,5 +11,3 @@ simplemath_path="$(cd "$script_path/../.." >/dev/null ; pwd -P)"
 	--dev \
 	-n \
 	"$simplemath_path/simplemath.md"
-
-
