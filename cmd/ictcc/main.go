@@ -712,7 +712,6 @@ func main() {
 			fatalParserWarn = wErr
 		}
 	}
-	fmt.Fprintf(os.Stderr, "\n")
 
 	if err != nil {
 		errParser(err.Error())

@@ -93,13 +93,13 @@ func (wh *WarnHandler) Handlef(fmtStr string, w Warning) (fatal error) {
 		prefix = wh.WarnPrefix
 	}
 
-	msg := w.Message
+	msg := prefix + w.Message
 	// okay, not suppressed, so output the warning
 	if strings.Contains(msg, "\n") {
 		// rosed will help us here;
 
 		// indent all except the first line
-		msg = rosed.Edit(prefix+msg).
+		msg = rosed.Edit(msg).
 			LinesFrom(1).
 			IndentOpts(len(prefix), rosed.Options{IndentStr: " "}).
 			String()
