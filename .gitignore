@@ -2,6 +2,8 @@
 *.swp
 
 /test/simplemath/smc
+/test/simplemath-bad-sdts/smc
+
 /.testout
 /ictcc
 /.sim
