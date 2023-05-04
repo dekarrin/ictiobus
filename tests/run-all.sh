@@ -2,6 +2,8 @@
 
 # builds ictcc and then runs all tests.
 
+set -o pipefail
+
 script_name="$(basename "$0")"
 script_path="$(cd "$(dirname "$0")" >/dev/null ; pwd -P)"
 repo_root="$(cd "$script_path/.." >/dev/null ; pwd -P)"
@@ -24,8 +26,10 @@ do
   testdir="$rundir/$f"
   mkdir -p "$testdir"
 
-  echo "Test $f..."
-  tests/$f/exec.sh &2>1 | tee "$testdir/actual.txt" || test_failed=1
+  echo "--------------------------------"
+  echo "STARTING TEST $f..."
+  echo "--------------------------------"
+  tests/$f/exec.sh 2>&1 | tee "$testdir/actual.txt" || test_failed=1
   
   if [ -z "$test_failed" ]
   then
