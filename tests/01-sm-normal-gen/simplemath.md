@@ -72,5 +72,4 @@ evaluating it.
 -> lp {S} rp : {^}.value = identity({1}.value)
 -> id        : {^}.value = lookup_value({0}.$text)
 -> int       : {^}.value = int({0}.$text)
-
 ```
