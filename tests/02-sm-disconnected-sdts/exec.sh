@@ -8,6 +8,11 @@ script_path="$(cd "$(dirname "$0")" >/dev/null ; pwd -P)"
 	-d "$script_path/testdiag" \
     --hooks "$script_path/hooks" \
 	--dev \
-	-n \
+	-S all \
+	-nq \
 	"$script_path/simplemath.md" || { echo "FAIL" >&2 ; exit 1 ; }
 
+# above should produce warnings but no actual issues. we can verify types in
+# manual simulation
+
+"$script_path/testdiag" --sim
