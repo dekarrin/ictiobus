@@ -12,6 +12,7 @@ Usage:
 	{{ .BinName }} [flags] file1.md file2.md ...
 	{{ .BinName }} [flags] -
 	{{ .BinName }} [flags] --sim
+	{{ .BinName }} [flags] -C code
 
 If '-' is specified for one of the files, {{ .BinName }} will read from stdin
 for that file. If there are multiple '-' given, only the first one actually
@@ -170,7 +171,7 @@ func main() {
 		if *flagPreproc {
 			err := printPreproc(cmdBuf)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", f, err)
+				fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", "<COMMAND>", err)
 				returnCode = ExitErr
 				return
 			}
@@ -184,7 +185,7 @@ func main() {
 		// format the input
 		cmdReader, err = {{ .FormatPkg }}.{{ .FormatCall }}(cmdReader)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", f, err)
+			fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", "<COMMAND>", err)
 			returnCode = ExitErr
 			return
 		}
@@ -363,7 +364,7 @@ func printPreprocFile(file string) (rewoundStdin io.Reader, err error) {
 	return rewoundStdin, nil
 }
 
-func printPreproc(r io.Reader) (rewoundStdin io.Reader, err error) {
+func printPreproc(r io.Reader) error {
 	cr, err := {{ .FormatPkg }}.{{ .FormatCall }}(r)
 	if err != nil {
 		return err

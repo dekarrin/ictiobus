@@ -258,6 +258,13 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 		return gci, fmt.Errorf("creating dir for generated code: %w", err)
 	}
 
+	// erase anyfin currently in the old genpath; old code might make this code
+	// break.
+	err = clearDirContents(params.GenPath)
+	if err != nil {
+		return gci, fmt.Errorf("clearing dir for generated code: %w", err)
+	}
+
 	// start copying the hooks package
 	hooksDestPath := filepath.Join(params.GenPath, "internal", hooksPkgName)
 	hooksDone, err := copyDirToTargetAsync(params.HooksPkgDir, hooksDestPath)
@@ -397,6 +404,25 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	gci.MainFile = mainFileRelPath
 
 	return gci, nil
+}
+
+func clearDirContents(dir string) error {
+	d, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+	names, err := d.Readdirnames(-1)
+	if err != nil {
+		return err
+	}
+	for _, name := range names {
+		err = os.RemoveAll(filepath.Join(dir, name))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // GenerateFrontendGo generates the source code for a compiler frontend that can
