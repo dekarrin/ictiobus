@@ -772,6 +772,7 @@ func main() {
 					Opts:                cgOpts,
 					ValidationOpts:      &di,
 					WarningHandler:      warnHandler,
+					QuietMode:           *flagQuietMode,
 				}
 
 				err := fishi.ValidateSimulatedInput(spec, md, simParams)

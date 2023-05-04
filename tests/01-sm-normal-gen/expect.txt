@@ -1,0 +1,11 @@
+[PRE] Build diag binary:
+(done)
+[1/3] Evaluate 2+3:
+5
+(done)
+[2/3] Evaluate 2:
+2
+(done)
+[3/3] Evaluate 2*3:
+6
+(done)

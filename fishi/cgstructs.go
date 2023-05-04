@@ -170,6 +170,10 @@ type SimulatedInputParams struct {
 	// warning fatal/suppression options should be passed to the simulation
 	// binary.
 	WarningHandler *WarnHandler
+
+	// QuietMode is whether quiet mode should be enabled in the simulation
+	// execution.
+	QuietMode bool
 }
 
 type codegenTemplate struct {
