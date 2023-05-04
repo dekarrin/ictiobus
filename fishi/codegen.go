@@ -104,9 +104,12 @@ var (
 // ExecuteTestCompiler runs the compiler pointed to by gci in validation mode.
 //
 // If valOptions is nil, the default validation options are used.
-func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOptions) error {
+func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOptions, warnOpts *WarnHandler) error {
 	if valOptions == nil {
 		valOptions = &trans.ValidationOptions{}
+	}
+	if warnOpts == nil {
+		warnOpts = NewWarnHandler()
 	}
 
 	args := []string{"run", gci.MainFile, "--sim"}
@@ -122,6 +125,15 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 	if valOptions.SkipErrors != 0 {
 		args = append(args, "--sim-skip-errs", fmt.Sprintf("%d", valOptions.SkipErrors))
 	}
+
+	for _, wt := range WarnTypeAll() {
+		if warnOpts.HandlingType(wt) == WarnHandlingFatal {
+			args = append(args, "-F", wt.Short())
+		} else if warnOpts.HandlingType(wt) == WarnHandlingSuppress {
+			args = append(args, "-S", wt.Short())
+		}
+	}
+
 	return shellout.ExecFG(gci.Path, nil, "go", args...)
 }
 

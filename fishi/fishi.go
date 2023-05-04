@@ -95,7 +95,7 @@ func ValidateSimulatedInput(spec Spec, md SpecMetadata, params SimulatedInputPar
 		return fmt.Errorf("generate test compiler: %w", err)
 	}
 
-	err = ExecuteTestCompiler(genInfo, params.ValidationOpts)
+	err = ExecuteTestCompiler(genInfo, params.ValidationOpts, params.WarningHandler)
 	if err != nil {
 		return fmt.Errorf("execute test compiler: %w", err)
 	}

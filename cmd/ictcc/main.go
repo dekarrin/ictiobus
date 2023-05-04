@@ -772,6 +772,7 @@ func main() {
 					LocalIctiobusSource: devInfo.LocalIctiobusSource,
 					Opts:                cgOpts,
 					ValidationOpts:      &di,
+					WarningHandler:      warnHandler,
 				}
 
 				err := fishi.ValidateSimulatedInput(spec, md, simParams)

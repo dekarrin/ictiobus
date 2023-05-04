@@ -17,6 +17,18 @@ const (
 	WarnHandlingFatal
 )
 
+func (wh WarnHandling) String() string {
+	if wh == WarnHandlingFatal {
+		return "FATAL"
+	} else if wh == WarnHandlingOutput {
+		return "OUTPUT"
+	} else if wh == WarnHandlingSuppress {
+		return "SUPPRESS"
+	} else {
+		return fmt.Sprintf("WarnHandling(%d)", int(wh))
+	}
+}
+
 // WarnHandler handles warnings and can be configured by reading slices of names
 // of warnings. The zero-value is not ready to be used; call NewWarnHandler() or
 // NewWarnHandlerFromCLI to create one.
@@ -26,6 +38,14 @@ type WarnHandler struct {
 	Output      io.Writer
 	ErrorPrefix string
 	WarnPrefix  string
+}
+
+// HandlingType returns the WarnHandling configured for the given warning type.
+//
+// If the warning type has no handling defined for it, the default of
+// WarnHandlingOutput will be returned.
+func (wh *WarnHandler) HandlingType(t WarnType) WarnHandling {
+	return wh.h[t]
 }
 
 // Suppressed sets the handling for a type of warning to be 'suppression'.
