@@ -78,6 +78,10 @@ Flags:
 		the exact code that is going to be parsed by ictcc before such parsing
 		occurs.
 
+	-C/--command CODE
+		Execute the given FISHI code before reading any input files. Can be
+		given instead of files.
+
 	-F/--fatal WARN_TYPE
 		Make warnings of the given type be fatal. If ictcc encounters a warning
 		of that type, it will treat it as an error and immediately fail. The
@@ -328,6 +332,7 @@ var (
 	flagWarnFatal    = pflag.StringArrayP("fatal", "F", nil, "Treat given warning as a fatal error")
 	flagWarnSuppress = pflag.StringArrayP("suppress", "S", nil, "Suppress output of given warning")
 
+	flagCommand   = pflag.StringP("command", "C", "", "Code to execute before any source code files are read")
 	flagQuietMode = pflag.BoolP("quiet", "q", false, "Suppress progress messages and other supplementary output")
 	flagNoGen     = pflag.BoolP("no-gen", "n", false, "Do not output generated frontend output files")
 	flagGenAST    = pflag.BoolP("ast", "a", false, "Print the AST of the analyzed fishi")
@@ -454,7 +459,7 @@ func main() {
 	// check args before gathering flags
 	args := pflag.Args()
 
-	if len(args) < 1 {
+	if len(args) < 1 && *flagCommand == "" {
 		errNoFiles("No files given to process")
 		return
 	}
@@ -503,82 +508,135 @@ func main() {
 		cgOpts.TemplateFiles = nil
 	}
 
-	// now that args are gathered, parse markdown files into an AST
-	if !*flagQuietMode {
-		files := textfmt.Pluralize(len(args), "FISHI input file", "-s")
-		fmt.Printf("Reading %s...\n", files)
-	}
+	// now that args are gathered, parse any CLI commands and markdown files
+	// into an AST
 	var joinedAST *fishi.AST
 
-	var haveReadStdin bool
-	for _, file := range args {
-		if file == "-" {
-			if haveReadStdin {
-				continue
-			} else {
-				haveReadStdin = true
-			}
-		}
+	if *flagCommand != "" {
+		var cmdReader io.Reader
+		cmdBuf := bytes.NewBuffer([]byte(*flagCommand))
 
-		// can't just use os.Stdin because the preprocess print could clober it.
-		// instead, declare a reader and just use that IF we end up needing it.
-		var rewoundStdinReader io.Reader
-
-		// if we've been asked to show preprocessed, do that now by directly
-		// building the CodeReader and reading the entire file.
+		// do preloading step of reading and immediately outputting the preprocessed file
 		if *flagPreproc {
-			// if we just read stdin err we are going to need the 'rewound'
-			// version.
-			rewoundStdinReader, err = printPreproc(file)
+			err := printPreproc(cmdBuf)
 			if err != nil {
 				errOther(err.Error())
 				return
 			}
+
+			// then reset the buffer
+			cmdBuf = bytes.NewBuffer([]byte(*flagCommand))
 		}
 
-		var res fishi.Results
+		cmdReader = cmdBuf
 
-		if file == "-" {
-			// read from stdin
-			var readFrom io.Reader
+		cmdRes, cmdErr := fishi.ParseMarkdown(cmdReader, fo)
 
-			readFrom = os.Stdin
-			if rewoundStdinReader != nil {
-				// stdin already read by preprocess, so use the buffer we tee'd
-				// to instead of os.Stdin directly
-				readFrom = rewoundStdinReader
-			}
-			res, err = fishi.ParseMarkdown(readFrom, fo)
-		} else {
-			res, err = fishi.ParseMarkdownFile(file, fo)
-		}
-
-		if res.AST != nil {
+		if cmdRes.AST != nil {
 			if joinedAST == nil {
-				joinedAST = res.AST
+				joinedAST = cmdRes.AST
 			} else {
-				joinedAST.Nodes = append(joinedAST.Nodes, res.AST.Nodes...)
+				joinedAST.Nodes = append(joinedAST.Nodes, cmdRes.AST.Nodes...)
 			}
 		}
 
 		// parse tree is per-file, so we do this immediately even on error, as
 		// it may be useful
-		if res.Tree != nil && *flagGenTree {
-			fmt.Printf("%s\n", trans.AddAttributes(*res.Tree).String())
+		if cmdRes.Tree != nil && *flagGenTree {
+			fmt.Printf("%s\n", trans.AddAttributes(*cmdRes.Tree).String())
 		}
 
-		if err != nil {
+		if cmdErr != nil {
 			// results may be valid even if there is an error
 			if joinedAST != nil && *flagGenAST {
-				fmt.Printf("%s\n", res.AST.String())
+				fmt.Printf("%s\n", cmdRes.AST.String())
 			}
 
-			if syntaxErr, ok := err.(*types.SyntaxError); ok {
-				errSyntax(file, syntaxErr)
+			if syntaxErr, ok := cmdErr.(*types.SyntaxError); ok {
+				errSyntax("<COMMAND>", syntaxErr)
 			} else {
-				errOther(fmt.Sprintf("%s: %s", file, err.Error()))
+				errOther(fmt.Sprintf("%s: %s", "<COMMAND>", err.Error()))
 			}
 			return
+		}
+	}
+
+	if len(args) > 0 {
+		if !*flagQuietMode {
+			files := textfmt.Pluralize(len(args), "FISHI input file", "-s")
+			fmt.Printf("Reading %s...\n", files)
+		}
+
+		var haveReadStdin bool
+		for _, file := range args {
+			if file == "-" {
+				if haveReadStdin {
+					continue
+				} else {
+					haveReadStdin = true
+				}
+			}
+
+			// can't just use os.Stdin because the preprocess print could clober it.
+			// instead, declare a reader and just use that IF we end up needing it.
+			var rewoundStdinReader io.Reader
+
+			// if we've been asked to show preprocessed, do that now by directly
+			// building the CodeReader and reading the entire file.
+			if *flagPreproc {
+				// if we just read stdin err we are going to need the 'rewound'
+				// version.
+				rewoundStdinReader, err = printPreprocFile(file)
+				if err != nil {
+					errOther(err.Error())
+					return
+				}
+			}
+
+			var res fishi.Results
+
+			if file == "-" {
+				// read from stdin
+				var readFrom io.Reader
+
+				readFrom = os.Stdin
+				if rewoundStdinReader != nil {
+					// stdin already read by preprocess, so use the buffer we tee'd
+					// to instead of os.Stdin directly
+					readFrom = rewoundStdinReader
+				}
+				res, err = fishi.ParseMarkdown(readFrom, fo)
+			} else {
+				res, err = fishi.ParseMarkdownFile(file, fo)
+			}
+
+			if res.AST != nil {
+				if joinedAST == nil {
+					joinedAST = res.AST
+				} else {
+					joinedAST.Nodes = append(joinedAST.Nodes, res.AST.Nodes...)
+				}
+			}
+
+			// parse tree is per-file, so we do this immediately even on error, as
+			// it may be useful
+			if res.Tree != nil && *flagGenTree {
+				fmt.Printf("%s\n", trans.AddAttributes(*res.Tree).String())
+			}
+
+			if err != nil {
+				// results may be valid even if there is an error
+				if joinedAST != nil && *flagGenAST {
+					fmt.Printf("%s\n", res.AST.String())
+				}
+
+				if syntaxErr, ok := err.(*types.SyntaxError); ok {
+					errSyntax(file, syntaxErr)
+				} else {
+					errOther(fmt.Sprintf("%s: %s", file, err.Error()))
+				}
+				return
+			}
 		}
 	}
 
@@ -827,9 +885,33 @@ func main() {
 	}
 }
 
-// printPreproc will return a 'rewound' version if and only if it is operating
+func printPreproc(r io.Reader) error {
+	cr, err := format.NewCodeReader(r)
+	if err != nil {
+		return err
+	}
+
+	// open a buffered reader on our code reader so we can read it line
+	// by line
+	bufCR := bufio.NewReader(cr)
+
+	// read file line by line and print each line as it is read
+	for {
+		line, err := bufCR.ReadString('\n')
+		fmt.Print(line)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+// printPreprocFile will return a 'rewound' version if and only if it is operating
 // on stdin (file is "-"). Else, rewoundStdin will be nil.
-func printPreproc(file string) (rewoundStdin io.Reader, err error) {
+func printPreprocFile(file string) (rewoundStdin io.Reader, err error) {
 	var f io.Reader
 
 	if file == "-" {
@@ -849,26 +931,11 @@ func printPreproc(file string) (rewoundStdin io.Reader, err error) {
 	// dont do direct fs IO
 	bufF := bufio.NewReader(f)
 
-	cr, err := format.NewCodeReader(bufF)
+	err = printPreproc(bufF)
 	if err != nil {
 		return nil, err
 	}
 
-	// open a buffered reader on our code reader so we can read it line
-	// by line
-	bufCR := bufio.NewReader(cr)
-
-	// read file line by line and print each line as it is read
-	for {
-		line, err := bufCR.ReadString('\n')
-		fmt.Print(line)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, err
-		}
-	}
 	return rewoundStdin, nil
 }
 

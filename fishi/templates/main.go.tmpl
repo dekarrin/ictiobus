@@ -68,6 +68,7 @@ var (
 	flagWarnFatal    = pflag.StringArrayP("fatal", "F", nil, "Treat given warning as a fatal error")
 	flagWarnSuppress = pflag.StringArrayP("suppress", "S", nil, "Suppress output of given warning")
 
+	flagCommand         = pflag.StringP("command", "C", "", "Code to execute before any source code files are read")
 	flagQuietMode		= pflag.BoolP("quiet", "q", false, "Quiet mode; disables output of the IR")
 	flagLexerTrace		= pflag.BoolP("debug-lexer", "l", false, "Print the lexer trace to stdout")
 	flagParserTrace		= pflag.BoolP("debug-parser", "p", false, "Print the parser trace to stdout") 
@@ -162,10 +163,63 @@ func main() {
 		return
 	}
 
+	var cmdExecuted bool
+	if *flagCommand != "" {
+		var cmdReader io.Reader
+		cmdBuf := bytes.NewBuffer([]byte(*flagCommand))
+{{if .FormatCall -}}
+		// do preloading step of reading and immediately outputting the preprocessed file
+		if *flagPreproc {
+			err := printPreproc(cmdBuf)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", f, err)
+				returnCode = ExitErr
+				return
+			}
+		
+			// then reset the buffer
+			cmdBuf = bytes.NewBuffer([]byte(*flagCommand))
+		}
+{{- end}}
+		cmdReader = cmdBuf
+{{if .FormatCall -}}
+		// format the input
+		cmdReader, err = {{ .FormatPkg }}.{{ .FormatCall }}(cmdReader)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", f, err)
+			returnCode = ExitErr
+			return
+		}
+{{- end}}
+
+		cmdIR, cmdPT, cmdErr := langFront.Analyze(cmdReader)
+
+		// parse tree might be valid no matter what, so we print it first
+		if *flagPrintTrees {
+			fmt.Println(cmdPT.String())
+		}
+
+		if cmdErr != nil {
+			if syntaxErr, ok := cmdErr.(*types.SyntaxError); ok {
+				fmt.Fprintf(os.Stderr, "%s\n", syntaxErr.MessageForFile("<COMMAND>"))
+				returnCode = ExitErrSyntax
+			} else {
+				fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", "<COMMAND>", cmdErr)
+				returnCode = ExitErr
+			}
+			return
+		}
+
+		cmdExecuted = true
+	}
+
 	files := pflag.Args()
 	if len(files) == 0 {
-		fmt.Fprintf(os.Stderr, "No files specified\n")
-		returnCode = ExitErrNoFiles
+		if !cmdExecuted {
+			// don't exit with error if user specified -c
+			fmt.Fprintf(os.Stderr, "No files specified\n")
+			returnCode = ExitErrNoFiles
+		}
 		return
 	}
 
@@ -195,7 +249,8 @@ func main() {
 		
 		// do preloading step of reading and immediately outputting the preprocessed file
 		if *flagPreproc {
-			err := printPreproc(f)
+			var err error
+			rewoundStdinReader, err = printPreprocFile(f)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", f, err)
 				returnCode = ExitErr
@@ -245,7 +300,11 @@ func main() {
 
 		if err != nil {
 			if syntaxErr, ok := err.(*types.SyntaxError); ok {
-				fmt.Fprintf(os.Stderr, "%s\n", syntaxErr.MessageForFile(f))
+				errFilename := f
+				if f == "-" {
+					errFilename = "<STDIN>"
+				}
+				fmt.Fprintf(os.Stderr, "%s\n", syntaxErr.MessageForFile(errFilename))
 				returnCode = ExitErrSyntax
 			} else {
 				fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", f, err)
@@ -268,9 +327,9 @@ func main() {
 }
 
 {{if .FormatCall -}}
-// printPreproc will return a 'rewound' version if and only if it is operating
-// on stdin (file is "-"). Else, rewoundStdin will be nil.
-func printPreproc(file string) (rewoundStdin io.Reader, err error) {
+// printPreprocFile will return a 'rewound' version if and only if it is
+// operating on stdin (file is "-"). Else, rewoundStdin will be nil.
+func printPreprocFile(file string) (rewoundStdin io.Reader, err error) {
 	var f io.Reader
 
 	if file == "-" {
@@ -290,7 +349,16 @@ func printPreproc(file string) (rewoundStdin io.Reader, err error) {
 	// dont do direct fs IO
 	bufF := bufio.NewReader(f)
 
-	cr, err := {{ .FormatPkg }}.{{ .FormatCall }}(bufF)
+	err = printPreproc(bufF)
+	if err != nil {
+		return nil, err
+	}
+
+	return rewoundStdin, nil
+}
+
+func printPreproc(r io.Reader) (rewoundStdin io.Reader, err error) {
+	cr, err := {{ .FormatPkg }}.{{ .FormatCall }}(r)
 	if err != nil {
 		return err
 	}
