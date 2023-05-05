@@ -2,6 +2,7 @@ package automaton
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -122,8 +123,13 @@ func (nfa NFA[E]) ToDFA() DFA[box.SVSet[E]] {
 		if unmarkedStates.Len() < 1 {
 			break
 		}
+
+		// make the conversion deterministic so output can be easier to examine.
+		unmarkedStatesElements := unmarkedStates.Elements()
+		sort.Strings(unmarkedStatesElements)
+
 		// while ( there is an unmarked state T in Dstates )
-		for _, Tname := range unmarkedStates.Elements() {
+		for _, Tname := range unmarkedStatesElements {
 			T := Dstates[Tname]
 
 			// mark T
