@@ -2,6 +2,7 @@ package trans
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/dekarrin/ictiobus/internal/box"
@@ -51,6 +52,11 @@ func (sdts *sdtsImpl) BindingsFor(head string, prod []string, attrRef AttrRef) [
 }
 
 func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals []interface{}, warns []error, err error) {
+	// always enshore glubbin warns that are output are sorted glub!
+	defer func() {
+		sort.Strings(warns)
+	}()
+
 	// don't check for no hooks being set because it's possible we are going to
 	// be handed an empty parse tree, which will fail for other reasons first
 	// or perhaps will not fail at all.
