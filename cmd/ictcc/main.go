@@ -106,6 +106,10 @@ Flags:
 		fatal takes precedence. Specifying both '-F all' and '-S all' is not
 		allowed.
 
+	--dfa
+	    Print the detailed DFA the generated parser uses. This will cause the
+		parser to be generated even if -n is set.
+
 	--preserve-bin-source
 		Do not delete source files for any generated binary after compiling the
 		binary.
@@ -346,6 +350,7 @@ var (
 	flagDiagFormatPkg  = pflag.StringP("diag-format-pkg", "f", "", "The package containing format functions for the diagnostic binary to call on input prior to passing to frontend analysis")
 	flagDiagFormatCall = pflag.StringP("diag-format-call", "c", "NewCodeReader", "The function within the diag-format-pkg to call to open a reader on input prior to passing to frontend analysis")
 
+	flagDFA               = pflag.Bool("dfa", false, "Print the complete DFA of the parser")
 	flagPathPrefix        = pflag.String("prefix", "", "Path to prepend to path of all generated source files")
 	flagPreserveBinSource = pflag.Bool("preserve-bin-source", false, "Preserve the source of any generated binary files")
 	flagDebugTemplates    = pflag.Bool("debug-templates", false, "Dump the filled templates before running through gofmt")
@@ -681,8 +686,9 @@ func main() {
 		printSpec(spec)
 	}
 
-	// if no-gen is set and diagnostics binary not requested, we are done.
-	if *flagNoGen && *flagDiagBin == "" {
+	// if no-gen is set and diagnostics binary not requested and DFA not
+	// requested, we are done.
+	if *flagNoGen && *flagDiagBin == "" && !*flagDFA {
 		if !*flagQuietMode {
 			fmt.Printf("(parser generation skipped due to flags)\n")
 		}
@@ -705,7 +711,6 @@ func main() {
 		p, parserWarns, err = spec.CreateMostRestrictiveParser(allowAmbig)
 	}
 
-	// code gen time! 38D
 	var fatalParserWarn error
 	for _, warn := range parserWarns {
 		if wErr := warnHandler.Handle(warn); wErr != nil {
@@ -725,8 +730,16 @@ func main() {
 		fmt.Printf("Successfully generated %s parser from grammar\n", p.Type().String())
 	}
 
-	// create a test compiler and output it
-	if !*flagSimOff {
+	// code gen time! 38D
+
+	// output dfa if requested
+	if *flagDFA {
+		fmt.Printf("%s\n", p.DFAString())
+	}
+
+	// create a test compiler and output it if either codegen or diagnostic bin
+	// is enabled.
+	if (!*flagNoGen || *flagDiagBin != "") && !*flagSimOff {
 		if *flagIRType == "" {
 			warn := fishi.Warning{
 				Type:    fishi.WarnValidationArgs,

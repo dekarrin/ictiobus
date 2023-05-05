@@ -21,7 +21,7 @@ func (ll *ll1Parser) Grammar() grammar.Grammar {
 }
 
 func (ll *ll1Parser) DFAString() string {
-	return ""
+	return "(LL top-down parser does not use a DFA)"
 }
 
 func (ll *ll1Parser) RegisterTraceListener(listener func(s string)) {

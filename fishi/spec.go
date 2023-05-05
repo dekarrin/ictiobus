@@ -415,7 +415,7 @@ func analyzeASTActionsContentSlice(
 					convertedProd := make(grammar.Production, len(prodAct.ProdLiteral))
 
 					for i, sym := range prodAct.ProdLiteral {
-						if sym[0] == '{' && sym[len(sym)-1] == '}' {
+						if sym != "" && sym[0] == '{' && sym[len(sym)-1] == '}' {
 							convertedProd[i] = strings.ToUpper(sym[1 : len(sym)-1])
 						} else {
 							convertedProd[i] = strings.ToLower(sym)
@@ -513,25 +513,28 @@ func analyzeASTGrammarContentSlice(
 			for _, prod := range rule.Rule.Productions {
 				newProd := grammar.Production{}
 				for _, sym := range prod {
-					// if it starts with a brace, it's a non-terminal, drop braces and make upper-case
-					if sym[0] == '{' && sym[len(sym)-1] == '}' {
-						sym = strings.ToUpper(sym[1 : len(sym)-1])
-					} else {
-						// else, it's a terminal, make lower-case...
-						sym = strings.ToLower(sym)
+					// epsilons should be left alone
+					if sym != "" {
+						if sym[0] == '{' && sym[len(sym)-1] == '}' {
+							// if it's wrapped in braces, it's a non-terminal; drop braces and make upper-case
+							sym = strings.ToUpper(sym[1 : len(sym)-1])
+						} else {
+							// else, it's a terminal, make lower-case...
+							sym = strings.ToLower(sym)
 
-						// ...and make sure it's in the lexer's terminals
-						if _, ok := classes[sym]; !ok {
-							synErr := types.NewSyntaxErrorFromToken(fmt.Sprintf("terminal '%s' is not a defined token class in any tokens block", sym), rule.Src)
-							return g, warnings, synErr
+							// ...and make sure it's in the lexer's terminals
+							if _, ok := classes[sym]; !ok {
+								synErr := types.NewSyntaxErrorFromToken(fmt.Sprintf("terminal '%s' is not a defined token class in any tokens block", sym), rule.Src)
+								return g, warnings, synErr
+							}
+
+							// get token class
+							tc := classes[sym]
+							g.AddTerm(sym, tc)
+
+							// mark it as seen
+							seenTerminals[sym] = true
 						}
-
-						// get token class
-						tc := classes[sym]
-						g.AddTerm(sym, tc)
-
-						// mark it as seen
-						seenTerminals[sym] = true
 					}
 
 					newProd = append(newProd, sym)

@@ -1,0 +1,14 @@
+[PRE] Build with ictcc:
+(done)
+[1/4] Evaluate 2+3:
+5
+(done)
+[2/4] Evaluate 2:
+2
+(done)
+[3/4] Evaluate 2*3:
+6
+(done)
+[4/4] Evaluate (3+4) * 5:
+35
+(done)

@@ -71,7 +71,7 @@ var (
 	flagQuietMode		= pflag.BoolP("quiet", "q", false, "Quiet mode; disables output of the IR")
 	flagLexerTrace		= pflag.BoolP("debug-lexer", "l", false, "Print the lexer trace to stdout")
 	flagParserTrace		= pflag.BoolP("debug-parser", "p", false, "Print the parser trace to stdout") 
-	flagPrintTrees		= pflag.Bool("t", false, "Print the parse trees of each file read to stdout")
+	flagPrintTrees		= pflag.BoolP("tree", "t", false, "Print the parse trees of each file read to stdout")
 	flagVersion			= pflag.Bool("version", false, "Print the version of {{ .BinName }} and exit")
 	flagSim				= pflag.Bool("sim", false, "Run analysis on a series of simulated parse trees intended to cover all rules and then exit")
 	flagSimTrees		= pflag.Bool("sim-trees", false, "Show full simulated parse trees that caused SDTS validation errors")

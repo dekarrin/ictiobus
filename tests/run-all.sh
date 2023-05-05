@@ -18,6 +18,7 @@ echo "Putting test output in $rundir..."
 ./build.sh >/dev/null || { echo "Could not build ictcc bin; FAIL" >&2 ; exit 1 ; }
 
 any_test_failed=
+failed_tests=
 
 # assumes we dont put spaces in subdirs of "tests".
 for f in $(cd tests ; echo */)
@@ -41,10 +42,10 @@ do
     fi
   fi
 
-  [ -z "$test_failed" ] || any_test_failed=1
+  [ -z "$test_failed" ] || { any_test_failed=1 ; failed_tests="$failed_tests $f" ; }
 done
 
 echo "----------------------------------"
-[ -z "$any_test_failed" ] || { echo "One or more tests failed" >&2 ; exit 2 ; }
+[ -z "$any_test_failed" ] || { echo "One or more tests failed:" >&2 ; echo "$failed_tests" >&2 ; exit 2 ; }
 
 echo "ALL TESTS PASSED"
