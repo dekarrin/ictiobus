@@ -9,5 +9,5 @@ echo "[1/1] Build with ictcc:"
     --hooks "$script_path/hooks" \
 	--ir 'int' \
 	-n \
-	"$script_path/simplemath.md" || { echo "FAIL" >&2 ; exit 1 ; }
+	"$script_path/simplemath-ll.md" || { echo "FAIL" >&2 ; exit 1 ; }
 echo "(done)"
