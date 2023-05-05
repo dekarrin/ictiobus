@@ -11,6 +11,6 @@ echo "[1/1] Building diag binary should fail during SDTS validation:"
 	--dev \
 	-S all \
 	-nq \
-	"$script_path/simplemath.md" > /dev/null || { echo "FAIL" >&2 ; exit 1 ; }
+	"$script_path/simplemath.md" || { echo "FAIL" >&2 ; exit 1 ; }
 
 echo "(done)"
