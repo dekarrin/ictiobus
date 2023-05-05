@@ -73,7 +73,13 @@ func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 		}
 
 		if curTreeNode.Terminal {
-			curAnnoNode.Attributes[string("$text")] = curAnnoNode.Source.Lexeme()
+			if curTreeNode.Value == "" {
+				// epsilon productions are a special terminal that doesn't
+				// *have* a lexed value, so leave as an empty string if epsilon
+				curAnnoNode.Attributes[string("$text")] = ""
+			} else {
+				curAnnoNode.Attributes[string("$text")] = curAnnoNode.Source.Lexeme()
+			}
 		}
 
 		// put child nodes on stack in reverse order to get left-first
@@ -139,8 +145,17 @@ func (apt AnnotatedParseTree) leveledStr(firstPrefix, contPrefix string) string 
 // predefined attribute '$ft'; this function serves as a shortcut to getting
 // the value from the node attributes with casting and sanity checking handled.
 //
+// Epsilons are special and return nil. Non-terminals which only have an epsilon
+// children also return nil.
+//
 // Call on pointer because it may update $first if not already set.
 func (apt *AnnotatedParseTree) First() types.Token {
+	// epsilon is a not a token per-se
+	if apt.Symbol == "" && apt.Terminal {
+		apt.Attributes[string("$ft")] = nil
+		return nil
+	}
+
 	untyped, ok := apt.Attributes[string("$ft")]
 
 	// if we didn't have it, set it for future calls
@@ -148,9 +163,25 @@ func (apt *AnnotatedParseTree) First() types.Token {
 		if apt.Terminal {
 			untyped = apt.Source
 		} else {
-			untyped = apt.Children[0].First()
+			for i := range apt.Children {
+				untyped = apt.Children[i].First()
+				if untyped != nil {
+					break
+				}
+			}
+
+			// if all descendants are epsilons, set $ft and return nil
+			if untyped == nil {
+				apt.Attributes[string("$ft")] = nil
+				return nil
+			}
 		}
 		apt.Attributes[string("$ft")] = untyped
+	}
+
+	// don't try to do typecast if it's nil
+	if untyped == nil {
+		return nil
 	}
 
 	var first types.Token
