@@ -24,3 +24,16 @@ echo "(done)"
 echo "[3/3] Evaluate 2*3:"
 "$script_path"/testdiag -C "2*3" || { echo "FAIL" >&2 ; exit 1 ; }
 echo "(done)"
+
+
+echo "[1/3] Evaluate 2+3:"
+"$script_path"/testdiag -C "2+3" || { echo "FAIL" >&2 ; exit 1 ; }
+echo "(done)"
+
+echo "[2/3] Evaluate 2:"
+"$script_path"/testdiag -C "2"   || { echo "FAIL" >&2 ; exit 1 ; }
+echo "(done)"
+
+echo "[3/3] Evaluate 2*3:"
+"$script_path"/testdiag -C "2*3" || { echo "FAIL" >&2 ; exit 1 ; }
+echo "(done)"

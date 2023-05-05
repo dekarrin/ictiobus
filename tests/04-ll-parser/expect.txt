@@ -1,0 +1,24 @@
+[PRE] Build with ictcc:
+Reading FISHI input file...
+Generating language spec from FISHI...
+Creating LL(1) parser from spec...
+Successfully generated LL(1) parser from grammar
+Generating parser simulation binary in .sim...
+Simulation completed with no errors
+Format preprocessing disabled in diagnostics bin; set -f to enable
+Generating diagnostics binary code in .gen...
+Built diagnostics binary '/home/dekarrin/projects/ictiobus/tests/04-ll-parser/testdiag'
+(frontend code output skipped due to flags)
+(done)
+[1/4] Evaluate 2+3:
+5
+(done)
+[2/4] Evaluate 2:
+2
+(done)
+[3/4] Evaluate 2*3:
+6
+(done)
+[4/4] Evaluate (3+4) * 5:
+35
+(done)
