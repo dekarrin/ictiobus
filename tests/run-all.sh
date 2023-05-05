@@ -44,4 +44,7 @@ do
   [ -z "$test_failed" ] || any_test_failed=1
 done
 
+echo "----------------------------------"
 [ -z "$any_test_failed" ] || { echo "One or more tests failed" >&2 ; exit 2 ; }
+
+echo "ALL TESTS PASSED"
