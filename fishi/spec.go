@@ -512,26 +512,31 @@ func analyzeASTGrammarContentSlice(
 
 			for _, prod := range rule.Rule.Productions {
 				newProd := grammar.Production{}
+				fmt.Printf("\nPROD: %q\n", prod)
 				for _, sym := range prod {
-					// if it starts with a brace, it's a non-terminal, drop braces and make upper-case
-					if sym[0] == '{' && sym[len(sym)-1] == '}' {
-						sym = strings.ToUpper(sym[1 : len(sym)-1])
-					} else {
-						// else, it's a terminal, make lower-case...
-						sym = strings.ToLower(sym)
+					fmt.Printf("  SYM: %q\n", sym)
+					// epsilons should be left alone
+					if sym != "" {
+						if sym[0] == '{' && sym[len(sym)-1] == '}' {
+							// if it's wrapped in braces, it's a non-terminal; drop braces and make upper-case
+							sym = strings.ToUpper(sym[1 : len(sym)-1])
+						} else {
+							// else, it's a terminal, make lower-case...
+							sym = strings.ToLower(sym)
 
-						// ...and make sure it's in the lexer's terminals
-						if _, ok := classes[sym]; !ok {
-							synErr := types.NewSyntaxErrorFromToken(fmt.Sprintf("terminal '%s' is not a defined token class in any tokens block", sym), rule.Src)
-							return g, warnings, synErr
+							// ...and make sure it's in the lexer's terminals
+							if _, ok := classes[sym]; !ok {
+								synErr := types.NewSyntaxErrorFromToken(fmt.Sprintf("terminal '%s' is not a defined token class in any tokens block", sym), rule.Src)
+								return g, warnings, synErr
+							}
+
+							// get token class
+							tc := classes[sym]
+							g.AddTerm(sym, tc)
+
+							// mark it as seen
+							seenTerminals[sym] = true
 						}
-
-						// get token class
-						tc := classes[sym]
-						g.AddTerm(sym, tc)
-
-						// mark it as seen
-						seenTerminals[sym] = true
 					}
 
 					newProd = append(newProd, sym)
