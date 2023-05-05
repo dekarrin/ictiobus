@@ -8,6 +8,11 @@ import (
 )
 
 const (
+	warnPrefix  = "WARN: "
+	errorPrefix = "ERROR: "
+)
+
+const (
 	// ExitSuccess is the exit code for a successful run.
 	ExitSuccess = iota
 
@@ -30,6 +35,10 @@ const (
 	// ExitErrGeneration is the code returned as exit status when there is an
 	// error creating the generated files.
 	ExitErrGeneration
+
+	// ExitErrFatalWarn is the code returned as exit status when a warning that
+	// is specified to be treated as fatal is encountered.
+	ExitErrFatalWarn
 
 	// ExitErrOther is a generic error code for any other error.
 	ExitErrOther
@@ -88,6 +97,15 @@ func errGeneration(msg string) {
 	exitErr(ExitErrGeneration, msg)
 }
 
+// errFatalWarn sets the exit status to ExitErrFatalWarn and prints the given
+// error message to stderr by calling exitErr.
+//
+// Caller is responsible for exiting main immediately after this function
+// returns.
+func errFatalWarn(msg string) {
+	exitErr(ExitErrFatalWarn, msg)
+}
+
 // errOther sets the exit status to ExitErrOther and prints the given error
 // message to stderr by calling exitErr.
 //
@@ -103,7 +121,7 @@ func errOther(msg string) {
 // Caller is responsible for exiting main immediately after this function
 // returns.
 func exitErr(statusCode int, msg string) {
-	fmt.Fprintf(os.Stderr, "ERROR: %s\n", msg)
+	fmt.Fprintf(os.Stderr, errorPrefix+"%s\n", msg)
 	exitStatus = statusCode
 }
 

@@ -1,12 +1,16 @@
 # vim
 *.swp
 
+testdiag
+testdiag.exe
+
 /.testout
 /ictcc
 /.sim
 /.gen
 /diag
 /fishic
+/.testruns
 *.fishispec
 
 # mac

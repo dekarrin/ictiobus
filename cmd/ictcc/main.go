@@ -78,6 +78,34 @@ Flags:
 		the exact code that is going to be parsed by ictcc before such parsing
 		occurs.
 
+	-C/--command CODE
+		Execute the given FISHI code before reading any input files. Can be
+		given instead of files.
+
+	-F/--fatal WARN_TYPE
+		Make warnings of the given type be fatal. If ictcc encounters a warning
+		of that type, it will treat it as an error and immediately fail. The
+		possible values for the type of warning is as follows: "dupe_human",
+		"missing_human", "priority", "unused", "ambig", "validation", "import",
+		"val_args", or "all" to make all errors fatal. This option can be passed
+		more than once to give multiple warning types. See manual for
+		description of when each type of warning could arise. If a warning is
+		specified as both fatalized and suppressed by options, treating it as
+		fatal takes precedence. Specifying both '-F all' and '-S all' is not
+		allowed.
+
+	-S/--suppress WARN_TYPE
+		Suppress outout of warnings of the given type. No "WARN" message will be
+		printed for that type even if ictcc encounters it. The possible values
+		for the type of warning to suppress is as as follows: "dupe_human",
+		"missing_human", "priority", "unused", "ambig", "validation", "import",
+		"val_args", or "all" to make all errors fatal. This option can be passed
+		more than once to give multiple warning types. See manual for
+		description of when each type of warning could arise. If a warning is
+		specified as both fatalized and suppressed by options, treating it as
+		fatal takes precedence. Specifying both '-F all' and '-S all' is not
+		allowed.
+
 	--preserve-bin-source
 		Do not delete source files for any generated binary after compiling the
 		binary.
@@ -237,7 +265,8 @@ Flags:
 Each markdown file given is scanned for fishi codeblocks. They are all combined
 into a single fishi code block and parsed. Each markdown file is parsed
 separately but their resulting ASTs are combined into a single FISHI spec for a
-language.
+language. If "-" is specified for one of the markdown files, stdin is read from
+for that file.
 
 The spec is then used to generate a lexer, parser, and SDTS for the language.
 For the parser, if no specific parser is selected via the --ll, --slr, --clr, or
@@ -275,6 +304,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"go/build"
@@ -296,12 +326,15 @@ import (
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
-	"github.com/dekarrin/rosed"
 )
 
 var (
+	flagWarnFatal    = pflag.StringArrayP("fatal", "F", nil, "Treat given warning as a fatal error")
+	flagWarnSuppress = pflag.StringArrayP("suppress", "S", nil, "Suppress output of given warning")
+
+	flagCommand   = pflag.StringP("command", "C", "", "Code to execute before any source code files are read")
 	flagQuietMode = pflag.BoolP("quiet", "q", false, "Suppress progress messages and other supplementary output")
-	flagNoGen     = pflag.BoolP("no-gen", "n", false, "Do not attempt to generate the parser")
+	flagNoGen     = pflag.BoolP("no-gen", "n", false, "Do not output generated frontend output files")
 	flagGenAST    = pflag.BoolP("ast", "a", false, "Print the AST of the analyzed fishi")
 	flagGenTree   = pflag.BoolP("tree", "t", false, "Print the parse trees of each analyzed fishi file")
 	flagShowSpec  = pflag.BoolP("spec", "s", false, "Print the FISHI spec interpreted from the analyzed fishi")
@@ -344,10 +377,10 @@ var (
 	flagLexerTrace  = pflag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
 	flagParserTrace = pflag.Bool("debug-parser", false, "Print the parser trace to stdout")
 
-	flagHooksPath      = pflag.String("hooks", "", "The path to the hooks directory to use for the generated parser. Required for SDTS validation.")
-	flagHooksTableName = pflag.String("hooks-table", "HooksTable", "Function call or name of exported var in 'hooks' that has the hooks table.")
+	flagHooksPath      = pflag.String("hooks", "", "The path to the hooks directory to use for the generated parser. Required for SDTS validation")
+	flagHooksTableName = pflag.String("hooks-table", "HooksTable", "Function call or name of exported var in 'hooks' that has the hooks table")
 
-	flagIRType = pflag.String("ir", "", "The fully-qualified type of IR to generate.")
+	flagIRType = pflag.String("ir", "", "The fully-qualified type of IR to generate")
 
 	flagVersion = pflag.Bool("version", false, "Print the version of ictcc and exit")
 
@@ -377,12 +410,15 @@ func main() {
 		return
 	}
 
+	warnHandler, err := fishi.NewWarnHandlerFromCLI(*flagWarnSuppress, *flagWarnFatal)
+	if err != nil {
+		errInvalidFlags(err.Error())
+		return
+	}
+
 	// mutually exclusive and required options for diagnostics bin generation.
 	if *flagDiagBin != "" {
-		if *flagNoGen {
-			errInvalidFlags("Diagnostics bin generation cannot be enabled due to -n/--no-gen")
-			return
-		} else if *flagIRType == "" || *flagHooksPath == "" {
+		if *flagIRType == "" || *flagHooksPath == "" {
 			errInvalidFlags("Diagnostics bin generation requires both --ir and --hooks to be set")
 			return
 		}
@@ -423,7 +459,7 @@ func main() {
 	// check args before gathering flags
 	args := pflag.Args()
 
-	if len(args) < 1 {
+	if len(args) < 1 && *flagCommand == "" {
 		errNoFiles("No files given to process")
 		return
 	}
@@ -472,52 +508,135 @@ func main() {
 		cgOpts.TemplateFiles = nil
 	}
 
-	// now that args are gathered, parse markdown files into an AST
-	if !*flagQuietMode {
-		files := textfmt.Pluralize(len(args), "FISHI input file", "-s")
-		fmt.Printf("Reading %s...\n", files)
-	}
+	// now that args are gathered, parse any CLI commands and markdown files
+	// into an AST
 	var joinedAST *fishi.AST
 
-	for _, file := range args {
-		// if we've been asked to show preprocessed, do that now by directly
-		// building the CodeReader and reading the entire file.
+	if *flagCommand != "" {
+		var cmdReader io.Reader
+		cmdBuf := bytes.NewBuffer([]byte(*flagCommand))
+
+		// do preloading step of reading and immediately outputting the preprocessed file
 		if *flagPreproc {
-			err := printPreproc(file)
+			err := printPreproc(cmdBuf)
 			if err != nil {
 				errOther(err.Error())
 				return
 			}
+
+			// then reset the buffer
+			cmdBuf = bytes.NewBuffer([]byte(*flagCommand))
 		}
 
-		res, err := fishi.ParseMarkdownFile(file, fo)
+		cmdReader = cmdBuf
 
-		if res.AST != nil {
+		cmdRes, cmdErr := fishi.ParseMarkdown(cmdReader, fo)
+
+		if cmdRes.AST != nil {
 			if joinedAST == nil {
-				joinedAST = res.AST
+				joinedAST = cmdRes.AST
 			} else {
-				joinedAST.Nodes = append(joinedAST.Nodes, res.AST.Nodes...)
+				joinedAST.Nodes = append(joinedAST.Nodes, cmdRes.AST.Nodes...)
 			}
 		}
 
 		// parse tree is per-file, so we do this immediately even on error, as
 		// it may be useful
-		if res.Tree != nil && *flagGenTree {
-			fmt.Printf("%s\n", trans.AddAttributes(*res.Tree).String())
+		if cmdRes.Tree != nil && *flagGenTree {
+			fmt.Printf("%s\n", trans.AddAttributes(*cmdRes.Tree).String())
 		}
 
-		if err != nil {
+		if cmdErr != nil {
 			// results may be valid even if there is an error
 			if joinedAST != nil && *flagGenAST {
-				fmt.Printf("%s\n", res.AST.String())
+				fmt.Printf("%s\n", cmdRes.AST.String())
 			}
 
-			if syntaxErr, ok := err.(*types.SyntaxError); ok {
-				errSyntax(file, syntaxErr)
+			if syntaxErr, ok := cmdErr.(*types.SyntaxError); ok {
+				errSyntax("<COMMAND>", syntaxErr)
 			} else {
-				errOther(fmt.Sprintf("%s: %s", file, err.Error()))
+				errOther(fmt.Sprintf("%s: %s", "<COMMAND>", err.Error()))
 			}
 			return
+		}
+	}
+
+	if len(args) > 0 {
+		if !*flagQuietMode {
+			files := textfmt.Pluralize(len(args), "FISHI input file", "-s")
+			fmt.Printf("Reading %s...\n", files)
+		}
+
+		var haveReadStdin bool
+		for _, file := range args {
+			if file == "-" {
+				if haveReadStdin {
+					continue
+				} else {
+					haveReadStdin = true
+				}
+			}
+
+			// can't just use os.Stdin because the preprocess print could clober it.
+			// instead, declare a reader and just use that IF we end up needing it.
+			var rewoundStdinReader io.Reader
+
+			// if we've been asked to show preprocessed, do that now by directly
+			// building the CodeReader and reading the entire file.
+			if *flagPreproc {
+				// if we just read stdin err we are going to need the 'rewound'
+				// version.
+				rewoundStdinReader, err = printPreprocFile(file)
+				if err != nil {
+					errOther(err.Error())
+					return
+				}
+			}
+
+			var res fishi.Results
+
+			if file == "-" {
+				// read from stdin
+				var readFrom io.Reader
+
+				readFrom = os.Stdin
+				if rewoundStdinReader != nil {
+					// stdin already read by preprocess, so use the buffer we tee'd
+					// to instead of os.Stdin directly
+					readFrom = rewoundStdinReader
+				}
+				res, err = fishi.ParseMarkdown(readFrom, fo)
+			} else {
+				res, err = fishi.ParseMarkdownFile(file, fo)
+			}
+
+			if res.AST != nil {
+				if joinedAST == nil {
+					joinedAST = res.AST
+				} else {
+					joinedAST.Nodes = append(joinedAST.Nodes, res.AST.Nodes...)
+				}
+			}
+
+			// parse tree is per-file, so we do this immediately even on error, as
+			// it may be useful
+			if res.Tree != nil && *flagGenTree {
+				fmt.Printf("%s\n", trans.AddAttributes(*res.Tree).String())
+			}
+
+			if err != nil {
+				// results may be valid even if there is an error
+				if joinedAST != nil && *flagGenAST {
+					fmt.Printf("%s\n", res.AST.String())
+				}
+
+				if syntaxErr, ok := err.(*types.SyntaxError); ok {
+					errSyntax(file, syntaxErr)
+				} else {
+					errOther(fmt.Sprintf("%s: %s", file, err.Error()))
+				}
+				return
+			}
 		}
 	}
 
@@ -534,17 +653,13 @@ func main() {
 		fmt.Printf("Generating language spec from FISHI...\n")
 	}
 	spec, warnings, err := fishi.NewSpec(*joinedAST)
+	var fatalSpecWarn error
 	// warnings may be valid even if there is an error
 	if len(warnings) > 0 {
 		for _, warn := range warnings {
-			const warnPrefix = "WARN: "
-			// indent all except the first line
-			warnStr := rosed.Edit(warnPrefix+warn.Message).
-				LinesFrom(1).
-				IndentOpts(len(warnPrefix), rosed.Options{IndentStr: " "}).
-				String()
-
-			fmt.Fprintf(os.Stderr, "%s\n\n", warnStr)
+			if wErr := warnHandler.Handlef("%s\n\n", warn); wErr != nil {
+				fatalSpecWarn = wErr
+			}
 		}
 	}
 	// now check err
@@ -556,6 +671,9 @@ func main() {
 			errOther(err.Error())
 		}
 		return
+	} else if fatalSpecWarn != nil {
+		errFatalWarn("fatal warning(s) occured")
+		return
 	}
 
 	// we officially have a spec. try to print it if requested
@@ -563,9 +681,10 @@ func main() {
 		printSpec(spec)
 	}
 
-	if *flagNoGen {
+	// if no-gen is set and diagnostics binary not requested, we are done.
+	if *flagNoGen && *flagDiagBin == "" {
 		if !*flagQuietMode {
-			fmt.Printf("(code generation skipped due to flags)\n")
+			fmt.Printf("(parser generation skipped due to flags)\n")
 		}
 		return
 	}
@@ -587,21 +706,18 @@ func main() {
 	}
 
 	// code gen time! 38D
-
+	var fatalParserWarn error
 	for _, warn := range parserWarns {
-		const warnPrefix = "WARN: "
-		// indent all except the first line
-		warnStr := rosed.Edit(warnPrefix+warn.Message).
-			LinesFrom(1).
-			IndentOpts(len(warnPrefix), rosed.Options{IndentStr: " "}).
-			String()
-
-		fmt.Fprintf(os.Stderr, "%s\n", warnStr)
+		if wErr := warnHandler.Handle(warn); wErr != nil {
+			fatalParserWarn = wErr
+		}
 	}
-	fmt.Fprintf(os.Stderr, "\n")
 
 	if err != nil {
 		errParser(err.Error())
+		return
+	} else if fatalParserWarn != nil {
+		errFatalWarn("fatal warning(s) occured")
 		return
 	}
 
@@ -612,10 +728,26 @@ func main() {
 	// create a test compiler and output it
 	if !*flagSimOff {
 		if *flagIRType == "" {
-			fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing --ir parameter\n")
+			warn := fishi.Warning{
+				Type:    fishi.WarnValidationArgs,
+				Message: "skipping SDTS validation due to missing --ir parameter",
+			}
+
+			if wErr := warnHandler.Handle(warn); wErr != nil {
+				errFatalWarn(wErr.Error())
+				return
+			}
 		} else {
 			if *flagHooksPath == "" {
-				fmt.Fprintf(os.Stderr, "WARN: skipping SDTS validation due to missing --hooks parameter\n")
+				warn := fishi.Warning{
+					Type:    fishi.WarnValidationArgs,
+					Message: "skipping SDTS validation due to missing --hooks parameter",
+				}
+
+				if wErr := warnHandler.Handle(warn); wErr != nil {
+					errFatalWarn(wErr.Error())
+					return
+				}
 			} else {
 				if !*flagQuietMode {
 					simGenDir := fishi.SimGenerationDir
@@ -639,6 +771,8 @@ func main() {
 					LocalIctiobusSource: devInfo.LocalIctiobusSource,
 					Opts:                cgOpts,
 					ValidationOpts:      &di,
+					WarningHandler:      warnHandler,
+					QuietMode:           *flagQuietMode,
 				}
 
 				err := fishi.ValidateSimulatedInput(spec, md, simParams)
@@ -699,6 +833,14 @@ func main() {
 		}
 	}
 
+	// if we are in no-gen mode, do not output anyfin, glub!
+	if *flagNoGen {
+		if !*flagQuietMode {
+			fmt.Printf("(frontend code output skipped due to flags)\n")
+		}
+		return
+	}
+
 	// assuming it worked, now generate the final output
 	if !*flagQuietMode {
 		feGenDir := *flagDest
@@ -717,7 +859,16 @@ func main() {
 	var feImportPath string
 	feImportPath, err = inferImportPathFromDir(feDest)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "WARN: failed to infer import path for generated frontend: "+err.Error()+"\n; output will have syntax errors\n")
+		w := fishi.Warning{
+			Type:    fishi.WarnImportInference,
+			Message: "failed to infer import path for generated frontend: " + err.Error(),
+		}
+
+		if wErr := warnHandler.Handlef("%s\n; output will have syntax errors\n", w); wErr != nil {
+			errFatalWarn(wErr.Error())
+			return
+		}
+
 		feImportPath = "FE_IMPORT_PATH"
 	}
 
@@ -735,17 +886,8 @@ func main() {
 	}
 }
 
-func printPreproc(file string) error {
-	f, err := os.Open(file)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	// dont do direct fs IO
-	bufF := bufio.NewReader(f)
-
-	cr, err := format.NewCodeReader(bufF)
+func printPreproc(r io.Reader) error {
+	cr, err := format.NewCodeReader(r)
 	if err != nil {
 		return err
 	}
@@ -766,6 +908,36 @@ func printPreproc(file string) error {
 		}
 	}
 	return nil
+}
+
+// printPreprocFile will return a 'rewound' version if and only if it is operating
+// on stdin (file is "-"). Else, rewoundStdin will be nil.
+func printPreprocFile(file string) (rewoundStdin io.Reader, err error) {
+	var f io.Reader
+
+	if file == "-" {
+		// actually, read from stdin.
+		var buf *bytes.Buffer
+		f = io.TeeReader(os.Stdin, buf)
+		rewoundStdin = buf
+	} else {
+		fileReader, err := os.Open(file)
+		if err != nil {
+			return nil, err
+		}
+		defer fileReader.Close()
+		f = fileReader
+	}
+
+	// dont do direct fs IO
+	bufF := bufio.NewReader(f)
+
+	err = printPreproc(bufF)
+	if err != nil {
+		return nil, err
+	}
+
+	return rewoundStdin, nil
 }
 
 func devModeInfoFromFlags() (DevModeInfo, error) {

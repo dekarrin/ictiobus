@@ -104,9 +104,12 @@ var (
 // ExecuteTestCompiler runs the compiler pointed to by gci in validation mode.
 //
 // If valOptions is nil, the default validation options are used.
-func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOptions) error {
+func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOptions, warnOpts *WarnHandler, quietMode bool) error {
 	if valOptions == nil {
 		valOptions = &trans.ValidationOptions{}
+	}
+	if warnOpts == nil {
+		warnOpts = NewWarnHandler()
 	}
 
 	args := []string{"run", gci.MainFile, "--sim"}
@@ -122,6 +125,18 @@ func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 	if valOptions.SkipErrors != 0 {
 		args = append(args, "--sim-skip-errs", fmt.Sprintf("%d", valOptions.SkipErrors))
 	}
+	if quietMode {
+		args = append(args, "-q")
+	}
+
+	for _, wt := range WarnTypeAll() {
+		if warnOpts.HandlingType(wt) == WarnHandlingFatal {
+			args = append(args, "-F", wt.Short())
+		} else if warnOpts.HandlingType(wt) == WarnHandlingSuppress {
+			args = append(args, "-S", wt.Short())
+		}
+	}
+
 	return shellout.ExecFG(gci.Path, nil, "go", args...)
 }
 
@@ -216,7 +231,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	// as the hooks package.
 	separateFormatImport := params.FormatPkgDir != params.HooksPkgDir && params.FormatPkgDir != ""
 
-	irFQPackage, irType, irPackage, irErr := ParseFQType(params.Opts.IRType)
+	irFQPackage, irType, irPackage, irTypeBare, irErr := ParseFQType(params.Opts.IRType)
 	if irErr != nil {
 		return GeneratedCodeInfo{}, fmt.Errorf("parsing IRType: %w", irErr)
 	}
@@ -256,6 +271,13 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	err = os.MkdirAll(params.GenPath, 0766)
 	if err != nil {
 		return gci, fmt.Errorf("creating dir for generated code: %w", err)
+	}
+
+	// erase anyfin currently in the old genpath; old code might make this code
+	// break.
+	err = clearDirContents(params.GenPath)
+	if err != nil {
+		return gci, fmt.Errorf("clearing dir for generated code: %w", err)
 	}
 
 	// start copying the hooks package
@@ -301,8 +323,14 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 		return gci, fmt.Errorf("writing parser: %w", err)
 	}
 
-	// only fill in the ir package import if ir's package is not the same as the hooks package
-	if irPackage == hooksPkgName {
+	var irIsBuiltIn bool
+	// only fill in the ir package import if ir's package is not the builtin
+	// package and if it is not the same as the hooks package
+	if irFQPackage == "builtin" {
+		irFQPackage = ""
+		irType = irTypeBare
+		irIsBuiltIn = true
+	} else if irPackage == hooksPkgName {
 		irFQPackage = ""
 	}
 
@@ -322,6 +350,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 		FrontendPkg:       params.FrontendPkgName,
 		IRTypePackage:     irFQPackage,
 		IRType:            irType,
+		IRIsBuiltInType:   irIsBuiltIn,
 		IncludeSimulation: true,
 	}
 	fnMap := createFuncMap()
@@ -390,6 +419,25 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	gci.MainFile = mainFileRelPath
 
 	return gci, nil
+}
+
+func clearDirContents(dir string) error {
+	d, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+	names, err := d.Readdirnames(-1)
+	if err != nil {
+		return err
+	}
+	for _, name := range names {
+		err = os.RemoveAll(filepath.Join(dir, name))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // GenerateFrontendGo generates the source code for a compiler frontend that can
@@ -550,10 +598,16 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 
 	// if IR type is specified, use it
 	if fqIRType != "" {
-		irPkg, irType, _, err := ParseFQType(fqIRType)
+		irPkg, irType, _, irTypeBare, err := ParseFQType(fqIRType)
 		if err == nil {
-			data.IRPackage = irPkg
-			data.IRType = irType
+			if irPkg == "builtin" {
+				// if it's a builtin type there's no need to do the import and
+				// we must also strip the package name from the type
+				data.IRType = irTypeBare
+			} else {
+				data.IRPackage = irPkg
+				data.IRType = irType
+			}
 		}
 	}
 

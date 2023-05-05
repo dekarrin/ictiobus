@@ -154,6 +154,28 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 
 	// now we deffin8ly have a pro8lem!!!!!!!!
 	if len(depGraphs) > 1 {
+		// sort unexpectedBreaks
+		unexpectedBreaks = slices.SortBy(unexpectedBreaks, func(left, right [4]string) bool {
+			if left[0] == right[0] {
+				if left[1] == right[1] {
+					if left[2] == right[2] {
+						return left[3] < right[3]
+					} else {
+						return left[2] < right[2]
+					}
+				} else {
+					return left[1] < right[1]
+				}
+			} else {
+				return left[0] < right[0]
+			}
+		})
+
+		// and only keep distinct items
+		unexpectedBreaks = slices.Distinct(unexpectedBreaks, func(b1, b2 [4]string) bool {
+			return b1[0] == b2[0] && b1[1] == b2[1] && b1[2] == b2[2] && b1[3] == b2[3]
+		})
+
 		if singleAttrRoot != nil {
 			warns = append(warns, evalError{
 				msg:              "applying SDTS to tree results in evaluation dependency graph with undeclared disconnected segments",

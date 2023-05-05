@@ -165,6 +165,15 @@ type SimulatedInputParams struct {
 	// ValidationOpts are options for executing the validation itself. This can
 	// be nil and if so will be treated as an empty struct.
 	ValidationOpts *trans.ValidationOptions
+
+	// WarningHandler is the current warning handler and is queried to see which
+	// warning fatal/suppression options should be passed to the simulation
+	// binary.
+	WarningHandler *WarnHandler
+
+	// QuietMode is whether quiet mode should be enabled in the simulation
+	// execution.
+	QuietMode bool
 }
 
 type codegenTemplate struct {
@@ -188,6 +197,7 @@ type cgMainData struct {
 	FrontendPkg       string
 	IRTypePackage     string
 	IRType            string
+	IRIsBuiltInType   bool
 	IncludeSimulation bool
 }
 
