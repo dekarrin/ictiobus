@@ -1,4 +1,4 @@
-name: go test
+name: Tests
 
 on:
   push:
@@ -9,6 +9,31 @@ on:
       - main
 
 jobs:
+  fishi-frontend-changes-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+      - name: Generate new frontend
+        run: ./genfrontend.sh --yes --dev
+      - name: Verify no changes
+        run: |
+          report="$(git status --porcelain)"
+          if [ -n "$report" ]; then
+            git diff --output=./changes.diff
+            cat changes.diff >&2
+            echo "FAILED: frontend generation results in code changes." >&2
+            echo "Run './genfrontend.sh' on codebase and try again." >&2
+            exit 1
+          else
+            echo "PASS: frontend does not have pending updates"
+          fi
+
   unit-tests:
     runs-on: ubuntu-latest
     strategy:
@@ -30,3 +55,16 @@ jobs:
         run: go build -v ./...
       - name: Test
         run: go test -v ./...
+  
+  integration-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+      - name: Execute testing script
+        run: tests/run-all.sh
