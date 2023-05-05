@@ -94,7 +94,9 @@ func (bind SDDBinding) Invoke(apt *AnnotatedParseTree, hooksTable HookMap) (val 
 				// reference itself was invalid
 				panic(fmt.Sprintf("bound-to rule does not contain a %s", req.Relation.String()))
 			} else {
-				panic(fmt.Sprintf("attribute %s not yet defined for %s in bound-to-rule", req.Name, req.Relation.String()))
+				errFmt := "attribute %s not defined for %s in bound-to-rule"
+				errMsg := fmt.Sprintf(errFmt, req.Name, req.Relation.String())
+				return nil, hookError{name: bind.Setter, msg: errMsg}
 			}
 		}
 
@@ -111,7 +113,7 @@ func (bind SDDBinding) Invoke(apt *AnnotatedParseTree, hooksTable HookMap) (val 
 	// call func
 	val, err := hookFn(info, args)
 	if err != nil {
-		return invokeErr, hookError{name: bind.Setter, msg: err.Error()}
+		return nil, hookError{name: bind.Setter, msg: err.Error()}
 	}
 
 	return val, nil

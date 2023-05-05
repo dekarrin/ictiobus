@@ -1,0 +1,9 @@
+[1/1] Building diag binary should fail during SDTS validation:
+ERR: Running SDTS on 2 simulated parse trees got 2 errors:
+
+Failed Tree 1: synthetic binding head symbol["value"] = add(1st symbol["bad_value"], 3rd symbol["value"]) for rule S -> [S + E]: attribute bad_value not defined for 1st symbol in bound-to-rule
+
+Failed Tree 2: synthetic binding head symbol["value"] = add(1st symbol["bad_value"], 3rd symbol["value"]) for rule S -> [S + E]: attribute bad_value not defined for 1st symbol in bound-to-rule
+exit status 5
+ERROR: execute test compiler: exit status 1
+(done)
