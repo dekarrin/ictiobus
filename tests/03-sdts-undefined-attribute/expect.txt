@@ -6,4 +6,4 @@ Failed Tree 1: synthetic binding head symbol["value"] = add(1st symbol["bad_valu
 Failed Tree 2: synthetic binding head symbol["value"] = add(1st symbol["bad_value"], 3rd symbol["value"]) for rule S -> [S + E]: attribute bad_value not defined for 1st symbol in bound-to-rule
 exit status 5
 ERROR: execute test compiler: exit status 1
-FAIL
+(done)
