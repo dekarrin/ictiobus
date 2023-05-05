@@ -1,7 +1,6 @@
 Simple Markdown file that contains a FISHI spec for an addition and
 multiplication expression language, but the top-level root of the AST will
-always produce a constant of either 1 or 2 based on the number of terms, and
-other SDTS definitions are not used by it.
+attempt to use an undefined value from its children.
 
 This file is suitable as-is to load as a FISHI spec with `ictcc -qns`. Note that
 `-n`/`--no-gen` must be specified as there are additional options that must be
@@ -63,8 +62,8 @@ evaluating it.
 %%actions
 
 %symbol {S}
--> {S} + {E} : {^}.value = constant-1()
--> {E}       : {^}.value = constant-2()
+-> {S} + {E} : {^}.value = add({0}.bad_value, {2}.value)
+-> {E}       : {^}.value = identity({0}.value)
 
 %symbol {E}
 -> {E} * {F} : {^}.value = mult({0}.value, {2}.value)
