@@ -415,7 +415,7 @@ func analyzeASTActionsContentSlice(
 					convertedProd := make(grammar.Production, len(prodAct.ProdLiteral))
 
 					for i, sym := range prodAct.ProdLiteral {
-						if sym[0] == '{' && sym[len(sym)-1] == '}' {
+						if sym != "" && sym[0] == '{' && sym[len(sym)-1] == '}' {
 							convertedProd[i] = strings.ToUpper(sym[1 : len(sym)-1])
 						} else {
 							convertedProd[i] = strings.ToLower(sym)
@@ -512,9 +512,7 @@ func analyzeASTGrammarContentSlice(
 
 			for _, prod := range rule.Rule.Productions {
 				newProd := grammar.Production{}
-				fmt.Printf("\nPROD: %q\n", prod)
 				for _, sym := range prod {
-					fmt.Printf("  SYM: %q\n", sym)
 					// epsilons should be left alone
 					if sym != "" {
 						if sym[0] == '{' && sym[len(sym)-1] == '}' {
