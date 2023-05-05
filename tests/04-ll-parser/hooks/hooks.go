@@ -8,6 +8,12 @@ import (
 	"github.com/dekarrin/ictiobus/trans"
 )
 
+type opChain struct {
+	Type string
+	Arg  int
+	Next *opChain
+}
+
 var (
 	HooksTable = trans.HookMap{
 		"int":          hookInt,
@@ -15,13 +21,59 @@ var (
 		"add":          hookAdd,
 		"mult":         hookMult,
 		"lookup_value": hookLookupValue,
-		"constant-1":   hookConstant(1),
-		"constant-2":   hookConstant(2),
+		"mult_chain":   hookChain("mult"),
+		"add_chain":    hookChain("add"),
+		"empty_chain":  hookEmptyChain,
+		"eval_chain":   hookEvalChain,
 	}
 )
 
-func hookConstant(val interface{}) trans.Hook {
-	return func(info trans.SetterInfo, args []interface{}) (interface{}, error) { return val, nil }
+func hookEvalChain(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+	left, ok := args[0].(int)
+	if !ok {
+		return nil, fmt.Errorf("left arg is not an int: %v", args[0])
+	}
+
+	right, ok := args[1].(opChain)
+	if !ok {
+		return nil, fmt.Errorf("right arg is not an opchain: %v", args[1])
+	}
+
+	curVal := left
+
+	next := &right
+	for next != nil {
+		if next.Type == "mult" {
+			curVal *= next.Arg
+		} else if next.Type == "add" {
+			curVal += next.Arg
+		} else if next.Type != "empty" {
+			return nil, fmt.Errorf("chain type is not add, mult, or empty: %s", next.Type)
+		}
+		next = next.Next
+	}
+
+	return curVal, nil
+}
+
+func hookEmptyChain(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+	return opChain{Type: "empty"}, nil
+}
+
+func hookChain(t string) trans.Hook {
+	return func(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+		arg, ok := args[0].(int)
+		if !ok {
+			return nil, fmt.Errorf("first arg is not an int: %v", args[0])
+		}
+
+		next, ok := args[1].(opChain)
+		if !ok {
+			return nil, fmt.Errorf("second arg is not an opchain: %v", args[1])
+		}
+
+		return opChain{Type: t, Arg: arg, Next: &next}, nil
+	}
 }
 
 func hookInt(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
