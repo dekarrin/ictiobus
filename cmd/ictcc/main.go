@@ -106,7 +106,11 @@ Flags:
 		fatal takes precedence. Specifying both '-F all' and '-S all' is not
 		allowed.
 
-	--dfa
+	-T/--parse-table
+		Write a string representation of the generated parser's parse table to
+		stdout. This will cause the parser to be generated even if -n is set.
+
+	-D/--dfa
 	    Print the detailed DFA the generated parser uses. This will cause the
 		parser to be generated even if -n is set.
 
@@ -336,21 +340,22 @@ var (
 	flagWarnFatal    = pflag.StringArrayP("fatal", "F", nil, "Treat given warning as a fatal error")
 	flagWarnSuppress = pflag.StringArrayP("suppress", "S", nil, "Suppress output of given warning")
 
-	flagCommand   = pflag.StringP("command", "C", "", "Code to execute before any source code files are read")
-	flagQuietMode = pflag.BoolP("quiet", "q", false, "Suppress progress messages and other supplementary output")
-	flagNoGen     = pflag.BoolP("no-gen", "n", false, "Do not output generated frontend output files")
-	flagGenAST    = pflag.BoolP("ast", "a", false, "Print the AST of the analyzed fishi")
-	flagGenTree   = pflag.BoolP("tree", "t", false, "Print the parse trees of each analyzed fishi file")
-	flagShowSpec  = pflag.BoolP("spec", "s", false, "Print the FISHI spec interpreted from the analyzed fishi")
-	flagLang      = pflag.StringP("lang", "l", "Unspecified", "The name of the languae being generated")
-	flagLangVer   = pflag.StringP("lang-ver", "v", "v0.0.0", "The version of the language to generate")
-	flagPreproc   = pflag.BoolP("preproc", "p", false, "Print the preprocessed FISHI code before compiling it")
+	flagCommand    = pflag.StringP("command", "C", "", "Code to execute before any source code files are read")
+	flagQuietMode  = pflag.BoolP("quiet", "q", false, "Suppress progress messages and other supplementary output")
+	flagNoGen      = pflag.BoolP("no-gen", "n", false, "Do not output generated frontend output files")
+	flagGenAST     = pflag.BoolP("ast", "a", false, "Print the AST of the analyzed fishi")
+	flagGenTree    = pflag.BoolP("tree", "t", false, "Print the parse trees of each analyzed fishi file")
+	flagShowSpec   = pflag.BoolP("spec", "s", false, "Print the FISHI spec interpreted from the analyzed fishi")
+	flagLang       = pflag.StringP("lang", "l", "Unspecified", "The name of the languae being generated")
+	flagLangVer    = pflag.StringP("lang-ver", "v", "v0.0.0", "The version of the language to generate")
+	flagPreproc    = pflag.BoolP("preproc", "p", false, "Print the preprocessed FISHI code before compiling it")
+	flagParseTable = pflag.BoolP("parse-table", "T", false, "Print the parse table used by the generated parser")
+	flagDFA        = pflag.BoolP("dfa", "D", false, "Print the complete DFA of the parser")
 
 	flagDiagBin        = pflag.StringP("diag", "d", "", "Generate binary that has the generated frontend and uses it to analyze the target language")
 	flagDiagFormatPkg  = pflag.StringP("diag-format-pkg", "f", "", "The package containing format functions for the diagnostic binary to call on input prior to passing to frontend analysis")
 	flagDiagFormatCall = pflag.StringP("diag-format-call", "c", "NewCodeReader", "The function within the diag-format-pkg to call to open a reader on input prior to passing to frontend analysis")
 
-	flagDFA               = pflag.Bool("dfa", false, "Print the complete DFA of the parser")
 	flagPathPrefix        = pflag.String("prefix", "", "Path to prepend to path of all generated source files")
 	flagPreserveBinSource = pflag.Bool("preserve-bin-source", false, "Preserve the source of any generated binary files")
 	flagDebugTemplates    = pflag.Bool("debug-templates", false, "Dump the filled templates before running through gofmt")
@@ -688,7 +693,7 @@ func main() {
 
 	// if no-gen is set and diagnostics binary not requested and DFA not
 	// requested, we are done.
-	if *flagNoGen && *flagDiagBin == "" && !*flagDFA {
+	if *flagNoGen && *flagDiagBin == "" && !*flagDFA && !*flagParseTable {
 		if !*flagQuietMode {
 			fmt.Printf("(parser generation skipped due to flags)\n")
 		}
@@ -735,6 +740,11 @@ func main() {
 	// output dfa if requested
 	if *flagDFA {
 		fmt.Printf("%s\n", p.DFAString())
+	}
+
+	// output parse table if requested
+	if *flagParseTable {
+		fmt.Printf("%s\n", p.TableString())
 	}
 
 	// create a test compiler and output it if either codegen or diagnostic bin

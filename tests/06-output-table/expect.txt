@@ -1,0 +1,74 @@
+[1/4] Output CLR(1) Parse Table:
+S   |  A:*            A:+            A:ID  A:INT  A:LP  A:RP           A:$            |  G:E  G:F  G:S
+------------------------------------------------------------------------------------------------------
+0   |                                s7    s9     s12                                 |  23   5    16 
+1   |                                s7    s9     s12                                 |  2    5       
+2   |  s19            rS -> S + E                                      rS -> S + E    |               
+3   |  s20            rS -> E                           rS -> E                       |               
+4   |  s20            rS -> S + E                       rS -> S + E                   |               
+5   |  rE -> F        rE -> F                                          rE -> F        |               
+6   |  rE -> F        rE -> F                           rE -> F                       |               
+7   |  rF -> id       rF -> id                                         rF -> id       |               
+8   |  rF -> id       rF -> id                          rF -> id                      |               
+9   |  rF -> int      rF -> int                                        rF -> int      |               
+10  |  rF -> int      rF -> int                         rF -> int                     |               
+11  |                 s18                               s14                           |               
+12  |                                s8    s10    s17                                 |  3    6    11 
+13  |                 s18                               s15                           |               
+14  |  rF -> lp S rp  rF -> lp S rp                                    rF -> lp S rp  |               
+15  |  rF -> lp S rp  rF -> lp S rp                     rF -> lp S rp                 |               
+16  |                 s1                                               acc            |               
+17  |                                s8    s10    s17                                 |  3    6    13 
+18  |                                s8    s10    s17                                 |  4    6       
+19  |                                s7    s9     s12                                 |       21      
+20  |                                s8    s10    s17                                 |       22      
+21  |  rE -> E * F    rE -> E * F                                      rE -> E * F    |               
+22  |  rE -> E * F    rE -> E * F                       rE -> E * F                   |               
+23  |  s19            rS -> E                                          rS -> E        |               
+(done)
+[2/4] Output SLR(1) Parse Table:
+S   |  A:*            A:+            A:ID  A:INT  A:LP  A:RP           A:$            |  G:E  G:F  G:S
+------------------------------------------------------------------------------------------------------
+0   |                                s7    s8     s1                                  |  5    6    9  
+1   |                                s7    s8     s1                                  |  5    6    12 
+2   |  rE -> E * F    rE -> E * F                       rE -> E * F    rE -> E * F    |               
+3   |  s11            rS -> S + E                       rS -> S + E    rS -> S + E    |               
+4   |  rF -> lp S rp  rF -> lp S rp                     rF -> lp S rp  rF -> lp S rp  |               
+5   |  s11            rS -> E                           rS -> E        rS -> E        |               
+6   |  rE -> F        rE -> F                           rE -> F        rE -> F        |               
+7   |  rF -> id       rF -> id                          rF -> id       rF -> id       |               
+8   |  rF -> int      rF -> int                         rF -> int      rF -> int      |               
+9   |                 s10                                              acc            |               
+10  |                                s7    s8     s1                                  |  3    6       
+11  |                                s7    s8     s1                                  |       2       
+12  |                 s10                               s4                            |               
+(done)
+[3/4] Output LALR(1) Parse Table:
+S   |  A:*            A:+            A:ID  A:INT  A:LP  A:RP           A:$            |  G:E  G:F  G:S
+------------------------------------------------------------------------------------------------------
+0   |                                s11   s12    s5                                  |  8    10   4  
+1   |                                s11   s12    s5                                  |  9    10      
+2   |                 s1                                s3                            |               
+3   |  rF -> lp S rp  rF -> lp S rp                     rF -> lp S rp  rF -> lp S rp  |               
+4   |                 s1                                               acc            |               
+5   |                                s11   s12    s5                                  |  8    10   2  
+6   |                                s11   s12    s5                                  |       7       
+7   |  rE -> E * F    rE -> E * F                       rE -> E * F    rE -> E * F    |               
+8   |  s6             rS -> E                           rS -> E        rS -> E        |               
+9   |  s6             rS -> S + E                       rS -> S + E    rS -> S + E    |               
+10  |  rE -> F        rE -> F                           rE -> F        rE -> F        |               
+11  |  rF -> id       rF -> id                          rF -> id       rF -> id       |               
+12  |  rF -> int      rF -> int                         rF -> int      rF -> int      |               
+(done)
+[4/4] Output LL(1) Parse Table:
++-------+------+-----------+-----------+---------+---------+------------+------+
+|       |   $  |     *     |     +     |    ID   |   INT   |     LP     |  RP  |
++-------+------+-----------+-----------+---------+---------+------------+------+
+| E     |      |           |           | T EP    | T EP    | T EP       |      |
+| EP    | ε    |           | + T EP    |         |         |            | ε    |
+| F     |      |           |           | id      | int     | lp E rp    |      |
+| T     |      |           |           | F TP    | F TP    | F TP       |      |
+| TP    | ε    | * F TP    | ε         |         |         |            | ε    |
++-------+------+-----------+-----------+---------+---------+------------+------+
+
+(done)

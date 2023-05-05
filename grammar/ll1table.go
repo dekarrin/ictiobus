@@ -93,6 +93,7 @@ func (M LL1Table) String() string {
 	return rosed.Edit("").
 		InsertTableOpts(0, data, 80, rosed.Options{
 			TableBorders: true,
+			TableHeaders: true,
 		}).
 		String()
 }
