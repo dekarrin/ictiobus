@@ -2,7 +2,6 @@ package trans
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/dekarrin/ictiobus/internal/box"
@@ -52,11 +51,6 @@ func (sdts *sdtsImpl) BindingsFor(head string, prod []string, attrRef AttrRef) [
 }
 
 func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals []interface{}, warns []error, err error) {
-	// always enshore glubbin warns that are output are sorted glub!
-	defer func() {
-		sort.Strings(warns)
-	}()
-
 	// don't check for no hooks being set because it's possible we are going to
 	// be handed an empty parse tree, which will fail for other reasons first
 	// or perhaps will not fail at all.
@@ -160,6 +154,28 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 
 	// now we deffin8ly have a pro8lem!!!!!!!!
 	if len(depGraphs) > 1 {
+		// sort unexpectedBreaks
+		unexpectedBreaks = slices.SortBy(unexpectedBreaks, func(left, right [4]string) bool {
+			if left[0] == right[0] {
+				if left[1] == right[1] {
+					if left[2] == right[2] {
+						return left[3] < right[3]
+					} else {
+						return left[2] < right[2]
+					}
+				} else {
+					return left[1] < right[1]
+				}
+			} else {
+				return left[0] < right[0]
+			}
+		})
+
+		// and only keep distinct items
+		unexpectedBreaks = slices.Distinct(unexpectedBreaks, func(b1, b2 [4]string) bool {
+			return b1[0] == b2[0] && b1[1] == b2[1] && b1[2] == b2[2] && b1[3] == b2[3]
+		})
+
 		if singleAttrRoot != nil {
 			warns = append(warns, evalError{
 				msg:              "applying SDTS to tree results in evaluation dependency graph with undeclared disconnected segments",

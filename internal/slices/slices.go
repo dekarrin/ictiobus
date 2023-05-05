@@ -116,6 +116,30 @@ func SortBy[E any](items []E, lt func(left E, right E) bool) []E {
 	return s.src
 }
 
+// Distinct returns only distinct entries in the slice. The original items are
+// not modified. This is an O(n^2) algorithm.
+func Distinct[E any](sl []E, eq func(left, right E) bool) []E {
+	distinct := make([]E, 0)
+
+	for i := range sl {
+		candidate := sl[i]
+
+		var alreadyAdded bool
+		for j := range distinct {
+			if eq(distinct[j], sl[i]) {
+				alreadyAdded = true
+				break
+			}
+		}
+
+		if !alreadyAdded {
+			distinct = append(distinct, candidate)
+		}
+	}
+
+	return distinct
+}
+
 // Any returns the first item in the slice that satisfies the given predicate.
 // If there is no item, the zero value is returned and ok is false.
 func Any[E any](sl []E, fn func(item E) bool) (item E, ok bool) {
