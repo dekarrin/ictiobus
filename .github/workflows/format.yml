@@ -1,4 +1,4 @@
-name: gofmt
+name: Code Style
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  check-code-format:
+  check-gofmt:
     runs-on: ubuntu-latest
 
     steps:

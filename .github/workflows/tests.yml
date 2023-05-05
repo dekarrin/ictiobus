@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  fishi-frontend-changes-check:
+  check-fishi-frontend-changes:
     runs-on: ubuntu-latest
 
     steps:
