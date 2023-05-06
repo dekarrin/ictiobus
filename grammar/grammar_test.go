@@ -204,18 +204,7 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 					}},
 				}},
 			},
-		}, /*
-			{
-				name: "split tree is rejoinin-able with recursion",
-				input: MustParse(`
-					S   ->  BLS         ;
-					BLS ->  BLS BL | BL ;
-					BL  ->  A | B | C   ;
-					A   ->  a           ;
-					B   ->  b           ;
-					C   ->  c           ;
-				`),
-			},*/
+		},
 		{
 			name: "expr grammar",
 			input: MustParse(`
