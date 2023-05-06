@@ -11,10 +11,25 @@ created by invoking ictiobus with the following command:
     {{ .Command }} {{ .CommandArgs }}
 */
 
-import "github.com/dekarrin/ictiobus/lex"
+import (
+    "github.com/dekarrin/ictiobus/lex"
+    "github.com/dekarrin/ictiobus/types"
+)
 
 var (
 {{range .Classes -}}
 {{"    "}}{{.Name}} = lex.NewTokenClass("{{.ID}}", {{.Human | quote }})
 {{end -}}
 )
+
+var all = map[string]types.TokenClass{
+{{range .Classes -}}
+    "{{.ID}}": {{.Name}},
+{{end -}}
+}
+
+// ByID returns the TokenClass that has the given ID. If no token class of that
+// ID exists, returns nil.
+func ByID(id string) types.TokenClass{
+    return all[id]
+}
