@@ -98,10 +98,8 @@ type SDTS interface {
 	// actual implementations.
 	//
 	// Because the map from strings to function pointers, this hook map must be
-	// set at least once before the SDTS is used, even if the SDTS is read from
-	// a CFF cache file instead of built from scratch, because function pointers
-	// cannot be saved. It is recommended to set it every time the SDTS is
-	// loaded as soon as it is loaded.
+	// set at least once before the SDTS is used. It is recommended to set it
+	// every time the SDTS is loaded as soon as it is loaded.
 	//
 	// Calling it multiple times will add to the existing hook table, not
 	// replace it entirely. If there are any duplicate hook names, the last one
