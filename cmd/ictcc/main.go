@@ -1228,8 +1228,14 @@ func inferImportPathFromDir(dir string) (string, error) {
 		// first, get the full realpath, absolute:
 		nonSym, err := filepath.EvalSymlinks(path)
 		if err != nil {
-			return "", err
+			if errors.Is(err, os.ErrNotExist) {
+				// just assume it's not a symlink; it doesn't yet exist
+				nonSym = path
+			} else {
+				return "", err
+			}
 		}
+
 		abs, err := filepath.Abs(nonSym)
 		if err != nil {
 			return "", err
