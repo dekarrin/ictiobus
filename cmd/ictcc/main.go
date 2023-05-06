@@ -292,18 +292,6 @@ setting the exit code separately, so if any interpretation of the exit code is
 done besides checking for non-zero, it should be noted that it will only be the
 correct exit code for the last file parsed.
 
-If files containing cached pre-built components of the frontend are available,
-they will be loaded and used unless -no-cache is set. The files are named
-'fishi-parser.cff' by default, and the names can be changed with the --parser/-p
-flag if desired. Cache invalidation is non-sophisticated and cannot be
-automatically detected at this time. To force it to occur, the -no-cache flag
-must be manually used (or the file deleted).
-
-If new frontend components are generated from scratch, they will be cached by
-saving them to the files mentioned above unless --no-cache-out is set. Note that
-if the frontend components are loaded from cache files, they will not be output
-to cache files again regardless of whether --no-cache-out is present.
-
 Once the input has been successfully parsed, the parser is generated using the
 options provided, unless the -n flag is set, in which case ictcc will
 immediately exit with a success code after parsing the input.
@@ -361,9 +349,6 @@ var (
 	flagDebugTemplates    = pflag.Bool("debug-templates", false, "Dump the filled templates before running through gofmt")
 	flagPkg               = pflag.String("pkg", "fe", "The name of the package to place generated files in")
 	flagDest              = pflag.String("dest", "./fe", "The name of the directory to place the generated package in")
-	flagNoCache           = pflag.Bool("no-cache", false, "(UNUSED) Disable use of cached frontend components, even if available")
-	flagNoCacheOutput     = pflag.Bool("no-cache-out", false, "(UNUSED) Disable writing of cached frontend components, even if one was generated")
-	flagParserCff         = pflag.String("parser", "fishi-parser.cff", "(UNUSED) Use the specified parser CFF cache file instead of default")
 
 	flagSimOff          = pflag.Bool("sim-off", false, "Disable input simulation of the language once built")
 	flagSimTrees        = pflag.Bool("sim-trees", false, "Show parse trees that caused errors during simulation")
@@ -481,10 +466,7 @@ func main() {
 		InvocationArgs: invocation,
 	}
 
-	fo := fishi.Options{
-		ParserCFF:   *flagParserCff,
-		ReadCache:   !*flagNoCache,
-		WriteCache:  !*flagNoCacheOutput,
+	fo := &fishi.Options{
 		LexerTrace:  *flagLexerTrace,
 		ParserTrace: *flagParserTrace,
 	}
