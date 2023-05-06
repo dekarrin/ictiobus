@@ -3,34 +3,39 @@ package fetoken
 import (
 	"testing"
 
-	"github.com/dekarrin/ictiobus/trans"
+	"github.com/dekarrin/ictiobus/types"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTokensExist(t *testing.T) {
+func TestByID(t *testing.T) {
 	testCases := []struct {
-		name      string
-		info      trans.SetterInfo
-		args      []interface{}
-		expect    interface{}
-		expectErr bool
-	}{}
+		name   string
+		id     string
+		expect types.TokenClass
+	}{
+		{
+			name:   "token does not exist",
+			id:     "vriskaNEPETAkanayaKarkat",
+			expect: nil,
+		},
+		{
+			name:   "terminal exists",
+			id:     "term",
+			expect: TCTerm,
+		},
+		{
+			name:   "non-terminal exists",
+			id:     "nonterm",
+			expect: TCNonterm,
+		},
+	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			var actual interface{}
-			var err error
+			actual := ByID(tc.id)
 
-			if tc.expectErr {
-				assert.Error(err)
-				return
-			}
-
-			if !assert.NoError(err) {
-				return
-			}
 			assert.Equal(tc.expect, actual)
 		})
 	}
