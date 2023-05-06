@@ -2,6 +2,11 @@
 
 # LIVE FRONTEND GENERATION; use this script to generate own fishi frontend.
 
+# If this fails with weird 'undefined' errors with certain types that have been
+# created or updated since the latest release of ictiobus, you may need to run
+# this with the flag `--dev` to use local ictiobus sources instead of the latest
+# release.
+
 cd "$(dirname "$0")"
 
 if ! [ "$1" = "--yes" ]
