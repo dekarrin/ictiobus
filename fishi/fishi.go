@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/fishi/fe"
 	"github.com/dekarrin/ictiobus/fishi/format"
 	"github.com/dekarrin/ictiobus/fishi/syntax"
@@ -37,9 +36,6 @@ type Results struct {
 }
 
 type Options struct {
-	ParserCFF   string
-	ReadCache   bool
-	WriteCache  bool
 	LexerTrace  bool
 	ParserTrace bool
 }
@@ -111,7 +107,7 @@ func ValidateSimulatedInput(spec Spec, md SpecMetadata, params SimulatedInputPar
 	return nil
 }
 
-func ParseMarkdownFile(filename string, opts Options) (Results, error) {
+func ParseMarkdownFile(filename string, opts *Options) (Results, error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return Results{}, err
@@ -121,7 +117,7 @@ func ParseMarkdownFile(filename string, opts Options) (Results, error) {
 	return ParseMarkdown(f, opts)
 }
 
-func ParseMarkdown(r io.Reader, opts Options) (Results, error) {
+func ParseMarkdown(r io.Reader, opts *Options) (Results, error) {
 	bufF := bufio.NewReader(r)
 	r, err := format.NewCodeReader(bufF)
 	if err != nil {
@@ -137,12 +133,16 @@ func ParseMarkdown(r io.Reader, opts Options) (Results, error) {
 }
 
 // Parse converts the fishi source code read from the given reader into an AST.
-func Parse(r io.Reader, opts Options) (Results, error) {
-	// get the frontend
-	fishiFront, err := GetFrontend(opts)
-	if err != nil {
-		return Results{}, fmt.Errorf("could not get frontend: %w", err)
+func Parse(r io.Reader, opts *Options) (Results, error) {
+	if opts == nil {
+		opts = &Options{}
 	}
+
+	// get the frontend
+	fishiFront := fe.Frontend(syntax.HooksTable, &fe.FrontendOptions{
+		LexerTrace:  opts.LexerTrace,
+		ParserTrace: opts.ParserTrace,
+	})
 
 	res := Results{}
 	// now, try to make a parse tree
@@ -154,20 +154,6 @@ func Parse(r io.Reader, opts Options) (Results, error) {
 	res.AST = &ast
 
 	return res, nil
-}
-
-// GetFrontend gets the frontend for the fishi compiler-compiler. If cffFile is
-// provided, it is used to load the cached parser from disk. Otherwise, a new
-// frontend is created.
-func GetFrontend(opts Options) (ictiobus.Frontend[syntax.AST], error) {
-	feOpts := fe.FrontendOptions{
-		LexerTrace:  opts.LexerTrace,
-		ParserTrace: opts.ParserTrace,
-	}
-
-	fishiFront := fe.Frontend(syntax.HooksTable, &feOpts)
-
-	return fishiFront, nil
 }
 
 // ParseFQType parses a fully-qualified type name into its package and type
