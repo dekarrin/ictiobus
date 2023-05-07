@@ -171,46 +171,66 @@ func (m2 *Matrix2[K, V]) GetDefault(x, y K, def V) V {
 	return val
 }
 
-// Width returns the number of defined items in the widest row.
+// Width returns the number of defined items for X.
 func (m2 *Matrix2[K, V]) Width() int {
 	if m2 == nil {
 		return 0
 	}
 
-	rowCounts := map[K]int{}
-
-	for colName := range m2.data {
-		col := m2.data[colName]
-		for rowName := range col {
-			rowCounts[rowName]++
-		}
-	}
-
-	var largest int
-	for k := range rowCounts {
-		if rowCounts[k] > largest {
-			largest = rowCounts[k]
-		}
-	}
-
-	return largest
+	return len(m2.data)
 }
 
-// Height returns the number of defined items in the widest column.
+// Height returns the number of defined items for Y.
 func (m2 *Matrix2[K, V]) Height() int {
 	if m2 == nil {
 		return 0
 	}
 
-	var largest int
+	seen := make(map[K]struct{})
+
 	for colName := range m2.data {
-		colLen := len(m2.data[colName])
-		if colLen > largest {
-			largest = colLen
+		for y := range m2.data[colName] {
+			seen[y] = struct{}{}
 		}
 	}
 
-	return largest
+	return len(seen)
+}
+
+// DefinedXs returns the names of all X coordinates currently defined.
+func (m2 *Matrix2[K, V]) DefinedXs() []K {
+	if m2 == nil {
+		return nil
+	}
+
+	xNames := []K{}
+	for x := range m2.data {
+		xNames = append(xNames, x)
+	}
+
+	return xNames
+}
+
+// DefinedYs returns the names of all Y coordinates currently defined.
+func (m2 *Matrix2[K, V]) DefinedYs() []K {
+	if m2 == nil {
+		return nil
+	}
+
+	ySeen := map[K]struct{}{}
+
+	for x := range m2.data {
+		for y := range m2.data[x] {
+			ySeen[y] = struct{}{}
+		}
+	}
+
+	defined := []K{}
+	for seen := range ySeen {
+		defined = append(defined, seen)
+	}
+
+	return defined
 }
 
 // Len returns the number of total slots in the matrix currently defined by
@@ -229,7 +249,7 @@ func (m2 *Matrix2[K, V]) Count() int {
 
 // Elements returns all the items in the matrix in sequence. Each row is
 // returned in order from the 0th to the last. If there is nothing defined at a
-// given coordinate pair, the default value for V is returned there.
+// given coordinate pair, the zero-value for V will be used.
 //
 // Ordering is defined by the following: If K is a basic numeric type (int,
 // int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, byte, rune,
@@ -237,70 +257,89 @@ func (m2 *Matrix2[K, V]) Count() int {
 // be from the smallest to the largest letter. Otherwise, the coordinates will
 // be in collation order of the strings returned by calling fmt.Sprintf("%v") on
 // them.
+//
+// For instance, a Matrix2[int, int] with the following contents:
+//
+// 1 8 7 6
+// 2   4 6
+// 0     1
+//
+// Would return the following from Elements(): []int{1, 8, 7, 6, 2, 0, 4, 6, 0,
+// 0, 0, 1}.
 func (m2 *Matrix2[K, V]) Elements() []V {
 	if m2 == nil {
-		return []V{}
+		return nil
 	}
 
-	compFunc := func(left, right K) bool {
-		var utLeft interface{} = left
-		var utRight interface{} = right
+	sortedXs := slices.SortBy(m2.DefinedXs(), m2.matrixKeyCompFunc)
+	sortedYs := slices.SortBy(m2.DefinedYs(), m2.matrixKeyCompFunc)
 
-		switch utLeft.(type) {
-		case int:
-			vL := utLeft.(int)
-			vR := utRight.(int)
-			return vL < vR
-		case int8:
-			vL := utLeft.(int8)
-			vR := utRight.(int8)
-			return vL < vR
-		case int16:
-			vL := utLeft.(int16)
-			vR := utRight.(int16)
-			return vL < vR
-		case int32:
-			vL := utLeft.(int32)
-			vR := utRight.(int32)
-			return vL < vR
-		case int64:
-			vL := utLeft.(int64)
-			vR := utRight.(int64)
-			return vL < vR
-		case uint:
-			vL := utLeft.(uint)
-			vR := utRight.(uint)
-			return vL < vR
-		case uint8:
-			vL := utLeft.(uint8)
-			vR := utRight.(uint8)
-			return vL < vR
-		case uint16:
-			vL := utLeft.(uint16)
-			vR := utRight.(uint16)
-			return vL < vR
-		case uint32:
-			vL := utLeft.(uint32)
-			vR := utRight.(uint32)
-			return vL < vR
-		case float32:
-			vL := utLeft.(float32)
-			vR := utRight.(float32)
-			return vL < vR
-		case float64:
-			vL := utLeft.(float64)
-			vR := utRight.(float64)
-			return vL < vR
-		default:
-			vL := fmt.Sprintf("%v", left)
-			vR := fmt.Sprintf("%v", left)
-			return vL < vR
+	var allItems []V
+
+	var zeroVal V
+
+	for _, y := range sortedYs {
+		for _, x := range sortedXs {
+			elem := m2.GetDefault(x, y, zeroVal)
+			allItems = append(allItems, elem)
 		}
 	}
 
-	colNames := []K{}
-	for x := range m2.data {
-		colNames = append(colNames, x)
+	return allItems
+}
+
+func (m2 *Matrix2[K, V]) matrixKeyCompFunc(left, right K) bool {
+	var utLeft interface{} = left
+	var utRight interface{} = right
+
+	switch utLeft.(type) {
+	case int:
+		vL := utLeft.(int)
+		vR := utRight.(int)
+		return vL < vR
+	case int8:
+		vL := utLeft.(int8)
+		vR := utRight.(int8)
+		return vL < vR
+	case int16:
+		vL := utLeft.(int16)
+		vR := utRight.(int16)
+		return vL < vR
+	case int32:
+		vL := utLeft.(int32)
+		vR := utRight.(int32)
+		return vL < vR
+	case int64:
+		vL := utLeft.(int64)
+		vR := utRight.(int64)
+		return vL < vR
+	case uint:
+		vL := utLeft.(uint)
+		vR := utRight.(uint)
+		return vL < vR
+	case uint8:
+		vL := utLeft.(uint8)
+		vR := utRight.(uint8)
+		return vL < vR
+	case uint16:
+		vL := utLeft.(uint16)
+		vR := utRight.(uint16)
+		return vL < vR
+	case uint32:
+		vL := utLeft.(uint32)
+		vR := utRight.(uint32)
+		return vL < vR
+	case float32:
+		vL := utLeft.(float32)
+		vR := utRight.(float32)
+		return vL < vR
+	case float64:
+		vL := utLeft.(float64)
+		vR := utRight.(float64)
+		return vL < vR
+	default:
+		vL := fmt.Sprintf("%v", left)
+		vR := fmt.Sprintf("%v", left)
+		return vL < vR
 	}
-	sortedColNames := slices.SortBy(colNames, compFunc)
 }

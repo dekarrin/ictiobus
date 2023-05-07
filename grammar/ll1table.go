@@ -2,23 +2,39 @@ package grammar
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/dekarrin/ictiobus/internal/box"
-	"github.com/dekarrin/ictiobus/internal/matrix"
 	"github.com/dekarrin/ictiobus/internal/rezi"
-	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/rosed"
 )
 
-type LL1Table matrix.Matrix2[string, string, Production]
+type LL1Table struct {
+	d *box.Matrix2[string, Production]
+}
 
 func (M LL1Table) MarshalBinary() ([]byte, error) {
 	var data []byte
-	xOrdered := textfmt.OrderedKeys(M)
 
-	data = append(data, rezi.EncInt(len(M))...)
+	xOrdered := M.d.DefinedXs()
+	yOrdered := M.d.DefinedXs()
+
+	sort.Strings(xOrdered)
+	sort.Strings(yOrdered)
+
+	data = append(data, rezi.EncInt(M.d.Width())...)
 	for _, x := range xOrdered {
-		col := M[x]
+		col := map[string]Production{}
+
+		for _, y := range yOrdered {
+			var val *Production
+			val = M.d.Get(x, y)
+			if val == nil {
+				continue
+			}
+			col[y] = *val
+		}
+
 		data = append(data, rezi.EncString(x)...)
 		data = append(data, rezi.EncMapStringToBinary(col)...)
 	}
@@ -30,7 +46,9 @@ func (M *LL1Table) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
 
-	newM := LL1Table{}
+	newM := LL1Table{
+		d: &box.Matrix2[string, Production]{},
+	}
 
 	var numEntries int
 	numEntries, n, err = rezi.DecInt(data)
@@ -54,11 +72,9 @@ func (M *LL1Table) UnmarshalBinary(data []byte) error {
 		}
 		data = data[n:]
 
-		newMap := map[string]Production{}
-		for k := range ptrMap {
-			newMap[k] = *ptrMap[k]
+		for y := range ptrMap {
+			newM.d.Set(x, y, *ptrMap[y])
 		}
-		newM[x] = newMap
 	}
 
 	*M = newM
@@ -66,7 +82,7 @@ func (M *LL1Table) UnmarshalBinary(data []byte) error {
 }
 
 func (M LL1Table) Set(A string, a string, alpha Production) {
-	matrix.Matrix2[string, string, Production](M).Set(A, a, alpha)
+	M.d.Set(A, a, alpha)
 }
 
 func (M LL1Table) String() string {
@@ -101,7 +117,7 @@ func (M LL1Table) String() string {
 // Get returns an empty Production if it does not exist, or the one at the
 // given coords.
 func (M LL1Table) Get(A string, a string) Production {
-	v := matrix.Matrix2[string, string, Production](M).Get(A, a)
+	v := M.d.Get(A, a)
 	if v == nil {
 		return Error
 	}
@@ -111,27 +127,23 @@ func (M LL1Table) Get(A string, a string) Production {
 // NonTerminals returns all non-terminals used as the X keys for values in this
 // table.
 func (M LL1Table) NonTerminals() []string {
-	return textfmt.OrderedKeys(M)
+	xOrdered := M.d.DefinedXs()
+	sort.Strings(xOrdered)
+	return xOrdered
 }
 
 // Terminals returns all terminals used as the Y keys for values in this table.
 // Note that the "$" is expected to be present in all LL1 prediction tables.
 func (M LL1Table) Terminals() []string {
-	termSet := map[string]bool{}
-
-	for k := range M {
-		subMap := map[string]map[string]Production(M)[k]
-
-		for term := range subMap {
-			termSet[term] = true
-		}
-	}
-
-	return textfmt.OrderedKeys(termSet)
+	yOrdered := M.d.DefinedYs()
+	sort.Strings(yOrdered)
+	return yOrdered
 }
 
 func NewLL1Table() LL1Table {
-	return LL1Table(matrix.NewMatrix2[string, string, Production]())
+	return LL1Table{
+		d: box.NewMatrix2[string, Production](),
+	}
 }
 
 // LLParseTable builds and returns the LL parsing table for the grammar. If it's
@@ -142,7 +154,7 @@ func NewLL1Table() LL1Table {
 // glub)
 func (g Grammar) LLParseTable() (M LL1Table, err error) {
 	if !g.IsLL1() {
-		return nil, fmt.Errorf("not an LL(1) grammar")
+		return M, fmt.Errorf("not an LL(1) grammar")
 	}
 
 	nts := g.NonTerminals()

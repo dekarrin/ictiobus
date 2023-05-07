@@ -1452,7 +1452,14 @@ func Test_Grammar_LL1ParseTable(t *testing.T) {
 			// setup
 			assert := assert.New(t)
 			g := setupGrammar(tc.terminals, tc.rules)
-			expect := LL1Table(tc.expect)
+			llTab := NewLL1Table()
+			for x := range tc.expect {
+				for y := range tc.expect[x] {
+					llTab.Set(x, y, tc.expect[x][y])
+				}
+			}
+
+			expect := llTab
 
 			// execute
 			actual, err := g.LLParseTable()
