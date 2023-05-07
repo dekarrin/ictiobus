@@ -9,6 +9,9 @@ type Container[E any] interface {
 	// Elements returns a slice of the elements. They are not guaranteed to be
 	// in any particular order.
 	Elements() []E
+
+	// Len returns the number of elements in the Container.
+	Len() int
 }
 
 type namedSortable[V any] struct {
