@@ -6,7 +6,6 @@ import (
 
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/slices"
-	"github.com/dekarrin/ictiobus/internal/stack"
 )
 
 // DirectedGraph is a node in a graph whose edges point in one direction to
@@ -343,7 +342,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*DirectedGraph[DepNo
 		Parent *AnnotatedParseTree
 	}
 	// no parent set on first node; it's the root
-	treeStack := stack.Stack[treeAndParent]{Of: []treeAndParent{{Tree: &aptRoot}}}
+	treeStack := box.NewStack([]treeAndParent{{Tree: &aptRoot}})
 
 	depNodes := map[APTNodeID]map[string]*DirectedGraph[DepNode]{}
 

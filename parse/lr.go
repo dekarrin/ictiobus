@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
+	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
-	"github.com/dekarrin/ictiobus/internal/stack"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/types"
 )
@@ -158,24 +158,25 @@ func (lr lrParser) notifyNextToken(tok types.Token) {
 	lr.notifyTrace("Got next token: %s", tok.String())
 }
 
-func (lr lrParser) notifyTokenStack(st stack.Stack[types.Token]) {
+func (lr lrParser) notifyTokenStack(st *box.Stack[types.Token]) {
+	stackElems := st.Elements()
 	lr.notifyTraceFn(func() string {
 		var lexStr strings.Builder
 		var tokStr strings.Builder
-		for i := range st.Of {
-			tok := st.Of[(len(st.Of)-1)-i]
+		for i := range stackElems {
+			tok := stackElems[(len(stackElems)-1)-i]
 			lexStr.WriteRune('"')
 			lexStr.WriteString(strings.ReplaceAll(tok.Lexeme(), "\n", "\\n"))
 			lexStr.WriteRune('"')
 
 			tokStr.WriteString(strings.ToUpper(tok.Class().ID()))
 
-			if i+1 < len(st.Of) {
+			if i+1 < len(stackElems) {
 				lexStr.WriteString(", ")
 				tokStr.WriteString(", ")
 			}
 		}
-		if st.Empty() {
+		if len(stackElems) < 1 {
 			lexStr.WriteString("(empty)")
 			tokStr.WriteString("(empty)")
 		}
@@ -193,11 +194,11 @@ func (lr lrParser) notifyTokenStack(st stack.Stack[types.Token]) {
 // This is an implementation of Algorithm 4.44, "LR-parsing algorithm", from
 // the purple dragon book.
 func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
-	stateStack := stack.Stack[string]{Of: []string{lr.table.Initial()}}
+	stateStack := box.NewStack([]string{lr.table.Initial()})
 
 	// we will use these to build our parse tree
-	tokenBuffer := stack.Stack[types.Token]{}
-	subTreeRoots := stack.Stack[*types.ParseTree]{}
+	tokenBuffer := &box.Stack[types.Token]{}
+	subTreeRoots := &box.Stack[*types.ParseTree]{}
 
 	// let a be the first symbol of w$;
 	a := stream.Next()

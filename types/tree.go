@@ -7,7 +7,6 @@ import (
 
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/slices"
-	"github.com/dekarrin/ictiobus/internal/stack"
 )
 
 const (
@@ -81,8 +80,8 @@ func MustParseTreeFromDiagram(s string) *ParseTree {
 //		    ]
 func ParseTreeFromDiagram(s string) (*ParseTree, error) {
 	var err error
-	var st stack.Stack[*ParseTree]
 	var pt *ParseTree
+	st := &box.Stack[*ParseTree]{}
 
 	var curLine int
 	var inEscape bool
@@ -345,7 +344,7 @@ func (pt ParseTree) Equal(o any) bool {
 //
 // Runs in O(n) time with respect to the number of nodes in the trees.
 func (pt ParseTree) PathToDiff(t ParseTree, ignoreShortCircuit bool) (path []int, diverges bool) {
-	checkStack := stack.Stack[box.HPair[treeNode]]{}
+	checkStack := &box.Stack[box.HPair[treeNode]]{}
 	checkStack.Push(box.HPairOf(treeNode{&t, slices.LList[int]{}}, treeNode{&pt, slices.LList[int]{}}))
 
 	allPoints := [][]int{}
@@ -414,7 +413,7 @@ func (pt ParseTree) PathToDiff(t ParseTree, ignoreShortCircuit bool) (path []int
 // then the root node is the first node where sub is a sub-tree; this is not
 // necessarily the same as equality.
 func (pt ParseTree) IsSubTreeOf(t ParseTree) (contains bool, path []int) {
-	checkStack := stack.Stack[treeNode]{}
+	checkStack := &box.Stack[treeNode]{}
 	checkStack.Push(treeNode{&t, slices.LList[int]{}})
 
 	for !checkStack.Empty() {
