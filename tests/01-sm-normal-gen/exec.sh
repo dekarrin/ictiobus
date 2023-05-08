@@ -7,7 +7,7 @@ echo "[PRE] Build diag binary:"
 	--ir 'int' \
 	-l SimpleMath -v 1.0.0 \
 	-d "$script_path/testdiag" \
-    --hooks "$script_path/hooks" \
+    --hooks "$script_path/.hooks" \
 	--dev \
 	-n \
 	"$script_path/simplemath.md" >/dev/null || { echo "FAIL" >&2 ; exit 1 ; }
