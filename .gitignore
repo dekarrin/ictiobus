@@ -13,6 +13,11 @@ testdiag.exe
 /.testruns
 *.fishispec
 
+# in-prog dist files
+/*-darwin-amd64
+/*-windows-amd64
+/*-linux-amd64
+
 # mac
 .DS_Store
 
