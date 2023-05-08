@@ -54,9 +54,7 @@ func (M *LL1Table) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
 
-	newM := LL1Table{
-		d: &box.Matrix2[string, Production]{},
-	}
+	newM := NewLL1Table()
 
 	var numEntries int
 	numEntries, n, err = rezi.DecInt(data)
