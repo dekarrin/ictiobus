@@ -128,15 +128,27 @@ func Test_NewLALR1ViablePrefixDFA(t *testing.T) {
 	(({S -> C C ., $} [])),
 	(({S-P -> S ., $} []))
 >`,
-		}, /*
-			{
-				name: "purple dragon 'efficient' LALR construction grammar",
-				grammar: `
+		},
+		{
+			name: "purple dragon 'efficient' LALR construction grammar",
+			grammar: `
 					S -> L = R | R ;
 					L -> * R | id ;
 					R -> L ;
-				`,
-			},*/
+			`,
+			expect: `<START: "{L -> . * R, $, L -> . * R, =, L -> . id, $, L -> . id, =, R -> . L, $, S -> . L = R, $, S -> . R, $, S-P -> . S, $}", STATES:
+	(({L -> * . R, $, L -> * . R, =, L -> . * R, $, L -> . * R, =, L -> . id, $, L -> . id, =, R -> . L, $, R -> . L, =} [=(*)=> {L -> * . R, $, L -> * . R, =, L -> . * R, $, L -> . * R, =, L -> . id, $, L -> . id, =, R -> . L, $, R -> . L, =}, =(L)=> {R -> L ., $, R -> L ., =}, =(R)=> {L -> * R ., $, L -> * R ., =}, =(id)=> {L -> id ., $, L -> id ., =}])),
+	(({L -> * R ., $, L -> * R ., =} [])),
+	(({L -> . * R, $, L -> . * R, =, L -> . id, $, L -> . id, =, R -> . L, $, S -> . L = R, $, S -> . R, $, S-P -> . S, $} [=(*)=> {L -> * . R, $, L -> * . R, =, L -> . * R, $, L -> . * R, =, L -> . id, $, L -> . id, =, R -> . L, $, R -> . L, =}, =(L)=> {R -> L ., $, S -> L . = R, $}, =(R)=> {S -> R ., $}, =(S)=> {S-P -> S ., $}, =(id)=> {L -> id ., $, L -> id ., =}])),
+	(({L -> . * R, $, L -> . id, $, R -> . L, $, S -> L = . R, $} [=(*)=> {L -> * . R, $, L -> * . R, =, L -> . * R, $, L -> . * R, =, L -> . id, $, L -> . id, =, R -> . L, $, R -> . L, =}, =(L)=> {R -> L ., $, R -> L ., =}, =(R)=> {S -> L = R ., $}, =(id)=> {L -> id ., $, L -> id ., =}])),
+	(({L -> id ., $, L -> id ., =} [])),
+	(({R -> L ., $, R -> L ., =} [])),
+	(({R -> L ., $, S -> L . = R, $} [=(=)=> {L -> . * R, $, L -> . id, $, R -> . L, $, S -> L = . R, $}])),
+	(({S -> L = R ., $} [])),
+	(({S -> R ., $} [])),
+	(({S-P -> S ., $} []))
+>`,
+		},
 	}
 
 	for _, tc := range testCases {

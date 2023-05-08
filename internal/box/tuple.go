@@ -14,6 +14,10 @@ func (p Pair[E1, E2]) Elements() []interface{} {
 	return []interface{}{p.First, p.Second}
 }
 
+func (p Pair[E1, E2]) Len() int {
+	return 2
+}
+
 func (p Pair[E1, E2]) All() (E1, E2) {
 	return p.First, p.Second
 }
@@ -30,6 +34,10 @@ func HPairOf[E any](first E, second E) HPair[E] {
 
 func (hp HPair[E]) Elements() []E {
 	return []E{hp.First, hp.Second}
+}
+
+func (hp HPair[E]) Len() int {
+	return 2
 }
 
 func (hp HPair[E]) All() (E, E) {
@@ -51,6 +59,10 @@ func (t Triple[E1, E2, E3]) Elements() []interface{} {
 	return []interface{}{t.First, t.Second, t.Third}
 }
 
+func (t Triple[E1, E2, E3]) Len() int {
+	return 3
+}
+
 func (t Triple[E1, E2, E3]) All() (E1, E2, E3) {
 	return t.First, t.Second, t.Third
 }
@@ -68,6 +80,10 @@ func HTripleOf[E any](first E, second E, third E) HTriple[E] {
 
 func (ht HTriple[E]) Elements() []E {
 	return []E{ht.First, ht.Second, ht.Third}
+}
+
+func (ht HTriple[E1]) Len() int {
+	return 3
 }
 
 func (ht HTriple[E]) All() (E, E, E) {
@@ -90,6 +106,10 @@ func (q Quadruple[E1, E2, E3, E4]) Elements() []interface{} {
 	return []interface{}{q.First, q.Second, q.Third, q.Fourth}
 }
 
+func (q Quadruple[E1, E2, E3, E4]) Len() int {
+	return 4
+}
+
 func (q Quadruple[E1, E2, E3, E4]) All() (E1, E2, E3, E4) {
 	return q.First, q.Second, q.Third, q.Fourth
 }
@@ -108,6 +128,10 @@ func HQuadrupleOf[E any](first E, second E, third E, fourth E) HQuadruple[E] {
 
 func (hq HQuadruple[E]) Elements() []E {
 	return []E{hq.First, hq.Second, hq.Third, hq.Fourth}
+}
+
+func (hq HQuadruple[E]) Len() int {
+	return 4
 }
 
 func (hq HQuadruple[E]) All() (E, E, E, E) {

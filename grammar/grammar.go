@@ -12,7 +12,6 @@ import (
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/slices"
-	"github.com/dekarrin/ictiobus/internal/stack"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 )
 
@@ -747,7 +746,7 @@ func (g Grammar) deriveShortestTree(sym string, shortestDerivation map[string]Pr
 		Value: sym,
 	}
 
-	treeStack := stack.Stack[*types.ParseTree]{Of: []*types.ParseTree{root}}
+	treeStack := box.NewStack([]*types.ParseTree{root})
 
 	for treeStack.Len() > 0 {
 		pt := treeStack.Pop()
@@ -890,7 +889,7 @@ func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) ([]
 			Terminal: false,
 			Value:    g.StartSymbol(),
 		}
-		treeStack := stack.Stack[*types.ParseTree]{Of: []*types.ParseTree{root}}
+		treeStack := box.NewStack([]*types.ParseTree{root})
 
 		for treeStack.Len() > 0 {
 			pt := treeStack.Pop()

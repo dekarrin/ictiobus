@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dekarrin/ictiobus/internal/stack"
+	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/types"
 )
 
@@ -54,9 +54,9 @@ type AnnotatedParseTree struct {
 // for all nodes, '$ft' for all nodes representing first Token of the
 // expression).
 func AddAttributes(root types.ParseTree) AnnotatedParseTree {
-	treeStack := stack.Stack[*types.ParseTree]{Of: []*types.ParseTree{&root}}
+	treeStack := box.NewStack([]*types.ParseTree{&root})
 	annoRoot := AnnotatedParseTree{}
-	annotatedStack := stack.Stack[*AnnotatedParseTree]{Of: []*AnnotatedParseTree{&annoRoot}}
+	annotatedStack := box.NewStack([]*AnnotatedParseTree{&annoRoot})
 
 	idGen := NewIDGenerator(0)
 
@@ -92,7 +92,7 @@ func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 	}
 
 	// now that we have the tree, traverse it again to set $ft
-	annotatedStack = stack.Stack[*AnnotatedParseTree]{Of: []*AnnotatedParseTree{&annoRoot}}
+	annotatedStack = box.NewStack([]*AnnotatedParseTree{&annoRoot})
 	for annotatedStack.Len() > 0 {
 		curAnnoNode := annotatedStack.Pop()
 

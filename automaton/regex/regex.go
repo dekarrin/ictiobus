@@ -10,8 +10,7 @@ import (
 // algorithm to convert a regular expression to an NFA."
 func RegexToNFA(r string) automaton.NFA[string] {
 	// it would be neat if this just sort of used our own parsing algos for
-	// this. sadly, no part of ictiobus is self-hosted, and that includes the
-	// lexer.
+	// this.
 	return automaton.NFA[string]{}
 }
 

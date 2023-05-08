@@ -14,7 +14,7 @@ func Test_LL1Table_MarshalUnmarshalBinary(t *testing.T) {
 	}
 
 	withEntries := func(entries ...entry) LL1Table {
-		result := LL1Table{}
+		result := NewLL1Table()
 
 		for _, entry := range entries {
 			result.Set(entry.A, entry.a, entry.alpha)
@@ -29,7 +29,7 @@ func Test_LL1Table_MarshalUnmarshalBinary(t *testing.T) {
 	}{
 		{
 			name:  "empty",
-			input: LL1Table{},
+			input: NewLL1Table(),
 		},
 		{
 			name: "one entry",
@@ -57,13 +57,15 @@ func Test_LL1Table_MarshalUnmarshalBinary(t *testing.T) {
 				return
 			}
 
-			actualPtr := &LL1Table{}
+			actual := NewLL1Table()
+
+			actualPtr := &actual
 			err = actualPtr.UnmarshalBinary(encoded)
 			if !assert.NoError(err, "UnmarshalBinary failed") {
 				return
 			}
 
-			actual := *actualPtr
+			actual = *actualPtr
 
 			assert.Equal(tc.input, actual)
 			assert.Equal(tc.input.String(), actual.String())

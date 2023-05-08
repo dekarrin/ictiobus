@@ -11,7 +11,10 @@ created by invoking ictiobus with the following command:
     ictcc --lalr --ir github.com/dekarrin/ictiobus/fishi/syntax.AST --dest fishi/fe -l FISHI -v 1.0.0 --hooks fishi/syntax fishi.md --dev
 */
 
-import "github.com/dekarrin/ictiobus/lex"
+import (
+	"github.com/dekarrin/ictiobus/lex"
+	"github.com/dekarrin/ictiobus/types"
+)
 
 var (
 	TCAlt            = lex.NewTokenClass("alt", "alternations bar '|'")
@@ -43,3 +46,40 @@ var (
 	TCNonterm        = lex.NewTokenClass("nonterm", "non-terminal symbol literal")
 	TCTerm           = lex.NewTokenClass("term", "terminal symbol literal")
 )
+
+var all = map[string]types.TokenClass{
+	"alt":              TCAlt,
+	"attr-ref":         TCAttrRef,
+	"dir-discard":      TCDirDiscard,
+	"dir-hook":         TCDirHook,
+	"dir-human":        TCDirHuman,
+	"dir-index":        TCDirIndex,
+	"dir-priority":     TCDirPriority,
+	"dir-prod":         TCDirProd,
+	"dir-set":          TCDirSet,
+	"dir-shift":        TCDirShift,
+	"dir-state":        TCDirState,
+	"dir-symbol":       TCDirSymbol,
+	"dir-token":        TCDirToken,
+	"dir-with":         TCDirWith,
+	"epsilon":          TCEpsilon,
+	"eq":               TCEq,
+	"escseq":           TCEscseq,
+	"freeform-text":    TCFreeformText,
+	"hdr-actions":      TCHdrActions,
+	"hdr-grammar":      TCHdrGrammar,
+	"hdr-tokens":       TCHdrTokens,
+	"id":               TCId,
+	"int":              TCInt,
+	"nl-escseq":        TCNlEscseq,
+	"nl-freeform-text": TCNlFreeformText,
+	"nl-nonterm":       TCNlNonterm,
+	"nonterm":          TCNonterm,
+	"term":             TCTerm,
+}
+
+// ByID returns the TokenClass that has the given ID. If no token class of that
+// ID exists, returns nil.
+func ByID(id string) types.TokenClass {
+	return all[id]
+}

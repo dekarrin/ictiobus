@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
+	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
-	"github.com/dekarrin/ictiobus/internal/stack"
 	"github.com/dekarrin/ictiobus/types"
 )
 
@@ -91,12 +91,12 @@ func (ll1 ll1Parser) notifyPushed(s string) {
 }
 
 func (ll1 *ll1Parser) Parse(stream types.TokenStream) (types.ParseTree, error) {
-	symStack := stack.Stack[string]{Of: []string{ll1.g.StartSymbol(), "$"}}
+	symStack := box.NewStack([]string{ll1.g.StartSymbol(), "$"})
 	next := stream.Peek()
 	X := symStack.Peek()
 	ll1.notifyPopped(X)
 	pt := types.ParseTree{Value: ll1.g.StartSymbol()}
-	ptStack := stack.Stack[*types.ParseTree]{Of: []*types.ParseTree{&pt}}
+	ptStack := box.NewStack([]*types.ParseTree{&pt})
 
 	node := ptStack.Peek()
 	for X != "$" { /* stack is not empty */

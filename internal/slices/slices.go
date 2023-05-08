@@ -168,6 +168,20 @@ func Filter[E any](sl []E, filterFn func(item E) bool) []E {
 	return out
 }
 
+func Map[E1 any, E2 any](sl []E1, fn func(v E1) E2) []E2 {
+	if len(sl) == 0 {
+		return nil
+	}
+
+	mapped := make([]E2, len(sl))
+
+	for i := range sl {
+		mapped[i] = fn(sl[i])
+	}
+
+	return mapped
+}
+
 func Reduce[E any, V any](sl []E, initial V, fn func(idx int, item E, accum V) V) V {
 	accum := initial
 	for i, item := range sl {

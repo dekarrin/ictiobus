@@ -7,8 +7,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rangemap"
-	"github.com/dekarrin/ictiobus/internal/stack"
 )
 
 const (
@@ -135,7 +135,7 @@ func (u *Unregexer) Derive() string {
 	anyCharsNoNLMap := anyCharsMap.Intersection(allButNL)
 
 	var sb strings.Builder
-	astStack := stack.Stack[*syntax.Regexp]{Of: []*syntax.Regexp{u.r}}
+	astStack := box.NewStack([]*syntax.Regexp{u.r})
 
 	for astStack.Len() > 0 {
 		regexAST := astStack.Pop()
