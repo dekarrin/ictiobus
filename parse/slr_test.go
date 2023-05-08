@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-/*
 func Test_ConstructSimpleLRParseTable(t *testing.T) {
 	testCases := []struct {
 		name      string
@@ -24,18 +23,18 @@ func Test_ConstructSimpleLRParseTable(t *testing.T) {
 			`,
 			expect: `S   |  A:(  A:)          A:*          A:+          A:ID  A:$          |  G:E  G:F  G:T
 --------------------------------------------------------------------------------------
-0   |  s6                                          s4                 |  7    5    1
-1   |       rE -> T      s10          rE -> T            rE -> T      |
-2   |       rE -> E + T  s10          rE -> E + T        rE -> E + T  |
-3   |       rT -> T * F  rT -> T * F  rT -> T * F        rT -> T * F  |
-4   |       rF -> id     rF -> id     rF -> id           rF -> id     |
-5   |       rT -> F      rT -> F      rT -> F            rT -> F      |
-6   |  s6                                          s4                 |  9    5    1
-7   |                                 s8                 acc          |
-8   |  s6                                          s4                 |       5    2
-9   |       s11                       s8                              |
-10  |  s6                                          s4                 |       3
-11  |       rF -> ( E )  rF -> ( E )  rF -> ( E )        rF -> ( E )  |               `,
+0   |  s1                                          s6                 |  4    7    5  
+1   |  s1                                          s6                 |  9    7    5  
+2   |       rF -> ( E )  rF -> ( E )  rF -> ( E )        rF -> ( E )  |               
+3   |       rT -> T * F  rT -> T * F  rT -> T * F        rT -> T * F  |               
+4   |                                 s8                 acc          |               
+5   |       rE -> T      s10          rE -> T            rE -> T      |               
+6   |       rF -> id     rF -> id     rF -> id           rF -> id     |               
+7   |       rT -> F      rT -> F      rT -> F            rT -> F      |               
+8   |  s1                                          s6                 |       7    11 
+9   |       s2                        s8                              |               
+10  |  s1                                          s6                 |       3       
+11  |       rE -> E + T  s10          rE -> E + T        rE -> E + T  |               `,
 		},
 	}
 
@@ -58,7 +57,7 @@ func Test_ConstructSimpleLRParseTable(t *testing.T) {
 		})
 	}
 
-}*/
+}
 
 func Test_SLR1Parse(t *testing.T) {
 	testCases := []struct {
