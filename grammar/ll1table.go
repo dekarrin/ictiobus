@@ -26,7 +26,7 @@ func (M LL1Table) MarshalBinary() ([]byte, error) {
 	var data []byte
 
 	xOrdered := M.d.DefinedXs()
-	yOrdered := M.d.DefinedXs()
+	yOrdered := M.d.DefinedYs()
 
 	sort.Strings(xOrdered)
 	sort.Strings(yOrdered)
