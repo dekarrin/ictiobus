@@ -9,8 +9,17 @@ import (
 	"github.com/dekarrin/rosed"
 )
 
+// LL1Table is a table for LL predictive parsing. It should not be used
+// directly and should be obtained by calling NewLL1Table().
 type LL1Table struct {
 	d *box.Matrix2[string, Production]
+}
+
+// NewLL1Table creates an LL1 table initialized with an empty matrix.
+func NewLL1Table() LL1Table {
+	return LL1Table{
+		d: box.NewMatrix2[string, Production](),
+	}
 }
 
 func (M LL1Table) MarshalBinary() ([]byte, error) {
@@ -135,12 +144,6 @@ func (M LL1Table) Terminals() []string {
 	yOrdered := M.d.DefinedYs()
 	sort.Strings(yOrdered)
 	return yOrdered
-}
-
-func NewLL1Table() LL1Table {
-	return LL1Table{
-		d: box.NewMatrix2[string, Production](),
-	}
 }
 
 // LLParseTable builds and returns the LL parsing table for the grammar. If it's

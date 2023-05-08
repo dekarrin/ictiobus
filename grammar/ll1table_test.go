@@ -14,7 +14,7 @@ func Test_LL1Table_MarshalUnmarshalBinary(t *testing.T) {
 	}
 
 	withEntries := func(entries ...entry) LL1Table {
-		result := LL1Table{}
+		result := NewLL1Table()
 
 		for _, entry := range entries {
 			result.Set(entry.A, entry.a, entry.alpha)
