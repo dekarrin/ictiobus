@@ -694,8 +694,6 @@ func (nfa *NFA[E]) AddTransition(fromState string, input string, toState string)
 // The value at each state will be the string encoding of the LR0 item it
 // represents. To get a DFA whose states and values at each are the epsilon
 // closures of the transitions, call ToDFA on the output of this function.
-//
-// To get a DFA whose values are
 func NewLR0ViablePrefixNFA(g grammar.Grammar) NFA[grammar.LR0Item] {
 	// add the dummy production
 	oldStart := g.StartSymbol()

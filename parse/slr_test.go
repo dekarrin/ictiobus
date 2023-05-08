@@ -36,6 +36,27 @@ func Test_ConstructSimpleLRParseTable(t *testing.T) {
 10  |  s1                                          s6                 |       3       
 11  |       rE -> E + T  s10          rE -> E + T        rE -> E + T  |               `,
 		},
+		{
+			name: "simple single rule",
+			grammar: `
+				S -> S S + | S S * | a
+			`,
+			expect: `S  |  A:*          A:+          A:A          A:$          |  G:S
+----------------------------------------------------------------
+0  |                            s2                        |  1  
+1  |                            s2           acc          |  3  
+2  |  rS -> a      rS -> a      rS -> a      rS -> a      |     
+3  |  s4           s5           s2                        |  3  
+4  |  rS -> S S *  rS -> S S *  rS -> S S *  rS -> S S *  |     
+5  |  rS -> S S +  rS -> S S +  rS -> S S +  rS -> S S +  |     `,
+		},
+		/*{
+			name: "not SLR(1)",
+			grammar: `
+				S -> a | ε ;
+			`,
+			expectErr: true,
+		},*/
 	}
 
 	for _, tc := range testCases {
