@@ -27,8 +27,7 @@ func (M LL1Table) MarshalBinary() ([]byte, error) {
 		col := map[string]Production{}
 
 		for _, y := range yOrdered {
-			var val *Production
-			val = M.d.Get(x, y)
+			var val *Production = M.d.Get(x, y)
 			if val == nil {
 				continue
 			}
@@ -92,9 +91,7 @@ func (M LL1Table) String() string {
 	nts := M.NonTerminals()
 
 	topRow := []string{""}
-	for i := range terms {
-		topRow = append(topRow, terms[i])
-	}
+	topRow = append(topRow, terms...)
 	data = append(data, topRow)
 
 	for i := range nts {

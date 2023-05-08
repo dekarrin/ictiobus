@@ -10,7 +10,6 @@ import (
 
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/slices"
-	"github.com/dekarrin/ictiobus/internal/stack"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 )
 
@@ -306,7 +305,7 @@ func (nfa NFA[E]) EpsilonClosure(s string) box.StringSet {
 	}
 
 	closure := box.NewStringSet()
-	checkingStates := stack.Stack[NFAState[E]]{}
+	checkingStates := &box.Stack[NFAState[E]]{}
 	checkingStates.Push(stateItem)
 
 	for checkingStates.Len() > 0 {
