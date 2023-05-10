@@ -2,6 +2,7 @@ package parse
 
 import (
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 
@@ -33,6 +34,7 @@ func GenerateSimpleLRParser(g grammar.Grammar, allowAmbig bool) (*lrParser, []st
 	if err != nil {
 		return &lrParser{}, ambigWarns, err
 	}
+	log.Printf("DEBUG: \n%s\n", table.String())
 
 	return &lrParser{table: table, parseType: types.ParserSLR1, gram: g}, ambigWarns, nil
 }
@@ -59,6 +61,10 @@ func constructSimpleLRParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTab
 	// the transitions in the LR(0) automaton for a grammar."
 	lr0Automaton := automaton.NewLR0ViablePrefixNFA(g).ToDFA()
 	lr0Automaton.NumberStates()
+
+	var sb strings.Builder
+	automaton.OutputSetValuedDFA(&sb, lr0Automaton)
+	log.Printf("DEBUG: \n%s\n", sb.String())
 
 	table := &slrTable{
 		gPrime:     g.Augmented(),

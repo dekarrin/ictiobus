@@ -2,6 +2,7 @@ package parse
 
 import (
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 
@@ -62,6 +63,10 @@ func constructCanonicalLR1ParseTable(g grammar.Grammar, allowAmbig bool) (LRPars
 	// the transitions in the LR(0) automaton for a grammar."
 	lr1Automaton := automaton.NewLR1ViablePrefixDFA(g)
 	lr1Automaton.NumberStates()
+
+	var sb strings.Builder
+	automaton.OutputSetValuedDFA(&sb, lr1Automaton)
+	log.Printf("DEBUG: \n%s\n", sb.String())
 
 	table := &canonicalLR1Table{
 		gPrime:     g.Augmented(),

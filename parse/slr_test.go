@@ -1,6 +1,7 @@
 package parse
 
 import (
+	"log"
 	"testing"
 
 	"github.com/dekarrin/ictiobus/grammar"
@@ -50,13 +51,14 @@ func Test_ConstructSimpleLRParseTable(t *testing.T) {
 4  |  rS -> S S *  rS -> S S *  rS -> S S *  rS -> S S *  |     
 5  |  rS -> S S +  rS -> S S +  rS -> S S +  rS -> S S +  |     `,
 		},
-		/*{
-			name: "not SLR(1)",
+		{
+			name: "Repetition via epsilon production",
 			grammar: `
-				S -> a | ε ;
+				S -> a A | b B ;
+				A -> a A | ε   ;
+				B -> b B | ε   ;
 			`,
-			expectErr: true,
-		},*/
+		},
 	}
 
 	for _, tc := range testCases {
@@ -86,29 +88,42 @@ func Test_SLR1Parse(t *testing.T) {
 		grammar   string
 		input     []string
 		expect    string
+		ambig     bool
 		expectErr bool
 	}{
+		/*{
+					name: "purple dragon example 4.45",
+					grammar: `
+						E -> E + T | T ;
+						T -> T * F | F ;
+						F -> ( E ) | id ;
+						`,
+					input: []string{"id", "*", "id", "+", "id", "$"},
+					expect: `( E )
+		  |---: ( E )
+		  |       \---: ( T )
+		  |               |---: ( T )
+		  |               |       \---: ( F )
+		  |               |               \---: (TERM "id")
+		  |               |---: (TERM "*")
+		  |               \---: ( F )
+		  |                       \---: (TERM "id")
+		  |---: (TERM "+")
+		  \---: ( T )
+		          \---: ( F )
+		                  \---: (TERM "id")`,
+				},*/
 		{
-			name: "purple dragon example 4.45",
+			// IMPORTANT: https://jsmachines.sourceforge.net/machines/slr.html
+			// IMPORTANT: https://cyberzhg.github.io/toolbox/lr0
+			name: "Repetition via epsilon production",
 			grammar: `
-				E -> E + T | T ;
-				T -> T * F | F ;
-				F -> ( E ) | id ;
-				`,
-			input: []string{"id", "*", "id", "+", "id", "$"},
-			expect: `( E )
-  |---: ( E )
-  |       \---: ( T )
-  |               |---: ( T )
-  |               |       \---: ( F )
-  |               |               \---: (TERM "id")
-  |               |---: (TERM "*")
-  |               \---: ( F )
-  |                       \---: (TERM "id")
-  |---: (TERM "+")
-  \---: ( T )
-          \---: ( F )
-                  \---: (TERM "id")`,
+				S -> A        ;
+				A -> A B | ε  ;
+				B -> a B | b  ;
+			`,
+			input: []string{"a", "b", "$"},
+			ambig: true,
 		},
 	}
 
@@ -120,8 +135,14 @@ func Test_SLR1Parse(t *testing.T) {
 			stream := mockTokens(tc.input...)
 
 			// execute
-			parser, _, err := GenerateSimpleLRParser(g, false)
-			assert.NoError(err, "generating SLR parser failed")
+			parser, _, err := GenerateSimpleLRParser(g, tc.ambig)
+			if !assert.NoError(err, "generating SLR parser failed") {
+				return
+			}
+
+			parser.RegisterTraceListener(func(s string) {
+				log.Printf("%s\n", s)
+			})
 			actual, err := parser.Parse(stream)
 
 			// assert
@@ -129,7 +150,10 @@ func Test_SLR1Parse(t *testing.T) {
 				assert.Error(err)
 				return
 			}
-			assert.NoError(err)
+			if !assert.NoError(err) {
+				return
+			}
+
 			assert.Equal(tc.expect, actual.String())
 
 		})
