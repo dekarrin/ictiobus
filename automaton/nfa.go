@@ -22,12 +22,18 @@ type NFA[E any] struct {
 	Start  string
 }
 
+// NFATransitionTo holds a transition from one state to another in an NFA. It
+// holds info on the state the transition is from, the input it transitions on,
+// and its priority within the transition table of the state it comes from.
+// Priority matters because in an NFA, there could be two different transitions
+// using the same input.
 type NFATransitionTo struct {
 	from  string
 	input string
 	index int
 }
 
+// AcceptingStates returns the set of all states that are accepting.
 func (nfa NFA[E]) AcceptingStates() box.StringSet {
 	accepting := box.NewStringSet()
 	allStates := nfa.States().Elements()
@@ -70,7 +76,7 @@ func (nfa NFA[E]) AllTransitionsTo(toState string) []NFATransitionTo {
 	return transitions
 }
 
-// Copy returns a duplicate of this NFA.
+// Copy returns a deeply-copied duplicate of this NFA.
 func (nfa NFA[E]) Copy() NFA[E] {
 	copied := NFA[E]{
 		Start:  nfa.Start,
@@ -701,13 +707,9 @@ func (nfa *NFA[E]) AddTransition(fromState string, input string, toState string)
 	nfa.states[fromState] = curFromState
 }
 
-// Creates an NDA for all LR0 items of augmented grammar g'. The augmented
-// grammar is created by taking the start symbol S of g and adding a new
-// production, S' -> S, as the new start symbol.
-//
-// The value at each state will be the string encoding of the LR0 item it
-// represents. To get a DFA whose states and values at each are the epsilon
-// closures of the transitions, call ToDFA on the output of this function.
+// NewLR1ViablePrefixDFA creates a new NFA whose states are made up of the sets
+// of LR(0) items used in an SLR(1) parser. The grammar of the language that
+// is accepted by the parser, g, must be SLR(1) and it must be non-augmented.
 func NewLR0ViablePrefixNFA(g grammar.Grammar) NFA[grammar.LR0Item] {
 	// add the dummy production
 	oldStart := g.StartSymbol()
