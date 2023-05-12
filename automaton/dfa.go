@@ -23,7 +23,9 @@ import (
 type DFA[E any] struct {
 	order  uint64
 	states map[string]DFAState[E]
-	Start  string
+
+	// Start is the starting state of the DFA.
+	Start string
 }
 
 // MarshalBytes converts a DFA into a slice of bytes that can be decoded with

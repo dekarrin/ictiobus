@@ -54,6 +54,7 @@ func makeLRConflictError(act1, act2 LRAction, onInput string) error {
 	return fmt.Errorf("LR action conflict on terminal %q (%s or %s)", onInput, act1.String(), act2.String())
 }
 
+// LRActionType is a type of action for a shift-reduce LR-parser to perform.
 type LRActionType int
 
 const (
@@ -63,6 +64,7 @@ const (
 	LRError
 )
 
+// String returns the string representation of an LRActionType.
 func (lt LRActionType) String() string {
 	switch lt {
 	case LRShift:
@@ -78,7 +80,12 @@ func (lt LRActionType) String() string {
 	}
 }
 
+// LRAction is an action for a shift-reduce LR parser to perform. At any point,
+// it decides based on what symbols have been seen and a DFA whether to shift an
+// an input symbol onto the stack, reduce the currently read set of input
+// symbols, accept the complete input, or produce an error.
 type LRAction struct {
+	// Type is the type of the LRAction.
 	Type LRActionType
 
 	// Production is used when Type is LRReduce. It is the production which
@@ -93,6 +100,7 @@ type LRAction struct {
 	State string
 }
 
+// String returns a string representation of the LRAction.
 func (act LRAction) String() string {
 	switch act.Type {
 	case LRAccept:
@@ -108,6 +116,8 @@ func (act LRAction) String() string {
 	}
 }
 
+// Equal returns true if o is an LRAction or a *LRAction whose properties are
+// the same as act.
 func (act LRAction) Equal(o any) bool {
 	other, ok := o.(LRAction)
 	if !ok {

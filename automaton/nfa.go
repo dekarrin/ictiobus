@@ -19,7 +19,9 @@ import (
 type NFA[E any] struct {
 	order  uint64
 	states map[string]NFAState[E]
-	Start  string
+
+	// Start is the starting state of the NFA.
+	Start string
 }
 
 // NFATransitionTo holds a transition from one state to another in an NFA. It

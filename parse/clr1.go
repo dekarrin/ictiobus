@@ -284,12 +284,15 @@ func (clr1 *canonicalLR1Table) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// DFAString returns a string representation of the DFA that drives the CLR
+// parser.
 func (clr1 *canonicalLR1Table) DFAString() string {
 	var sb strings.Builder
 	automaton.OutputSetValuedDFA(&sb, clr1.lr1)
 	return sb.String()
 }
 
+// String returns the string representation of the parser.
 func (clr1 *canonicalLR1Table) String() string {
 	// need mapping of state to indexes
 	stateRefs := map[string]string{}
@@ -388,10 +391,12 @@ func (clr1 *canonicalLR1Table) String() string {
 		String()
 }
 
+// Initial returns the starting state of the parser DFA.
 func (clr1 *canonicalLR1Table) Initial() string {
 	return clr1.lr1.Start
 }
 
+// Goto returns the state to transition to after reducing a non-terminal symbol.
 func (clr1 *canonicalLR1Table) Goto(state, symbol string) (string, error) {
 	// step 3 of algorithm 4.56, "Construction of canonical-LR parsing tables",
 	// for reference:
@@ -405,6 +410,8 @@ func (clr1 *canonicalLR1Table) Goto(state, symbol string) (string, error) {
 	return newState, nil
 }
 
+// Action returns the LR-parser action to perform given that the current state
+// is i and the next terminal input symbol seen is a.
 func (clr1 *canonicalLR1Table) Action(i, a string) LRAction {
 	// step 2 of algorithm 4.56, "Construction of canonical-LR parsing tables",
 	// for reference:

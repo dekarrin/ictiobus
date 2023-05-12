@@ -279,12 +279,16 @@ func (lalr1 *lalr1Table) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// DFAString returns a string representation of the DFA that drives the LALR
+// parser.
 func (lalr1 *lalr1Table) DFAString() string {
 	var sb strings.Builder
 	automaton.OutputSetValuedDFA(&sb, lalr1.dfa)
 	return sb.String()
 }
 
+// Action returns the LR-parser action to perform given that the current state
+// is i and the next terminal input symbol seen is a.
 func (lalr1 *lalr1Table) Action(i, a string) LRAction {
 	// Algorithm 4.59, which we are using for construction of the LALR(1) parse
 	// table, explicitly mentions to construct the Action table as it is done
@@ -398,6 +402,7 @@ func (lalr1 *lalr1Table) Action(i, a string) LRAction {
 	return act
 }
 
+// Goto returns the state to transition to after reducing a non-terminal symbol.
 func (lalr1 *lalr1Table) Goto(state, symbol string) (string, error) {
 	newState := lalr1.dfa.Next(state, symbol)
 	if newState == "" {
@@ -406,10 +411,12 @@ func (lalr1 *lalr1Table) Goto(state, symbol string) (string, error) {
 	return newState, nil
 }
 
+// Initial returns the starting state of the parser DFA.
 func (lalr1 *lalr1Table) Initial() string {
 	return lalr1.dfa.Start
 }
 
+// String returns the string representation of the parser.
 func (lalr1 *lalr1Table) String() string {
 	// need mapping of state to indexes
 	stateRefs := map[string]string{}

@@ -16,18 +16,25 @@ type ll1Parser struct {
 	trace func(s string)
 }
 
+// Grammar returns the grammar that was used to generate the parser.
 func (ll *ll1Parser) Grammar() grammar.Grammar {
 	return ll.g
 }
 
+// DFAString would normally return a string representation of the DFA that
+// drives the parser, but LL(1) parsers do not generally construct a DFA, and
+// so this returns a string indicating such.
 func (ll *ll1Parser) DFAString() string {
 	return "(LL top-down parser does not use a DFA)"
 }
 
+// RegisterTraceListener sets a function to be called with messages that
+// indicate what action the parser is taking. It is useful for debug purposes.
 func (ll *ll1Parser) RegisterTraceListener(listener func(s string)) {
 	ll.trace = listener
 }
 
+// TableString returns the parser table as a string.
 func (ll *ll1Parser) TableString() string {
 	return ll.table.String()
 }
@@ -74,6 +81,8 @@ func GenerateLL1Parser(g grammar.Grammar) (*ll1Parser, error) {
 	return &ll1Parser{table: M, g: g.Copy()}, nil
 }
 
+// Type returns the type of the parser. This will be ParserLL1 for an
+// LL(1)-parser.
 func (ll1 *ll1Parser) Type() types.ParserType {
 	return types.ParserLL1
 }
@@ -90,6 +99,9 @@ func (ll1 ll1Parser) notifyPushed(s string) {
 	}
 }
 
+// Parse takes a stream of tokens and parses it into a parse tree. If any syntax
+// errors are encountered, an empty parse tree and a *types.SyntaxError is
+// returned.
 func (ll1 *ll1Parser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 	symStack := box.NewStack([]string{ll1.g.StartSymbol(), "$"})
 	next := stream.Peek()

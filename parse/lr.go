@@ -22,10 +22,12 @@ type LRParseTable interface {
 	// applicable for the table.
 	Initial() string
 
-	// Action gets the next action to take based on a state i and terminal a.
+	// Action returns the LR-parser action to perform given that the current
+	// state is i and the next terminal input symbol seen is a.
 	Action(state, symbol string) LRAction
 
-	// Goto maps a state and a grammar symbol to some other state.
+	// Goto maps a state and a grammar symbol to some other state. It specifies
+	// the state to transition to after reducing to a non-terminal symbol.
 	Goto(state, symbol string) (string, error)
 
 	// String prints a string representation of the table. If two LRParseTables
@@ -44,22 +46,29 @@ type lrParser struct {
 	trace     func(s string)
 }
 
+// Grammar returns the grammar that was used to generate the parser.
 func (lr *lrParser) Grammar() grammar.Grammar {
 	return lr.gram
 }
 
+// DFAString returns a string representation. of the DFA that drives the LR
+// parser.
 func (lr *lrParser) DFAString() string {
 	return lr.table.DFAString()
 }
 
+// RegisterTraceListener sets a function to be called with messages that
+// indicate what action the parser is taking. It is useful for debug purposes.
 func (lr *lrParser) RegisterTraceListener(listener func(s string)) {
 	lr.trace = listener
 }
 
+// Type returns the type of the parser.
 func (lr *lrParser) Type() types.ParserType {
 	return lr.parseType
 }
 
+// TableString returns the parser table as a string.
 func (lr *lrParser) TableString() string {
 	return lr.table.String()
 }
@@ -174,7 +183,9 @@ func (lr lrParser) notifyTokenStack(st *box.Stack[types.Token]) {
 	})
 }
 
-// Parse parses the input stream with the internal LR parse table.
+// Parse parses the input stream with the internal LR parse table. If any syntax
+// errors are encountered, an empty parse tree and a *types.SyntaxError is
+// returned.
 //
 // This is an implementation of Algorithm 4.44, "LR-parsing algorithm", from
 // the purple dragon book.

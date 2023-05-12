@@ -282,12 +282,15 @@ func (slr *slrTable) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// DFAString returns a string representation of the DFA that drives the SLR
+// parser.
 func (slr *slrTable) DFAString() string {
 	var sb strings.Builder
 	automaton.OutputSetValuedDFA(&sb, slr.lr0)
 	return sb.String()
 }
 
+// String returns the string representation of the parser.
 func (slr *slrTable) String() string {
 	// need mapping of state to indexes
 	stateRefs := map[string]string{}
@@ -386,10 +389,12 @@ func (slr *slrTable) String() string {
 		String()
 }
 
+// Initial returns the starting state of the parser DFA.
 func (slr *slrTable) Initial() string {
 	return slr.lr0.Start
 }
 
+// Goto returns the state to transition to after reducing a non-terminal symbol.
 func (slr *slrTable) Goto(state, symbol string) (string, error) {
 	// as purple  dragon book mentions, "intuitively, the GOTO function is used
 	// to define the transitions in the LR(0) automaton for a grammar." We will
@@ -414,6 +419,8 @@ func (slr *slrTable) Goto(state, symbol string) (string, error) {
 	return newState, nil
 }
 
+// Action returns the LR-parser action to perform given that the current state
+// is i and the next terminal input symbol seen is a.
 func (slr *slrTable) Action(i, a string) LRAction {
 	// step 2 of algorithm 4.46, "Constructing an SLR-parsing table", for
 	// reference
