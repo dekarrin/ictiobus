@@ -13,6 +13,9 @@ import (
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 )
 
+// NFA is a non-deterministic finite automaton. It holds 'values' within its
+// states; supplementary information associated with each state that is not
+// required for the NFA to function.
 type NFA[E any] struct {
 	order  uint64
 	states map[string]NFAState[E]
@@ -37,7 +40,7 @@ func (nfa NFA[E]) AcceptingStates() box.StringSet {
 	return accepting
 }
 
-// returns a list of 2-tuples that have (fromState, input)
+// AllTransitionsTo gets all transitions to the given state.
 func (nfa NFA[E]) AllTransitionsTo(toState string) []NFATransitionTo {
 	if _, ok := nfa.states[toState]; !ok {
 		// Gr8! We are done.
@@ -341,6 +344,7 @@ func (nfa NFA[E]) EpsilonClosure(s string) box.StringSet {
 	return closure
 }
 
+// String returns the string representation of an NFA.
 func (nfa NFA[E]) String() string {
 	var sb strings.Builder
 
@@ -379,6 +383,8 @@ func (nfa NFA[E]) String() string {
 	return sb.String()
 }
 
+// ValueString returns the string representation of the NFA with its states'
+// values included in the output.
 func (nfa NFA[E]) ValueString() string {
 	var sb strings.Builder
 
@@ -621,6 +627,7 @@ func (nfa NFA[E]) Join(other NFA[E], fromToOther [][3]string, otherToFrom [][3]s
 	return joined, nil
 }
 
+// AddState adds a new state to the NFA.
 func (nfa *NFA[E]) AddState(state string, accepting bool) {
 	if _, ok := nfa.states[state]; ok {
 		// Gr8! We are done.
@@ -642,6 +649,7 @@ func (nfa *NFA[E]) AddState(state string, accepting bool) {
 	nfa.states[state] = newState
 }
 
+// SetValue sets the value associated with a state of the NFA.
 func (nfa *NFA[E]) SetValue(state string, v E) {
 	s, ok := nfa.states[state]
 	if !ok {
@@ -651,6 +659,7 @@ func (nfa *NFA[E]) SetValue(state string, v E) {
 	nfa.states[state] = s
 }
 
+// GetValue gets the value associated with a state of the NFA.
 func (nfa *NFA[E]) GetValue(state string) E {
 	s, ok := nfa.states[state]
 	if !ok {
@@ -659,6 +668,11 @@ func (nfa *NFA[E]) GetValue(state string) E {
 	return s.value
 }
 
+// AddTransition adds a new transition to the NFA. The transition will occur
+// when input is encountered while the NFA is in state fromState, and will cause
+// it to move to toState. Both fromState and toState must exist, or else a panic
+// will occur. If the given transition already exists, this function has no
+// effect.
 func (nfa *NFA[E]) AddTransition(fromState string, input string, toState string) {
 	curFromState, ok := nfa.states[fromState]
 

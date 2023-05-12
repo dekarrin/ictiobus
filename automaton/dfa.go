@@ -17,13 +17,18 @@ import (
 	"github.com/dekarrin/rosed"
 )
 
-// DFA is a deterministic finite automaton.
+// DFA is a deterministic finite automaton. It holds 'values' within its states;
+// supplementary information associated with each state that is not required for
+// the DFA to function.
 type DFA[E any] struct {
 	order  uint64
 	states map[string]DFAState[E]
 	Start  string
 }
 
+// MarshalBytes converts a DFA into a slice of bytes that can be decoded with
+// UnmarshalDFABytes. The value held within its states is encoded to bytes using
+// the provided conversion function.
 func (dfa DFA[E]) MarshalBytes(conv func(E) []byte) []byte {
 	data := rezi.EncInt(int(dfa.order))
 	data = append(data, rezi.EncString(dfa.Start)...)
@@ -44,6 +49,9 @@ func (dfa DFA[E]) MarshalBytes(conv func(E) []byte) []byte {
 	return data
 }
 
+// UnmarshalDFABytes takes a slice of bytes created by MarshalBytes and decodes
+// it into a new DFA. The values held within its states is decoded from bytes
+// using the provided conversion function.
 func UnmarshalDFABytes[E any](data []byte, conv func([]byte) (E, error)) (DFA[E], error) {
 	var dfa DFA[E]
 	var n int
@@ -103,7 +111,7 @@ func UnmarshalDFABytes[E any](data []byte, conv func([]byte) (E, error)) (DFA[E]
 	return dfa, nil
 }
 
-// Copy returns a duplicate of this DFA.
+// Copy returns a deeply-copied duplicate of this DFA.
 func (dfa DFA[E]) Copy() DFA[E] {
 	copied := DFA[E]{
 		Start:  dfa.Start,
@@ -118,6 +126,9 @@ func (dfa DFA[E]) Copy() DFA[E] {
 	return copied
 }
 
+// TransformDFA converts the values held within a DFA to new values. The
+// transform function is called on each state's value and used to create a new
+// one in a new DFA. The original DFA is not modified.
 func TransformDFA[E1, E2 any](dfa DFA[E1], transform func(old E1) E2) DFA[E2] {
 	copied := DFA[E2]{
 		states: make(map[string]DFAState[E2]),
@@ -145,9 +156,10 @@ func TransformDFA[E1, E2 any](dfa DFA[E1], transform func(old E1) E2) DFA[E2] {
 	return copied
 }
 
-// DFAToNFA converts the DFA into an equivalent non-deterministic finite automaton
-// type. Note that the type change doesn't suddenly make usage non-deterministic
-// but it does allow for non-deterministic transitions to be added.
+// DFAToNFA converts the DFA into an equivalent non-deterministic finite
+// automaton type. Note that the type change doesn't suddenly make usage
+// non-deterministic but it does allow for non-deterministic transitions to be
+// added.
 func DFAToNFA[E any](dfa DFA[E]) NFA[E] {
 	nfa := NFA[E]{
 		Start:  dfa.Start,
@@ -253,6 +265,7 @@ func (dfa *DFA[E]) NumberStates() {
 	dfa.Start = newDfa.Start
 }
 
+// SetValue sets the value associated with a state of the DFA.
 func (dfa *DFA[E]) SetValue(state string, v E) {
 	s, ok := dfa.states[state]
 	if !ok {
@@ -262,6 +275,7 @@ func (dfa *DFA[E]) SetValue(state string, v E) {
 	dfa.states[state] = s
 }
 
+// GetValue gets the value associated with a state of the DFA.
 func (dfa *DFA[E]) GetValue(state string) E {
 	s, ok := dfa.states[state]
 	if !ok {
@@ -374,7 +388,9 @@ func (dfa DFA[E]) Next(fromState string, input string) string {
 	return transition.next
 }
 
-// returns a list of 2-tuples that have (fromState, input)
+// AllTransitionsTo gets all transitions to the given state. It returns a slice
+// of 2-tuples that each contain the originating state name followed by the
+// input that causes transitions to toState.
 func (dfa DFA[E]) AllTransitionsTo(toState string) [][2]string {
 	if _, ok := dfa.states[toState]; !ok {
 		// Gr8! We are done.
@@ -398,6 +414,9 @@ func (dfa DFA[E]) AllTransitionsTo(toState string) [][2]string {
 	return transitions
 }
 
+// RemoveState removes a state from the DFA. The state can only be removed if
+// there are not currently any transitions to it; trying to remove a state that
+// has transitions to it will cause a panic.
 func (dfa *DFA[E]) RemoveState(state string) {
 	_, ok := dfa.states[state]
 	if !ok {
@@ -415,6 +434,7 @@ func (dfa *DFA[E]) RemoveState(state string) {
 	delete(dfa.states, state)
 }
 
+// AddState adds a new state to the DFA.
 func (dfa *DFA[E]) AddState(state string, accepting bool) {
 	if _, ok := dfa.states[state]; ok {
 		// Gr8! We are done.
@@ -436,6 +456,9 @@ func (dfa *DFA[E]) AddState(state string, accepting bool) {
 	dfa.states[state] = newState
 }
 
+// RemoveTransition removes a transition from the DFA. The transition that uses
+// input to transition from fromState to toState is removed. If there is not
+// currently a transition that satisfies that, this function has no effect.
 func (dfa *DFA[E]) RemoveTransition(fromState string, input string, toState string) {
 	curFromState, ok := dfa.states[fromState]
 	if !ok {
@@ -458,6 +481,11 @@ func (dfa *DFA[E]) RemoveTransition(fromState string, input string, toState stri
 	delete(curFromState.transitions, input)
 }
 
+// AddTransition adds a new transition to the DFA. The transition will occur
+// when input is encountered while the DFA is in state fromState, and will cause
+// it to move to toState. Both fromState and toState must exist, or else a panic
+// will occur. If the given transition already exists, this function has no
+// effect.
 func (dfa *DFA[E]) AddTransition(fromState string, input string, toState string) {
 	curFromState, ok := dfa.states[fromState]
 
@@ -479,6 +507,7 @@ func (dfa *DFA[E]) AddTransition(fromState string, input string, toState string)
 	dfa.states[fromState] = curFromState
 }
 
+// String returns the string representation of a DFA.
 func (dfa DFA[E]) String() string {
 	var sb strings.Builder
 
@@ -517,12 +546,9 @@ func (dfa DFA[E]) String() string {
 	return sb.String()
 }
 
-// OutputLR1ItemBasedDFA writes a pretty-print representation of a DFA whose
-// states are built from and contain sets of LR1 items. The representation is
-// written to w.
-//
-// The returned error will be non-nil only if there is an issue writting to the
-// provider writer.
+// OutputSetValuedDFA writes a pretty-print representation of a DFA whose values
+// in its states are box.SVSets of some type that implements fmt.Stringer. The
+// representation is written to w.
 func OutputSetValuedDFA[E fmt.Stringer](w io.Writer, dfa DFA[box.SVSet[E]]) {
 	// lol let's get some buffering here
 	bw := bufio.NewWriter(w)
@@ -623,6 +649,8 @@ func OutputSetValuedDFA[E fmt.Stringer](w io.Writer, dfa DFA[box.SVSet[E]]) {
 	bw.Flush()
 }
 
+// ValueString returns the string representation of the DFA with its states'
+// values included in the output.
 func (dfa DFA[E]) ValueString() string {
 	var sb strings.Builder
 
@@ -661,7 +689,10 @@ func (dfa DFA[E]) ValueString() string {
 	return sb.String()
 }
 
-// g must be non-augmented
+// NewLALR1ViablePrefixDFA creates a new DFA whose states are made up of the
+// sets of items used in an LALR(1) parser. The grammar of the language that is
+// accepted by the parser, g, must be LALR(1) and it must be non-augmented.
+// Returns an error if g is not LALR(1).
 func NewLALR1ViablePrefixDFA(g grammar.Grammar) (DFA[box.SVSet[grammar.LR1Item]], error) {
 	lr1Dfa := NewLR1ViablePrefixDFA(g)
 
@@ -872,6 +903,9 @@ func NewLALR1ViablePrefixDFA(g grammar.Grammar) (DFA[box.SVSet[grammar.LR1Item]]
 	return lalrDfa, nil
 }
 
+// NewLR1ViablePrefixDFA creates a new DFA whose states are made up of the sets
+// of items used in a canonical LR(1) parser. The grammar of the language that
+// is accepted by the parser, g, must be LR(1) and it must be non-augmented.
 func NewLR1ViablePrefixDFA(g grammar.Grammar) DFA[box.SVSet[grammar.LR1Item]] {
 	oldStart := g.StartSymbol()
 	g = g.Augmented()

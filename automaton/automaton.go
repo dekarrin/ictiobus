@@ -1,3 +1,5 @@
+// Package automaton contains automata construction used as part of creating
+// parsers.
 package automaton
 
 import (
@@ -9,17 +11,24 @@ import (
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 )
 
+// FATransition is a transition in a finite automaton from one state to another.
+// It contains the input string that causes the transition and the next state
+// that it transitions to.
 type FATransition struct {
 	input string
 	next  string
 }
 
+// MarshalBinary converts t into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (t FATransition) MarshalBinary() ([]byte, error) {
 	data := rezi.EncString(t.input)
 	data = append(data, rezi.EncString(t.next)...)
 	return data, nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into t. All
+// of t's fields will be replaced by the fields decoded from data.
 func (t *FATransition) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
@@ -38,6 +47,7 @@ func (t *FATransition) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// String returns the string representation of t.
 func (t FATransition) String() string {
 	inp := t.input
 	if inp == "" {
@@ -101,6 +111,9 @@ func parseFATransition(s string) (FATransition, error) {
 	}, nil
 }
 
+// DFAState is a state in a DFA. It holds a 'value'; supplematory information
+// associated with the state that is not required for the DFA to function but
+// may be useful for users of the DFA.
 type DFAState[E any] struct {
 	ordering    uint64
 	name        string
@@ -109,6 +122,9 @@ type DFAState[E any] struct {
 	accepting   bool
 }
 
+// MarshalBytes converts ds into a slice of bytes that can be decoded with
+// UnmarshalDFAStateBytes. The value held within the state is encoded to bytes
+// using the provided conversion function.
 func (ds DFAState[E]) MarshalBytes(conv func(E) []byte) []byte {
 	data := rezi.EncInt(int(ds.ordering))
 	data = append(data, rezi.EncString(ds.name)...)
@@ -122,6 +138,9 @@ func (ds DFAState[E]) MarshalBytes(conv func(E) []byte) []byte {
 	return data
 }
 
+// UnmarshalDFAStateBytes takes a slice of bytes created by MarshalBytes and
+// decodes it into a new DFAState. The value held within the state is decoded
+// from bytes using the provided conversion function.
 func UnmarshalDFAStateBytes[E any](data []byte, conv func([]byte) (E, error)) (DFAState[E], error) {
 	var ds DFAState[E]
 	var n int
@@ -184,6 +203,7 @@ func UnmarshalDFAStateBytes[E any](data []byte, conv func([]byte) (E, error)) (D
 	return ds, nil
 }
 
+// Copy creates a deep copy of the DFAState.
 func (ds DFAState[E]) Copy() DFAState[E] {
 	copied := DFAState[E]{
 		ordering:    ds.ordering,
@@ -200,28 +220,32 @@ func (ds DFAState[E]) Copy() DFAState[E] {
 	return copied
 }
 
-func (ns DFAState[E]) String() string {
+// String returns the string representation of ds. The value held within ds is
+// not included in the output; use [DFAState.ValueString] for that.
+func (ds DFAState[E]) String() string {
 	var moves strings.Builder
 
-	inputs := textfmt.OrderedKeys(ns.transitions)
+	inputs := textfmt.OrderedKeys(ds.transitions)
 
 	for i, input := range inputs {
-		moves.WriteString(ns.transitions[input].String())
+		moves.WriteString(ds.transitions[input].String())
 		if i+1 < len(inputs) {
 			moves.WriteRune(',')
 			moves.WriteRune(' ')
 		}
 	}
 
-	str := fmt.Sprintf("(%s [%s])", ns.name, moves.String())
+	str := fmt.Sprintf("(%s [%s])", ds.name, moves.String())
 
-	if ns.accepting {
+	if ds.accepting {
 		str = "(" + str + ")"
 	}
 
 	return str
 }
 
+// ValueString returns the string representation of the DFAState with the value
+// it contains included in the output.
 func (ns DFAState[E]) ValueString() string {
 	var moves strings.Builder
 
@@ -244,6 +268,9 @@ func (ns DFAState[E]) ValueString() string {
 	return str
 }
 
+// NFAState is a state in an NFA. It holds a 'value'; supplematory information
+// associated with the state that is not required for the NFA to function but
+// may be useful for users of the NFA.
 type NFAState[E any] struct {
 	ordering    uint64
 	name        string
@@ -252,6 +279,7 @@ type NFAState[E any] struct {
 	accepting   bool
 }
 
+// Copy creates a deep copy of the NFAState.
 func (ns NFAState[E]) Copy() NFAState[E] {
 	copied := NFAState[E]{
 		ordering:    ns.ordering,
@@ -271,6 +299,8 @@ func (ns NFAState[E]) Copy() NFAState[E] {
 	return copied
 }
 
+// String returns the string representation of ns. The value held within ns is
+// not included in the output; use [NFAState.ValueString] for that.
 func (ns NFAState[E]) String() string {
 	var moves strings.Builder
 
@@ -303,6 +333,8 @@ func (ns NFAState[E]) String() string {
 	return str
 }
 
+// ValueString returns the string representation of the NFAState with the value
+// it contains included in the output.
 func (ns NFAState[E]) ValueString() string {
 	var moves strings.Builder
 
