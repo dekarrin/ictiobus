@@ -1,5 +1,7 @@
 // Package fe contains the frontend for analyzing FISHI
-// code. Calling Frontend() will return a full FISHI frontend ready to go.
+// code. The function [fe.Frontend()] is the primary
+// entrypoint for callers, and will return a full FISHI frontend ready for
+// immediate use.
 package fe
 
 /*

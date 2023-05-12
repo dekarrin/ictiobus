@@ -12,8 +12,8 @@ import (
 	"github.com/dekarrin/ictiobus/trans"
 )
 
-// SDTS returns the syntax-directed translation scheme for the FISHI
-// frontend.
+// SDTS returns the generated ictiobus syntax-directed translation scheme for
+// FISHI.
 func SDTS() ictiobus.SDTS {
 	sdts := ictiobus.NewSDTS()
 
