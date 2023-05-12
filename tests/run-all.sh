@@ -15,7 +15,7 @@ mkdir -p "$rundir" || { echo "Cannot create rundir; FAIL" >&2 ; exit 1 ; }
 
 echo "Putting test output in $rundir..."
 
-./build.sh >/dev/null || { echo "Could not build ictcc bin; FAIL" >&2 ; exit 1 ; }
+scripts/build.sh >/dev/null || { echo "Could not build ictcc bin; FAIL" >&2 ; exit 1 ; }
 
 any_test_failed=
 failed_tests=

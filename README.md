@@ -21,7 +21,7 @@ To build the `ictcc` command, execute the `build.sh` script from bash or
 compatible shell.
 
 ```shell
-./build.sh
+scripts/build.sh
 ```
 
 ## Running

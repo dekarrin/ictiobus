@@ -20,7 +20,7 @@ jobs:
         with:
           go-version: 1.19
       - name: Generate new frontend
-        run: ./genfrontend.sh --yes --dev
+        run: scripts/genfrontend.sh --yes --dev
       - name: Verify no changes
         run: |
           report="$(git status --porcelain)"
@@ -28,7 +28,7 @@ jobs:
             git diff --output=./changes.diff
             cat changes.diff >&2
             echo "FAILED: frontend generation results in code changes." >&2
-            echo "Run './genfrontend.sh' on codebase and try again." >&2
+            echo "Run 'scripts/genfrontend.sh' on codebase and try again." >&2
             exit 1
           else
             echo "PASS: frontend does not have pending updates"
@@ -67,4 +67,4 @@ jobs:
         with:
           go-version: 1.19
       - name: Execute testing script
-        run: tests/run-all.sh
+        run: script/run-int-tests.sh
