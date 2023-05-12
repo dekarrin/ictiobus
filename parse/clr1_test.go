@@ -90,10 +90,10 @@ func Test_CanonicalLR1Parse(t *testing.T) {
 		{
 			name: "purple dragon example 4.45",
 			grammar: `
-						E -> E + T | T ;
-						T -> T * F | F ;
-						F -> ( E ) | id ;
-						`,
+				E -> E + T | T ;
+				T -> T * F | F ;
+				F -> ( E ) | id ;
+			`,
 			input: []string{"id", "*", "id", "+", "id", "$"},
 			expect: `( E )
   |---: ( E )

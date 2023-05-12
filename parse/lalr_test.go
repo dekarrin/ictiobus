@@ -88,10 +88,10 @@ func Test_LALR1Parse(t *testing.T) {
 		{
 			name: "purple dragon example 4.45",
 			grammar: `
-						E -> E + T | T ;
-						T -> T * F | F ;
-						F -> ( E ) | id ;
-						`,
+				E -> E + T | T ;
+				T -> T * F | F ;
+				F -> ( E ) | id ;
+			`,
 			input: []string{"(", "id", "+", "id", ")", "*", "id", types.TokenEndOfText.ID()},
 			expect: `( E )
   \---: ( T )
