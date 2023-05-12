@@ -1,4 +1,4 @@
-// Package format contains functions for producing a CodeReader from a stream
+// Package format contains functions for producing a [CodeReader] from a stream
 // that contains markdown files with fishi codeblocks. A CodeReader can be sent
 // directly to the frontend and handles all gathering of codeblocks and running
 // any preprocessing needed on it.

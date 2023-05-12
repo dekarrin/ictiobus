@@ -1,3 +1,6 @@
+// Package syntax provides functions for building up an abstract syntax tree
+// from a FISHI markdown file. It is the interface between the generated
+// ictiobus compiler frontend for FISHI and the rest of the fishi package.
 package syntax
 
 import (
@@ -11,9 +14,14 @@ import (
 
 // AST is the a8stract syntax tree of a fishi spec.
 type AST struct {
+
+	// Nodes is the nodes that make up the AST. There will be one per top-level
+	// FISHI section (%%grammar, %%tokens, %%actions) encountered in the
+	// specification the AST represents.
 	Nodes []Block
 }
 
+// String returns the string representation of an AST.
 func (ast AST) String() string {
 	var sb strings.Builder
 
@@ -84,48 +92,85 @@ func (ast AST) String() string {
 	return sb.String()
 }
 
+// BlockType is the type of a FISHI [Block].
 type BlockType int
 
 const (
+	// BlockTypeError is an unrecognized type of FISHI block.
 	BlockTypeError BlockType = iota
+
+	// BlockTypeGrammar denotes a %%grammar section from a spec written in
+	// FISHI.
 	BlockTypeGrammar
+
+	// BlockTypeTokens denotes a %%tokens section from a spec written in FISHI.
 	BlockTypeTokens
+
+	// BlockTypeActions denotes an %%actions sectoin from a spec written in
+	// FISHI.
 	BlockTypeActions
 )
 
+// Block is a main dividing section of a FISHI spec. It contains either grammar
+// rules, token definitions, or syntax-directed translation rules for the
+// language described by the spec it is associated with.
 type Block interface {
+
+	// Type returns the type of the Block.
 	Type() BlockType
+
+	// Grammar converts the Block into a GrammarBlock. Panics if the Block's
+	// type is not BlockTypeGrammar.
 	Grammar() GrammarBlock
+
+	// Tokens converts the Block into a TokensBlock. Panics if the Block's type
+	// is not BlockTypeTokens.
 	Tokens() TokensBlock
+
+	// Actions converts the Block into an ActionsBlock. Panics if the Block's
+	// type is not BlockTypeActions.
 	Actions() ActionsBlock
 }
 
-type ErrorBlock bool
+// ErrorBlock is a Block representing an unrecognized kind of FISHI section.
+type ErrorBlock struct{}
 
+// Type returns BlockTypeError.
 func (errBlock ErrorBlock) Type() BlockType {
 	return BlockTypeError
 }
 
+// Grammar panics immediately. It is included to implement Block.
 func (errBlock ErrorBlock) Grammar() GrammarBlock {
 	panic("not grammar-type block")
 }
 
+// Tokens panics immediately. It is included to implement Block.
 func (errBlock ErrorBlock) Tokens() TokensBlock {
 	panic("not tokens-type block")
 }
 
+// Actions panics immediately. It is included to implement Block.
 func (errBlock ErrorBlock) Actions() ActionsBlock {
 	panic("not actions-type block")
 }
 
+// String returns a string representation of the ErrorBlock.
 func (errBlock ErrorBlock) String() string {
 	return "<Block: ERR>"
 }
 
+// GrammarBlock contains the contents of a single block of grammar instructions
+// from a FISHI spec. It is represented in FISHI as a %%grammar section.
 type GrammarBlock struct {
+
+	// Content is the content blocks that make up this section. There will be
+	// one per state declared in the grammar section this GrammarBlock was
+	// created from.
 	Content []GrammarContent
 }
 
+// String returns a string representation of the GrammarBlock.
 func (agb GrammarBlock) String() string {
 	var sb strings.Builder
 
@@ -140,26 +185,37 @@ func (agb GrammarBlock) String() string {
 	return sb.String()
 }
 
+// Type returns BlockTypeGrammar.
 func (agb GrammarBlock) Type() BlockType {
 	return BlockTypeGrammar
 }
 
+// Grammar returns this GrammarBlock. It is included to implement Block.
 func (agb GrammarBlock) Grammar() GrammarBlock {
 	return agb
 }
 
+// Tokens panics immediately. It is included to implement Block.
 func (agb GrammarBlock) Tokens() TokensBlock {
 	panic("not tokens-type block")
 }
 
+// Actions panics immediately. It is included to implement Block.
 func (agb GrammarBlock) Actions() ActionsBlock {
 	panic("not actions-type block")
 }
 
+// ActionsBlock contains the contents of a single block of SDTS definition rules
+// from a FISHI spec. It is represented in FISHI as an %%actions section.
 type ActionsBlock struct {
+
+	// Content is the content blocks that make up this section. There will be
+	// one per state declared in the actions section this ActionsBlock was
+	// created from.
 	Content []ActionsContent
 }
 
+// String returns a string representation of the ActionsBlock.
 func (aab ActionsBlock) String() string {
 	var sb strings.Builder
 
@@ -174,26 +230,37 @@ func (aab ActionsBlock) String() string {
 	return sb.String()
 }
 
+// Type returns BlockTypeActions.
 func (aab ActionsBlock) Type() BlockType {
 	return BlockTypeActions
 }
 
+// Grammar panics immediately. It is included to implement Block.
 func (aab ActionsBlock) Grammar() GrammarBlock {
 	panic("not grammar-type block")
 }
 
+// Tokens panics immediately. It is included to implement Block.
 func (aab ActionsBlock) Tokens() TokensBlock {
 	panic("not tokens-type block")
 }
 
+// Actions returns this ActionsBlock. It is included to implement Block.
 func (aab ActionsBlock) Actions() ActionsBlock {
 	return aab
 }
 
+// TokensBlock contains the contents of a single block of token declarations
+// from a FISHI spec. It is represented in FISHI as a %%tokens section.
 type TokensBlock struct {
+
+	// Content is the content blocks that make up this section. There will be
+	// one per state declared in the tokens section this TokensBlock was
+	// created from.
 	Content []TokensContent
 }
 
+// String returns a string representation of the TokensBlock.
 func (atb TokensBlock) String() string {
 	var sb strings.Builder
 
@@ -208,62 +275,131 @@ func (atb TokensBlock) String() string {
 	return sb.String()
 }
 
+// Type returns BlockTypeTokens.
 func (atb TokensBlock) Type() BlockType {
 	return BlockTypeTokens
 }
 
+// Grammar panics immediately. It is included to implement Block.
 func (atb TokensBlock) Grammar() GrammarBlock {
 	panic("not grammar-type block")
 }
 
+// Tokens returns this TokensBlock. It is included to implement Block.
 func (atb TokensBlock) Tokens() TokensBlock {
 	return atb
 }
 
+// Actions panics immediately. It is included to implement Block.
 func (atb TokensBlock) Actions() ActionsBlock {
 	panic("not actions-type block")
 }
 
+// TokenOptionsType is the type of option that a TokenOption represents.
 type TokenOptionType int
 
 const (
+	// TokenOptDiscard is a token option type indicating that a pattern found by
+	// the lexer should be discarded. It is represented by the %discard
+	// directive in FISHI source code.
 	TokenOptDiscard TokenOptionType = iota
+
+	// TokenOptStateshift is a token option type indicating that a pattern found
+	// by the lexer should make it change to a new state. It is represented by
+	// the %stateshift directive in FISHI source code.
 	TokenOptStateshift
+
+	// TokenOptToken is a token option type indicating that a pattern found by
+	// the lexer should be lexed as a new token and passed to the parser. It is
+	// represented by the %token directive in FISHI source code.
 	TokenOptToken
+
+	// TokenOptHuman is a token option type that gives the human readable name
+	// for a lexed token. It is represented by the %human directive in FISHI
+	// source code.
 	TokenOptHuman
+
+	// TokenOptPriority is a token option type indicating that a pattern should
+	// be treated as a certain priority by the lexer. It is represented by the
+	// %priority directive in FISHI source code.
 	TokenOptPriority
 )
 
+// TokenOption is a directive associated with a pattern in a %%tokens block of a
+// FISHI spec.
 type TokenOption struct {
-	Type  TokenOptionType
+	// Type is the type of the TokenOption.
+	Type TokenOptionType
+
+	// Value is the string value of the option as lexed from a FISHI spec. Only
+	// certain types of TokenOptions will have a value; for types that do not
+	// accept a value, Value will be the empty string.
 	Value string
 
+	// Src is the token that represents this TokenOption as lexed from a FISHI
+	// spec.
 	Src types.Token
 }
 
+// TokenEntry is a single full entry from a %%tokens block of a FISHI spec. It
+// includes the pattern for the lexer to recognize as well as options indicating
+// what the lexer should do once that pattern is matched.
 type TokenEntry struct {
-	Pattern  string
-	Discard  bool
-	Shift    string
-	Token    string
-	Human    string
+
+	// Pattern is the pattern that the lexer must recognize before performing
+	// the actions indicated by the options associated with that pattern.
+	Pattern string
+
+	// Discard is true if the entry contains a %discard directive.
+	Discard bool
+
+	// Shift is set to the value of the %stateshift directive in the entry. If
+	// the entry does not contain one, Shift will be an empty string.
+	Shift string
+
+	// Token is set to the value of the %token directive in the entry. If the
+	// entry does not contain one, Token will be an empty string.
+	Token string
+
+	// Human is set to the value of the %human directive in the entry. If the
+	// entry does not contain one, Human will be an empty string.
+	Human string
+
+	// Priority is set to the value of the %priority directive in the entry. If
+	// the entry does not contain one, Priority will be 0, although note that
+	// this cannot be distinguished from a %priority directive set to 0 without
+	// also consulting SrcPriority.
 	Priority int
 
+	// Src is the first token that represents a part of this TokenEntry as lexed
+	// from a FISHI spec.
 	Src types.Token
 
-	// in theory may be multiple options for the same option type; while it
-	// is not allowed semantically, it is allowed syntactically, so track it so
-	// we can do proper error reporting later.
-	SrcDiscard  []types.Token
-	SrcShift    []types.Token
-	SrcToken    []types.Token
-	SrcHuman    []types.Token
+	// SrcDiscard is all first tokens of any %discard directives that are a part
+	// of this TokenEntry as lexed from a FISHI spec.
+	SrcDiscard []types.Token
+
+	// SrcShift is all first tokens of any %stateshift directives that are a
+	// part of this TokenEntry as lexed from a FISHI spec.
+	SrcShift []types.Token
+
+	// SrcToken is all first tokens of any %token directives that are a part of
+	// this TokenEntry as lexed from a FISHI spec.
+	SrcToken []types.Token
+
+	// SrcHuman is all first tokens of any %human directives that are a part of
+	// this TokenEntry as lexed from a FISHI spec.
+	SrcHuman []types.Token
+
+	// SrcPriority is all first tokens of any %priority directives that are a
+	// part of this TokenEntry as lexed from a FISHI spec.
 	SrcPriority []types.Token
 
 	// (don't need a patternTok because that pattern is the first symbol and
 	// there can only be one; tok will be the same as patternTok)
 }
 
+// String returns a string representation of the TokenEntry.
 func (entry TokenEntry) String() string {
 	var sb strings.Builder
 
@@ -277,24 +413,45 @@ func (entry TokenEntry) String() string {
 	return sb.String()
 }
 
+// GrammarRule is a single complete grammar rule from a %%grammar block of a
+// FISHI spec. It includes the non-terminal symbol at the head of the rule, and
+// one or more productions that can be derived from that non-terminal.
 type GrammarRule struct {
+
+	// Rule holds the non-terminal and all productions parsed for this
+	// GrammarRule.
 	Rule grammar.Rule
 
+	// Src is the first token that represents a part of this GrammarRule as
+	// lexed from a FISHI spec.
 	Src types.Token
 }
 
+// String returns a string representation of the GrammarRule.
 func (agr GrammarRule) String() string {
 	return agr.Rule.String()
 }
 
+// TokensContent is a series of token entries grouped with the lexer state they
+// are used in from a %%tokens section of a FISHI spec.
 type TokensContent struct {
+	// Entries is the token entries for the lexer state.
 	Entries []TokenEntry
-	State   string
 
-	Src      types.Token
+	// State is the lexer state that the Entries are defined for.
+	State string
+
+	// Src is the first token that represents a part of this TokensContent as
+	// lexed from a FISHI spec.
+	Src types.Token
+
+	// SrcState is the first token that represents a part of the %state
+	// directive that defines the state that this TokensContent is for. If it is
+	// for the default state, this will be nil.
 	SrcState types.Token
 }
 
+// String returns a string representation of the TokensContent.
 func (content TokensContent) String() string {
 	if len(content.Entries) > 0 {
 		return fmt.Sprintf("(State: %q, Entries: %v)", content.State, content.Entries)
@@ -303,14 +460,30 @@ func (content TokensContent) String() string {
 	}
 }
 
+// GrammarContent is a series of grammar rules grouped with the state they are
+// used in from a %%grammar section of a FISHI spec. Note that multiple states
+// for a grammar are not supported, so State will always be the empty string.
 type GrammarContent struct {
+
+	// Rules is the rules in the GrammarContent.
 	Rules []GrammarRule
+
+	// State is the state that the rules apply to. It will always be the empty
+	// string.
 	State string
 
-	Src      types.Token
+	// Src is the first token that represents a part of this GrammarContent as
+	// lexed from a FISHI spec.
+	Src types.Token
+
+	// SrcState is the first token that represents a part of the %state
+	// directive that defines the state that this GrammarContent is for. As
+	// states for grammar sections other than the default are not supported,
+	// this will always be nil.
 	SrcState types.Token
 }
 
+// String returns a string representation of the GrammarContent.
 func (content GrammarContent) String() string {
 	if len(content.Rules) > 0 {
 		return fmt.Sprintf("(State: %q, Rules: %v)", content.State, content.Rules)
@@ -319,14 +492,31 @@ func (content GrammarContent) String() string {
 	}
 }
 
+// ActionsContent is a series of syntax-directed translation actions grouped
+// with the state they are used in from an %%actions section of a FISHI spec.
+// Note that multiple for a syntax-directed translation scheme are not
+// supported, so State will always be the empty string.
 type ActionsContent struct {
+	// Actions is a series of SDTS actions that each apply to a given head
+	// symbol of a grammar rule.
 	Actions []SymbolActions
-	State   string
 
-	Src      types.Token
+	// State is the state that the actions apply to. It will always be the empty
+	// string.
+	State string
+
+	// Src is the first token that represents a part of this ActionsContent as
+	// lexed from a FISHI spec.
+	Src types.Token
+
+	// SrcState is the first token that represents a part of the %state
+	// directive that defines the state that this ActionsContent is for. As
+	// states for actions sections other than the default are not supported,
+	// this will always be nil.
 	SrcState types.Token
 }
 
+// String returns a string representation of the ActionsContent.
 func (content ActionsContent) String() string {
 	if len(content.Actions) > 0 {
 		return fmt.Sprintf("(State: %q, Actions: %v)", content.State, content.Actions)
@@ -335,18 +525,48 @@ func (content ActionsContent) String() string {
 	}
 }
 
+// AttrRef is a reference to an attribute of a particular symbol in a grammar
+// rule production. It consists of two parts; the symbol it refers to, and the
+// name of the attribute. An AttrRef has five different ways it may refer to a
+// symbol: The head symbol, the nth symbol in the production, the nth
+// non-terminal symbol in the production, the nth terminal symbol in the
+// production, or the nth instance of a symbol with a particular name in the
+// production (with whether or not the symbol name refers to a terminal
+// explicitly denoted).
 type AttrRef struct {
-	Symbol   string
+	// Symbol is the symbol name included in the AttrRef in a FISHI spec. This
+	// will only be set if the AttrRef refers to a particular symbol by name;
+	// otherwise, Symbol will be set to the empty string.
+	Symbol string
+
+	// Terminal is whether Symbol refers to a terminal symbol.
 	Terminal bool
 
-	Head          bool
-	TermInProd    bool
-	NontermInProd bool
-	SymInProd     bool
+	// Head is whether the AttrRef refers to the Head symbol.
+	Head bool
 
+	// TermInProd is whether the AttrRef refers to the nth terminal symbol in
+	// the production. If true, Occurance is n.
+	TermInProd bool
+
+	// TermInProd is whether the AttrRef refers to the nth non-terminal symbol
+	// in the production. If true, Occurance is n.
+	NontermInProd bool
+
+	// TermInProd is whether the AttrRef refers to the nth symbol in the
+	// production. If true, Occurance is n.
+	SymInProd bool
+
+	// Occurance is the index of the reference, and represents n when the
+	// AttrRef refers to the nth occurance of some criteria. It is not valid if
+	// Head is true.
 	Occurance int
+
+	// Attribute is the name of the attribute being referred to.
 	Attribute string
 
+	// Src is the first token that represents a part of this AttrRef as lexed
+	// from a FISHI spec.
 	Src types.Token
 }
 
@@ -445,6 +665,7 @@ func ParseAttrRef(s string) (AttrRef, error) {
 	}
 }
 
+// String returns a string representation of the AttrRef.
 func (ar AttrRef) String() string {
 	var sb strings.Builder
 
@@ -486,15 +707,32 @@ func (ar AttrRef) String() string {
 	return sb.String()
 }
 
+// SemanticAction is a single syntax-directed action to perform. It takes some
+// arguments from symbols in the grammar rule it is defined on, passes those to
+// a hook function, and assigns the result to the attribute of another symbol
+// in the node in the parse tree it is called on.
 type SemanticAction struct {
-	LHS  AttrRef
+	// LHS is the left-hand side of the action. It is a reference to the
+	// attribute and symbol node it should assign the result of the action to.
+	LHS AttrRef
+
+	// Hook is the name of the hook function to call.
 	Hook string
+
+	// With is references to the attributes whose values should be used as
+	// arguments to the hook function.
 	With []AttrRef
 
+	// Src is the first token that represents the name of the hook as
+	// lexed from a FISHI spec.
 	SrcHook types.Token
-	Src     types.Token
+
+	// Src is the first token that represents a part of this SemanticAction as
+	// lexed from a FISHI spec.
+	Src types.Token
 }
 
+// String returns a string representation of the SemanticAction.
 func (sa SemanticAction) String() string {
 	var sb strings.Builder
 
@@ -514,13 +752,28 @@ func (sa SemanticAction) String() string {
 	return sb.String()
 }
 
+// ProductionAction is a series of syntax-directed definitions defined for a
+// production of a non-terminal symbol.
 type ProductionAction struct {
-	ProdNext    bool
-	ProdIndex   int
+	// ProdNext is whether the production referred to is left unspecified, ergo
+	// is the 'next' production after the last one (or the first production, if
+	// this is the first ProductionAction for the symbol).
+	ProdNext bool
+
+	// ProdIndex is the index of the production within all productions of the
+	// symbol that this action is for.
+	ProdIndex int
+
+	// ProdLiteral is the literal symbols in the production of the symbol that
+	// this action is for.
 	ProdLiteral []string
 
+	// Actions is the actions to perform when the production specified by this
+	// ProductionAction is encountered during syntax-directed translation.
 	Actions []SemanticAction
 
+	// Src is the first token that represents a part of this ProductionAction as
+	// lexed from a FISHI spec.
 	Src types.Token
 
 	// SrcVal is where the production action "value" is set; that is, the index
@@ -528,6 +781,7 @@ type ProductionAction struct {
 	SrcVal types.Token
 }
 
+// String returns a string representation of the ProductionAction.
 func (pa ProductionAction) String() string {
 	var sb strings.Builder
 
@@ -556,14 +810,25 @@ func (pa ProductionAction) String() string {
 	return sb.String()
 }
 
+// SymbolActions is a series of SDTS actions defined for productions of a
+// non-terminal symbol.
 type SymbolActions struct {
-	Symbol  string
+	// Symbol is the non-terminal that the Actions are defined for.
+	Symbol string
+
+	// Actions is the actions for the productions of Symbol.
 	Actions []ProductionAction
 
-	Src    types.Token
+	// Src is the first token that represents a part of this SymbolActions as
+	// lexed from a FISHI spec.
+	Src types.Token
+
+	// SrcSym is the first token that represents a part of the symbol as lexed
+	// from a FISHI spec.
 	SrcSym types.Token
 }
 
+// String returns a string representation of the SymbolActions.
 func (sa SymbolActions) String() string {
 	var sb strings.Builder
 

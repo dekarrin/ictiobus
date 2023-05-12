@@ -14,6 +14,10 @@ import (
 )
 
 var (
+	// HooksTable contains all bindings of STDS hook names to their
+	// implementation functions. It is passed to the compiler frontend
+	// automatically on creation and is used for translating parse trees
+	// returned by the FISHI parser into an [AST].
 	HooksTable = trans.HookMap{
 		"make_fishispec":                           sdtsFnMakeFishispec,
 		"block_list_append":                        sdtsFnBlockListAppend,
