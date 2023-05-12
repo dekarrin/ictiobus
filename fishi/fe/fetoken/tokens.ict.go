@@ -19,58 +19,85 @@ import (
 var (
 	// TCAlt is the token class representing an alternations bar '|' in FISHI.
 	TCAlt = lex.NewTokenClass("alt", "alternations bar '|'")
+
 	// TCAttrRef is the token class representing an attribute reference literal in FISHI.
 	TCAttrRef = lex.NewTokenClass("attr-ref", "attribute reference literal")
+
 	// TCDirDiscard is the token class representing a %discard directive in FISHI.
 	TCDirDiscard = lex.NewTokenClass("dir-discard", "%discard directive")
+
 	// TCDirHook is the token class representing a %hook directive '=' in FISHI.
 	TCDirHook = lex.NewTokenClass("dir-hook", "%hook directive '='")
+
 	// TCDirHuman is the token class representing a %human directive in FISHI.
 	TCDirHuman = lex.NewTokenClass("dir-human", "%human directive")
+
 	// TCDirIndex is the token class representing a %index directive in FISHI.
 	TCDirIndex = lex.NewTokenClass("dir-index", "%index directive")
+
 	// TCDirPriority is the token class representing a %priority directive in FISHI.
 	TCDirPriority = lex.NewTokenClass("dir-priority", "%priority directive")
+
 	// TCDirProd is the token class representing a %prod directive '->' in FISHI.
 	TCDirProd = lex.NewTokenClass("dir-prod", "%prod directive '->'")
+
 	// TCDirSet is the token class representing a %set directive ':' in FISHI.
 	TCDirSet = lex.NewTokenClass("dir-set", "%set directive ':'")
+
 	// TCDirShift is the token class representing a %stateshift directive in FISHI.
 	TCDirShift = lex.NewTokenClass("dir-shift", "%stateshift directive")
+
 	// TCDirState is the token class representing a %state directive in FISHI.
 	TCDirState = lex.NewTokenClass("dir-state", "%state directive")
+
 	// TCDirSymbol is the token class representing a %symbol directive in FISHI.
 	TCDirSymbol = lex.NewTokenClass("dir-symbol", "%symbol directive")
+
 	// TCDirToken is the token class representing a %token directive in FISHI.
 	TCDirToken = lex.NewTokenClass("dir-token", "%token directive")
+
 	// TCDirWith is the token class representing a %with directive '(' in FISHI.
 	TCDirWith = lex.NewTokenClass("dir-with", "%with directive '('")
+
 	// TCEpsilon is the token class representing an epsilon production '{}' in FISHI.
 	TCEpsilon = lex.NewTokenClass("epsilon", "epsilon production '{}'")
+
 	// TCEq is the token class representing a rule production operator '=' in FISHI.
 	TCEq = lex.NewTokenClass("eq", "rule production operator '='")
+
 	// TCEscseq is the token class representing An Escape Sequence in FISHI.
 	TCEscseq = lex.NewTokenClass("escseq", "Escape Sequence")
+
 	// TCFreeformText is the token class representing a freeform text in FISHI.
 	TCFreeformText = lex.NewTokenClass("freeform-text", "freeform text")
+
 	// TCHdrActions is the token class representing a %%actions header in FISHI.
 	TCHdrActions = lex.NewTokenClass("hdr-actions", "%%actions header")
+
 	// TCHdrGrammar is the token class representing a %%grammar header in FISHI.
 	TCHdrGrammar = lex.NewTokenClass("hdr-grammar", "%%grammar header")
+
 	// TCHdrTokens is the token class representing a %%tokens header in FISHI.
 	TCHdrTokens = lex.NewTokenClass("hdr-tokens", "%%tokens header")
+
 	// TCId is the token class representing an identifier in FISHI.
 	TCId = lex.NewTokenClass("id", "identifier")
+
 	// TCInt is the token class representing an integer literal in FISHI.
 	TCInt = lex.NewTokenClass("int", "integer literal")
+
 	// TCNlEscseq is the token class representing an escape sequence after this line in FISHI.
 	TCNlEscseq = lex.NewTokenClass("nl-escseq", "escape sequence after this line")
+
 	// TCNlFreeformText is the token class representing a freeform text after this line in FISHI.
 	TCNlFreeformText = lex.NewTokenClass("nl-freeform-text", "freeform text after this line")
+
 	// TCNlNonterm is the token class representing a non-terminal symbol literal after this line in FISHI.
 	TCNlNonterm = lex.NewTokenClass("nl-nonterm", "non-terminal symbol literal after this line")
+
 	// TCNonterm is the token class representing a non-terminal symbol literal in FISHI.
 	TCNonterm = lex.NewTokenClass("nonterm", "non-terminal symbol literal")
+
 	// TCTerm is the token class representing a terminal symbol literal in FISHI.
 	TCTerm = lex.NewTokenClass("term", "terminal symbol literal")
 )

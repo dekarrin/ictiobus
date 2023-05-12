@@ -1,7 +1,6 @@
 // Package fe contains the frontend for analyzing FISHI
-// code. The function [fe.Frontend()] is the primary
-// entrypoint for callers, and will return a full FISHI frontend ready for
-// immediate use.
+// code. The function [Frontend] is the primary entrypoint for callers, and will
+// return a full FISHI frontend ready for immediate use.
 package fe
 
 /*
@@ -22,8 +21,9 @@ import (
 	"github.com/dekarrin/ictiobus/fishi/syntax"
 )
 
-// FrontendOptions allows options to be set on the frontend returned by
-// Frontend. It allows setting of debug flags and other optional functionality.
+// FrontendOptions allows options to be set on the compiler frontend returned by
+// [Frontend]. It allows setting of debug flags and other optional
+// functionality.
 type FrontendOptions struct {
 
 	// LexerEager is whether the Lexer should immediately read all input the
