@@ -26,6 +26,8 @@ type TokenClass interface {
 
 type simpleTokenClass string
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into class.
+// All of class's fields will be replaced by the fields decoded from data.
 func (class *simpleTokenClass) UnmarshalBinary(data []byte) error {
 	s, _, err := rezi.DecString(data)
 	if err != nil {
@@ -36,6 +38,8 @@ func (class *simpleTokenClass) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// MarshalBinary converts class into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (class *simpleTokenClass) MarshalBinary() ([]byte, error) {
 	return rezi.EncString(string(*class)), nil
 }

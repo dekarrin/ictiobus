@@ -27,6 +27,8 @@ type LR0Item struct {
 	Right []string
 }
 
+// MarshalBinary converts lr0 into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (lr0 LR0Item) MarshalBinary() ([]byte, error) {
 	data := rezi.EncString(lr0.NonTerminal)
 	data = append(data, rezi.EncSliceString(lr0.Left)...)
@@ -35,6 +37,8 @@ func (lr0 LR0Item) MarshalBinary() ([]byte, error) {
 	return data, nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into lr0.
+// All of lr0's fields will be replaced by the fields decoded from data.
 func (lr0 *LR0Item) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
@@ -104,12 +108,16 @@ type LR1Item struct {
 	Lookahead string
 }
 
+// MarshalBinary converts lr1 into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (lr1 LR1Item) MarshalBinary() ([]byte, error) {
 	data := rezi.EncBinary(lr1.LR0Item)
 	data = append(data, rezi.EncString(lr1.Lookahead)...)
 	return data, nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into lr1.
+// All of lr1's fields will be replaced by the fields decoded from data.
 func (lr1 *LR1Item) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int

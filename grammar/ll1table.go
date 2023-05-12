@@ -22,6 +22,8 @@ func NewLL1Table() LL1Table {
 	}
 }
 
+// MarshalBinary converts M into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (M LL1Table) MarshalBinary() ([]byte, error) {
 	var data []byte
 
@@ -50,6 +52,8 @@ func (M LL1Table) MarshalBinary() ([]byte, error) {
 	return data, nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into M. All
+// of M's fields will be replaced by the fields decoded from data.
 func (M *LL1Table) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int

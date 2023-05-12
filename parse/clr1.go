@@ -155,6 +155,8 @@ type canonicalLR1Table struct {
 	allowAmbig bool
 }
 
+// MarshalBinary converts clr1 into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (clr1 *canonicalLR1Table) MarshalBinary() ([]byte, error) {
 	data := rezi.EncBinary(clr1.gPrime)
 	data = append(data, rezi.EncString(clr1.gStart)...)
@@ -184,6 +186,8 @@ func (clr1 *canonicalLR1Table) MarshalBinary() ([]byte, error) {
 	return data, nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into clr1.
+// All of clr1's fields will be replaced by the fields decoded from data.
 func (clr1 *canonicalLR1Table) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int

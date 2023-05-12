@@ -39,12 +39,16 @@ func (ll *ll1Parser) TableString() string {
 	return ll.table.String()
 }
 
+// MarshalBinary converts ll into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (ll *ll1Parser) MarshalBinary() ([]byte, error) {
 	data := rezi.EncBinary(ll.table)
 	data = append(data, rezi.EncBinary(ll.g)...)
 	return data, nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into ll.
+// All of ll's fields will be replaced by the fields decoded from data.
 func (ll *ll1Parser) UnmarshalBinary(data []byte) error {
 	n, err := rezi.DecBinary(data, &ll.table)
 	if err != nil {

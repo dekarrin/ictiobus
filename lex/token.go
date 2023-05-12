@@ -14,6 +14,8 @@ type lexerClass struct {
 	name string
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into lc.
+// All of lc's fields will be replaced by the fields decoded from data.
 func (lc *lexerClass) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
@@ -32,6 +34,8 @@ func (lc *lexerClass) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// MarshalBinary converts lc into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (lc *lexerClass) MarshalBinary() ([]byte, error) {
 	data := rezi.EncString(lc.id)
 	data = append(data, rezi.EncString(lc.name)...)

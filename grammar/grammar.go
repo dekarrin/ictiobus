@@ -53,12 +53,16 @@ type marshaledTokenClass struct {
 	human string
 }
 
+// MarshalBinary converts m into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (m marshaledTokenClass) MarshalBinary() ([]byte, error) {
 	data := rezi.EncString(m.id)
 	data = append(data, rezi.EncString(m.human)...)
 	return data, nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into m. All
+// of m's fields will be replaced by the fields decoded from data.
 func (m *marshaledTokenClass) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
@@ -77,6 +81,8 @@ func (m *marshaledTokenClass) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// MarshalBinary converts g into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (g Grammar) MarshalBinary() ([]byte, error) {
 	data := rezi.EncMapStringToInt(g.rulesByName)
 	rulesData := rezi.EncSliceBinary(g.rules)
@@ -95,6 +101,8 @@ func (g Grammar) MarshalBinary() ([]byte, error) {
 	return data, nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into g. All
+// of g's fields will be replaced by the fields decoded from data.
 func (g *Grammar) UnmarshalBinary(data []byte) error {
 	var n int
 	var err error

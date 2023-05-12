@@ -153,6 +153,8 @@ type slrTable struct {
 	allowAmbig bool
 }
 
+// MarshalBinary converts slr into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (slr *slrTable) MarshalBinary() ([]byte, error) {
 	data := rezi.EncBinary(slr.gPrime)
 	data = append(data, rezi.EncString(slr.gStart)...)
@@ -182,6 +184,8 @@ func (slr *slrTable) MarshalBinary() ([]byte, error) {
 	return data, nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into slr.
+// All of slr's fields will be replaced by the fields decoded from data.
 func (slr *slrTable) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int

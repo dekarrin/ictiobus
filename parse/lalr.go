@@ -150,6 +150,8 @@ type lalr1Table struct {
 	allowAmbig bool
 }
 
+// MarshalBinary converts lalr1 into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (lalr1 *lalr1Table) MarshalBinary() ([]byte, error) {
 	data := rezi.EncBinary(lalr1.gPrime)
 	data = append(data, rezi.EncString(lalr1.gStart)...)
@@ -179,6 +181,8 @@ func (lalr1 *lalr1Table) MarshalBinary() ([]byte, error) {
 	return data, nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into lalr1.
+// All of lalr1's fields will be replaced by the fields decoded from data.
 func (lalr1 *lalr1Table) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int

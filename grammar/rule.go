@@ -127,10 +127,14 @@ func (p Production) HasSymbol(sym string) bool {
 	return slices.In(sym, p)
 }
 
+// MarshalBinary converts p into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (p Production) MarshalBinary() ([]byte, error) {
 	return rezi.EncSliceString([]string(p)), nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into p. All
+// of p's fields will be replaced by the fields decoded from data.
 func (p *Production) UnmarshalBinary(data []byte) error {
 	strSlice, _, err := rezi.DecSliceString(data)
 	if err != nil {
@@ -208,12 +212,16 @@ func ParseRule(r string) (Rule, error) {
 	return parsedRule, nil
 }
 
+// MarshalBinary converts r into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (r Rule) MarshalBinary() ([]byte, error) {
 	data := rezi.EncString(r.NonTerminal)
 	data = append(data, rezi.EncSliceBinary(r.Productions)...)
 	return data, nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into r. All
+// of r's fields will be replaced by the fields decoded from data.
 func (r *Rule) UnmarshalBinary(data []byte) error {
 	var n int
 	var err error
