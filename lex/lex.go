@@ -1,3 +1,4 @@
+// Package lex provides lexing functionality for the ictiobus parser.
 package lex
 
 import (
@@ -27,6 +28,8 @@ type lexerTemplate struct {
 	listener func(types.Token)
 }
 
+// NewLexer creates a new Lexer that performs lexing in a lazy or immediate
+// fashion as specified by lazy.
 func NewLexer(lazy bool) *lexerTemplate {
 	return &lexerTemplate{
 		lazy:       lazy,
@@ -36,6 +39,7 @@ func NewLexer(lazy bool) *lexerTemplate {
 	}
 }
 
+// Lex returns a stream of tokens lexed from the given input.
 func (lx *lexerTemplate) Lex(input io.Reader) (types.TokenStream, error) {
 	if lx.lazy {
 		return lx.LazyLex(input)
@@ -44,21 +48,27 @@ func (lx *lexerTemplate) Lex(input io.Reader) (types.TokenStream, error) {
 	}
 }
 
+// SetStartingState sets the initial state of the lexer. If not set, the
+// starting state will be the default state.
 func (lx *lexerTemplate) SetStartingState(s string) {
 	lx.startState = s
 }
 
+// StartingState returns the initial state of the lexer. If one wasn't set, this
+// will be the default state, "".
 func (lx *lexerTemplate) StartingState() string {
 	return lx.startState
 }
 
+// RegisterTokenListener provides a function to call whenever a new token is
+// lexed. It can be used for debug purposes.
 func (lx *lexerTemplate) RegisterTokenListener(fn func(t types.Token)) {
 	lx.listener = fn
 }
 
-// AddClass adds the given token class to the lexer. This will mark that token
-// class as a lexable token class, and make it available for use in the Action
-// of an AddPattern.
+// RegisterClass adds the given token class to the lexer. This will mark that
+// token class as a lexable token class, and make it available for use in the
+// Action of an AddPattern.
 //
 // If the given token class's ID() returns a string matching one already added,
 // the provided one will replace the existing one.
@@ -72,7 +82,7 @@ func (lx *lexerTemplate) RegisterClass(cl types.TokenClass, forState string) {
 	lx.classes[forState] = stateClasses
 }
 
-// Priority can be 0 for "in order added"
+// AddPattern adds a new pattern and action to take to the lexer.
 func (lx *lexerTemplate) AddPattern(pat string, action Action, forState string, priority int) error {
 	statePatterns, ok := lx.patterns[forState]
 	if !ok {

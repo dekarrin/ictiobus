@@ -11,6 +11,10 @@ type immediateTokenStream struct {
 	cur    int
 }
 
+// ImmediatelyLex returns a token stream that goes through the entire input in
+// the provided reader and lexes all of them, returning them as a TokenStream
+// which will return them one at a time as its Next() function is called. If any
+// lexing errors occur, they will be immediately returned as a non-nil error.
 func (lx *lexerTemplate) ImmediatelyLex(input io.Reader) (types.TokenStream, error) {
 	// an immediate lexer is simply a 'lazy' lexer that just, keeps going. so
 	// make one of those.
@@ -71,6 +75,7 @@ func (lx *immediateTokenStream) HasNext() bool {
 	return lx.Remaining() > 0
 }
 
+// Remaining returns the number of tokens remaining in the token stream.
 func (lx *immediateTokenStream) Remaining() int {
 	return len(lx.tokens) - lx.cur
 }

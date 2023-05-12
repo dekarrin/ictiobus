@@ -54,6 +54,10 @@ type lazyTokenStream struct {
 	listener func(types.Token)
 }
 
+// LazyLex returns a token stream that reads the provided input only as much as
+// it needs to to, preferring to stop once it has lexed a token until the next
+// call to Next(). If any lexing errors occur, they will be returned as an Error
+// token from the stream's Next() method.
 func (lx *lexerTemplate) LazyLex(input io.Reader) (types.TokenStream, error) {
 	active := &lazyTokenStream{
 		r:        NewRegexReader(input),
@@ -101,13 +105,9 @@ func (lx *lexerTemplate) LazyLex(input io.Reader) (types.TokenStream, error) {
 			if i == 0 {
 				continue
 			}
-			for j := range priorityPats[i] {
-				statePats = append(statePats, priorityPats[i][j])
-			}
+			statePats = append(statePats, priorityPats[i]...)
 		}
-		for i := range priorityPats[0] {
-			statePats = append(statePats, priorityPats[0][i])
-		}
+		statePats = append(statePats, priorityPats[0]...)
 
 		var superRegex strings.Builder
 		superRegex.WriteString("^(?:")
