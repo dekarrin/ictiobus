@@ -12,6 +12,7 @@ func Test_ConstructSimpleLRParseTable(t *testing.T) {
 		name      string
 		grammar   string
 		expect    string
+		ambig     bool
 		expectErr bool
 	}{
 		{
@@ -36,6 +37,40 @@ func Test_ConstructSimpleLRParseTable(t *testing.T) {
 10  |  s1                                          s6                 |       3       
 11  |       rE -> E + T  s10          rE -> E + T        rE -> E + T  |               `,
 		},
+		{
+			name: "simple single rule",
+			grammar: `
+				S -> S S + | S S * | a
+			`,
+			expect: `S  |  A:*          A:+          A:A          A:$          |  G:S
+----------------------------------------------------------------
+0  |                            s2                        |  1  
+1  |                            s2           acc          |  3  
+2  |  rS -> a      rS -> a      rS -> a      rS -> a      |     
+3  |  s4           s5           s2                        |  3  
+4  |  rS -> S S *  rS -> S S *  rS -> S S *  rS -> S S *  |     
+5  |  rS -> S S +  rS -> S S +  rS -> S S +  rS -> S S +  |     `,
+		},
+		{
+			name: "Repetition via epsilon production",
+			grammar: `
+				S -> a A | b B ;
+				A -> a A | ε   ;
+				B -> b B | ε   ;
+			`,
+			expect: `S  |  A:A  A:B  A:$        |  G:A  G:B  G:S
+-------------------------------------------
+0  |  s1   s2              |            3  
+1  |  s4        rA -> ε    |  6            
+2  |       s5   rB -> ε    |       7       
+3  |            acc        |               
+4  |  s4        rA -> ε    |  8            
+5  |       s5   rB -> ε    |       9       
+6  |            rS -> a A  |               
+7  |            rS -> b B  |               
+8  |            rA -> a A  |               
+9  |            rB -> b B  |               `,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -45,14 +80,16 @@ func Test_ConstructSimpleLRParseTable(t *testing.T) {
 			g := grammar.MustParse(tc.grammar)
 
 			// execute
-			actual, _, err := constructSimpleLRParseTable(g, false)
+			actual, _, err := constructSimpleLRParseTable(g, tc.ambig)
 
 			// assert
 			if tc.expectErr {
 				assert.Error(err)
 				return
 			}
-			assert.NoError(err)
+			if !assert.NoError(err) {
+				return
+			}
 			assert.Equal(tc.expect, actual.String())
 		})
 	}
@@ -65,6 +102,7 @@ func Test_SLR1Parse(t *testing.T) {
 		grammar   string
 		input     []string
 		expect    string
+		ambig     bool
 		expectErr bool
 	}{
 		{
@@ -73,7 +111,7 @@ func Test_SLR1Parse(t *testing.T) {
 				E -> E + T | T ;
 				T -> T * F | F ;
 				F -> ( E ) | id ;
-				`,
+			`,
 			input: []string{"id", "*", "id", "+", "id", "$"},
 			expect: `( E )
   |---: ( E )
@@ -89,6 +127,24 @@ func Test_SLR1Parse(t *testing.T) {
           \---: ( F )
                   \---: (TERM "id")`,
 		},
+		{
+			name: "Repetition via epsilon production",
+			grammar: `
+				S -> A        ;
+				A -> A B | ε  ;
+				B -> a B | b  ;
+			`,
+			input: []string{"a", "b", "$"},
+			ambig: true,
+			expect: `( S )
+  \---: ( A )
+          |---: ( A )
+          |       \---: (TERM "")
+          \---: ( B )
+                  |---: (TERM "a")
+                  \---: ( B )
+                          \---: (TERM "b")`,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -99,8 +155,11 @@ func Test_SLR1Parse(t *testing.T) {
 			stream := mockTokens(tc.input...)
 
 			// execute
-			parser, _, err := GenerateSimpleLRParser(g, false)
-			assert.NoError(err, "generating SLR parser failed")
+			parser, _, err := GenerateSimpleLRParser(g, tc.ambig)
+			if !assert.NoError(err, "generating SLR parser failed") {
+				return
+			}
+
 			actual, err := parser.Parse(stream)
 
 			// assert
@@ -108,9 +167,11 @@ func Test_SLR1Parse(t *testing.T) {
 				assert.Error(err)
 				return
 			}
-			assert.NoError(err)
-			assert.Equal(tc.expect, actual.String())
+			if !assert.NoError(err) {
+				return
+			}
 
+			assert.Equal(tc.expect, actual.String())
 		})
 	}
 }

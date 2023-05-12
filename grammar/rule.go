@@ -28,7 +28,9 @@ func (p Production) Copy() Production {
 // LR0Items will be blank.
 func (p Production) AllLR0Items() []LR0Item {
 	if p.Equal(Epsilon) {
-		return []LR0Item{}
+		// not a typo: don't return an empty slice of items, return a slice
+		// containing a single empty item ("NonTerminal -> .")
+		return []LR0Item{{}}
 	}
 
 	items := []LR0Item{}

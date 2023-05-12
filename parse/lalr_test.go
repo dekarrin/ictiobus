@@ -14,6 +14,7 @@ func Test_ConstructLALR1ParseTable(t *testing.T) {
 		name      string
 		grammar   string
 		expect    string
+		ambig     bool
 		expectErr bool
 	}{
 		{
@@ -32,6 +33,24 @@ func Test_ConstructLALR1ParseTable(t *testing.T) {
 5  |                        rS -> C C  |          
 6  |                        acc        |          `,
 		},
+		{
+			name: "Repetition via epsilon production",
+			grammar: `
+				S -> A       ;
+				A -> B b     ;
+				B -> B a     ;
+				B -> ε       ;
+			`,
+			ambig: true,
+			expect: `S  |  A:A        A:B        A:$        |  G:A  G:B  G:S
+-------------------------------------------------------
+0  |  rB -> ε    rB -> ε               |  4    1    5  
+1  |  s3         s2                    |               
+2  |                        rA -> B b  |               
+3  |  rB -> B a  rB -> B a             |               
+4  |                        rS -> A    |               
+5  |                        acc        |               `,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -41,14 +60,16 @@ func Test_ConstructLALR1ParseTable(t *testing.T) {
 			g := grammar.MustParse(tc.grammar)
 
 			// execute
-			actual, _, err := constructLALR1ParseTable(g, false)
+			actual, _, err := constructLALR1ParseTable(g, tc.ambig)
 
 			// assert
 			if tc.expectErr {
 				assert.Error(err)
 				return
 			}
-			assert.NoError(err)
+			if !assert.NoError(err) {
+				return
+			}
 			assert.Equal(tc.expect, actual.String())
 		})
 	}
@@ -61,6 +82,7 @@ func Test_LALR1Parse(t *testing.T) {
 		grammar   string
 		input     []string
 		expect    string
+		ambig     bool
 		expectErr bool
 	}{
 		{
@@ -69,7 +91,7 @@ func Test_LALR1Parse(t *testing.T) {
 				E -> E + T | T ;
 				T -> T * F | F ;
 				F -> ( E ) | id ;
-				`,
+			`,
 			input: []string{"(", "id", "+", "id", ")", "*", "id", types.TokenEndOfText.ID()},
 			expect: `( E )
   \---: ( T )
@@ -90,6 +112,24 @@ func Test_LALR1Parse(t *testing.T) {
           \---: ( F )
                   \---: (TERM "id")`,
 		},
+		{
+			name: "Repetition via epsilon production",
+			grammar: `
+				S -> A       ;
+				A -> B b     ;
+				B -> B a     ;
+				B -> ε       ;
+			`,
+			input: []string{"a", "b", "$"},
+			ambig: true,
+			expect: `( S )
+  \---: ( A )
+          |---: ( B )
+          |       |---: ( B )
+          |       |       \---: (TERM "")
+          |       \---: (TERM "a")
+          \---: (TERM "b")`,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -100,8 +140,10 @@ func Test_LALR1Parse(t *testing.T) {
 			stream := mockTokens(tc.input...)
 
 			// execute
-			parser, _, err := GenerateLALR1Parser(g, false)
-			assert.NoError(err, "generating LALR parser failed")
+			parser, _, err := GenerateLALR1Parser(g, tc.ambig)
+			if !assert.NoError(err, "generating LALR parser failed") {
+				return
+			}
 			actual, err := parser.Parse(stream)
 
 			// assert
@@ -109,7 +151,10 @@ func Test_LALR1Parse(t *testing.T) {
 				assert.Error(err)
 				return
 			}
-			assert.NoError(err)
+			if !assert.NoError(err) {
+				return
+			}
+
 			assert.Equal(tc.expect, actual.String())
 
 		})

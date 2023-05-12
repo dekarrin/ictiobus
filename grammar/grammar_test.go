@@ -983,11 +983,10 @@ func Test_Grammar_LeftFactor(t *testing.T) {
 
 func Test_Grammar_FIRST(t *testing.T) {
 	testCases := []struct {
-		name      string
-		terminals []string
-		rules     []string
-		first     string
-		expect    []string
+		name   string
+		g      string
+		first  string
+		expect []string
 	}{
 		{
 			name: "empty grammar",
@@ -996,75 +995,70 @@ func Test_Grammar_FIRST(t *testing.T) {
 			},
 		},
 		{
-			name:      "first and follow sets explained example, T",
-			terminals: []string{"p", "g", "b", "a", "q", "s", "d", "f", "m"},
-			rules: []string{
-				"S -> K L p | g Q K",
-				"K -> b L Q T | ε",
-				"L -> Q a K | Q K | q a",
-				"Q -> d s | ε",
-				"T -> g S f | m",
-			},
+			name: "first and follow sets explained example, T",
+			g: `
+				S -> K L p | g Q K     ;
+				K -> b L Q T | ε       ;
+				L -> Q a K | Q K | q a ;
+				Q -> d s | ε           ;
+				T -> g S f | m         ;
+			`,
 			first: "T",
 			expect: []string{
 				"g", "m",
 			},
 		},
 		{
-			name:      "first and follow sets explained example, Q",
-			terminals: []string{"p", "g", "b", "a", "q", "s", "d", "f", "m"},
-			rules: []string{
-				"S -> K L p | g Q K",
-				"K -> b L Q T | ε",
-				"L -> Q a K | Q K | q a",
-				"Q -> d s | ε",
-				"T -> g S f | m",
-			},
+			name: "first and follow sets explained example, Q",
+			g: `
+				S -> K L p | g Q K     ;
+				K -> b L Q T | ε       ;
+				L -> Q a K | Q K | q a ;
+				Q -> d s | ε           ;
+				T -> g S f | m         ;
+			`,
 			first: "Q",
 			expect: []string{
 				"d", Epsilon[0],
 			},
 		},
 		{
-			name:      "first and follow sets explained example, K",
-			terminals: []string{"p", "g", "b", "a", "q", "s", "d", "f", "m"},
-			rules: []string{
-				"S -> K L p | g Q K",
-				"K -> b L Q T | ε",
-				"L -> Q a K | Q K | q a",
-				"Q -> d s | ε",
-				"T -> g S f | m",
-			},
+			name: "first and follow sets explained example, K",
+			g: `
+				S -> K L p | g Q K     ;
+				K -> b L Q T | ε       ;
+				L -> Q a K | Q K | q a ;
+				Q -> d s | ε           ;
+				T -> g S f | m         ;
+			`,
 			first: "K",
 			expect: []string{
 				"b", Epsilon[0],
 			},
 		},
 		{
-			name:      "first and follow sets explained example, L",
-			terminals: []string{"p", "g", "b", "a", "q", "s", "d", "f", "m"},
-			rules: []string{
-				"S -> K L p | g Q K",
-				"K -> b L Q T | ε",
-				"L -> Q a K | Q K | q a",
-				"Q -> d s | ε",
-				"T -> g S f | m",
-			},
+			name: "first and follow sets explained example, L",
+			g: `
+				S -> K L p | g Q K     ;
+				K -> b L Q T | ε       ;
+				L -> Q a K | Q K | q a ;
+				Q -> d s | ε           ;
+				T -> g S f | m         ;
+			`,
 			first: "L",
 			expect: []string{
 				"d", Epsilon[0], "q", "a", "b",
 			},
 		},
 		{
-			name:      "first and follow sets explained example, S",
-			terminals: []string{"p", "g", "b", "a", "q", "s", "d", "f", "m"},
-			rules: []string{
-				"S -> K L p | g Q K",
-				"K -> b L Q T | ε",
-				"L -> Q a K | Q K | q a",
-				"Q -> d s | ε",
-				"T -> g S f | m",
-			},
+			name: "first and follow sets explained example, S",
+			g: `
+				S -> K L p | g Q K     ;
+				K -> b L Q T | ε       ;
+				L -> Q a K | Q K | q a ;
+				Q -> d s | ε           ;
+				T -> g S f | m         ;
+			`,
 			first: "S",
 			expect: []string{
 				"b", "d", "q", "a", "b", "p", "g",
@@ -1081,7 +1075,7 @@ func Test_Grammar_FIRST(t *testing.T) {
 				expectMap[tc.expect[i]] = true
 			}
 
-			g := setupGrammar(tc.terminals, tc.rules)
+			g := MustParse(tc.g)
 
 			// execute
 			actual := g.FIRST(tc.first)

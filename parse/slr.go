@@ -344,7 +344,13 @@ func (slr *slrTable) String() string {
 				cell = "acc"
 			case LRReduce:
 				// reduces to the state that corresponds with the symbol
-				cell = fmt.Sprintf("r%s -> %s", act.Symbol, act.Production.String())
+				var prodStr string
+				if len(act.Production) > 0 {
+					prodStr = act.Production.String()
+				} else {
+					prodStr = grammar.Epsilon.String()
+				}
+				cell = fmt.Sprintf("r%s -> %s", act.Symbol, prodStr)
 			case LRShift:
 				cell = fmt.Sprintf("s%s", stateRefs[act.State])
 			case LRError:

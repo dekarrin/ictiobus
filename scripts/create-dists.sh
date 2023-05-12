@@ -6,6 +6,9 @@
 # fail immediately on first error
 set -eo pipefail
 
+# assumes we are in a dir called 'scripts' in the repo root:
+cd "$(dirname "$0")/.."
+
 if [ -z "$PLATFORMS" ]
 then
   PLATFORMS="

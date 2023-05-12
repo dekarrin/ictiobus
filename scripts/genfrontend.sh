@@ -7,7 +7,8 @@
 # this with the flag `--dev` to use local ictiobus sources instead of the latest
 # release.
 
-cd "$(dirname "$0")"
+# assumes we are in a dir called 'scripts' in the repo root:
+cd "$(dirname "$0")/.."
 
 if ! [ "$1" = "--yes" ]
 then
@@ -23,7 +24,7 @@ else
 fi
 
 echo "Building current ictcc bin..."
-./build.sh || exit 2
+scripts/build.sh || exit 2
 
 echo "Generating new frontend in fishi/fe..."
 ./ictcc --lalr \
