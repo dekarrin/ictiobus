@@ -1,3 +1,4 @@
+// Package grammar implements context-free grammars and associated constructs.
 package grammar
 
 import (
@@ -43,7 +44,7 @@ type Grammar struct {
 	rules     []Rule
 	terminals map[string]types.TokenClass
 
-	// name of the start symbol. If not set, assumed to be S.
+	// Start is the name of the start symbol. If not set, It is assumed to be S.
 	Start string
 }
 
@@ -186,158 +187,9 @@ func (g Grammar) LR0Items() []LR0Item {
 	return items
 }
 
-// ValidLR1Items returns the sets of valid LR(1) items that would be in each
-// state of a CLR(1) automaton. Note that it is expected that this will be
-// called on an Augmented grammar.
-func (g Grammar) ValidLR1Items() box.SVSet[box.SVSet[LR1Item]] {
-	// since it is assumed the grammar has been augmented, we can take the only
-	// rule for the start symbol.
-	startRule := g.Rule(g.StartSymbol())
-	if len(startRule.Productions) != 1 || len(startRule.Productions[0]) != 1 {
-		panic("not an augmented grammar; call g.Augmented() first")
-	}
-
-	symbols := append(g.NonTerminals(), g.Terminals()...)
-
-	// initialize C to CLOSURE({[S' -> .S, $]})
-	startItem := LR1Item{
-		LR0Item: LR0Item{
-			NonTerminal: g.StartSymbol(),
-			Right:       startRule.Productions[0],
-		},
-		Lookahead: "$",
-	}
-	startSet := box.NewSVSet[LR1Item]()
-	startSet.Set(startItem.String(), startItem)
-
-	C := box.NewSVSet[box.SVSet[LR1Item]]()
-	startSetClosure := g.LR1_CLOSURE(startSet)
-	C.Set(startSetClosure.StringOrdered(), startSetClosure)
-
-	updated := true
-	for updated {
-		updated = false
-
-		for _, Iname := range C.Elements() {
-			I := C.Get(Iname)
-			for _, X := range symbols {
-				gotoSet := g.LR1_GOTO(I, X)
-				if !gotoSet.Empty() && !C.Has(gotoSet.StringOrdered()) {
-					C.Set(gotoSet.StringOrdered(), gotoSet)
-					updated = true
-				}
-			}
-		}
-	}
-
-	return C
-}
-
-// CanonicalLR0Items returns the canonical set of LR(0) items for the grammar,
-// without including the automaton (which may be invalid for non SLR(1)
-// grammars). Note that it is exepcted that this will be called on an Augmented
-// grammar.
-func (g Grammar) CanonicalLR0Items() box.SVSet[box.SVSet[LR0Item]] {
-
-	// since it is assumed the grammar has been augmented, we can take the only
-	// rule for the start symbol.
-	startRule := g.Rule(g.StartSymbol())
-	if len(startRule.Productions) != 1 || len(startRule.Productions[0]) != 1 {
-		panic("not an augmented grammar; call g.Augmented() first")
-	}
-
-	symbols := append(g.NonTerminals(), g.Terminals()...)
-
-	startItem := LR0Item{
-		NonTerminal: g.StartSymbol(),
-		Right:       startRule.Productions[0],
-	}
-	startSet := box.NewSVSet[LR0Item]()
-	startSet.Set(startItem.String(), startItem)
-
-	C := box.NewSVSet[box.SVSet[LR0Item]]()
-	startSetClosure := g.LR0_CLOSURE(startSet)
-	C.Set(startSetClosure.StringOrdered(), startSetClosure)
-
-	updated := true
-	for updated {
-		updated = false
-		for _, Iname := range C.Elements() {
-			I := C.Get(Iname)
-			for _, X := range symbols {
-				gotoSet := g.LR0_GOTO(I, X)
-				if !gotoSet.Empty() && !C.Has(gotoSet.StringOrdered()) {
-					C.Set(gotoSet.StringOrdered(), gotoSet)
-					updated = true
-				}
-			}
-		}
-	}
-
-	return C
-}
-
-func (g Grammar) LR0_CLOSURE(I box.SVSet[LR0Item]) box.SVSet[LR0Item] {
-	J := box.NewSVSet(I)
-
-	updated := true
-	for updated {
-		updated = false
-
-		elems := J.Elements()
-		// for ( each item A -> α.Bβ in J )
-		for _, itemName := range elems {
-			AItem := J.Get(itemName)
-			if len(AItem.Right) >= 1 && AItem.Right[0] != Epsilon[0] {
-				B := AItem.Right[0]
-				ruleB := g.Rule(B)
-				if ruleB.NonTerminal == "" {
-					continue // B has no productions, ergo nothing to add
-				}
-
-				// for ( each production B -> γ of G )
-				for _, gamma := range ruleB.Productions {
-					BItem := LR0Item{
-						NonTerminal: B,
-						Right:       gamma,
-					}
-
-					// If ( B -> .γ is not in J )
-					if !J.Has(BItem.String()) {
-						// add B -> .γ to J
-						J.Set(BItem.String(), BItem)
-						updated = true
-					}
-				}
-			}
-		}
-	}
-
-	return J
-}
-
-// g must be an augmented grammar.
-func (g Grammar) LR0_GOTO(I box.SVSet[LR0Item], X string) box.SVSet[LR0Item] {
-	aXdBSet := box.NewSVSet[LR0Item]()
-	for _, itemName := range I.Elements() {
-		item := I.Get(itemName)
-		if len(item.Right) > 0 && item.Right[0] == X {
-			// [A -> α.Xβ] is in I
-
-			// ...so [A -> αX.β] is in the set to take the closure of
-			newItem := LR0Item{
-				NonTerminal: item.NonTerminal,
-				Left:        append(item.Left, X),
-				Right:       item.Right[1:],
-			}
-
-			aXdBSet.Set(newItem.String(), newItem)
-		}
-	}
-
-	return g.LR0_CLOSURE(aXdBSet)
-}
-
+// LR1_CLOSURE is the closure function used for constructing LR(1) item sets for
+// use in a parser DFA.
+//
 // Note: this actually takes the grammar for each production B -> gamma in G,
 // not G'. It's assumed this function is only called on a g.Augmented()
 // instance.
@@ -396,17 +248,6 @@ func (g Grammar) LR1_CLOSURE(I box.SVSet[LR1Item]) box.SVSet[LR1Item] {
 	return I
 }
 
-// Note: this actually uses the grammar G, not G'. It's assumed this function is
-// only called on a g.Augmented() instance. This has a source in purple dragon
-// book 4.7.2.
-func (g Grammar) LR1_GOTO(I box.SVSet[LR1Item], X string) box.SVSet[LR1Item] {
-	J := box.NewSVSet[LR1Item]()
-	for itemName, item := range I {
-		J.Set(itemName, item)
-	}
-	return g.LR1_CLOSURE(J)
-}
-
 // Copy makes a duplicate deep copy of the grammar.
 func (g Grammar) Copy() Grammar {
 	g2 := Grammar{
@@ -431,6 +272,8 @@ func (g Grammar) Copy() Grammar {
 	return g2
 }
 
+// StartSymbol returns the defined start symbol for the grammar. If one is set
+// in g.Start, that is returned, otherwise "S" is.
 func (g Grammar) StartSymbol() string {
 	if g.Start == "" {
 		return "S"
@@ -439,6 +282,7 @@ func (g Grammar) StartSymbol() string {
 	}
 }
 
+// String returns a string representation of the grammar.
 func (g Grammar) String() string {
 	return fmt.Sprintf("(%q, R=%q)", textfmt.OrderedKeys(g.terminals), g.rules)
 }
@@ -598,8 +442,6 @@ func (g *Grammar) RemoveRule(nonterminal string) {
 //
 // All rules require at least one symbol in the production. For episilon
 // production, give only the empty string.
-//
-// TOOD: disallow dupe prods
 func (g *Grammar) AddRule(nonterminal string, production []string) {
 	if nonterminal == "" {
 		panic("empty nonterminal name not allowed for production rule")
@@ -1822,6 +1664,7 @@ func (g Grammar) recursiveFindFollowSet(X string, prevFollowChecks box.Set[strin
 	return followSet
 }
 
+// MustParse is identical to [Parse] but panics if an error is encountered.
 func MustParse(gr string) Grammar {
 	g, err := Parse(gr)
 	if err != nil {
@@ -1830,6 +1673,14 @@ func MustParse(gr string) Grammar {
 	return g
 }
 
+// Parse parses a 'grammar string' into a Grammar object. The string must have
+// a semicolon between rules, spaces between each symbol, non-terminals must
+// contain at least one upper-case letter. Epsilon "ε" is used for the epsilon
+// production. Example:
+//
+//	S -> A | B ;
+//	A -> a | ε ;
+//	B -> A b | c ;
 func Parse(gr string) (Grammar, error) {
 	lines := strings.Split(gr, ";")
 
@@ -1865,6 +1716,8 @@ func Parse(gr string) (Grammar, error) {
 	return g, nil
 }
 
+// TermFor returns the term used in the grammar to represent the given
+// TokenClass. If tc is not a TokenClass in the grammar, "" is returned.
 func (g Grammar) TermFor(tc types.TokenClass) string {
 	if tc.ID() == types.TokenEndOfText.ID() {
 		return "$"
@@ -1877,6 +1730,7 @@ func (g Grammar) TermFor(tc types.TokenClass) string {
 	return ""
 }
 
+// IsLL1 returns whether the grammar is LL(1).
 func (g Grammar) IsLL1() bool {
 	nts := g.NonTerminals()
 	for _, A := range nts {
@@ -1937,10 +1791,14 @@ func (g Grammar) IsLL1() bool {
 	return true
 }
 
+// FOLLOW is the used to get the FOLLOW set of symbol X for generating various
+// types of parsers.
 func (g Grammar) FOLLOW(X string) box.Set[string] {
 	return g.recursiveFindFollowSet(X, box.NewStringSet())
 }
 
+// FIRST_STRING is identical to FIRST but for a string of symbols rather than
+// just one.
 func (g Grammar) FIRST_STRING(X ...string) box.Set[string] {
 	first := box.NewStringSet()
 	epsilonPresent := false
@@ -1965,6 +1823,7 @@ func (g Grammar) FIRST_STRING(X ...string) box.Set[string] {
 	return first
 }
 
+// FIRST returns the FIRST set of symbol X in the grammar.
 func (g Grammar) FIRST(X string) box.Set[string] {
 	return g.firstSetSafeRecurse(X, box.NewStringSet())
 }

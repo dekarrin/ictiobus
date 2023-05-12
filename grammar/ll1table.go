@@ -87,10 +87,12 @@ func (M *LL1Table) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// Set sets the production to use given symbol A and input symbol a.
 func (M LL1Table) Set(A string, a string, alpha Production) {
 	M.d.Set(A, a, alpha)
 }
 
+// String returns the string representation of the LL1Table.
 func (M LL1Table) String() string {
 	data := [][]string{}
 

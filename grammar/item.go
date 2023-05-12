@@ -8,10 +8,23 @@ import (
 	"github.com/dekarrin/ictiobus/internal/rezi"
 )
 
+// LR0Item is an LR(0) item from a grammar. This is an object used for
+// generating handle recognition systems for bottom-up parsers. Each LR0Item
+// has a NonTerminal of the rule it relates to, and a left and right side of
+// a dot. The dot denotes handle recognition; all symbols on the left have been
+// seen, and all symbols on the right have yet to be seen.
 type LR0Item struct {
+	// NonTerminal is the symbol at the head of the grammar rule that this item
+	// is for.
 	NonTerminal string
-	Left        []string
-	Right       []string
+
+	// Left is all symbols in the production of the rule that are to the left of
+	// the dot.
+	Left []string
+
+	// Right is all symbols in the production of the rule that are to the right
+	// of the dot.
+	Right []string
 }
 
 func (lr0 LR0Item) MarshalBinary() ([]byte, error) {
@@ -46,6 +59,8 @@ func (lr0 *LR0Item) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// Equal returns whether the given LR0Item is equal to another LR0Item or
+// *LR0Item.
 func (lr0 LR0Item) Equal(o any) bool {
 	other, ok := o.(LR0Item)
 	if !ok {
@@ -82,6 +97,8 @@ func (lr0 LR0Item) Equal(o any) bool {
 	return true
 }
 
+// LR1Item is an LR(1) item from a grammar. This is the same as an LR0Item, but
+// with a Lookahead symbol that determines when the item can be used.
 type LR1Item struct {
 	LR0Item
 	Lookahead string
@@ -111,10 +128,8 @@ func (lr1 *LR1Item) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func EqualCoreSets(s1, s2 box.VSet[string, LR1Item]) bool {
-	return CoreSet(s1).Equal(CoreSet(s2))
-}
-
+// CoreSet returns the set of cores in a set of LR1 items. A core of an LR1 item
+// is simply the LR0 portion of it.
 func CoreSet(s box.VSet[string, LR1Item]) box.SVSet[LR0Item] {
 	cores := box.NewSVSet[LR0Item]()
 	for _, elem := range s.Elements() {
@@ -125,6 +140,8 @@ func CoreSet(s box.VSet[string, LR1Item]) box.SVSet[LR0Item] {
 	return cores
 }
 
+// Equal returns whether the given LR0Item is equal to another LR1Item or
+// *LR1Item.
 func (lr1 LR1Item) Equal(o any) bool {
 	other, ok := o.(LR1Item)
 	if !ok {
@@ -147,6 +164,7 @@ func (lr1 LR1Item) Equal(o any) bool {
 	return true
 }
 
+// Copy returns a deep copy of the LR1Item.
 func (lr1 LR1Item) Copy() LR1Item {
 	lrCopy := LR1Item{}
 	lrCopy.NonTerminal = lr1.NonTerminal
@@ -159,6 +177,8 @@ func (lr1 LR1Item) Copy() LR1Item {
 	return lrCopy
 }
 
+// MustParseLR0Item is identical to ]ParseLR0Item], but panics if any parse
+// error occurs.
 func MustParseLR0Item(s string) LR0Item {
 	i, err := ParseLR0Item(s)
 	if err != nil {
@@ -167,6 +187,8 @@ func MustParseLR0Item(s string) LR0Item {
 	return i
 }
 
+// MustParseLR1Item is identical to [ParseLR1Item], but panics if any parse
+// error occurs.
 func MustParseLR1Item(s string) LR1Item {
 	i, err := ParseLR1Item(s)
 	if err != nil {
@@ -175,6 +197,8 @@ func MustParseLR1Item(s string) LR1Item {
 	return i
 }
 
+// ParseLR1Item parses a string of the form "NONTERM -> ALPHA.BETA" into an
+// LR0Item.
 func ParseLR0Item(s string) (LR0Item, error) {
 	sides := strings.Split(s, "->")
 	if len(sides) != 2 {
@@ -240,6 +264,8 @@ func ParseLR0Item(s string) (LR0Item, error) {
 	return parsedItem, nil
 }
 
+// ParseLR1Item parses a string of the form "NONTERM -> ALPHA.BETA, LOOKAHEAD"
+// into an LR1Item.
 func ParseLR1Item(s string) (LR1Item, error) {
 	sides := strings.Split(s, ",")
 	if len(sides) != 2 {
@@ -258,6 +284,7 @@ func ParseLR1Item(s string) (LR1Item, error) {
 	return item, nil
 }
 
+// String returns the string representation of an LR0 Item.
 func (item LR0Item) String() string {
 	nonTermPhrase := ""
 	if item.NonTerminal != "" {
@@ -277,6 +304,7 @@ func (item LR0Item) String() string {
 	return fmt.Sprintf("%s%s.%s", nonTermPhrase, left, right)
 }
 
+// String returns the string representation of an LR1 Item.
 func (item LR1Item) String() string {
 	return fmt.Sprintf("%s, %s", item.LR0Item.String(), item.Lookahead)
 }

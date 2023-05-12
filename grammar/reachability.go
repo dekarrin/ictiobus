@@ -5,6 +5,10 @@ import (
 	"github.com/dekarrin/ictiobus/internal/slices"
 )
 
+// ReachableFrom returns whether the symbol end can be derived from symbol start
+// with any combination of derivations. Returns whether it can be reached, and
+// if it can, additional returns a set of box.Pairs that represent derivations
+// that ultimately end up at end.
 func (g Grammar) ReachableFrom(start string, end string) (bool, []box.Pair[string, Production]) {
 	if !g.IsNonTerminal(start) {
 		return false, nil
