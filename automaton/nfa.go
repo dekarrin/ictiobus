@@ -18,18 +18,18 @@ import (
 // required for the NFA to function.
 type NFA[E any] struct {
 	order  uint64
-	states map[string]NFAState[E]
+	states map[string]nfaState[E]
 
 	// Start is the starting state of the NFA.
 	Start string
 }
 
-// NFATransitionTo holds a transition from one state to another in an NFA. It
+// nfaTransitionTo holds a transition from one state to another in an NFA. It
 // holds info on the state the transition is from, the input it transitions on,
 // and its priority within the transition table of the state it comes from.
 // Priority matters because in an NFA, there could be two different transitions
 // using the same input.
-type NFATransitionTo struct {
+type nfaTransitionTo struct {
 	from  string
 	input string
 	index int
@@ -49,13 +49,13 @@ func (nfa NFA[E]) AcceptingStates() box.StringSet {
 }
 
 // AllTransitionsTo gets all transitions to the given state.
-func (nfa NFA[E]) AllTransitionsTo(toState string) []NFATransitionTo {
+func (nfa NFA[E]) AllTransitionsTo(toState string) []nfaTransitionTo {
 	if _, ok := nfa.states[toState]; !ok {
 		// Gr8! We are done.
-		return []NFATransitionTo{}
+		return []nfaTransitionTo{}
 	}
 
-	transitions := []NFATransitionTo{}
+	transitions := []nfaTransitionTo{}
 
 	s := nfa.States()
 
@@ -64,7 +64,7 @@ func (nfa NFA[E]) AllTransitionsTo(toState string) []NFATransitionTo {
 		for k := range state.transitions {
 			for i := range state.transitions[k] {
 				if state.transitions[k][i].next == toState {
-					trans := NFATransitionTo{
+					trans := nfaTransitionTo{
 						from:  sName,
 						input: k,
 						index: i,
@@ -82,7 +82,7 @@ func (nfa NFA[E]) AllTransitionsTo(toState string) []NFATransitionTo {
 func (nfa NFA[E]) Copy() NFA[E] {
 	copied := NFA[E]{
 		Start:  nfa.Start,
-		states: make(map[string]NFAState[E]),
+		states: make(map[string]nfaState[E]),
 		order:  nfa.order,
 	}
 
@@ -111,7 +111,7 @@ func (nfa NFA[E]) States() box.StringSet {
 func (nfa NFA[E]) ToDFA() DFA[box.SVSet[E]] {
 	inputSymbols := nfa.InputSymbols()
 
-	Dstart := nfa.EpsilonClosure(nfa.Start)
+	Dstart := nfa.epsilonClosure(nfa.Start)
 
 	markedStates := box.NewStringSet()
 	Dstates := map[string]box.StringSet{}
@@ -121,7 +121,7 @@ func (nfa NFA[E]) ToDFA() DFA[box.SVSet[E]] {
 	// our implement8ion of DFAs, which is also where transition function info
 	// and acceptance info is stored.
 	dfa := DFA[box.SVSet[E]]{
-		states: map[string]DFAState[box.SVSet[E]]{},
+		states: map[string]dfaState[box.SVSet[E]]{},
 	}
 
 	// initially, ε-closure(s₀) is the only state in Dstates, and it is unmarked
@@ -152,7 +152,7 @@ func (nfa NFA[E]) ToDFA() DFA[box.SVSet[E]] {
 				stateValues.Set(nfaStateName, val)
 			}
 
-			newDFAState := DFAState[box.SVSet[E]]{name: Tname, value: stateValues, transitions: map[string]FATransition{}}
+			newDFAState := dfaState[box.SVSet[E]]{name: Tname, value: stateValues, transitions: map[string]faTransition{}}
 
 			if T.Any(func(v string) bool {
 				return nfa.states[v].accepting
@@ -167,7 +167,7 @@ func (nfa NFA[E]) ToDFA() DFA[box.SVSet[E]] {
 					continue
 				}
 
-				U := nfa.EpsilonClosureOfSet(nfa.MOVE(T, a))
+				U := nfa.epsilonClosureOfSet(nfa.moveSet(T, a))
 
 				// if its not a symbol that the state can transition on, U will
 				// be empty, skip it
@@ -183,7 +183,7 @@ func (nfa NFA[E]) ToDFA() DFA[box.SVSet[E]] {
 				}
 
 				// Dtran[T, a] = U
-				newDFAState.transitions[a] = FATransition{input: a, next: U.StringOrdered()}
+				newDFAState.transitions[a] = faTransition{input: a, next: U.StringOrdered()}
 			}
 
 			// add it to our working DFA states as well
@@ -217,10 +217,10 @@ func (nfa NFA[E]) InputSymbols() box.StringSet {
 	return symbols
 }
 
-// MOVE returns the set of states reachable with one transition from some state
-// in X on input a. Purple dragon book calls this function MOVE(T, a) and it is
+// moveSet returns the set of states reachable with one transition from some state
+// in X on input a. Purple dragon book calls this function moveSet(T, a) and it is
 // on page 153 as part of algorithm 3.20.
-func (nfa NFA[E]) MOVE(X box.Set[string], a string) box.StringSet {
+func (nfa NFA[E]) moveSet(X box.Set[string], a string) box.StringSet {
 	moves := box.NewStringSet()
 
 	for _, s := range X.Elements() {
@@ -247,7 +247,7 @@ func (nfa NFA[E]) MOVE(X box.Set[string], a string) box.StringSet {
 func directNFAToDFA[E any](nfa NFA[E]) (DFA[E], error) {
 	dfa := DFA[E]{
 		Start:  nfa.Start,
-		states: map[string]DFAState[E]{},
+		states: map[string]dfaState[E]{},
 	}
 
 	nfaNames := textfmt.OrderedKeys(nfa.states)
@@ -255,11 +255,11 @@ func directNFAToDFA[E any](nfa NFA[E]) (DFA[E], error) {
 	for _, sName := range nfaNames {
 		nState := nfa.states[sName]
 
-		dState := DFAState[E]{
+		dState := dfaState[E]{
 			ordering:    nState.ordering,
 			name:        nState.name,
 			value:       nState.value,
-			transitions: map[string]FATransition{},
+			transitions: map[string]faTransition{},
 			accepting:   nState.accepting,
 		}
 
@@ -274,7 +274,7 @@ func directNFAToDFA[E any](nfa NFA[E]) (DFA[E], error) {
 				if goesTo == "" {
 					// first time we are seeing this, set it now
 					goesTo = nTransList[i].next
-					dState.transitions[sym] = FATransition{
+					dState.transitions[sym] = faTransition{
 						input: sym,
 						next:  nTransList[i].next,
 					}
@@ -294,29 +294,29 @@ func directNFAToDFA[E any](nfa NFA[E]) (DFA[E], error) {
 	return dfa, nil
 }
 
-// EpsilonClosureOfSet gives the set of states reachable from some state in
+// epsilonClosureOfSet gives the set of states reachable from some state in
 // X using one or more ε-moves.
-func (nfa NFA[E]) EpsilonClosureOfSet(X box.Set[string]) box.StringSet {
+func (nfa NFA[E]) epsilonClosureOfSet(X box.Set[string]) box.StringSet {
 	allClosures := box.NewStringSet()
 
 	for _, s := range X.Elements() {
-		closures := nfa.EpsilonClosure(s)
+		closures := nfa.epsilonClosure(s)
 		allClosures.AddAll(closures)
 	}
 
 	return allClosures
 }
 
-// EpsilonClosure gives the set of states reachable from state using one or more
+// epsilonClosure gives the set of states reachable from state using one or more
 // ε-moves.
-func (nfa NFA[E]) EpsilonClosure(s string) box.StringSet {
+func (nfa NFA[E]) epsilonClosure(s string) box.StringSet {
 	stateItem, ok := nfa.states[s]
 	if !ok {
 		return nil
 	}
 
 	closure := box.NewStringSet()
-	checkingStates := &box.Stack[NFAState[E]]{}
+	checkingStates := &box.Stack[nfaState[E]]{}
 	checkingStates.Push(stateItem)
 
 	for checkingStates.Len() > 0 {
@@ -471,7 +471,7 @@ func (nfa *NFA[E]) NumberStates() {
 	// states map.
 
 	newNfa := NFA[E]{
-		states: make(map[string]NFAState[E]),
+		states: make(map[string]nfaState[E]),
 		Start:  numMapping[nfa.Start],
 	}
 
@@ -540,7 +540,7 @@ func (nfa NFA[E]) Join(other NFA[E], fromToOther [][3]string, otherToFrom [][3]s
 	}
 
 	joined := NFA[E]{
-		states: make(map[string]NFAState[E]),
+		states: make(map[string]nfaState[E]),
 		Start:  "1:" + nfa.Start,
 	}
 
@@ -642,16 +642,16 @@ func (nfa *NFA[E]) AddState(state string, accepting bool) {
 		return
 	}
 
-	newState := NFAState[E]{
+	newState := nfaState[E]{
 		ordering:    nfa.order,
 		name:        state,
-		transitions: make(map[string][]FATransition),
+		transitions: make(map[string][]faTransition),
 		accepting:   accepting,
 	}
 	nfa.order++
 
 	if nfa.states == nil {
-		nfa.states = map[string]NFAState[E]{}
+		nfa.states = map[string]nfaState[E]{}
 	}
 
 	nfa.states[state] = newState
@@ -695,10 +695,10 @@ func (nfa *NFA[E]) AddTransition(fromState string, input string, toState string)
 
 	curInputTransitions, ok := curFromState.transitions[input]
 	if !ok {
-		curInputTransitions = make([]FATransition, 0)
+		curInputTransitions = make([]faTransition, 0)
 	}
 
-	newTransition := FATransition{
+	newTransition := faTransition{
 		input: input,
 		next:  toState,
 	}

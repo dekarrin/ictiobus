@@ -29,7 +29,7 @@ func Test_DFA_MarshalUnmarshalBinary(t *testing.T) {
 			input: DFA[dummy]{
 				order: 285039842,
 				Start: "Feferi Peixes",
-				states: map[string]DFAState[dummy]{
+				states: map[string]dfaState[dummy]{
 					"Nepeta Leijon": {
 						ordering: 28921,
 						name:     "bizarrely long name",
@@ -37,7 +37,7 @@ func Test_DFA_MarshalUnmarshalBinary(t *testing.T) {
 							val1: "nepeta leijon",
 							val2: 88888888,
 						},
-						transitions: map[string]FATransition{
+						transitions: map[string]faTransition{
 							"a": {input: "a", next: "b"},
 						},
 						accepting: true,
@@ -49,7 +49,7 @@ func Test_DFA_MarshalUnmarshalBinary(t *testing.T) {
 							val1: "feferi peixes",
 							val2: 6188,
 						},
-						transitions: map[string]FATransition{},
+						transitions: map[string]faTransition{},
 					},
 					"Karkat Vantas": {
 						ordering: 612,
@@ -58,7 +58,7 @@ func Test_DFA_MarshalUnmarshalBinary(t *testing.T) {
 							val1: "karkat vantas",
 							val2: 8888,
 						},
-						transitions: map[string]FATransition{
+						transitions: map[string]faTransition{
 							"a": {input: "a", next: "Feferi Peixes"},
 							"b": {input: "b", next: "Nepeta Leijon"},
 						},

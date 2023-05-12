@@ -22,7 +22,7 @@ import (
 // the DFA to function.
 type DFA[E any] struct {
 	order  uint64
-	states map[string]DFAState[E]
+	states map[string]dfaState[E]
 
 	// Start is the starting state of the DFA.
 	Start string
@@ -80,11 +80,11 @@ func UnmarshalDFABytes[E any](data []byte, conv func([]byte) (E, error)) (DFA[E]
 	}
 	data = data[n:]
 	if numStates > -1 {
-		dfa.states = map[string]DFAState[E]{}
+		dfa.states = map[string]dfaState[E]{}
 		for i := 0; i < numStates; i++ {
 			var name string
 			var stateBytesLen int
-			var state DFAState[E]
+			var state dfaState[E]
 
 			name, n, err = rezi.DecString(data)
 			if err != nil {
@@ -98,7 +98,7 @@ func UnmarshalDFABytes[E any](data []byte, conv func([]byte) (E, error)) (DFA[E]
 			}
 			data = data[n:]
 			stateBytes := data[:stateBytesLen]
-			state, err = UnmarshalDFAStateBytes(stateBytes, conv)
+			state, err = unmarshalDFAStateBytes(stateBytes, conv)
 			if err != nil {
 				return dfa, fmt.Errorf(".states[%s]: %w", name, err)
 			}
@@ -117,7 +117,7 @@ func UnmarshalDFABytes[E any](data []byte, conv func([]byte) (E, error)) (DFA[E]
 func (dfa DFA[E]) Copy() DFA[E] {
 	copied := DFA[E]{
 		Start:  dfa.Start,
-		states: make(map[string]DFAState[E]),
+		states: make(map[string]dfaState[E]),
 		order:  dfa.order,
 	}
 
@@ -133,17 +133,17 @@ func (dfa DFA[E]) Copy() DFA[E] {
 // one in a new DFA. The original DFA is not modified.
 func TransformDFA[E1, E2 any](dfa DFA[E1], transform func(old E1) E2) DFA[E2] {
 	copied := DFA[E2]{
-		states: make(map[string]DFAState[E2]),
+		states: make(map[string]dfaState[E2]),
 		Start:  dfa.Start,
 		order:  dfa.order,
 	}
 
 	for k := range dfa.states {
 		oldState := dfa.states[k]
-		copiedState := DFAState[E2]{
+		copiedState := dfaState[E2]{
 			name:        oldState.name,
 			value:       transform(oldState.value),
-			transitions: make(map[string]FATransition),
+			transitions: make(map[string]faTransition),
 			accepting:   oldState.accepting,
 			ordering:    oldState.ordering,
 		}
@@ -165,24 +165,24 @@ func TransformDFA[E1, E2 any](dfa DFA[E1], transform func(old E1) E2) DFA[E2] {
 func DFAToNFA[E any](dfa DFA[E]) NFA[E] {
 	nfa := NFA[E]{
 		Start:  dfa.Start,
-		states: map[string]NFAState[E]{},
+		states: map[string]nfaState[E]{},
 		order:  dfa.order,
 	}
 
 	for sName := range dfa.states {
 		dState := dfa.states[sName]
 
-		nState := NFAState[E]{
+		nState := nfaState[E]{
 			ordering:    dState.ordering,
 			name:        dState.name,
 			value:       dState.value,
-			transitions: map[string][]FATransition{},
+			transitions: map[string][]faTransition{},
 			accepting:   dState.accepting,
 		}
 
 		for sym := range dState.transitions {
 			dTrans := dState.transitions[sym]
-			nState.transitions[sym] = []FATransition{{input: dTrans.input, next: dTrans.next}}
+			nState.transitions[sym] = []faTransition{{input: dTrans.input, next: dTrans.next}}
 		}
 
 		nfa.states[sName] = nState
@@ -231,7 +231,7 @@ func (dfa *DFA[E]) NumberStates() {
 	// states map.
 
 	newDfa := &DFA[E]{
-		states: make(map[string]DFAState[E]),
+		states: make(map[string]dfaState[E]),
 		Start:  numMapping[dfa.Start],
 	}
 
@@ -443,16 +443,16 @@ func (dfa *DFA[E]) AddState(state string, accepting bool) {
 		return
 	}
 
-	newState := DFAState[E]{
+	newState := dfaState[E]{
 		ordering:    dfa.order,
 		name:        state,
-		transitions: make(map[string]FATransition),
+		transitions: make(map[string]faTransition),
 		accepting:   accepting,
 	}
 	dfa.order++
 
 	if dfa.states == nil {
-		dfa.states = map[string]DFAState[E]{}
+		dfa.states = map[string]dfaState[E]{}
 	}
 
 	dfa.states[state] = newState
@@ -500,7 +500,7 @@ func (dfa *DFA[E]) AddTransition(fromState string, input string, toState string)
 		panic(fmt.Sprintf("add transition to non-existent state %q", toState))
 	}
 
-	trans := FATransition{
+	trans := faTransition{
 		input: input,
 		next:  toState,
 	}
@@ -777,7 +777,7 @@ func NewLALR1ViablePrefixDFA(g grammar.Grammar) (DFA[box.SVSet[grammar.LR1Item]]
 						idx := trans.index
 
 						// rewrite the transition to new state
-						lalrNfa.states[from].transitions[sym][idx] = FATransition{input: sym, next: newStateName}
+						lalrNfa.states[from].transitions[sym][idx] = faTransition{input: sym, next: newStateName}
 					}
 
 					// also, check to see if we need to update start
@@ -795,7 +795,7 @@ func NewLALR1ViablePrefixDFA(g grammar.Grammar) (DFA[box.SVSet[grammar.LR1Item]]
 					idx := trans.index
 
 					// rewrite the transition to new state
-					lalrNfa.states[from].transitions[sym][idx] = FATransition{input: sym, next: newStateName}
+					lalrNfa.states[from].transitions[sym][idx] = faTransition{input: sym, next: newStateName}
 				}
 
 				// also, check to see if we need to update start
@@ -813,7 +813,7 @@ func NewLALR1ViablePrefixDFA(g grammar.Grammar) (DFA[box.SVSet[grammar.LR1Item]]
 						transForSym := lostTransitions[sym]
 						destTransForSym, ok := destState.transitions[sym]
 						if !ok {
-							destTransForSym = []FATransition{}
+							destTransForSym = []faTransition{}
 						}
 
 						for j := range transForSym {
@@ -883,7 +883,7 @@ func NewLALR1ViablePrefixDFA(g grammar.Grammar) (DFA[box.SVSet[grammar.LR1Item]]
 				idx := trans.index
 
 				// rewrite the transition to new state
-				lalrNfa.states[from].transitions[sym][idx] = FATransition{input: sym, next: newStateName}
+				lalrNfa.states[from].transitions[sym][idx] = faTransition{input: sym, next: newStateName}
 			}
 
 			// also, check to see if we need to update start
@@ -924,7 +924,7 @@ func NewLR1ViablePrefixDFA(g grammar.Grammar) DFA[box.SVSet[grammar.LR1Item]] {
 
 	stateSets := box.NewSVSet[box.SVSet[grammar.LR1Item]]()
 	stateSets.Set(startSet.StringOrdered(), startSet)
-	transitions := map[string]map[string]FATransition{}
+	transitions := map[string]map[string]faTransition{}
 
 	// following algo from http://www.cs.ecu.edu/karl/5220/spr16/Notes/Bottom-up/lr1.html
 	updates := true
@@ -973,11 +973,11 @@ func NewLR1ViablePrefixDFA(g grammar.Grammar) DFA[box.SVSet[grammar.LR1Item]] {
 				// add to transitions if not already in it
 				stateTransitions, ok := transitions[I.StringOrdered()]
 				if !ok {
-					stateTransitions = map[string]FATransition{}
+					stateTransitions = map[string]faTransition{}
 				}
 				trans, ok := stateTransitions[s]
 				if !ok {
-					trans = FATransition{}
+					trans = faTransition{}
 				}
 				if trans.next != newSet.StringOrdered() {
 					updates = true

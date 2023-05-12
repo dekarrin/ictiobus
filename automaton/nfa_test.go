@@ -250,7 +250,7 @@ func Test_NFA_EpsilonClosure(t *testing.T) {
 			expectSet := box.StringSetOf(tc.expect)
 
 			// execute
-			actual := nfa.EpsilonClosure(tc.forState)
+			actual := nfa.epsilonClosure(tc.forState)
 
 			// assert
 			assert.True(actual.Equal(expectSet))
