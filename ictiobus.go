@@ -43,14 +43,41 @@ type Lexer interface {
 	// the callers of the returned TokenStream at the point where the error
 	// occured.
 	Lex(input io.Reader) (types.TokenStream, error)
+
+	// RegisterClass registers a token class for use in some state of the Lexer.
+	// Token classes must be registered before they can be used.
 	RegisterClass(cl types.TokenClass, forState string)
+
+	// AddPattern adds a new pattern for the lexer to recognize.
 	AddPattern(pat string, action lex.Action, forState string, priority int) error
 
+	// FakeLexemeProducer returns a map of token IDs to functions that will produce
+	// a lexable value for that ID. As some token classes may have multiple ways of
+	// lexing depending on the state, either state must be selected or combine must
+	// be set to true.
+	//
+	// If combine is true, then state is ignored and all states' regexes for that ID
+	// are combined into a single function that will alternate between them. If
+	// combine is false, then state must be set and only the regexes for that state
+	// are used to produce a lexable value.
+	//
+	// This can be useful for testing but may not produce useful values for all
+	// token classes, especially those that have particularly complicated lexing
+	// rules. If a caller finds that one of the functions in the map produced by
+	// FakeLexemeProducer does not produce a lexable value, then it can be replaced
+	// manually by replacing that entry in the map with a custom function.
 	FakeLexemeProducer(combine bool, state string) map[string]func() string
 
+	// SetStartingState sets the initial state of the lexer. If not set, the
+	// starting state will be the default state.
 	SetStartingState(s string)
+
+	// StartingState returns the initial state of the lexer. If one wasn't set, this
+	// will be the default state, "".
 	StartingState() string
 
+	// RegisterTokenListener provides a function to call whenever a new token is
+	// lexed. It can be used for debug purposes.
 	RegisterTokenListener(func(t types.Token))
 }
 
@@ -159,6 +186,10 @@ type SDTS interface {
 	// defined.
 	Bindings(head string, prod []string) []trans.SDDBinding
 
+	// Bindings returns all bindings defined to apply when at a node in a parse
+	// tree created by the rule production with head as its head symbol and prod
+	// as its produced symbols, and when setting the attribute referred to by
+	// dest. They will be returned in the order they were defined.
 	BindingsFor(head string, prod []string, dest trans.AttrRef) []trans.SDDBinding
 
 	// Evaluate takes a parse tree and executes the semantic actions defined as
@@ -272,6 +303,7 @@ func SaveParserToDisk(p Parser, filename string) error {
 	return nil
 }
 
+// GetParserFromDisk retrieves the parser from a binary file on disk.
 func GetParserFromDisk(filename string) (Parser, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
