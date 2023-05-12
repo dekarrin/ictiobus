@@ -253,6 +253,9 @@ func PTNode(nt string, children ...*ParseTree) *ParseTree {
 	return pt
 }
 
+// Follow takes a path, denoted as a slice of indexes of children to follow,
+// starting from the ParseTree it is called on, and returns the descendant tree
+// it leads to.
 func (pt ParseTree) Follow(path []int) *ParseTree {
 	cur := &pt
 	for i := range path {
