@@ -12,6 +12,7 @@ func Test_ConstructCanonicalLR1ParseTable(t *testing.T) {
 		name      string
 		grammar   string
 		expect    string
+		ambig     bool
 		expectErr bool
 	}{
 		{
@@ -33,6 +34,25 @@ func Test_ConstructCanonicalLR1ParseTable(t *testing.T) {
 8  |                        rS -> C C  |          
 9  |                        acc        |          `,
 		},
+		{
+
+			name: "Repetition via epsilon production",
+			grammar: `
+				S -> A       ;
+				A -> A B | ε ;
+				B -> a B | b ;
+			`,
+			ambig: true,
+			expect: `S  |  A:A        A:B        A:$        |  G:A  G:B  G:S
+-------------------------------------------------------
+0  |  rA -> ε    rA -> ε    rA -> ε    |  1         6  
+1  |  s3         s5         rS -> A    |       2       
+2  |  rA -> A B  rA -> A B  rA -> A B  |               
+3  |  s3         s5                    |       4       
+4  |  rB -> a B  rB -> a B  rB -> a B  |               
+5  |  rB -> b    rB -> b    rB -> b    |               
+6  |                        acc        |               `,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -42,14 +62,16 @@ func Test_ConstructCanonicalLR1ParseTable(t *testing.T) {
 			g := grammar.MustParse(tc.grammar)
 
 			// execute
-			actual, _, err := constructCanonicalLR1ParseTable(g, false)
+			actual, _, err := constructCanonicalLR1ParseTable(g, tc.ambig)
 
 			// assert
 			if tc.expectErr {
 				assert.Error(err)
 				return
 			}
-			assert.NoError(err)
+			if !assert.NoError(err) {
+				return
+			}
 			assert.Equal(tc.expect, actual.String())
 		})
 	}

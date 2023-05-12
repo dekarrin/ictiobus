@@ -14,6 +14,7 @@ func Test_ConstructLALR1ParseTable(t *testing.T) {
 		name      string
 		grammar   string
 		expect    string
+		ambig     bool
 		expectErr bool
 	}{
 		{
@@ -32,6 +33,24 @@ func Test_ConstructLALR1ParseTable(t *testing.T) {
 5  |                        rS -> C C  |          
 6  |                        acc        |          `,
 		},
+		{
+			name: "Repetition via epsilon production",
+			grammar: `
+				S -> A       ;
+				A -> B b     ;
+				B -> B a     ;
+				B -> ε       ;
+			`,
+			ambig: true,
+			expect: `S  |  A:A        A:B        A:$        |  G:A  G:B  G:S
+-------------------------------------------------------
+0  |  rB -> ε    rB -> ε               |  4    1    5  
+1  |  s3         s2                    |               
+2  |                        rA -> B b  |               
+3  |  rB -> B a  rB -> B a             |               
+4  |                        rS -> A    |               
+5  |                        acc        |               `,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -41,14 +60,16 @@ func Test_ConstructLALR1ParseTable(t *testing.T) {
 			g := grammar.MustParse(tc.grammar)
 
 			// execute
-			actual, _, err := constructLALR1ParseTable(g, false)
+			actual, _, err := constructLALR1ParseTable(g, tc.ambig)
 
 			// assert
 			if tc.expectErr {
 				assert.Error(err)
 				return
 			}
-			assert.NoError(err)
+			if !assert.NoError(err) {
+				return
+			}
 			assert.Equal(tc.expect, actual.String())
 		})
 	}

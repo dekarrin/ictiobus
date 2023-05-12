@@ -12,6 +12,7 @@ func Test_ConstructSimpleLRParseTable(t *testing.T) {
 		name      string
 		grammar   string
 		expect    string
+		ambig     bool
 		expectErr bool
 	}{
 		{
@@ -57,6 +58,18 @@ func Test_ConstructSimpleLRParseTable(t *testing.T) {
 				A -> a A | ε   ;
 				B -> b B | ε   ;
 			`,
+			expect: `S  |  A:A  A:B  A:$        |  G:A  G:B  G:S
+-------------------------------------------
+0  |  s1   s2              |            3  
+1  |  s4        rA -> ε    |  6            
+2  |       s5   rB -> ε    |       7       
+3  |            acc        |               
+4  |  s4        rA -> ε    |  8            
+5  |       s5   rB -> ε    |       9       
+6  |            rS -> a A  |               
+7  |            rS -> b B  |               
+8  |            rA -> a A  |               
+9  |            rB -> b B  |               `,
 		},
 	}
 
@@ -67,14 +80,16 @@ func Test_ConstructSimpleLRParseTable(t *testing.T) {
 			g := grammar.MustParse(tc.grammar)
 
 			// execute
-			actual, _, err := constructSimpleLRParseTable(g, false)
+			actual, _, err := constructSimpleLRParseTable(g, tc.ambig)
 
 			// assert
 			if tc.expectErr {
 				assert.Error(err)
 				return
 			}
-			assert.NoError(err)
+			if !assert.NoError(err) {
+				return
+			}
 			assert.Equal(tc.expect, actual.String())
 		})
 	}
