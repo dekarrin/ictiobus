@@ -497,6 +497,12 @@ func GenerateFrontendGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, pkgI
 
 func createFuncMap() template.FuncMap {
 	return template.FuncMap{
+		"lower": func(s string) string {
+			return strings.ToLower(s)
+		},
+		"upper": func(s string) string {
+			return strings.ToUpper(s)
+		},
 		"upperCamel": safeTCIdentifierName,
 		"quote": func(s string) string {
 			return fmt.Sprintf("%q", s)
@@ -507,6 +513,12 @@ func createFuncMap() template.FuncMap {
 		},
 		"title": func(s string) string {
 			return titleCaser.String(s)
+		},
+		"with_indef_article": func(s string) string {
+			return textfmt.ArticleFor(s, false) + " " + s
+		},
+		"with_def_article": func(s string) string {
+			return textfmt.ArticleFor(s, true) + " " + s
 		},
 	}
 }
