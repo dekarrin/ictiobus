@@ -9,14 +9,26 @@ import (
 	"github.com/dekarrin/rosed"
 )
 
+// WarnHandling is a type of handling that should be used for a particular type
+// of Warning.
 type WarnHandling int
 
 const (
+	// WarnHandlingOutput is the default handling of a warning, and indicates
+	// it should be output as normal.
 	WarnHandlingOutput WarnHandling = iota
+
+	// WarnHandlingSuppress indicates that a warning should be suppressed and
+	// that no action should be taken when it is encountered.
 	WarnHandlingSuppress
+
+	// WarnHandlingFatal indicates that a warning should be treated as a fatal
+	// error, causing immediate termination of the current procedure and
+	// possibly the entire program.
 	WarnHandlingFatal
 )
 
+// String returns the string represtnation of a WarnHandling.
 func (wh WarnHandling) String() string {
 	if wh == WarnHandlingFatal {
 		return "FATAL"

@@ -9,6 +9,7 @@ import (
 
 // File cgstructs.go contains structs used as part of code generation.
 
+// CodegenOptions is options used for code generation.
 type CodegenOptions struct {
 	// DumpPreFormat will dump the generated code before it is formatted.
 	DumpPreFormat bool
@@ -92,6 +93,7 @@ type MainBinaryParams struct {
 	LocalIctiobusSource string
 }
 
+// DiagBinParams are parameters for the generation of diagnostic binaries.
 type DiagBinParams struct {
 	// Parser is the built parser of the frontend to be validated.
 	Parser ictiobus.Parser
@@ -138,6 +140,8 @@ type DiagBinParams struct {
 	BinPath string
 }
 
+// SimulatedInputParams are parameters for simulating input on a generated
+// parser.
 type SimulatedInputParams struct {
 	// Parser is the built parser of the frontend to be validated.
 	Parser ictiobus.Parser
