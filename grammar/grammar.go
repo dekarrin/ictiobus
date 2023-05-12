@@ -1587,7 +1587,7 @@ func (g Grammar) recursiveFindFollowSet(X string, prevFollowChecks box.Set[strin
 
 				// do this for each occurance of X
 				for Xoccurance := 0; Xoccurance < Xcount; Xoccurance++ {
-					alpha := []string{}
+					//alpha := []string{}
 					beta := []string{}
 					var doneWithAlpha bool
 					var Xencounter int
@@ -1602,7 +1602,7 @@ func (g Grammar) recursiveFindFollowSet(X string, prevFollowChecks box.Set[strin
 							}
 						}
 						if !doneWithAlpha {
-							alpha = append(alpha, prod[k])
+							//alpha = append(alpha, prod[k])
 						} else {
 							beta = append(beta, prod[k])
 						}
