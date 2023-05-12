@@ -213,7 +213,7 @@ func NewLazyLexer() Lexer {
 //
 // * LALR(1)
 // * CLR(1)
-// * SLR(1) (not currently attempted due to bugs)
+// * SLR(1)
 // * LL(1)
 //
 // Returns an error if no parser can be generated for the given grammar.
@@ -230,9 +230,9 @@ func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigWarn
 			bigParseGenErr += fmt.Sprintf("\nCLR(1) generation: %s", err.Error())
 
 			// what about an SLR parser?
-			//parser, ambigWarns, err = NewSLRParser(g, allowAmbiguous) lol no SLR(1) currently has an error
+			parser, ambigWarns, err = NewSLRParser(g, allowAmbiguous)
 			if err != nil {
-				//bigParseGenErr += fmt.Sprintf("\nSLR(1) generation: %s", err.Error())
+				bigParseGenErr += fmt.Sprintf("\nSLR(1) generation: %s", err.Error())
 
 				// LL?
 				ambigWarns = nil
