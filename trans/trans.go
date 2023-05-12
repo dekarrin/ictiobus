@@ -1,6 +1,6 @@
-// Package translation holds constructs involved in the final stage of langage
-// processing. It can also serve as an entrypoint with a full-featured
-// translation intepreter engine.
+// Package trans holds constructs involved in the final stage of input analysis.
+// It can also serve as an entrypoint with a full-featured translation
+// intepreter engine.
 package trans
 
 import (
@@ -9,18 +9,23 @@ import (
 	"github.com/dekarrin/ictiobus/types"
 )
 
+// APTNodeID is the type of the built-in '$id' attribute in annotated parse tree
+// nodes.
 type APTNodeID uint64
 
 const (
+	// IDZero is the zero value for an APTNodeID.
 	IDZero APTNodeID = APTNodeID(0)
 )
 
+// String returns the string representation of an APTNodeID.
 func (id APTNodeID) String() string {
 	return fmt.Sprintf("%d", id)
 }
 
-// IDGenerator should not be used directly, use NewIDGenerator. This will
-// generate one that avoids the zero-value of APTNodeID.
+// IDGenerator generates unique APTNodeIDs. It should not be used directly; use
+// [NewIDGenerator], which will create one that avoids the zero-value of
+// APTNodeID.
 type IDGenerator struct {
 	avoidVals []APTNodeID
 	seed      APTNodeID
@@ -28,6 +33,7 @@ type IDGenerator struct {
 	started   bool
 }
 
+// Creates an IDGenerator that begins with the given seed.
 func NewIDGenerator(seed int64) IDGenerator {
 	return IDGenerator{
 		seed:      APTNodeID(seed),
@@ -35,6 +41,7 @@ func NewIDGenerator(seed int64) IDGenerator {
 	}
 }
 
+// Next generates a unique APTNodeID.
 func (idGen *IDGenerator) Next() APTNodeID {
 	var next APTNodeID
 	var valid bool
@@ -61,14 +68,11 @@ func (idGen *IDGenerator) Next() APTNodeID {
 	return next
 }
 
-type AttrName string
-
-func (nan AttrName) String() string {
-	return string(nan)
-}
-
+// NodeAttrs is the type of the attributes map that holds the values of
+// attributes on a node of an annotated parse tree.
 type NodeAttrs map[string]interface{}
 
+// Copy returns a deep copy of a NodeAttrs.
 func (na NodeAttrs) Copy() NodeAttrs {
 	newNa := NodeAttrs{}
 	for k := range na {
@@ -77,14 +81,11 @@ func (na NodeAttrs) Copy() NodeAttrs {
 	return newNa
 }
 
-type NodeValues struct {
-	Attributes NodeAttrs
-
-	Terminal bool
-
-	Symbol string
-}
-
+// SetterInfo is struct passed to all bound hooks in a translation scheme to
+// provide information on what is being set. It includes the grammar symbol of
+// the node it is being set for, the first token of that symbol as it was
+// originally lexed, the name of the attribute that the return value of the hook
+// will be assigned to, and whether the attribute is synthetic.
 type SetterInfo struct {
 	// The name of the grammar symbol of the particular node that the attribute
 	// is being set on.
@@ -100,8 +101,11 @@ type SetterInfo struct {
 	Synthetic bool
 }
 
-// Hook is a setter of an attribute.
+// Hook takes arguments from other attributes in an annotated parse tree and
+// returns a value to set another attribute to. It can return an error if it
+// encounters any issues.
 type Hook func(info SetterInfo, args []interface{}) (interface{}, error)
 
-// HookMap is a mapping of hook names to hook functions.
+// HookMap is a mapping of hook names to hook functions. This is used for
+// defining implementation functions for hooks named in a FISHI specification.
 type HookMap map[string]Hook

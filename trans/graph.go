@@ -258,7 +258,7 @@ func (dg *DirectedGraph[V]) any(predicate func(*DirectedGraph[V]) bool, visited 
 	return false
 }
 
-type DepNode struct {
+type depNode struct {
 	Parent    *AnnotatedParseTree
 	Tree      *AnnotatedParseTree
 	Synthetic bool
@@ -266,13 +266,13 @@ type DepNode struct {
 	NoFlows   []string
 }
 
-func DepGraphString(dg *DirectedGraph[DepNode]) string {
+func depGraphString(dg *DirectedGraph[depNode]) string {
 	nodes := dg.AllNodes()
 	var sb strings.Builder
 
 	sb.WriteRune('(')
 
-	nodes = slices.SortBy(nodes, func(left, right *DirectedGraph[DepNode]) bool {
+	nodes = slices.SortBy(nodes, func(left, right *DirectedGraph[depNode]) bool {
 		return left.Data.Tree.ID() < right.Data.Tree.ID()
 	})
 
@@ -336,7 +336,7 @@ func DepGraphString(dg *DirectedGraph[DepNode]) string {
 // Returns one node from each of the connected sub-graphs of the dependency
 // tree. If the entire dependency graph is connected, there will be only 1 item
 // in the returned slice.
-func DepGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*DirectedGraph[DepNode] {
+func depGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*DirectedGraph[depNode] {
 	type treeAndParent struct {
 		Tree   *AnnotatedParseTree
 		Parent *AnnotatedParseTree
@@ -344,7 +344,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*DirectedGraph[DepNo
 	// no parent set on first node; it's the root
 	treeStack := box.NewStack([]treeAndParent{{Tree: &aptRoot}})
 
-	depNodes := map[APTNodeID]map[string]*DirectedGraph[DepNode]{}
+	depNodes := map[APTNodeID]map[string]*DirectedGraph[depNode]{}
 
 	for treeStack.Len() > 0 {
 		curTreeAndParent := treeStack.Pop()
@@ -373,7 +373,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*DirectedGraph[DepNo
 				targetNodeID := targetNode.ID()
 				targetNodeDepNodes, ok := depNodes[targetNodeID]
 				if !ok {
-					targetNodeDepNodes = map[string]*DirectedGraph[DepNode]{}
+					targetNodeDepNodes = map[string]*DirectedGraph[depNode]{}
 				}
 				targetParent := curParent
 				synthTarget := true
@@ -389,7 +389,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*DirectedGraph[DepNo
 				// specifically, need to address the one for the desired attribute
 				toDepNode, ok := targetNodeDepNodes[binding.Dest.Name]
 				if !ok {
-					toDepNode = &DirectedGraph[DepNode]{Data: DepNode{
+					toDepNode = &DirectedGraph[depNode]{Data: depNode{
 						Parent: targetParent, Tree: targetNode, Dest: binding.Dest, Synthetic: synthTarget, NoFlows: make([]string, len(binding.NoFlows)),
 					}}
 					copy(toDepNode.Data.NoFlows, binding.NoFlows)
@@ -414,7 +414,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*DirectedGraph[DepNo
 				relNodeID := relNode.ID()
 				relNodeDepNodes, ok := depNodes[relNodeID]
 				if !ok {
-					relNodeDepNodes = map[string]*DirectedGraph[DepNode]{}
+					relNodeDepNodes = map[string]*DirectedGraph[depNode]{}
 				}
 				// specifically, need to address the one for the desired attribute
 				fromDepNode, ok := relNodeDepNodes[req.Name]
@@ -424,7 +424,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*DirectedGraph[DepNo
 						// then relNode MUST be a child of curTreeNode
 						relParent = curTree
 					}
-					fromDepNode = &DirectedGraph[DepNode]{Data: DepNode{
+					fromDepNode = &DirectedGraph[depNode]{Data: depNode{
 						// we simply have no idea whether this is a synthetic
 						// attribute or not at this time
 						Parent: relParent, Tree: relNode,
@@ -439,7 +439,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*DirectedGraph[DepNo
 				targetNodeID := targetNode.ID()
 				targetNodeDepNodes, ok := depNodes[targetNodeID]
 				if !ok {
-					targetNodeDepNodes = map[string]*DirectedGraph[DepNode]{}
+					targetNodeDepNodes = map[string]*DirectedGraph[depNode]{}
 				}
 				targetParent := curParent
 				synthTarget := true
@@ -454,7 +454,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*DirectedGraph[DepNo
 				// specifically, need to address the one for the desired attribute
 				toDepNode, ok := targetNodeDepNodes[binding.Dest.Name]
 				if !ok {
-					toDepNode = &DirectedGraph[DepNode]{Data: DepNode{
+					toDepNode = &DirectedGraph[depNode]{Data: depNode{
 						Parent: targetParent, Tree: targetNode, Dest: binding.Dest, Synthetic: synthTarget, NoFlows: make([]string, len(binding.NoFlows)),
 					}}
 					copy(toDepNode.Data.NoFlows, binding.NoFlows)
@@ -484,7 +484,7 @@ func DepGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*DirectedGraph[DepNo
 		}
 	}
 
-	var connectedSubGraphs []*DirectedGraph[DepNode]
+	var connectedSubGraphs []*DirectedGraph[depNode]
 
 	for k := range depNodes {
 		idDepNodes := depNodes[k]

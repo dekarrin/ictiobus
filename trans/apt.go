@@ -31,6 +31,19 @@ func makeTreeLevelPrefixLast(msg string) string {
 	return fmt.Sprintf(treeLevelPrefixLast, msg)
 }
 
+// AnnotatedParseTree is a parse tree annotated with attributes at every node.
+// These attributes are set by calling hook functions on other attributes, and
+// doing so succesively is what eventually implements a complete syntax-directed
+// translation.
+//
+// Some attributes are built in; these begin with a $. This includes $id, which
+// is the ID of a node and is defined on all nodes; $ft, which is the first
+// token lexed for a node and is defined for all nodes except for terminal
+// nodes produced by an epsilon production; $text, which is the lexed text and
+// is defined only for terminal symbol nodes.
+//
+// An AnnotatedParseTree can be created from a types.ParseTree by calling
+// [Annotate].
 type AnnotatedParseTree struct {
 	// Terminal is whether this node is for a terminal symbol.
 	Terminal bool
@@ -49,11 +62,11 @@ type AnnotatedParseTree struct {
 	Attributes NodeAttrs
 }
 
-// AddAttributes adds annotation fields to the given parse tree. Returns an
-// AnnotatedParseTree with only auto fields set ('$text' for terminals, '$id'
-// for all nodes, '$ft' for all nodes representing first Token of the
-// expression).
-func AddAttributes(root types.ParseTree) AnnotatedParseTree {
+// Annotate adds attribute fields to the given parse tree to convert it to an
+// AnnotatedParseTree. Returns an AnnotatedParseTree with only auto fields set
+// ('$text' for terminals, '$id' for all nodes, and '$ft' for all nodes except
+// epsilon terminal nodes, representing the first Token of the expression).
+func Annotate(root types.ParseTree) AnnotatedParseTree {
 	treeStack := box.NewStack([]*types.ParseTree{&root})
 	annoRoot := AnnotatedParseTree{}
 	annotatedStack := box.NewStack([]*AnnotatedParseTree{&annoRoot})
@@ -108,6 +121,7 @@ func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 	return annoRoot
 }
 
+// String returns a string representation of the APT.
 func (apt AnnotatedParseTree) String() string {
 	return apt.leveledStr("", "")
 }
@@ -193,7 +207,7 @@ func (apt *AnnotatedParseTree) First() types.Token {
 	return first
 }
 
-// Returns the ID of this node in the parse tree. All nodes have an ID
+// ID returns the ID of this node in the parse tree. All nodes have an ID
 // accessible via the special predefined attribute '$id'; this function serves
 // as a shortcut to getting the value from the node attributes with casting and
 // sanity checking handled.

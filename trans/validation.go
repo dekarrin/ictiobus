@@ -45,7 +45,7 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 			if debug.FullDepGraphs {
 				fullMsg += "\nDepGraphs:"
 				for i := range evalErr.depGraphs {
-					dgStr := DepGraphString(evalErr.depGraphs[i])
+					dgStr := depGraphString(evalErr.depGraphs[i])
 					dgStr = rosed.Edit(dgStr).
 						LinesFrom(1).
 						IndentOpts(1, rosed.Options{IndentStr: errIndentStr}).
@@ -74,7 +74,7 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 		for _, ew := range evalWarns {
 			ewAsTreeErr := evalErrToTreeError(ew)
 			if debug.ParseTrees {
-				treeStr := AddAttributes(localPT).String()
+				treeStr := Annotate(localPT).String()
 				warns = append(warns, fmt.Sprintf("Failed Tree %d:\n%s\nParse Tree:\n%s", i+1, ewAsTreeErr.Error(), treeStr))
 			} else {
 				warns = append(warns, fmt.Sprintf("Failed Tree %d: %s", i+1, ewAsTreeErr.Error()))
@@ -109,7 +109,7 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 				continue
 			}
 			if debug.ParseTrees {
-				treeStr := AddAttributes(*treeErrs[i].Second).String()
+				treeStr := Annotate(*treeErrs[i].Second).String()
 				fullErrStr += fmt.Sprintf("\n\nFailed Tree %d:\n%s\nParse Tree:\n%s", i+1, treeErrs[i].First.Error(), treeStr)
 			} else {
 				fullErrStr += fmt.Sprintf("\n\nFailed Tree %d: %s", i+1, treeErrs[i].First.Error())
@@ -150,7 +150,7 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 type evalError struct {
 	// if this is a disconnected dep graph segments error, this slice will be
 	// non-nil and contain the issue nodes.
-	depGraphs []*DirectedGraph[DepNode]
+	depGraphs []*DirectedGraph[depNode]
 
 	// if this is a disconnected dep graph segments error, this slice will be
 	// non-nil and contain the important features of each break. Each element is
@@ -174,6 +174,7 @@ type evalError struct {
 	msg string
 }
 
+// Error returns the error message.
 func (ee evalError) Error() string {
 	return ee.msg
 }

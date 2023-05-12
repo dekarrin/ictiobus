@@ -15,6 +15,7 @@ type AttrRef struct {
 	Name     string
 }
 
+// String returns the string representation of an AttrRef.
 func (ar AttrRef) String() string {
 	return fmt.Sprintf("%s[%q]", ar.Relation.String(), ar.Name)
 }
@@ -61,6 +62,7 @@ func (ar AttrRef) ResolveSymbol(g grammar.Grammar, head string, prod grammar.Pro
 	return "", fmt.Errorf("invalid Relation.Type in AttrRef: %v", ar.Relation.Type)
 }
 
+// NodeRelationType is the type of a NodeRelation.
 type NodeRelationType int
 
 const (
@@ -70,6 +72,7 @@ const (
 	RelSymbol
 )
 
+// GoString returns the go string representation of a NodeRelationType.
 func (nrt NodeRelationType) GoString() string {
 	switch nrt {
 	case RelHead:
@@ -85,6 +88,7 @@ func (nrt NodeRelationType) GoString() string {
 	}
 }
 
+// String returns the string representation of a NodeRelationType.
 func (nrt NodeRelationType) String() string {
 	if nrt == RelHead {
 		return "head symbol"
@@ -99,6 +103,9 @@ func (nrt NodeRelationType) String() string {
 	}
 }
 
+// NodeRelation is a relation to a symbol in a node of an annotated parse tree.
+// It is either the head symbol of the node itself, or one of the symbols in
+// the production.
 type NodeRelation struct {
 	// Type is the type of the relation.
 	Type NodeRelationType
@@ -108,6 +115,7 @@ type NodeRelation struct {
 	Index int
 }
 
+// String returns the string representation of a NodeRelation.
 func (nr NodeRelation) String() string {
 	if nr.Type == RelHead {
 		return nr.Type.String()

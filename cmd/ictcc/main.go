@@ -535,7 +535,7 @@ func main() {
 		// parse tree is per-file, so we do this immediately even on error, as
 		// it may be useful
 		if cmdRes.Tree != nil && *flagGenTree {
-			fmt.Printf("%s\n", trans.AddAttributes(*cmdRes.Tree).String())
+			fmt.Printf("%s\n", trans.Annotate(*cmdRes.Tree).String())
 		}
 
 		if cmdErr != nil {
@@ -613,7 +613,7 @@ func main() {
 			// parse tree is per-file, so we do this immediately even on error, as
 			// it may be useful
 			if res.Tree != nil && *flagGenTree {
-				fmt.Printf("%s\n", trans.AddAttributes(*res.Tree).String())
+				fmt.Printf("%s\n", trans.Annotate(*res.Tree).String())
 			}
 
 			if err != nil {

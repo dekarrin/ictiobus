@@ -16,6 +16,8 @@ type sdtsImpl struct {
 	bindings map[string]map[string][]SDDBinding
 }
 
+// SetHooks sets the hook mapping containing implementations of the hooks in the
+// SDTS. It must be called before calling Evaluate.
 func (sdts *sdtsImpl) SetHooks(hooks HookMap) {
 	// only create a new map if we don't already have one
 	if sdts.hooks == nil {
@@ -36,6 +38,8 @@ func (sdts *sdtsImpl) SetHooks(hooks HookMap) {
 	}
 }
 
+// BindingsFor returns all bindings for the given rule which set the attribute
+// referred to by attrRef.
 func (sdts *sdtsImpl) BindingsFor(head string, prod []string, attrRef AttrRef) []SDDBinding {
 	allForRule := sdts.Bindings(head, prod)
 
@@ -50,20 +54,30 @@ func (sdts *sdtsImpl) BindingsFor(head string, prod []string, attrRef AttrRef) [
 	return matchingBindings
 }
 
+// Evaluate executes the entire syntax-directed translation scheme on the given
+// parse tree, and returns the requested attributes from the root of the
+// generated AnnotatedParseTree. The parse tree is first annotated to produce an
+// AnnotatedParseTree, then nodes are visited in an order determined by
+// dependency graphs created on all attributes defined for the SDTS that have
+// qualifying nodes in the APT. When each node is visited, any associated SDD
+// bindings are called on it.
+//
+// This function requires that SetHooks be called with a valid set of
+// implementations for all hooks that will be called.
 func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals []interface{}, warns []error, err error) {
 	// don't check for no hooks being set because it's possible we are going to
 	// be handed an empty parse tree, which will fail for other reasons first
 	// or perhaps will not fail at all.
 
 	// first get an annotated parse tree
-	root := AddAttributes(tree)
-	depGraphs := DepGraph(root, sdts)
+	root := Annotate(tree)
+	depGraphs := depGraph(root, sdts)
 	var unexpectedBreaks [][4]string
 
 	if len(depGraphs) > 1 {
 		// first, eliminate all depGraphs whose head has a noFlow that applies
 		// to it.
-		updatedDepGraphs := []*DirectedGraph[DepNode]{}
+		updatedDepGraphs := []*DirectedGraph[depNode]{}
 		for i := range depGraphs {
 			var isRoot bool
 			var hasUnexpectedBreaks bool
@@ -116,7 +130,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 		depGraphs = updatedDepGraphs
 	}
 
-	var singleAttrRoot *DirectedGraph[DepNode]
+	var singleAttrRoot *DirectedGraph[depNode]
 	// if it's *still* more than 1, scan to see if it's only one attrRoot; that is a warning, not an error, unless
 	// asked to be.
 	if len(depGraphs) > 1 {
@@ -182,7 +196,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 				depGraphs:        depGraphs,
 				unexpectedBreaks: unexpectedBreaks,
 			})
-			depGraphs = []*DirectedGraph[DepNode]{singleAttrRoot}
+			depGraphs = []*DirectedGraph[depNode]{singleAttrRoot}
 		} else {
 			return nil, warns, evalError{
 				msg:              "applying SDTS to tree results in evaluation dependency graph with multiple disconnected root segments",
@@ -282,6 +296,8 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 	return attrValues, warns, nil
 }
 
+// Bindings returns all bindings that are defined for the grammar rule with head
+// symbol head and production prod.
 func (sdts *sdtsImpl) Bindings(head string, prod []string) []SDDBinding {
 	forHead, ok := sdts.bindings[head]
 	if !ok {
@@ -300,6 +316,8 @@ func (sdts *sdtsImpl) Bindings(head string, prod []string) []SDDBinding {
 	return targetBindings
 }
 
+// BindSynthesizedAttribute adds a binding to the SDTS for a synthesized
+// attribute.
 func (sdts *sdtsImpl) BindSynthesizedAttribute(head string, prod []string, attrName string, hook string, withArgs []AttrRef) error {
 	// sanity checks; can we even call this?
 	if hook == "" {
@@ -351,6 +369,8 @@ func (sdts *sdtsImpl) BindSynthesizedAttribute(head string, prod []string, attrN
 	return nil
 }
 
+// BindInheritedAttribute adds a binding to the SDTS for an inherited attribute.
+// At this time, inherited attributes are not supported.
 func (sdts *sdtsImpl) BindInheritedAttribute(head string, prod []string, attrName string, hook string, withArgs []AttrRef, forProd NodeRelation) error {
 	// sanity checks; can we even call this?
 	if hook == "" {
@@ -410,6 +430,10 @@ func (sdts *sdtsImpl) BindInheritedAttribute(head string, prod []string, attrNam
 	return nil
 }
 
+// SetNoFlow explicitly marks a particular binding as expected to not 'flow' up
+// a dependency graph; that is, it will not consider it a warnable issue if
+// the value produced by it is not used by another part of the translation
+// scheme.
 func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName string, forProd NodeRelation, which int, ifParent string) error {
 	prodStr := strings.Join(prod, " ")
 
@@ -491,6 +515,7 @@ func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName
 	return nil
 }
 
+// NewSDTS creates a new, empty Syntax-Directed Translation Scheme.
 func NewSDTS() *sdtsImpl {
 	impl := sdtsImpl{
 		bindings: map[string]map[string][]SDDBinding{},
