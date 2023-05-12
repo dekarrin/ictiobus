@@ -17,8 +17,9 @@ import (
 )
 
 var (
+{{$lang := .Lang -}}
 {{range .Classes -}}
-{{"    "}}// {{.Name}} is the token class representing {{.Human | with_article false }} in {{.Lang}}.
+{{"    "}}// {{.Name}} is the token class representing {{.Human | with_article false }} in {{$lang}}.
 {{"    "}}{{.Name}} = lex.NewTokenClass("{{.ID}}", {{.Human | quote }})
 {{end -}}
 )
