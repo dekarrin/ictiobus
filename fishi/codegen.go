@@ -30,6 +30,7 @@ import (
 // This is the only way that we can do full validation with a hooks package.
 
 const (
+	// CommandName is the name of the ictiobus binary.
 	CommandName = "ictcc"
 )
 

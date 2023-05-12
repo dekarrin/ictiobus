@@ -47,9 +47,18 @@ func (wh WarnHandling) String() string {
 type WarnHandler struct {
 	h map[WarnType]WarnHandling
 
-	Output      io.Writer
+	// Output is the writer that output is sent to. By default this will be
+	// os.Stderr in newly-created WarnHandlers, but this can be changed by
+	// setting Output to a different io.Writer.
+	Output io.Writer
+
+	// ErrorPrefix is the string to prepend error messages written to Output
+	// with.
 	ErrorPrefix string
-	WarnPrefix  string
+
+	// WarnPrefix is the string to prepend error messages written to Output
+	// with.
+	WarnPrefix string
 }
 
 // HandlingType returns the WarnHandling configured for the given warning type.
@@ -121,6 +130,7 @@ func (wh *WarnHandler) Handlef(fmtStr string, w Warning) (fatal error) {
 	return fatal
 }
 
+// NewWarnHandler creates a new WarnHandler with default settings.
 func NewWarnHandler() *WarnHandler {
 	return &WarnHandler{
 		h:           map[WarnType]WarnHandling{},
@@ -130,6 +140,8 @@ func NewWarnHandler() *WarnHandler {
 	}
 }
 
+// NewWarnHandlerFromCLI creates a new WarnHandler by using the provided options
+// for setting short-codes of WarnTypes, presumably as provided from CLI flags.
 func NewWarnHandlerFromCLI(suppressions, fatals []string) (*WarnHandler, error) {
 	handler := NewWarnHandler()
 
