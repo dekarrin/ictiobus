@@ -18,7 +18,7 @@ import (
 
 var (
 {{range .Classes -}}
-{{"    "}}// {{.Name}} is the token class representing {{.Human | with_article }} in {{.Lang}}.
+{{"    "}}// {{.Name}} is the token class representing {{.Human | with_article false }} in {{.Lang}}.
 {{"    "}}{{.Name}} = lex.NewTokenClass("{{.ID}}", {{.Human | quote }})
 {{end -}}
 )
@@ -29,8 +29,8 @@ var all = map[string]types.TokenClass{
 {{end -}}
 }
 
-// ByID returns the TokenClass that has the given ID. If no token class of that
-// ID exists, returns nil.
+// ByID returns the TokenClass in {{.Lang}} that has the given ID. If no token
+// class with that ID exists, nil is returned.
 func ByID(id string) types.TokenClass{
     return all[id]
 }

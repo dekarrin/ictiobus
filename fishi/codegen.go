@@ -514,11 +514,8 @@ func createFuncMap() template.FuncMap {
 		"title": func(s string) string {
 			return titleCaser.String(s)
 		},
-		"with_indef_article": func(s string) string {
-			return textfmt.ArticleFor(s, false) + " " + s
-		},
-		"with_def_article": func(s string) string {
-			return textfmt.ArticleFor(s, true) + " " + s
+		"with_article": func(def bool, s string) string {
+			return textfmt.ArticleFor(s, def) + " " + s
 		},
 	}
 }
