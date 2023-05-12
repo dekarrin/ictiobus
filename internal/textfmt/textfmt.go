@@ -29,6 +29,28 @@ func OrderedKeys[V any](m map[string]V) []string {
 	return keys
 }
 
+// PadRight adds the given padChar to the right of s until the string is length
+// long.
+func PadRight(s, padChar string, length int) string {
+	padded := s
+	for len(padded) < length {
+		padded += padChar
+	}
+
+	return padded
+}
+
+// PadLeft adds the given padChar to the left of s until the string is length
+// long.
+func PadLeft(s, padChar string, length int) string {
+	padded := s
+	for len(padded) < length {
+		padded = padChar + padded
+	}
+
+	return padded
+}
+
 // ArticleFor returns the article for the given string. It will be capitalized
 // the same as the string. If definite is true, the returned value will be "the"
 // capitalized as described; otherwise, it will be "a"/"an" capitalized as

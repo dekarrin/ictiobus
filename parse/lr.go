@@ -231,10 +231,23 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 		case LRReduce: // else if ( ACTION[s, a] = reduce A -> β )
 			A := ACTION.Symbol
 			beta := ACTION.Production
-			lr.notifyTrace("%s -> %s", strings.ToLower(A), strings.ToUpper(beta.String()))
+			prodStr := strings.ToLower(beta.String())
+			if len(prodStr) == 0 {
+				prodStr = grammar.Epsilon.String()
+			}
+			lr.notifyTrace("%s -> %s", strings.ToUpper(A), prodStr)
 
 			// use the reduce to create a node in the parse tree
 			node := &types.ParseTree{Value: A, Children: make([]*types.ParseTree, 0)}
+
+			// SPECIAL CASE: if we just reduced an epsilon production, immediately
+			// add the epsilon node to the new one
+			if len(beta) == 0 {
+				node.Children = append(node.Children, &types.ParseTree{
+					Terminal: true,
+				})
+			}
+
 			// we need to go from right to left of the production to pop things
 			// from the stacks in the correct order
 			for i := len(beta) - 1; i >= 0; i-- {

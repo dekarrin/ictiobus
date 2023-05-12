@@ -1,7 +1,6 @@
 package parse
 
 import (
-	"log"
 	"testing"
 
 	"github.com/dekarrin/ictiobus/grammar"
@@ -66,28 +65,28 @@ func Test_CanonicalLR1Parse(t *testing.T) {
 		ambig     bool
 		expectErr bool
 	}{
-		/*{
-					name: "purple dragon example 4.45",
-					grammar: `
+		{
+			name: "purple dragon example 4.45",
+			grammar: `
 						E -> E + T | T ;
 						T -> T * F | F ;
 						F -> ( E ) | id ;
 						`,
-					input: []string{"id", "*", "id", "+", "id", "$"},
-					expect: `( E )
-		  |---: ( E )
-		  |       \---: ( T )
-		  |               |---: ( T )
-		  |               |       \---: ( F )
-		  |               |               \---: (TERM "id")
-		  |               |---: (TERM "*")
-		  |               \---: ( F )
-		  |                       \---: (TERM "id")
-		  |---: (TERM "+")
-		  \---: ( T )
-		          \---: ( F )
-		                  \---: (TERM "id")`,
-				},*/
+			input: []string{"id", "*", "id", "+", "id", "$"},
+			expect: `( E )
+  |---: ( E )
+  |       \---: ( T )
+  |               |---: ( T )
+  |               |       \---: ( F )
+  |               |               \---: (TERM "id")
+  |               |---: (TERM "*")
+  |               \---: ( F )
+  |                       \---: (TERM "id")
+  |---: (TERM "+")
+  \---: ( T )
+          \---: ( F )
+                  \---: (TERM "id")`,
+		},
 		{
 
 			name: "Repetition via epsilon production",
@@ -98,6 +97,14 @@ func Test_CanonicalLR1Parse(t *testing.T) {
 			`,
 			input: []string{"a", "b", "$"},
 			ambig: true,
+			expect: `( S )
+  \---: ( A )
+          |---: ( A )
+          |       \---: (TERM "")
+          \---: ( B )
+                  |---: (TERM "a")
+                  \---: ( B )
+                          \---: (TERM "b")`,
 		},
 	}
 
@@ -107,14 +114,6 @@ func Test_CanonicalLR1Parse(t *testing.T) {
 			assert := assert.New(t)
 			g := grammar.MustParse(tc.grammar)
 			stream := mockTokens(tc.input...)
-
-			// DEBUG code, remove when done fixing #78
-			it := g.Augmented().LR0Items()
-			log.Printf("ITEMS:\n")
-			for i := range it {
-				log.Printf("* %q\n", it[i].String())
-			}
-			log.Printf("\n")
 
 			// execute
 			parser, _, err := GenerateCanonicalLR1Parser(g, tc.ambig)

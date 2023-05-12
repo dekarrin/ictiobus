@@ -1,7 +1,6 @@
 package parse
 
 import (
-	"log"
 	"testing"
 
 	"github.com/dekarrin/ictiobus/grammar"
@@ -91,31 +90,29 @@ func Test_SLR1Parse(t *testing.T) {
 		ambig     bool
 		expectErr bool
 	}{
-		/*{
-					name: "purple dragon example 4.45",
-					grammar: `
+		{
+			name: "purple dragon example 4.45",
+			grammar: `
 						E -> E + T | T ;
 						T -> T * F | F ;
 						F -> ( E ) | id ;
 						`,
-					input: []string{"id", "*", "id", "+", "id", "$"},
-					expect: `( E )
-		  |---: ( E )
-		  |       \---: ( T )
-		  |               |---: ( T )
-		  |               |       \---: ( F )
-		  |               |               \---: (TERM "id")
-		  |               |---: (TERM "*")
-		  |               \---: ( F )
-		  |                       \---: (TERM "id")
-		  |---: (TERM "+")
-		  \---: ( T )
-		          \---: ( F )
-		                  \---: (TERM "id")`,
-				},*/
+			input: []string{"id", "*", "id", "+", "id", "$"},
+			expect: `( E )
+  |---: ( E )
+  |       \---: ( T )
+  |               |---: ( T )
+  |               |       \---: ( F )
+  |               |               \---: (TERM "id")
+  |               |---: (TERM "*")
+  |               \---: ( F )
+  |                       \---: (TERM "id")
+  |---: (TERM "+")
+  \---: ( T )
+          \---: ( F )
+                  \---: (TERM "id")`,
+		},
 		{
-			// IMPORTANT: https://jsmachines.sourceforge.net/machines/slr.html
-			// IMPORTANT: https://cyberzhg.github.io/toolbox/lr0
 			name: "Repetition via epsilon production",
 			grammar: `
 				S -> A        ;
@@ -124,6 +121,14 @@ func Test_SLR1Parse(t *testing.T) {
 			`,
 			input: []string{"a", "b", "$"},
 			ambig: true,
+			expect: `( S )
+  \---: ( A )
+          |---: ( A )
+          |       \---: (TERM "")
+          \---: ( B )
+                  |---: (TERM "a")
+                  \---: ( B )
+                          \---: (TERM "b")`,
 		},
 	}
 
@@ -140,9 +145,6 @@ func Test_SLR1Parse(t *testing.T) {
 				return
 			}
 
-			parser.RegisterTraceListener(func(s string) {
-				log.Printf("%s\n", s)
-			})
 			actual, err := parser.Parse(stream)
 
 			// assert
@@ -155,7 +157,6 @@ func Test_SLR1Parse(t *testing.T) {
 			}
 
 			assert.Equal(tc.expect, actual.String())
-
 		})
 	}
 }

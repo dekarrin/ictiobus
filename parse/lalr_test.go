@@ -1,10 +1,10 @@
 package parse
 
 import (
-	"log"
 	"testing"
 
 	"github.com/dekarrin/ictiobus/grammar"
+	"github.com/dekarrin/ictiobus/types"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -64,35 +64,34 @@ func Test_LALR1Parse(t *testing.T) {
 		ambig     bool
 		expectErr bool
 	}{
-		/*{
-					name: "purple dragon example 4.45",
-					grammar: `
+		{
+			name: "purple dragon example 4.45",
+			grammar: `
 						E -> E + T | T ;
 						T -> T * F | F ;
 						F -> ( E ) | id ;
 						`,
-					input: []string{"(", "id", "+", "id", ")", "*", "id", types.TokenEndOfText.ID()},
-					expect: `( E )
-		  \---: ( T )
-		          |---: ( T )
-		          |       \---: ( F )
-		          |               |---: (TERM "(")
-		          |               |---: ( E )
-		          |               |       |---: ( E )
-		          |               |       |       \---: ( T )
-		          |               |       |               \---: ( F )
-		          |               |       |                       \---: (TERM "id")
-		          |               |       |---: (TERM "+")
-		          |               |       \---: ( T )
-		          |               |               \---: ( F )
-		          |               |                       \---: (TERM "id")
-		          |               \---: (TERM ")")
-		          |---: (TERM "*")
-		          \---: ( F )
-		                  \---: (TERM "id")`,
-				},*/
+			input: []string{"(", "id", "+", "id", ")", "*", "id", types.TokenEndOfText.ID()},
+			expect: `( E )
+  \---: ( T )
+          |---: ( T )
+          |       \---: ( F )
+          |               |---: (TERM "(")
+          |               |---: ( E )
+          |               |       |---: ( E )
+          |               |       |       \---: ( T )
+          |               |       |               \---: ( F )
+          |               |       |                       \---: (TERM "id")
+          |               |       |---: (TERM "+")
+          |               |       \---: ( T )
+          |               |               \---: ( F )
+          |               |                       \---: (TERM "id")
+          |               \---: (TERM ")")
+          |---: (TERM "*")
+          \---: ( F )
+                  \---: (TERM "id")`,
+		},
 		{
-
 			name: "Repetition via epsilon production",
 			grammar: `
 				S -> A       ;
@@ -102,6 +101,13 @@ func Test_LALR1Parse(t *testing.T) {
 			`,
 			input: []string{"a", "b", "$"},
 			ambig: true,
+			expect: `( S )
+  \---: ( A )
+          |---: ( B )
+          |       |---: ( B )
+          |       |       \---: (TERM "")
+          |       \---: (TERM "a")
+          \---: (TERM "b")`,
 		},
 	}
 
@@ -112,13 +118,6 @@ func Test_LALR1Parse(t *testing.T) {
 			g := grammar.MustParse(tc.grammar)
 			stream := mockTokens(tc.input...)
 
-			// DEBUG code, remove when done fixing #78
-			it := g.LR0Items()
-			log.Printf("ITEMS:\n")
-			for i := range it {
-				log.Printf("* %q\n", it[i].String())
-			}
-			log.Printf("\n")
 			// execute
 			parser, _, err := GenerateLALR1Parser(g, tc.ambig)
 			if !assert.NoError(err, "generating LALR parser failed") {
