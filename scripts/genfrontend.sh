@@ -24,7 +24,7 @@ else
 fi
 
 echo "Building current ictcc bin..."
-./build.sh || exit 2
+scripts/build.sh || exit 2
 
 echo "Generating new frontend in fishi/fe..."
 ./ictcc --lalr \

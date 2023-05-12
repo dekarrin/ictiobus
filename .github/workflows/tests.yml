@@ -67,4 +67,4 @@ jobs:
         with:
           go-version: 1.19
       - name: Execute testing script
-        run: script/run-int-tests.sh
+        run: scripts/run-int-tests.sh
