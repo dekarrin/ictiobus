@@ -5,6 +5,9 @@ import (
 	"strings"
 )
 
+// SyntaxError is an error returned when there is a problem with the syntax of
+// analyzed code. For reporting errors to an end-user, calling FullMessage is
+// recommended over Error, as it will output context and location of the error.
 type SyntaxError struct {
 	sourceLine string
 	source     string
@@ -17,6 +20,7 @@ type SyntaxError struct {
 	message string
 }
 
+// Error returns the string representation of the SyntaxError.
 func (se SyntaxError) Error() string {
 	if se.line == 0 {
 		return fmt.Sprintf("syntax error: %s", se.message)
@@ -94,6 +98,9 @@ func (se SyntaxError) SourceLineWithCursor() string {
 	return strings.ReplaceAll(se.sourceLine, "\t", "    ") + "\n" + cursorLine + "^"
 }
 
+// NewSyntaxErrorFromToken uses the location information in the provided token
+// to create a SyntaxError with a detailed message on the error and the source
+// code which caused it.
 func NewSyntaxErrorFromToken(msg string, tok Token) *SyntaxError {
 	return &SyntaxError{
 		message:    msg,

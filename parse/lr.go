@@ -18,21 +18,6 @@ type LRParseTable interface {
 	encoding.BinaryMarshaler
 	encoding.BinaryUnmarshaler
 
-	// Shift reads one token of input. For SR parsers that are implemented with
-	// a stack, this will push a terminal onto the stack.
-	//
-	// ABC|xyz => ABCx|yz
-	//Shift()
-
-	// Reduce applies an inverse production at the right end of the left string.
-	// For SR parsers that are implemented with a stack, this will pop 0 or more
-	// terminals off of the stack (production rhs), then will push a
-	// non-terminal onto the stack (production lhs).
-	//
-	// Given A -> xy is a production, then:
-	// Cbxy|ijk => CbA|ijk
-	//Reduce()
-
 	// Initial returns the initial state of the parse table, if that is
 	// applicable for the table.
 	Initial() string

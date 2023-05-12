@@ -2,6 +2,7 @@ package types
 
 import "fmt"
 
+// ParserType is a classification of parsers in ictiobus.
 type ParserType string
 
 const (
@@ -11,10 +12,12 @@ const (
 	ParserLALR1 ParserType = "LALR(1)"
 )
 
+// String returns the string representation of a ParserType.
 func (pt ParserType) String() string {
 	return string(pt)
 }
 
+// ParseParserType parses a string containing the name of a ParserType.
 func ParseParserType(s string) (ParserType, error) {
 	switch s {
 	case ParserLL1.String():

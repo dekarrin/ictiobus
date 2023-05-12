@@ -34,6 +34,8 @@ func makeTreeLevelPrefixLast(msg string) string {
 	return fmt.Sprintf(treeLevelPrefixLast, msg)
 }
 
+// ParseTree is a parse tree returned by a parser performing analysis on input
+// source code.
 type ParseTree struct {
 	// Terminal is whether thie node is for a terminal symbol.
 	Terminal bool
@@ -48,6 +50,8 @@ type ParseTree struct {
 	Children []*ParseTree
 }
 
+// MustParseTreeFromDiagram is the same as ParseTreeFromDiagram but panics if
+// any error occurs.
 func MustParseTreeFromDiagram(s string) *ParseTree {
 	pt, err := ParseTreeFromDiagram(s)
 	if err != nil {

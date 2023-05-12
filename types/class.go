@@ -6,6 +6,9 @@ import (
 	"github.com/dekarrin/ictiobus/internal/rezi"
 )
 
+// TokenClass is the class of a token in ictiobus compiler frontends. This is
+// how tokens are represented in grammar, and can be considered the 'type' of a
+// lexed token.
 type TokenClass interface {
 	// ID returns the ID of the token class. The ID must uniquely identify the
 	// token within all terminals of a grammar.
