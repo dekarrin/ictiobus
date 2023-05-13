@@ -326,7 +326,7 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 	}
 }
 
-func Test_Grammar_CreateFewestNonTermsAlternationsTable(t *testing.T) {
+func Test_Grammar_createFewestNonTermsAlternationsTable(t *testing.T) {
 	testCases := []struct {
 		name        string
 		input       Grammar
@@ -393,7 +393,7 @@ func Test_Grammar_CreateFewestNonTermsAlternationsTable(t *testing.T) {
 				panic(fmt.Sprintf("test case %s does not specify expectErr, expect, or expectOneOf", tc.name))
 			}
 
-			actual, err := tc.input.CreateFewestNonTermsAlternationsTable()
+			actual, err := tc.input.createFewestNonTermsAlternationsTable()
 			if tc.expectErr {
 				assert.Error(err)
 				return

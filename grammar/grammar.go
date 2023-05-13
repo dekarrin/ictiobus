@@ -689,7 +689,7 @@ func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) ([]
 	// we also need to get the 'shortest' production for each non-terminal; this
 	// is the production that eventually results in the fewest number of
 	// non-terminals being used in the final parse tree.
-	shortestDerivation, err := g.CreateFewestNonTermsAlternationsTable()
+	shortestDerivation, err := g.createFewestNonTermsAlternationsTable()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get shortest derivation table for grammar: %w", err)
 	}
@@ -932,10 +932,10 @@ func (g Grammar) DeriveFullTree(fakeValProducer ...map[string]func() string) ([]
 	return finalTrees, nil
 }
 
-// CreateFewestNonTermsAlternationsTable returns a map of non-terminals to the
+// createFewestNonTermsAlternationsTable returns a map of non-terminals to the
 // production in their associated rule that using to derive would result in the
 // fewest new non-terminals being derived for that rule.
-func (g Grammar) CreateFewestNonTermsAlternationsTable() (map[string]Production, error) {
+func (g Grammar) createFewestNonTermsAlternationsTable() (map[string]Production, error) {
 	// DEFINITION OF SCORE:
 	// S(rule) = Floor(S(prod1) + S(prod2) + ... + S(prodN))
 	// S(prod) = num N of non terminals in a production + S(nonterm1) + S(nonterm2) + ... + S(nontermN)
@@ -1567,6 +1567,12 @@ func (g Grammar) LeftFactor() Grammar {
 	return g
 }
 
+// FOLLOW is the used to get the FOLLOW set of symbol X for generating various
+// types of parsers.
+func (g Grammar) FOLLOW(X string) box.Set[string] {
+	return g.recursiveFindFollowSet(X, box.NewStringSet())
+}
+
 // recursiveFindFollowSet
 func (g Grammar) recursiveFindFollowSet(X string, prevFollowChecks box.Set[string]) box.Set[string] {
 	if X == "" {
@@ -1797,12 +1803,6 @@ func (g Grammar) IsLL1() bool {
 	}
 
 	return true
-}
-
-// FOLLOW is the used to get the FOLLOW set of symbol X for generating various
-// types of parsers.
-func (g Grammar) FOLLOW(X string) box.Set[string] {
-	return g.recursiveFindFollowSet(X, box.NewStringSet())
 }
 
 // FIRST_STRING is identical to FIRST but for a string of symbols rather than
