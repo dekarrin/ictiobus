@@ -22,16 +22,16 @@ func EmptyCLR1Parser() *lrParser {
 	return &lrParser{table: &canonicalLR1Table{}, parseType: types.ParserCLR1}
 }
 
-// GenerateCanonicalLR1Parser returns a parser that uses the set of canonical
-// LR(1) items from g to parse input in language g. The provided language must
-// be in LR(1) or else the a non-nil error is returned.
+// GenerateCLR1Parser returns a parser that uses the set of canonical LR(1)
+// items from g to parse input in language g. The provided language must be in
+// LR(1) or else the a non-nil error is returned.
 //
 // allowAmbig allows the use of ambiguous grammars; in cases where there is a
 // shift-reduce conflict, shift will be preferred. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func GenerateCanonicalLR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, []string, error) {
-	table, ambigWarns, err := constructCanonicalLR1ParseTable(g, allowAmbig)
+func GenerateCLR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, []string, error) {
+	table, ambigWarns, err := constructCLR1ParseTable(g, allowAmbig)
 	if err != nil {
 		return &lrParser{}, ambigWarns, err
 	}
@@ -39,7 +39,7 @@ func GenerateCanonicalLR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, 
 	return &lrParser{table: table, parseType: types.ParserCLR1, gram: g}, ambigWarns, nil
 }
 
-// constructCanonicalLR1ParseTable constructs the canonical LR(1) table for G.
+// constructCLR1ParseTable constructs the canonical LR(1) table for G.
 // It augments grammar G to produce G', then the canonical collection of sets of
 // LR(1) items of G' is used to construct a table with applicable GOTO and
 // ACTION columns.
@@ -55,7 +55,7 @@ func GenerateCanonicalLR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, 
 // reduce/reduce conflicts will still be rejected. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func constructCanonicalLR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, []string, error) {
+func constructCLR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, []string, error) {
 	// we will skip a few steps here and simply grab the LR0 DFA for G' which
 	// will pretty immediately give us our GOTO() function, since as purple
 	// dragon book mentions, "intuitively, the GOTO function is used to define

@@ -21,15 +21,15 @@ func EmptySLR1Parser() *lrParser {
 	return &lrParser{table: &slrTable{}, parseType: types.ParserSLR1}
 }
 
-// GenerateSimpleLRParser returns a parser that uses SLR bottom-up parsing to
+// GenerateSLR1Parser returns a parser that uses SLR bottom-up parsing to
 // parse languages in g. It will return an error if g is not an SLR(1) grammar.
 //
 // allowAmbig allows the use of ambiguous grammars; in cases where there is a
 // shift-reduce conflict, shift will be preferred. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func GenerateSimpleLRParser(g grammar.Grammar, allowAmbig bool) (*lrParser, []string, error) {
-	table, ambigWarns, err := constructSimpleLRParseTable(g, allowAmbig)
+func GenerateSLR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, []string, error) {
+	table, ambigWarns, err := constructSLR1ParseTable(g, allowAmbig)
 	if err != nil {
 		return &lrParser{}, ambigWarns, err
 	}
@@ -37,7 +37,7 @@ func GenerateSimpleLRParser(g grammar.Grammar, allowAmbig bool) (*lrParser, []st
 	return &lrParser{table: table, parseType: types.ParserSLR1, gram: g}, ambigWarns, nil
 }
 
-// constructSimpleLRParseTable constructs the SLR(1) table for G. It augments
+// constructSLR1ParseTable constructs the SLR(1) table for G. It augments
 // grammar G to produce G', then the canonical collection of sets of items of G'
 // is used to construct a table with applicable GOTO and ACTION columns.
 //
@@ -52,7 +52,7 @@ func GenerateSimpleLRParser(g grammar.Grammar, allowAmbig bool) (*lrParser, []st
 // reduce/reduce conflicts will still be rejected. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func constructSimpleLRParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, []string, error) {
+func constructSLR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, []string, error) {
 	// we will skip a few steps here and simply grab the LR0 DFA for G' which
 	// will pretty immediately give us our GOTO() function, since as purple
 	// dragon book mentions, "intuitively, the GOTO function is used to define

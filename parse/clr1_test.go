@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_ConstructCanonicalLR1ParseTable(t *testing.T) {
+func Test_ConstructCLR1ParseTable(t *testing.T) {
 	testCases := []struct {
 		name      string
 		grammar   string
@@ -62,7 +62,7 @@ func Test_ConstructCanonicalLR1ParseTable(t *testing.T) {
 			g := grammar.MustParse(tc.grammar)
 
 			// execute
-			actual, _, err := constructCanonicalLR1ParseTable(g, tc.ambig)
+			actual, _, err := constructCLR1ParseTable(g, tc.ambig)
 
 			// assert
 			if tc.expectErr {
@@ -78,7 +78,7 @@ func Test_ConstructCanonicalLR1ParseTable(t *testing.T) {
 
 }
 
-func Test_CanonicalLR1Parse(t *testing.T) {
+func Test_CLR1Parse(t *testing.T) {
 	testCases := []struct {
 		name      string
 		grammar   string
@@ -138,7 +138,7 @@ func Test_CanonicalLR1Parse(t *testing.T) {
 			stream := mockTokens(tc.input...)
 
 			// execute
-			parser, _, err := GenerateCanonicalLR1Parser(g, tc.ambig)
+			parser, _, err := GenerateCLR1Parser(g, tc.ambig)
 			if !assert.NoError(err, "generating CLR parser failed") {
 				return
 			}

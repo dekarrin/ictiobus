@@ -364,7 +364,7 @@ func NewLALR1Parser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambi
 // NewSLRParser returns an SLR(1) parser that can generate parse trees for the
 // given grammar. Returns an error if the grammar is not SLR(1).
 func NewSLRParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigWarns []string, err error) {
-	return parse.GenerateSimpleLRParser(g, allowAmbiguous)
+	return parse.GenerateSLR1Parser(g, allowAmbiguous)
 }
 
 // NewLL1Parser returns an LL(1) parser that can generate parse trees for the
@@ -376,7 +376,7 @@ func NewLL1Parser(g grammar.Grammar) (parser Parser, err error) {
 // NewCLRParser returns a canonical-LR(0) parser that can generate parse trees
 // for the given grammar. Returns an error if the grammar is not CLR(1)
 func NewCLRParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigWarns []string, err error) {
-	return parse.GenerateCanonicalLR1Parser(g, allowAmbiguous)
+	return parse.GenerateCLR1Parser(g, allowAmbiguous)
 }
 
 // NewSDTS returns a new Syntax-Directed Translation Scheme.
