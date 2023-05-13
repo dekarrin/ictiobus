@@ -16,7 +16,7 @@ import (
 // EmptyLALR1Parser returns a completely empty LALR1Parser, unsuitable for use.
 // Generally this should not be used directly except for internal purposes; use
 // GenerateLALR1Parser to generate one ready for use
-func EmptyLALR1Parser() *lrParser {
+func EmptyLALR1Parser() Parser {
 	return &lrParser{table: &lalr1Table{}, parseType: AlgoLALR1}
 }
 
@@ -28,7 +28,7 @@ func EmptyLALR1Parser() *lrParser {
 // shift-reduce conflict, shift will be preferred. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func GenerateLALR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, []string, error) {
+func GenerateLALR1Parser(g grammar.Grammar, allowAmbig bool) (Parser, []string, error) {
 	table, ambigWarns, err := constructLALR1ParseTable(g, allowAmbig)
 	if err != nil {
 		return &lrParser{}, nil, err

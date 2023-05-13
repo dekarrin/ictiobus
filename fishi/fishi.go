@@ -38,7 +38,7 @@ type AST = syntax.AST
 // Results is the results of attempting to parse a FISHI spec.
 type Results struct {
 	AST  *AST
-	Tree *parse.ParseTree
+	Tree *parse.Tree
 }
 
 // Options is options to the FISHI frontend that can be supplied by callers.

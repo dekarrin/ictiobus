@@ -193,12 +193,12 @@ func (lr lrParser) notifyTokenStack(st *box.Stack[lex.Token]) {
 //
 // This is an implementation of Algorithm 4.44, "LR-parsing algorithm", from
 // the purple dragon book.
-func (lr *lrParser) Parse(stream lex.TokenStream) (ParseTree, error) {
+func (lr *lrParser) Parse(stream lex.TokenStream) (Tree, error) {
 	stateStack := box.NewStack([]string{lr.table.Initial()})
 
 	// we will use these to build our parse tree
 	tokenBuffer := &box.Stack[lex.Token]{}
-	subTreeRoots := &box.Stack[*ParseTree]{}
+	subTreeRoots := &box.Stack[*Tree]{}
 
 	// let a be the first symbol of w$;
 	a := stream.Next()
@@ -238,12 +238,12 @@ func (lr *lrParser) Parse(stream lex.TokenStream) (ParseTree, error) {
 			lr.notifyTrace("%s -> %s", strings.ToUpper(A), prodStr)
 
 			// use the reduce to create a node in the parse tree
-			node := &ParseTree{Value: A, Children: make([]*ParseTree, 0)}
+			node := &Tree{Value: A, Children: make([]*Tree, 0)}
 
 			// SPECIAL CASE: if we just reduced an epsilon production, immediately
 			// add the epsilon node to the new one
 			if len(beta) == 0 {
-				node.Children = append(node.Children, &ParseTree{
+				node.Children = append(node.Children, &Tree{
 					Terminal: true,
 				})
 			}
@@ -255,13 +255,13 @@ func (lr *lrParser) Parse(stream lex.TokenStream) (ParseTree, error) {
 				if strings.ToLower(sym) == sym {
 					// it is a terminal. read the source from the token buffer
 					tok := tokenBuffer.Pop()
-					subNode := &ParseTree{Terminal: true, Value: tok.Class().ID(), Source: tok}
-					node.Children = append([]*ParseTree{subNode}, node.Children...)
+					subNode := &Tree{Terminal: true, Value: tok.Class().ID(), Source: tok}
+					node.Children = append([]*Tree{subNode}, node.Children...)
 				} else {
 					// it is a non-terminal. it should be in our stack of
 					// current tree roots.
 					subNode := subTreeRoots.Pop()
-					node.Children = append([]*ParseTree{subNode}, node.Children...)
+					node.Children = append([]*Tree{subNode}, node.Children...)
 				}
 			}
 			// remember it for next time
@@ -280,7 +280,7 @@ func (lr *lrParser) Parse(stream lex.TokenStream) (ParseTree, error) {
 			// push GOTO[t, A] onto the stack
 			toPush, err := lr.table.Goto(t, A)
 			if err != nil {
-				return ParseTree{}, lex.NewSyntaxErrorFromToken(fmt.Sprintf("LR parsing error; DFA has no valid transition from here on %q", A), a)
+				return Tree{}, lex.NewSyntaxErrorFromToken(fmt.Sprintf("LR parsing error; DFA has no valid transition from here on %q", A), a)
 			}
 			stateStack.Push(toPush)
 			lr.notifyTrace("Transition %s =(%q)=> %s", t, strings.ToLower(A), toPush)
@@ -295,7 +295,7 @@ func (lr *lrParser) Parse(stream lex.TokenStream) (ParseTree, error) {
 		case lrError:
 			// call error-recovery routine
 			expMessage := lr.getExpectedString(s)
-			return ParseTree{}, lex.NewSyntaxErrorFromToken(fmt.Sprintf("unexpected %s; %s", a.Class().Human(), expMessage), a)
+			return Tree{}, lex.NewSyntaxErrorFromToken(fmt.Sprintf("unexpected %s; %s", a.Class().Human(), expMessage), a)
 		}
 		lr.notifyTrace("-----------------")
 	}

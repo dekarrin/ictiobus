@@ -23,7 +23,7 @@ type Parser interface {
 
 	// Parse parses input text and returns the parse tree built from it, or a
 	// SyntaxError with the description of the problem.
-	Parse(stream lex.TokenStream) (ParseTree, error)
+	Parse(stream lex.TokenStream) (Tree, error)
 
 	// Type returns a string indicating what kind of parser was generated. This
 	// will be "LL(1)", "SLR(1)", "CLR(1)", or "LALR(1)"

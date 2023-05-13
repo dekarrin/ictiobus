@@ -9,16 +9,16 @@ import (
 func Test_ParseTree_PathToDiff(t *testing.T) {
 	testCases := []struct {
 		name          string
-		tree          *ParseTree
-		t             *ParseTree
+		tree          *Tree
+		t             *Tree
 		ignoreSC      bool
 		expect        []int
 		expectDiverge bool
 	}{
 		{
 			name:          "zero tree - has no divergence",
-			tree:          &ParseTree{},
-			t:             &ParseTree{},
+			tree:          &Tree{},
+			t:             &Tree{},
 			expectDiverge: false,
 		},
 		{
@@ -83,22 +83,22 @@ func Test_ParseTree_PathToDiff(t *testing.T) {
 func Test_ParseTree_IsSubTreeOf(t *testing.T) {
 	testCases := []struct {
 		name       string
-		tree       *ParseTree
-		t          *ParseTree
+		tree       *Tree
+		t          *Tree
 		expect     bool
 		expectPath []int
 	}{
 		{
 			name:       "zero tree is a subtree of zero tree",
-			tree:       &ParseTree{},
-			t:          &ParseTree{},
+			tree:       &Tree{},
+			t:          &Tree{},
 			expect:     true,
 			expectPath: []int{},
 		},
 		{
 			name: "zero tree is not a subtree of empty node with children",
-			tree: &ParseTree{},
-			t: &ParseTree{Children: []*ParseTree{
+			tree: &Tree{},
+			t: &Tree{Children: []*Tree{
 				PTLeaf(""),
 				PTNode("A"),
 				{Value: "X"},
@@ -234,20 +234,20 @@ func Test_ParseTree_IsSubTreeOf(t *testing.T) {
 		},
 		{
 			name:   "zero tree is not a subtree of terminal node",
-			tree:   &ParseTree{},
-			t:      &ParseTree{Value: "root", Terminal: true},
+			tree:   &Tree{},
+			t:      &Tree{Value: "root", Terminal: true},
 			expect: false,
 		},
 		{
 			name:   "zero tree is not a subtree of epsilon terminal node",
-			tree:   &ParseTree{},
-			t:      &ParseTree{Value: "", Terminal: true},
+			tree:   &Tree{},
+			t:      &Tree{Value: "", Terminal: true},
 			expect: false,
 		},
 		{
 			name:   "zero tree is not a subtree of non-terminal node with Value set",
-			tree:   &ParseTree{},
-			t:      &ParseTree{Value: "S", Terminal: false},
+			tree:   &Tree{},
+			t:      &Tree{Value: "S", Terminal: false},
 			expect: false,
 		},
 	}

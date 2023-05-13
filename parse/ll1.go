@@ -70,7 +70,7 @@ func (ll *ll1Parser) UnmarshalBinary(data []byte) error {
 // EmptyLL1Parser returns a completely empty LL1 parser, unsuitable for use.
 // Generally this should not be used directly except for internal purposes; use
 // GenerateLL1Parser to generate one ready for use.
-func EmptyLL1Parser() *ll1Parser {
+func EmptyLL1Parser() Parser {
 	return &ll1Parser{}
 }
 
@@ -80,7 +80,7 @@ func EmptyLL1Parser() *ll1Parser {
 // The returned parser parses the input using LL(k) parsing rules on the
 // context-free Grammar g (k=1). The grammar must already be LL(1); it will not
 // be forced to it.
-func GenerateLL1Parser(g grammar.Grammar) (*ll1Parser, error) {
+func GenerateLL1Parser(g grammar.Grammar) (Parser, error) {
 	M, err := generateLL1ParseTable(g)
 	if err != nil {
 		return &ll1Parser{}, err
@@ -109,13 +109,13 @@ func (ll1 ll1Parser) notifyPushed(s string) {
 // Parse takes a stream of tokens and parses it into a parse tree. If any syntax
 // errors are encountered, an empty parse tree and a *types.SyntaxError is
 // returned.
-func (ll1 *ll1Parser) Parse(stream lex.TokenStream) (ParseTree, error) {
+func (ll1 *ll1Parser) Parse(stream lex.TokenStream) (Tree, error) {
 	symStack := box.NewStack([]string{ll1.g.StartSymbol(), "$"})
 	next := stream.Peek()
 	X := symStack.Peek()
 	ll1.notifyPopped(X)
-	pt := ParseTree{Value: ll1.g.StartSymbol()}
-	ptStack := box.NewStack([]*ParseTree{&pt})
+	pt := Tree{Value: ll1.g.StartSymbol()}
+	ptStack := box.NewStack([]*Tree{&pt})
 
 	node := ptStack.Peek()
 	for X != "$" { /* stack is not empty */
@@ -151,11 +151,11 @@ func (ll1 *ll1Parser) Parse(stream lex.TokenStream) (ParseTree, error) {
 					ll1.notifyPushed(nextProd[i])
 				}
 
-				child := &ParseTree{Value: nextProd[i]}
+				child := &Tree{Value: nextProd[i]}
 				if nextProd[i] == grammar.Epsilon[0] {
 					child.Terminal = true
 				}
-				node.Children = append([]*ParseTree{child}, node.Children...)
+				node.Children = append([]*Tree{child}, node.Children...)
 
 				if nextProd[i] != grammar.Epsilon[0] {
 					ptStack.Push(child)

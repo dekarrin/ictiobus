@@ -88,7 +88,7 @@ type SDTS interface {
 	//
 	// Warn errors are provided in the slice of error and can be populated
 	// regardless of whether the final (actual) error is non-nil.
-	Evaluate(tree parse.ParseTree, attributes ...string) (vals []interface{}, warns []error, err error)
+	Evaluate(tree parse.Tree, attributes ...string) (vals []interface{}, warns []error, err error)
 
 	// Validate checks whether this SDTS is valid for the given grammar. It will
 	// create a simulated parse tree that contains a node for every rule of the

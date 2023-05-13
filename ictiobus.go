@@ -222,7 +222,7 @@ type Frontend[E any] struct {
 //
 // The parse tree may be valid even if there is an error, in which case pt will
 // be non-nil.
-func (fe *Frontend[E]) AnalyzeString(s string) (ir E, pt *parse.ParseTree, err error) {
+func (fe *Frontend[E]) AnalyzeString(s string) (ir E, pt *parse.Tree, err error) {
 	r := strings.NewReader(s)
 	return fe.Analyze(r)
 }
@@ -241,7 +241,7 @@ func (fe *Frontend[E]) AnalyzeString(s string) (ir E, pt *parse.ParseTree, err e
 //
 // The parse tree may be valid even if there is an error, in which case pt will
 // be non-nil.
-func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, pt *parse.ParseTree, err error) {
+func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, pt *parse.Tree, err error) {
 	// lexical analysis
 	tokStream, err := fe.Lexer.Lex(r)
 	if err != nil {

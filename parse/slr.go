@@ -16,7 +16,7 @@ import (
 // EmptySLR1Parser returns a completely empty SLR1Parser, unsuitable for use.
 // Generally this should not be used directly except for internal purposes; use
 // GenerateSimpleLRParser to generate one ready for use
-func EmptySLR1Parser() *lrParser {
+func EmptySLR1Parser() Parser {
 	return &lrParser{table: &slrTable{}, parseType: AlgoSLR1}
 }
 
@@ -27,7 +27,7 @@ func EmptySLR1Parser() *lrParser {
 // shift-reduce conflict, shift will be preferred. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func GenerateSLR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, []string, error) {
+func GenerateSLR1Parser(g grammar.Grammar, allowAmbig bool) (Parser, []string, error) {
 	table, ambigWarns, err := constructSLR1ParseTable(g, allowAmbig)
 	if err != nil {
 		return &lrParser{}, ambigWarns, err

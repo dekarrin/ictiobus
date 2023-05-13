@@ -67,8 +67,8 @@ type AnnotatedParseTree struct {
 // AnnotatedParseTree. Returns an AnnotatedParseTree with only auto fields set
 // ('$text' for terminals, '$id' for all nodes, and '$ft' for all nodes except
 // epsilon terminal nodes, representing the first Token of the expression).
-func Annotate(root parse.ParseTree) AnnotatedParseTree {
-	treeStack := box.NewStack([]*parse.ParseTree{&root})
+func Annotate(root parse.Tree) AnnotatedParseTree {
+	treeStack := box.NewStack([]*parse.Tree{&root})
 	annoRoot := AnnotatedParseTree{}
 	annotatedStack := box.NewStack([]*AnnotatedParseTree{&annoRoot})
 
