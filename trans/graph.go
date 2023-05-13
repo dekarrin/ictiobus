@@ -294,7 +294,7 @@ func depGraphString(dg *DirectedGraph[depNode]) string {
 		}
 
 		nodeID := dep.Tree.ID()
-		nextIDs := []APTNodeID{}
+		nextIDs := []aptNodeID{}
 
 		for j := range n.Edges {
 			nextIDs = append(nextIDs, n.Edges[j].Data.Tree.ID())
@@ -344,7 +344,7 @@ func depGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*DirectedGraph[depNo
 	// no parent set on first node; it's the root
 	treeStack := box.NewStack([]treeAndParent{{Tree: &aptRoot}})
 
-	depNodes := map[APTNodeID]map[string]*DirectedGraph[depNode]{}
+	depNodes := map[aptNodeID]map[string]*DirectedGraph[depNode]{}
 
 	for treeStack.Len() > 0 {
 		curTreeAndParent := treeStack.Pop()
@@ -356,7 +356,7 @@ func depGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*DirectedGraph[depNo
 		binds := sdts.Bindings(ruleHead, ruleProd)
 
 		// sanity check each node on visit to be shore it's got a non-empty ID.
-		if curTree.ID() == IDZero {
+		if curTree.ID() == aptIDZero {
 			panic("ID not set on APT node")
 		}
 

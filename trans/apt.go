@@ -59,7 +59,7 @@ type AnnotatedParseTree struct {
 
 	// Attributes is the data for attributes at the given position in the parse
 	// tree.
-	Attributes NodeAttrs
+	Attributes nodeAttrs
 }
 
 // Annotate adds attribute fields to the given parse tree to convert it to an
@@ -71,7 +71,7 @@ func Annotate(root types.ParseTree) AnnotatedParseTree {
 	annoRoot := AnnotatedParseTree{}
 	annotatedStack := box.NewStack([]*AnnotatedParseTree{&annoRoot})
 
-	idGen := NewIDGenerator(0)
+	idGen := newIDGenerator(0)
 
 	for treeStack.Len() > 0 {
 		curTreeNode := treeStack.Pop()
@@ -81,7 +81,7 @@ func Annotate(root types.ParseTree) AnnotatedParseTree {
 		curAnnoNode.Symbol = curTreeNode.Value
 		curAnnoNode.Source = curTreeNode.Source
 		curAnnoNode.Children = make([]*AnnotatedParseTree, len(curTreeNode.Children))
-		curAnnoNode.Attributes = NodeAttrs{
+		curAnnoNode.Attributes = nodeAttrs{
 			string("$id"): idGen.Next(),
 		}
 
@@ -214,14 +214,14 @@ func (apt *AnnotatedParseTree) First() types.Token {
 //
 // If for whatever reason the ID has not been set on this node, IDZero is
 // returned.
-func (apt AnnotatedParseTree) ID() APTNodeID {
-	var id APTNodeID
+func (apt AnnotatedParseTree) ID() aptNodeID {
+	var id aptNodeID
 	untyped, ok := apt.Attributes["$id"]
 	if !ok {
 		return id
 	}
 
-	id, ok = untyped.(APTNodeID)
+	id, ok = untyped.(aptNodeID)
 	if !ok {
 		panic(fmt.Sprintf("$id attribute set to non-APTNodeID typed value: %v", untyped))
 	}
@@ -350,7 +350,7 @@ func (apt AnnotatedParseTree) RelativeNode(rel NodeRelation) (related *Annotated
 // value which will be true. If rel specifies a node that doesn't exist relative
 // to apt, then the second value will be false and the returned node attributes
 // will be nil.
-func (apt AnnotatedParseTree) AttributesOf(rel NodeRelation) (attributes NodeAttrs, ok bool) {
+func (apt AnnotatedParseTree) AttributesOf(rel NodeRelation) (attributes nodeAttrs, ok bool) {
 	node, ok := apt.RelativeNode(rel)
 	if !ok {
 		return nil, false
