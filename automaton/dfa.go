@@ -696,208 +696,28 @@ func (dfa DFA[E]) ValueString() string {
 // accepted by the parser, g, must be LALR(1) and it must be non-augmented.
 // Returns an error if g is not LALR(1).
 func NewLALR1ViablePrefixDFA(g grammar.Grammar) (DFA[box.SVSet[grammar.LR1Item]], error) {
+	mergeFunc := func(x1, x2 box.SVSet[grammar.LR1Item]) bool {
+		return grammar.CoreSet(x1).Equal(grammar.CoreSet(x2))
+	}
+
+	reduceFunc := func(x1, x2 box.SVSet[grammar.LR1Item]) box.SVSet[grammar.LR1Item] {
+		if x1 == nil {
+			return box.NewSVSet(x2)
+		}
+		x1.AddAll(x2)
+		return x1
+	}
+
+	nameFunc := func(x1 box.SVSet[grammar.LR1Item]) string {
+		return x1.StringOrdered()
+	}
+
 	lr1Dfa := NewLR1ViablePrefixDFA(g)
 
 	// get an NFA so we can start fixing things
 	lalrNfa := DFAToNFA(lr1Dfa)
-
-	// counter for unique state name
-	newStateNum := 0
-
-	// now start merging states
-	updated := true
-	for updated {
-		updated = false
-
-		alreadyMerged := box.NewStringSet()
-		states := lalrNfa.States()
-		stateVals := map[string]box.SVSet[grammar.LR1Item]{}
-		orderedStateElements := states.Elements()
-		sort.Strings(orderedStateElements)
-		for _, name := range orderedStateElements {
-			stateVals[name] = lalrNfa.GetValue(name)
-		}
-
-		for _, stateName := range orderedStateElements {
-			if alreadyMerged.Has(stateName) {
-				continue
-			}
-
-			mergeWith := []string{}
-			coreSet := grammar.CoreSet(stateVals[stateName])
-
-			// need to find ALL to merge w or this is gonna get wild REEL quick
-			for _, otherStateName := range orderedStateElements {
-				if stateName == otherStateName {
-					continue
-				}
-
-				otherCoreSet := grammar.CoreSet(stateVals[otherStateName])
-
-				// Note: we do NOT enforce an ordering in general on which
-				// states are merged first. this could cause issues; doing them
-				// in an arbitrary order
-
-				// check their cores
-				if coreSet.Equal(otherCoreSet) {
-					mergeWith = append(mergeWith, otherStateName)
-				}
-			}
-
-			// now we merge any that have been queued to do so
-			if len(mergeWith) > 0 {
-				updated = true
-				alreadyMerged.Add(stateName)
-				destState := lalrNfa.states[stateName]
-				mergedStateSet := box.NewSVSet(stateVals[stateName])
-
-				for i := range mergeWith {
-					alreadyMerged.Add(mergeWith[i])
-					mergedStateSet.AddAll(stateVals[mergeWith[i]])
-				}
-
-				// We COULD tell what new name of state would be NOW, but to keep
-				// things from overlapping during the process we will be setting
-				// to a unique number and updating after all merges are complete
-				// (at which point there should be 0 conflicting state names).
-				newStateName := fmt.Sprintf("%d", newStateNum)
-				newStateNum++
-				destState.name = mergedStateSet.StringOrdered()
-				destState.value = mergedStateSet
-
-				// and so we can rewrite transitions from the old states to the
-				// new one
-				for i := range mergeWith {
-					transitionsToMerged := lalrNfa.AllTransitionsTo(mergeWith[i])
-
-					for j := range transitionsToMerged {
-						trans := transitionsToMerged[j]
-						from := trans.from
-						sym := trans.input
-						idx := trans.index
-
-						// rewrite the transition to new state
-						lalrNfa.states[from].transitions[sym][idx] = faTransition{input: sym, next: newStateName}
-					}
-
-					// also, check to see if we need to update start
-					if lalrNfa.Start == mergeWith[i] {
-						lalrNfa.Start = newStateName
-					}
-				}
-
-				// also rewrite any transitions to the merged-to state
-				transitionsToDestState := lalrNfa.AllTransitionsTo(stateName)
-				for j := range transitionsToDestState {
-					trans := transitionsToDestState[j]
-					from := trans.from
-					sym := trans.input
-					idx := trans.index
-
-					// rewrite the transition to new state
-					lalrNfa.states[from].transitions[sym][idx] = faTransition{input: sym, next: newStateName}
-				}
-
-				// also, check to see if we need to update start
-				if lalrNfa.Start == stateName {
-					lalrNfa.Start = newStateName
-				}
-
-				// finally, enshore that any transitions we lose by deleting the
-				// old state are added to the new state. this SHOULD collapse to
-				// a single state by the time that things are done if it is
-				// indeed an LALR(1) grammar
-				for i := range mergeWith {
-					lostTransitions := lalrNfa.states[mergeWith[i]].transitions
-					for sym := range lostTransitions {
-						transForSym := lostTransitions[sym]
-						destTransForSym, ok := destState.transitions[sym]
-						if !ok {
-							destTransForSym = []faTransition{}
-						}
-
-						for j := range transForSym {
-							// is this already in the dest? don't add it if so
-							faTrans := transForSym[j]
-
-							inDestTrans := false
-							for k := range destTransForSym {
-								destFATrans := destTransForSym[k]
-								if destFATrans == faTrans {
-									inDestTrans = true
-									break
-								}
-							}
-							if !inDestTrans {
-								destTransForSym = append(destTransForSym, faTrans)
-							}
-						}
-						destState.transitions[sym] = destTransForSym
-					}
-				}
-
-				// with those updated, we can now delete the old states from
-				// the DFA
-				for i := range mergeWith {
-					delete(lalrNfa.states, mergeWith[i])
-				}
-
-				// unshore if this condition is proven not to happen, either
-				// way it's 8AD so checking
-				if _, ok := lalrNfa.states[newStateName]; ok {
-					panic(fmt.Sprintf("merged state name conflicts w state %q already in DFA", newStateName))
-				}
-
-				// enshore the updated new state is stored...
-				lalrNfa.states[newStateName] = destState
-
-				// ...and, finally, remove the old version of it
-				delete(lalrNfa.states, stateName)
-			}
-
-			// did we just update? if so, all of the pre-cached info on states
-			// and names and such is invalid due to modifying the DFA, and
-			// therefore must be regenerated before checking anyfin else.
-			//
-			// they will be auto-regenerated by the parent loop
-			if updated {
-				break
-			}
-		}
-	}
-
-	// prior to conversion to dfa, go through and update the auto-numbered states
-	lalrStates := lalrNfa.States().Elements()
-	for _, stateName := range lalrStates {
-		st := lalrNfa.states[stateName]
-
-		// we keep the name pre-calculated in .name, so check if there's a mismatch
-		if st.name != stateName {
-			newStateName := st.name
-			transitionsToMerged := lalrNfa.AllTransitionsTo(stateName)
-
-			for j := range transitionsToMerged {
-				trans := transitionsToMerged[j]
-				from := trans.from
-				sym := trans.input
-				idx := trans.index
-
-				// rewrite the transition to new state
-				lalrNfa.states[from].transitions[sym][idx] = faTransition{input: sym, next: newStateName}
-			}
-
-			// also, check to see if we need to update start
-			if lalrNfa.Start == stateName {
-				lalrNfa.Start = newStateName
-			}
-
-			// and now, swap the name for the reel one
-			lalrNfa.states[newStateName] = st
-			delete(lalrNfa.states, stateName)
-		}
-	}
-
-	lalrDfa, err := directNFAToDFA(lalrNfa)
+	lalrNfa.MergeStatesByValue(mergeFunc, reduceFunc, nameFunc)
+	lalrDfa, err := DeterministicNFAToDFA(lalrNfa)
 	if err != nil {
 		return DFA[box.SVSet[grammar.LR1Item]]{}, fmt.Errorf("grammar is not LALR(1); resulted in inconsistent state merges")
 	}
