@@ -498,9 +498,9 @@ func (g Grammar) NonTerminals() []string {
 	return textfmt.OrderedKeys(g.rulesByName)
 }
 
-// PriorityNonTerminals returns list of all the non-terminal symbols in the order
+// NonTerminalsByPriority returns list of all the non-terminal symbols in the order
 // they were defined in. All will be upper case.
-func (g Grammar) PriorityNonTerminals() []string {
+func (g Grammar) NonTerminalsByPriority() []string {
 	termNames := []string{}
 	for _, r := range g.rules {
 		termNames = append(termNames, r.NonTerminal)
@@ -509,11 +509,11 @@ func (g Grammar) PriorityNonTerminals() []string {
 	return termNames
 }
 
-// ReversePriorityNonTerminals returns list of all the non-terminal symbols in
+// NonTerminalsByReversePriority returns list of all the non-terminal symbols in
 // reverse order from the order they were defined in. This is handy because it
 // can have the effect of causing iteration to do so in a manner that a human
 // might do looking at a grammar, reversed.
-func (g Grammar) ReversePriorityNonTerminals() []string {
+func (g Grammar) NonTerminalsByReversePriority() []string {
 	termNames := []string{}
 	for _, r := range g.rules {
 		termNames = append([]string{r.NonTerminal}, termNames...)
@@ -1355,7 +1355,7 @@ func (g Grammar) RemoveLeftRecursion() Grammar {
 		grammarUpdated = false
 
 		// arrange the nonterminals in some order A₁, A₂, ..., Aₙ.
-		A := g.ReversePriorityNonTerminals()
+		A := g.NonTerminalsByReversePriority()
 		for i := range A {
 			AiRule := g.Rule(A[i])
 			for j := 0; j < i; j++ {

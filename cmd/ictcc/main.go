@@ -1081,7 +1081,7 @@ func printSpec(spec fishi.Spec) {
 
 	// print grammar in custom way
 	fmt.Printf("Grammar:\n")
-	nts := spec.Grammar.PriorityNonTerminals()
+	nts := spec.Grammar.NonTerminalsByPriority()
 	// ensure that the start symbol is first
 	if nts[0] != spec.Grammar.StartSymbol() {
 		startSymIdx := -1

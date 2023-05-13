@@ -689,7 +689,7 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 
 	// fill rules
 
-	nts := spec.Grammar.PriorityNonTerminals()
+	nts := spec.Grammar.NonTerminalsByPriority()
 	for _, nt := range nts {
 		gRule := spec.Grammar.Rule(nt)
 		rData := cgRule{Head: gRule.NonTerminal}
