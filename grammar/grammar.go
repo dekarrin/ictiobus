@@ -195,67 +195,6 @@ func (g Grammar) LR0Items() []LR0Item {
 	return items
 }
 
-// LR1_CLOSURE is the closure function used for constructing LR(1) item sets for
-// use in a parser DFA.
-//
-// Note: this actually takes the grammar for each production B -> gamma in G,
-// not G'. It's assumed this function is only called on a g.Augmented()
-// instance.
-func (g Grammar) LR1_CLOSURE(I box.SVSet[LR1Item]) box.SVSet[LR1Item] {
-	Iset := I.Copy()
-	I = Iset.(box.SVSet[LR1Item])
-
-	updated := true
-	for updated {
-		updated = false
-		for _, it := range I {
-			if len(it.Right) >= 1 {
-				B := it.Right[0]
-				ruleB := g.Rule(B)
-				if ruleB.NonTerminal == "" {
-					continue
-				}
-
-				for _, gamma := range ruleB.Productions {
-					fullArgs := make([]string, len(it.Right[1:]))
-					copy(fullArgs, it.Right[1:])
-					fullArgs = append(fullArgs, it.Lookahead)
-					for _, b := range g.FIRST_STRING(fullArgs...).Elements() {
-						if strings.ToLower(b) != b {
-							continue // terminals only
-						}
-
-						var newItem LR1Item
-
-						// SPECIAL CASE: if we're dealing with an epsilon, our
-						// item will look like "A -> .". normally we are adding
-						// a dot at the START of an item added in the LR1
-						// CLOSURE func, but since "A -> ." should always be
-						// treated as "at the end", we add a special item with
-						// only the dot, and no left or right.
-						if gamma.Equal(Epsilon) {
-							newItem = LR1Item{LR0Item: LR0Item{NonTerminal: B}, Lookahead: b}
-						} else {
-							newItem = LR1Item{
-								LR0Item: LR0Item{
-									NonTerminal: B,
-									Right:       gamma,
-								},
-								Lookahead: b,
-							}
-						}
-						if !I.Has(newItem.String()) {
-							I.Set(newItem.String(), newItem)
-							updated = true
-						}
-					}
-				}
-			}
-		}
-	}
-	return I
-}
-
 // Copy makes a duplicate deep copy of the grammar.
 func (g Grammar) Copy() Grammar {
 	g2 := Grammar{

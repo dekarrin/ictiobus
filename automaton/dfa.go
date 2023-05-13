@@ -920,7 +920,7 @@ func NewLR1ViablePrefixDFA(g grammar.Grammar) DFA[box.SVSet[grammar.LR1Item]] {
 		Lookahead: "$",
 	}
 
-	startSet := g.LR1_CLOSURE(box.SVSet[grammar.LR1Item]{initialItem.String(): initialItem})
+	startSet := lr1CLOSURE(g, box.SVSet[grammar.LR1Item]{initialItem.String(): initialItem})
 
 	stateSets := box.NewSVSet[box.SVSet[grammar.LR1Item]]()
 	stateSets.Set(startSet.StringOrdered(), startSet)
@@ -962,7 +962,7 @@ func NewLR1ViablePrefixDFA(g grammar.Grammar) DFA[box.SVSet[grammar.LR1Item]] {
 				// That set [Is] becomes the kernel of state q', and you make a
 				// transition from q to q′ on s. As usual, form the closure of
 				// the set of LR(1) items in state q'.
-				newSet := g.LR1_CLOSURE(Is)
+				newSet := lr1CLOSURE(g, Is)
 
 				// add to states if not already in it
 				if !stateSets.Has(newSet.StringOrdered()) {
@@ -1017,4 +1017,65 @@ func NewLR1ViablePrefixDFA(g grammar.Grammar) DFA[box.SVSet[grammar.LR1Item]] {
 	dfa.Start = startSet.StringOrdered()
 
 	return dfa
+}
+
+// lr1CLOSURE is the closure function used for constructing LR(1) item sets for
+// use in a parser DFA.
+//
+// Note: this actually takes the grammar for each production B -> gamma in G,
+// not G'. It's assumed this function is only called on a g.Augmented()
+// instance.
+func lr1CLOSURE(g grammar.Grammar, I box.SVSet[grammar.LR1Item]) box.SVSet[grammar.LR1Item] {
+	Iset := I.Copy()
+	I = Iset.(box.SVSet[grammar.LR1Item])
+
+	updated := true
+	for updated {
+		updated = false
+		for _, it := range I {
+			if len(it.Right) >= 1 {
+				B := it.Right[0]
+				ruleB := g.Rule(B)
+				if ruleB.NonTerminal == "" {
+					continue
+				}
+
+				for _, gamma := range ruleB.Productions {
+					fullArgs := make([]string, len(it.Right[1:]))
+					copy(fullArgs, it.Right[1:])
+					fullArgs = append(fullArgs, it.Lookahead)
+					for _, b := range g.FIRST_STRING(fullArgs...).Elements() {
+						if strings.ToLower(b) != b {
+							continue // terminals only
+						}
+
+						var newItem grammar.LR1Item
+
+						// SPECIAL CASE: if we're dealing with an epsilon, our
+						// item will look like "A -> .". normally we are adding
+						// a dot at the START of an item added in the LR1
+						// CLOSURE func, but since "A -> ." should always be
+						// treated as "at the end", we add a special item with
+						// only the dot, and no left or right.
+						if gamma.Equal(grammar.Epsilon) {
+							newItem = grammar.LR1Item{LR0Item: grammar.LR0Item{NonTerminal: B}, Lookahead: b}
+						} else {
+							newItem = grammar.LR1Item{
+								LR0Item: grammar.LR0Item{
+									NonTerminal: B,
+									Right:       gamma,
+								},
+								Lookahead: b,
+							}
+						}
+						if !I.Has(newItem.String()) {
+							I.Set(newItem.String(), newItem)
+							updated = true
+						}
+					}
+				}
+			}
+		}
+	}
+	return I
 }
