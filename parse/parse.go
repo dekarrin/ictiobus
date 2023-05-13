@@ -9,9 +9,9 @@ import (
 	"github.com/dekarrin/ictiobus/internal/box"
 )
 
-// FOLLOWSet is the used to get the FOLLOWSet set of symbol X for generating
+// findFOLLOWSet is the used to get the findFOLLOWSet set of symbol X for generating
 // various types of parsers.
-func FOLLOWSet(g grammar.Grammar, X string) box.Set[string] {
+func findFOLLOWSet(g grammar.Grammar, X string) box.Set[string] {
 	return recursiveFOLLOWSet(g, X, box.NewStringSet())
 }
 
@@ -126,7 +126,7 @@ func IsLL1(g grammar.Grammar) bool {
 		AiRule := g.Rule(A)
 
 		// we'll need this later, glubglub 38)
-		followSetA := box.StringSetOf(FOLLOWSet(g, A).Elements())
+		followSetA := box.StringSetOf(findFOLLOWSet(g, A).Elements())
 
 		// Whenever A -> α | β are two distinct productions of G:
 		// -purple dragon book

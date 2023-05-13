@@ -55,7 +55,7 @@ func Test_IsLL1(t *testing.T) {
 	}
 }
 
-func Test_FOLLOWSet(t *testing.T) {
+func Test_findFOLLOWSet(t *testing.T) {
 	const (
 		example1Grammar = `	
 			S -> a B D h ;
@@ -222,7 +222,7 @@ func Test_FOLLOWSet(t *testing.T) {
 			g := grammar.MustParse(tc.g)
 
 			// execute
-			actual := FOLLOWSet(g, tc.follow)
+			actual := findFOLLOWSet(g, tc.follow)
 
 			// assert
 			assert.Equal(textfmt.OrderedKeys(expectMap), box.Alphabetized[string](actual))
