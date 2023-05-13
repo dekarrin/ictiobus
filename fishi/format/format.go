@@ -55,8 +55,8 @@ func NewCodeReader(r io.Reader) (*CodeReader, error) {
 		}
 	}
 
-	gatheredFishi := ExtractFishiBlocksFromMarkdown(allInput)
-	fishiSource := Preprocess(gatheredFishi)
+	gatheredFishi := scanMarkdownForFishiBlocks(allInput)
+	fishiSource := normalizeFishi(gatheredFishi)
 
 	cr := &CodeReader{
 		r: bytes.NewReader(fishiSource),
@@ -65,9 +65,9 @@ func NewCodeReader(r io.Reader) (*CodeReader, error) {
 	return cr, nil
 }
 
-// Preprocess does a preprocess step on the source, which as of now includes
+// normalizeFishi does a preprocess step on the source, which as of now includes
 // stripping comments and normalizing end of lines to \n.
-func Preprocess(source []byte) []byte {
+func normalizeFishi(source []byte) []byte {
 	toBuf := make([]byte, len(source))
 	copy(toBuf, source)
 	scanner := bufio.NewScanner(bytes.NewBuffer(toBuf))

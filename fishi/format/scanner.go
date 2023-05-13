@@ -30,10 +30,10 @@ func (fs fishiScanner) RenderNode(w io.Writer, node mkast.Node, entering bool) m
 func (fs fishiScanner) RenderHeader(w io.Writer, ast mkast.Node) {}
 func (fs fishiScanner) RenderFooter(w io.Writer, ast mkast.Node) {}
 
-// ExtractFishiBlocksFromMarkdown finds all FISHI codeblocks in the given
+// scanMarkdownForFishiBlocks finds all FISHI codeblocks in the given
 // Markdown bytes. The blocks' contents are appended together and returned as a
 // single slice of bytes.
-func ExtractFishiBlocksFromMarkdown(mdText []byte) []byte {
+func scanMarkdownForFishiBlocks(mdText []byte) []byte {
 	doc := markdown.Parse(mdText, mkparser.New())
 	var scanner fishiScanner
 	fishi := markdown.Render(doc, scanner)
