@@ -15,8 +15,8 @@ import (
 )
 
 // Lexer returns the generated ictiobus Lexer for FISHI.
-func Lexer(lazy bool) ictiobus.Lexer {
-	var lx ictiobus.Lexer
+func Lexer(lazy bool) lex.Lexer {
+	var lx lex.Lexer
 	if lazy {
 		lx = ictiobus.NewLazyLexer()
 	} else {

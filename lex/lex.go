@@ -12,6 +12,54 @@ import (
 	"github.com/dekarrin/ictiobus/types"
 )
 
+// A Lexer represents an in-progress or ready-built lexing engine ready for use.
+// It can be stored as a byte representation and retrieved from bytes as well.
+type Lexer interface {
+
+	// Lex returns a token stream. The tokens may be lexed in a lazy fashion or
+	// an immediate fashion; if it is immediate, errors will be returned at that
+	// point. If it is lazy, then error token productions will be returned to
+	// the callers of the returned TokenStream at the point where the error
+	// occured.
+	Lex(input io.Reader) (types.TokenStream, error)
+
+	// RegisterClass registers a token class for use in some state of the Lexer.
+	// Token classes must be registered before they can be used.
+	RegisterClass(cl types.TokenClass, forState string)
+
+	// AddPattern adds a new pattern for the lexer to recognize.
+	AddPattern(pat string, action Action, forState string, priority int) error
+
+	// FakeLexemeProducer returns a map of token IDs to functions that will produce
+	// a lexable value for that ID. As some token classes may have multiple ways of
+	// lexing depending on the state, either state must be selected or combine must
+	// be set to true.
+	//
+	// If combine is true, then state is ignored and all states' regexes for that ID
+	// are combined into a single function that will alternate between them. If
+	// combine is false, then state must be set and only the regexes for that state
+	// are used to produce a lexable value.
+	//
+	// This can be useful for testing but may not produce useful values for all
+	// token classes, especially those that have particularly complicated lexing
+	// rules. If a caller finds that one of the functions in the map produced by
+	// FakeLexemeProducer does not produce a lexable value, then it can be replaced
+	// manually by replacing that entry in the map with a custom function.
+	FakeLexemeProducer(combine bool, state string) map[string]func() string
+
+	// SetStartingState sets the initial state of the lexer. If not set, the
+	// starting state will be the default state.
+	SetStartingState(s string)
+
+	// StartingState returns the initial state of the lexer. If one wasn't set, this
+	// will be the default state, "".
+	StartingState() string
+
+	// RegisterTokenListener provides a function to call whenever a new token is
+	// lexed. It can be used for debug purposes.
+	RegisterTokenListener(func(t types.Token))
+}
+
 type patAct struct {
 	priority int
 	rx       *regexp.Regexp
@@ -32,7 +80,7 @@ type lexerTemplate struct {
 
 // NewLexer creates a new Lexer that performs lexing in a lazy or immediate
 // fashion as specified by lazy.
-func NewLexer(lazy bool) *lexerTemplate {
+func NewLexer(lazy bool) Lexer {
 	return &lexerTemplate{
 		lazy:       lazy,
 		patterns:   map[string][]patAct{},

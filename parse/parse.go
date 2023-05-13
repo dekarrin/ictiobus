@@ -5,11 +5,46 @@
 package parse
 
 import (
+	"encoding"
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/types"
 )
+
+// A Parser represents an in-progress or ready-built parsing engine ready for
+// use. It can be stored as a byte representation and retrieved from bytes as
+// well.
+type Parser interface {
+	encoding.BinaryMarshaler
+	encoding.BinaryUnmarshaler
+
+	// Parse parses input text and returns the parse tree built from it, or a
+	// SyntaxError with the description of the problem.
+	Parse(stream types.TokenStream) (types.ParseTree, error)
+
+	// Type returns a string indicating what kind of parser was generated. This
+	// will be "LL(1)", "SLR(1)", "CLR(1)", or "LALR(1)"
+	Type() types.ParserType
+
+	// TableString returns the parsing table as a string.
+	TableString() string
+
+	// RegisterTraceListener sets up a function to call when an event occurs.
+	// The events are determined by the individual parsers but involve
+	// examination of the parser stack or other critical moments that may aid in
+	// debugging.
+	RegisterTraceListener(func(s string))
+
+	// DFAString returns a string representation of the DFA for this parser, if one
+	// so exists. Will return the empty string if the parser is not of the type
+	// to have a DFA.
+	DFAString() string
+
+	// Grammar returns the grammar that this parser can parse.
+	Grammar() grammar.Grammar
+}
 
 // IsLL1 returns whether the grammar is LL(1).
 func IsLL1(g grammar.Grammar) bool {

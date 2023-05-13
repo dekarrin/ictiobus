@@ -19,7 +19,6 @@ package ictiobus
 
 import (
 	"bufio"
-	"encoding"
 	"fmt"
 	"io"
 	"os"
@@ -33,198 +32,13 @@ import (
 	"github.com/dekarrin/ictiobus/types"
 )
 
-// A Lexer represents an in-progress or ready-built lexing engine ready for use.
-// It can be stored as a byte representation and retrieved from bytes as well.
-type Lexer interface {
-
-	// Lex returns a token stream. The tokens may be lexed in a lazy fashion or
-	// an immediate fashion; if it is immediate, errors will be returned at that
-	// point. If it is lazy, then error token productions will be returned to
-	// the callers of the returned TokenStream at the point where the error
-	// occured.
-	Lex(input io.Reader) (types.TokenStream, error)
-
-	// RegisterClass registers a token class for use in some state of the Lexer.
-	// Token classes must be registered before they can be used.
-	RegisterClass(cl types.TokenClass, forState string)
-
-	// AddPattern adds a new pattern for the lexer to recognize.
-	AddPattern(pat string, action lex.Action, forState string, priority int) error
-
-	// FakeLexemeProducer returns a map of token IDs to functions that will produce
-	// a lexable value for that ID. As some token classes may have multiple ways of
-	// lexing depending on the state, either state must be selected or combine must
-	// be set to true.
-	//
-	// If combine is true, then state is ignored and all states' regexes for that ID
-	// are combined into a single function that will alternate between them. If
-	// combine is false, then state must be set and only the regexes for that state
-	// are used to produce a lexable value.
-	//
-	// This can be useful for testing but may not produce useful values for all
-	// token classes, especially those that have particularly complicated lexing
-	// rules. If a caller finds that one of the functions in the map produced by
-	// FakeLexemeProducer does not produce a lexable value, then it can be replaced
-	// manually by replacing that entry in the map with a custom function.
-	FakeLexemeProducer(combine bool, state string) map[string]func() string
-
-	// SetStartingState sets the initial state of the lexer. If not set, the
-	// starting state will be the default state.
-	SetStartingState(s string)
-
-	// StartingState returns the initial state of the lexer. If one wasn't set, this
-	// will be the default state, "".
-	StartingState() string
-
-	// RegisterTokenListener provides a function to call whenever a new token is
-	// lexed. It can be used for debug purposes.
-	RegisterTokenListener(func(t types.Token))
-}
-
-// A Parser represents an in-progress or ready-built parsing engine ready for
-// use. It can be stored as a byte representation and retrieved from bytes as
-// well.
-type Parser interface {
-	encoding.BinaryMarshaler
-	encoding.BinaryUnmarshaler
-
-	// Parse parses input text and returns the parse tree built from it, or a
-	// SyntaxError with the description of the problem.
-	Parse(stream types.TokenStream) (types.ParseTree, error)
-
-	// Type returns a string indicating what kind of parser was generated. This
-	// will be "LL(1)", "SLR(1)", "CLR(1)", or "LALR(1)"
-	Type() types.ParserType
-
-	// TableString returns the parsing table as a string.
-	TableString() string
-
-	// RegisterTraceListener sets up a function to call when an event occurs.
-	// The events are determined by the individual parsers but involve
-	// examination of the parser stack or other critical moments that may aid in
-	// debugging.
-	RegisterTraceListener(func(s string))
-
-	// DFAString returns a string representation of the DFA for this parser, if one
-	// so exists. Will return the empty string if the parser is not of the type
-	// to have a DFA.
-	DFAString() string
-
-	// Grammar returns the grammar that this parser can parse.
-	Grammar() grammar.Grammar
-}
-
-// SDTS is a series of syntax-directed translations bound to syntactic rules of
-// a grammar. It is used for evaluation of a parse tree into an intermediate
-// representation, or for direct execution.
-//
-// Strictly speaking, this is closer to an Attribute grammar.
-type SDTS interface {
-	// SetHooks sets the hook table for mapping SDTS hook names as used in a
-	// call to BindSynthesizedAttribute or BindInheritedAttribute to their
-	// actual implementations.
-	//
-	// Because the map from strings to function pointers, this hook map must be
-	// set at least once before the SDTS is used. It is recommended to set it
-	// every time the SDTS is loaded as soon as it is loaded.
-	//
-	// Calling it multiple times will add to the existing hook table, not
-	// replace it entirely. If there are any duplicate hook names, the last one
-	// set will be the one that is used.
-	SetHooks(hooks trans.HookMap)
-
-	// BindInheritedAttribute creates a new SDTS binding for setting the value
-	// of an inherited attribute with name attrName. The production that the
-	// inherited attribute is set on is specified with forProd, which must have
-	// its Type set to something other than RelHead (inherited attributes can be
-	// set only on production symbols).
-	//
-	// The binding applies only on nodes in the parse tree created by parsing
-	// the grammar rule productions with head symbol head and production symbols
-	// prod.
-	//
-	// The AttributeSetter bound to hook is called when the inherited value
-	// attrName is to be set, in order to calculate the new value. Attribute
-	// values to pass in as arguments are specified by passing references to the
-	// node and attribute name whose value to retrieve in the withArgs slice.
-	// Explicitlygiving the referenced attributes in this fashion makes it easy
-	// to determine the dependency graph for later execution.
-	BindInheritedAttribute(head string, prod []string, attrName string, hook string, withArgs []trans.AttrRef, forProd trans.NodeRelation) error
-
-	// BindSynthesizedAttribute creates a new SDTS binding for setting the value
-	// of a synthesized attribute with name attrName. The attribute is set on
-	// the symbol at the head of the rule that the binding is being created for.
-	//
-	// The binding applies only on nodes in the parse tree created by parsing
-	// the grammar rule productions with head symbol head and production symbols
-	// prod.
-	//
-	// The AttributeSetter bound to hook is called when the synthesized value
-	// attrName is to be set, in order to calculate the new value. Attribute
-	// values to pass in as arguments are specified by passing references to the
-	// node and attribute name whose value to retrieve in the withArgs slice.
-	// Explicitly giving the referenced attributes in this fashion makes it easy
-	// to determine the dependency graph for later execution.
-	BindSynthesizedAttribute(head string, prod []string, attrName string, hook string, withArgs []trans.AttrRef) error
-
-	// SetNoFlow sets a binding to be explicitly allowed to not be required to
-	// flow up to a particular parent. This will prevent it from causing an
-	// error if it results in a disconnected dependency graph if the node of
-	// that binding has the given parent.
-	//
-	// - forProd is only used if synth is false. It specifies the production
-	// that the binding to match must apply to.
-	// - which is the index of the binding to set it on, if multiple match the
-	// prior criteria. Set to -1 or less to set it on all matching bindings.
-	// - ifParent is the symbol that the parent of the node must be for no flow
-	// to be considered acceptable.
-	SetNoFlow(synth bool, head string, prod []string, attrName string, forProd trans.NodeRelation, which int, ifParent string) error
-
-	// Bindings returns all bindings defined to apply when at a node in a parse
-	// tree created by the rule production with head as its head symbol and prod
-	// as its produced symbols. They will be returned in the order they were
-	// defined.
-	Bindings(head string, prod []string) []trans.SDDBinding
-
-	// Bindings returns all bindings defined to apply when at a node in a parse
-	// tree created by the rule production with head as its head symbol and prod
-	// as its produced symbols, and when setting the attribute referred to by
-	// dest. They will be returned in the order they were defined.
-	BindingsFor(head string, prod []string, dest trans.AttrRef) []trans.SDDBinding
-
-	// Evaluate takes a parse tree and executes the semantic actions defined as
-	// SDDBindings for a node for each node in the tree and on completion,
-	// returns the requested attributes values from the root node. Execution
-	// order is automatically determined by taking the dependency graph of the
-	// SDTS; cycles are not supported. Do note that this does not require the
-	// SDTS to be S-attributed or L-attributed, only that it not have cycles in
-	// its value dependency graph.
-	//
-	// Warn errors are provided in the slice of error and can be populated
-	// regardless of whether the final (actual) error is non-nil.
-	Evaluate(tree types.ParseTree, attributes ...string) (vals []interface{}, warns []error, err error)
-
-	// Validate checks whether this SDTS is valid for the given grammar. It will
-	// create a simulated parse tree that contains a node for every rule of the
-	// given grammar and will attempt to evaluate it, returning an error if
-	// there is any issue running the bindings.
-	//
-	// fakeValProducer should be a map of token class IDs to functions that can
-	// produce fake values for the given token class. This is used to simulate
-	// actual lexemes in the parse tree. If not provided, entirely contrived
-	// values will be used, which may not behave as expected with the SDTS. To
-	// get one that will use the configured regexes of tokens used for lexing,
-	// call FakeLexemeProducer on a Lexer.
-	Validate(grammar grammar.Grammar, attribute string, debug trans.ValidationOptions, fakeValProducer ...map[string]func() string) (warns []string, err error)
-}
-
 // NewLexer returns a lexer whose Lex method will immediately lex the entire
 // input source, finding errors and reporting them and stopping as soon as the
 // first lexing error is encountered or the input has been completely lexed.
 //
 // The TokenStream returned by the Lex function is guaranteed to not have any
 // error tokens.
-func NewLexer() Lexer {
+func NewLexer() lex.Lexer {
 	return lex.NewLexer(false)
 }
 
@@ -233,7 +47,7 @@ func NewLexer() Lexer {
 // perform only enough lexical analysis to produce the next token. Additionally,
 // that TokenStream may produce an error token, which parsers would need to
 // handle appropriately.
-func NewLazyLexer() Lexer {
+func NewLazyLexer() lex.Lexer {
 	return lex.NewLexer(true)
 }
 
@@ -251,7 +65,7 @@ func NewLazyLexer() Lexer {
 //
 // allowAmbiguous allows the use of ambiguous grammars in LR parsers. It has no
 // effect on LL(1) parser generation; LL(1) grammars must be unambiguous.
-func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigWarns []string, err error) {
+func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	parser, ambigWarns, err = NewLALR1Parser(g, allowAmbiguous)
 	if err != nil {
 		bigParseGenErr := fmt.Sprintf("LALR(1) generation: %s", err.Error())
@@ -281,7 +95,7 @@ func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigWarn
 }
 
 // SaveParserToDisk stores the parser in a binary file format on disk.
-func SaveParserToDisk(p Parser, filename string) error {
+func SaveParserToDisk(p parse.Parser, filename string) error {
 	fp, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -304,7 +118,7 @@ func SaveParserToDisk(p Parser, filename string) error {
 }
 
 // GetParserFromDisk retrieves the parser from a binary file on disk.
-func GetParserFromDisk(filename string) (Parser, error) {
+func GetParserFromDisk(filename string) (parse.Parser, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -319,14 +133,14 @@ func GetParserFromDisk(filename string) (Parser, error) {
 }
 
 // EncodeParserBytes takes a parser and returns the encoded bytes.
-func EncodeParserBytes(p Parser) []byte {
+func EncodeParserBytes(p parse.Parser) []byte {
 	data := rezi.EncString(p.Type().String())
 	data = append(data, rezi.EncBinary(p)...)
 	return data
 }
 
 // DecodeParserBytes takes bytes and returns the Parser encoded within it.
-func DecodeParserBytes(data []byte) (p Parser, err error) {
+func DecodeParserBytes(data []byte) (p parse.Parser, err error) {
 	// first get the string giving the type
 	typeStr, n, err := rezi.DecString(data)
 	if err != nil {
@@ -357,39 +171,39 @@ func DecodeParserBytes(data []byte) (p Parser, err error) {
 
 // NewLALR1Parser returns an LALR(1) parser that can generate parse trees for
 // the given grammar. Returns an error if the grammar is not LALR(1).
-func NewLALR1Parser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigWarns []string, err error) {
+func NewLALR1Parser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	return parse.GenerateLALR1Parser(g, allowAmbiguous)
 }
 
 // NewSLRParser returns an SLR(1) parser that can generate parse trees for the
 // given grammar. Returns an error if the grammar is not SLR(1).
-func NewSLRParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigWarns []string, err error) {
+func NewSLRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	return parse.GenerateSLR1Parser(g, allowAmbiguous)
 }
 
 // NewLL1Parser returns an LL(1) parser that can generate parse trees for the
 // given grammar. Returns an error if the grammar is not LL(1).
-func NewLL1Parser(g grammar.Grammar) (parser Parser, err error) {
+func NewLL1Parser(g grammar.Grammar) (parser parse.Parser, err error) {
 	return parse.GenerateLL1Parser(g)
 }
 
 // NewCLRParser returns a canonical-LR(0) parser that can generate parse trees
 // for the given grammar. Returns an error if the grammar is not CLR(1)
-func NewCLRParser(g grammar.Grammar, allowAmbiguous bool) (parser Parser, ambigWarns []string, err error) {
+func NewCLRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	return parse.GenerateCLR1Parser(g, allowAmbiguous)
 }
 
 // NewSDTS returns a new Syntax-Directed Translation Scheme.
-func NewSDTS() SDTS {
+func NewSDTS() trans.SDTS {
 	return trans.NewSDTS()
 }
 
 // Frontend is a complete input-to-intermediate representation compiler
 // front-end.
 type Frontend[E any] struct {
-	Lexer       Lexer
-	Parser      Parser
-	SDT         SDTS
+	Lexer       lex.Lexer
+	Parser      parse.Parser
+	SDT         trans.SDTS
 	IRAttribute string
 
 	// Language is the name of the langauge that the frontend is for. It must be

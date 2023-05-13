@@ -320,6 +320,7 @@ import (
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
+	"github.com/dekarrin/ictiobus/parse"
 	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
 )
@@ -683,7 +684,7 @@ func main() {
 	}
 
 	// spec completed and no-gen not set; try to create a parser
-	var p ictiobus.Parser
+	var p parse.Parser
 	var parserWarns []fishi.Warning
 	// if one is selected, use that one
 	if parserType != nil {

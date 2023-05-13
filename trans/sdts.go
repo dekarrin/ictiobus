@@ -38,22 +38,6 @@ func (sdts *sdtsImpl) SetHooks(hooks HookMap) {
 	}
 }
 
-// BindingsFor returns all bindings for the given rule which set the attribute
-// referred to by attrRef.
-func (sdts *sdtsImpl) BindingsFor(head string, prod []string, attrRef AttrRef) []SDDBinding {
-	allForRule := sdts.Bindings(head, prod)
-
-	matchingBindings := []SDDBinding{}
-
-	for i := range allForRule {
-		if allForRule[i].Dest == attrRef {
-			matchingBindings = append(matchingBindings, allForRule[i])
-		}
-	}
-
-	return matchingBindings
-}
-
 // Evaluate executes the entire syntax-directed translation scheme on the given
 // parse tree, and returns the requested attributes from the root of the
 // generated AnnotatedParseTree. The parse tree is first annotated to produce an
@@ -77,7 +61,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 	if len(depGraphs) > 1 {
 		// first, eliminate all depGraphs whose head has a noFlow that applies
 		// to it.
-		updatedDepGraphs := []*DirectedGraph[depNode]{}
+		updatedDepGraphs := []*directedGraph[depNode]{}
 		for i := range depGraphs {
 			var isRoot bool
 			var hasUnexpectedBreaks bool
@@ -130,7 +114,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 		depGraphs = updatedDepGraphs
 	}
 
-	var singleAttrRoot *DirectedGraph[depNode]
+	var singleAttrRoot *directedGraph[depNode]
 	// if it's *still* more than 1, scan to see if it's only one attrRoot; that is a warning, not an error, unless
 	// asked to be.
 	if len(depGraphs) > 1 {
@@ -196,7 +180,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 				depGraphs:        depGraphs,
 				unexpectedBreaks: unexpectedBreaks,
 			})
-			depGraphs = []*DirectedGraph[depNode]{singleAttrRoot}
+			depGraphs = []*directedGraph[depNode]{singleAttrRoot}
 		} else {
 			return nil, warns, evalError{
 				msg:              "applying SDTS to tree results in evaluation dependency graph with multiple disconnected root segments",
@@ -206,7 +190,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 		}
 	}
 
-	visitOrder, err := KahnSort(depGraphs[0])
+	visitOrder, err := kahnSort(depGraphs[0])
 	if err != nil {
 		return nil, warns, evalError{
 			msg:       fmt.Sprintf("sorting SDTS dependency graph: %s", err.Error()),
@@ -230,7 +214,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 
 		nodeRuleHead, nodeRuleProd := nodeTree.Rule()
 
-		bindingsToExec := sdts.BindingsFor(nodeRuleHead, nodeRuleProd, depNode.Dest)
+		bindingsToExec := sdts.bindingsForAttr(nodeRuleHead, nodeRuleProd, depNode.Dest)
 		for j := range bindingsToExec {
 			binding := bindingsToExec[j]
 			value, err := binding.Invoke(invokeOn, sdts.hooks)
@@ -294,26 +278,6 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 	}
 
 	return attrValues, warns, nil
-}
-
-// Bindings returns all bindings that are defined for the grammar rule with head
-// symbol head and production prod.
-func (sdts *sdtsImpl) Bindings(head string, prod []string) []SDDBinding {
-	forHead, ok := sdts.bindings[head]
-	if !ok {
-		return nil
-	}
-
-	symStr := strings.Join(prod, " ")
-	forProd, ok := forHead[symStr]
-	if !ok {
-		return nil
-	}
-
-	targetBindings := make([]SDDBinding, len(forProd))
-	copy(targetBindings, forProd)
-
-	return targetBindings
 }
 
 // BindSynthesizedAttribute adds a binding to the SDTS for a synthesized
@@ -521,4 +485,44 @@ func NewSDTS() *sdtsImpl {
 		bindings: map[string]map[string][]SDDBinding{},
 	}
 	return &impl
+}
+
+// bindingsForAttr returns all bindings defined to apply when at a node in a parse
+// tree created by the rule production with head as its head symbol and prod
+// as its produced symbols, and when setting the attribute referred to by
+// dest. They will be returned in the order they were defined.
+func (sdts *sdtsImpl) bindingsForAttr(head string, prod []string, attrRef AttrRef) []SDDBinding {
+	allForRule := sdts.bindingsForRule(head, prod)
+
+	matchingBindings := []SDDBinding{}
+
+	for i := range allForRule {
+		if allForRule[i].Dest == attrRef {
+			matchingBindings = append(matchingBindings, allForRule[i])
+		}
+	}
+
+	return matchingBindings
+}
+
+// bindingsForRule returns all bindings defined to apply when at a node in a parse
+// tree created by the rule production with head as its head symbol and prod
+// as its produced symbols. They will be returned in the order they were
+// defined.
+func (sdts *sdtsImpl) bindingsForRule(head string, prod []string) []SDDBinding {
+	forHead, ok := sdts.bindings[head]
+	if !ok {
+		return nil
+	}
+
+	symStr := strings.Join(prod, " ")
+	forProd, ok := forHead[symStr]
+	if !ok {
+		return nil
+	}
+
+	targetBindings := make([]SDDBinding, len(forProd))
+	copy(targetBindings, forProd)
+
+	return targetBindings
 }

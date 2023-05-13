@@ -150,7 +150,7 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 type evalError struct {
 	// if this is a disconnected dep graph segments error, this slice will be
 	// non-nil and contain the issue nodes.
-	depGraphs []*DirectedGraph[depNode]
+	depGraphs []*directedGraph[depNode]
 
 	// if this is a disconnected dep graph segments error, this slice will be
 	// non-nil and contain the important features of each break. Each element is

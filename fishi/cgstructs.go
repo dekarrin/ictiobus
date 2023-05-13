@@ -3,7 +3,7 @@ package fishi
 import (
 	"text/template"
 
-	"github.com/dekarrin/ictiobus"
+	"github.com/dekarrin/ictiobus/parse"
 	"github.com/dekarrin/ictiobus/trans"
 )
 
@@ -47,7 +47,7 @@ type GeneratedCodeInfo struct {
 // Unless otherwise specified, all fields are required.
 type MainBinaryParams struct {
 	// Parser is the parser to use for the generated compiler.
-	Parser ictiobus.Parser
+	Parser parse.Parser
 
 	// HooksPkgDir is the path to the directory containing the hooks package.
 	HooksPkgDir string
@@ -96,7 +96,7 @@ type MainBinaryParams struct {
 // DiagBinParams are parameters for the generation of diagnostic binaries.
 type DiagBinParams struct {
 	// Parser is the built parser of the frontend to be validated.
-	Parser ictiobus.Parser
+	Parser parse.Parser
 
 	// HooksPkgDir is the path to the directory containing the hooks package.
 	HooksPkgDir string
@@ -144,7 +144,7 @@ type DiagBinParams struct {
 // parser.
 type SimulatedInputParams struct {
 	// Parser is the built parser of the frontend to be validated.
-	Parser ictiobus.Parser
+	Parser parse.Parser
 
 	// HooksPkgDir is the path to the directory containing the hooks package.
 	HooksPkgDir string

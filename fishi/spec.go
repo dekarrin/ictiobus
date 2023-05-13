@@ -12,6 +12,7 @@ import (
 	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
+	"github.com/dekarrin/ictiobus/parse"
 	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/rosed"
@@ -93,8 +94,8 @@ func (spec Spec) ClassMap() map[string]types.TokenClass {
 }
 
 // CreateLexer uses the Tokens and Patterns in the spec to create a new Lexer.
-func (spec Spec) CreateLexer(lazy bool) (ictiobus.Lexer, error) {
-	var lx ictiobus.Lexer
+func (spec Spec) CreateLexer(lazy bool) (lex.Lexer, error) {
+	var lx lex.Lexer
 
 	if lazy {
 		lx = ictiobus.NewLazyLexer()
@@ -159,7 +160,7 @@ func (spec Spec) CreateLexer(lazy bool) (ictiobus.Lexer, error) {
 //
 // AllowAmbig only applies for parser types that can auto-resolve ambiguity,
 // e.g. it does not apply to an LL(k) parser.
-func (spec Spec) CreateMostRestrictiveParser(allowAmbig bool) (ictiobus.Parser, []Warning, error) {
+func (spec Spec) CreateMostRestrictiveParser(allowAmbig bool) (parse.Parser, []Warning, error) {
 	p, warns, err := spec.CreateParser(types.ParserLL1, false)
 	if err != nil {
 		p, warns, err = spec.CreateParser(types.ParserSLR1, allowAmbig)
@@ -179,9 +180,9 @@ func (spec Spec) CreateMostRestrictiveParser(allowAmbig bool) (ictiobus.Parser, 
 
 // CreateParser uses the Grammar in the spec to create a new Parser of the
 // given type. Returns an error if the type is not supported.
-func (spec Spec) CreateParser(t types.ParserType, allowAmbig bool) (ictiobus.Parser, []Warning, error) {
+func (spec Spec) CreateParser(t types.ParserType, allowAmbig bool) (parse.Parser, []Warning, error) {
 	var warns []Warning
-	var p ictiobus.Parser
+	var p parse.Parser
 	var err error
 
 	var ambigWarns []string
@@ -217,7 +218,7 @@ func (spec Spec) CreateParser(t types.ParserType, allowAmbig bool) (ictiobus.Par
 }
 
 // CreateSDTS uses the TranslationScheme in the spec to create a new SDTS.
-func (spec Spec) CreateSDTS() (ictiobus.SDTS, error) {
+func (spec Spec) CreateSDTS() (trans.SDTS, error) {
 	sdts := ictiobus.NewSDTS()
 
 	for _, sdd := range spec.TranslationScheme {

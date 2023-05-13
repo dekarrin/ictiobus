@@ -12,6 +12,7 @@ import (
 
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/grammar"
+	"github.com/dekarrin/ictiobus/parse"
 
 	"github.com/dekarrin/ictiobus/fishi/fe/fetoken"
 )
@@ -201,7 +202,7 @@ func Grammar() grammar.Grammar {
 }
 
 // Parser returns the generated ictiobus Parser for FISHI.
-func Parser() ictiobus.Parser {
+func Parser() parse.Parser {
 	p, err := ictiobus.DecodeParserBytes(parserData)
 	if err != nil {
 		panic("corrupted parser.cff file: " + err.Error())

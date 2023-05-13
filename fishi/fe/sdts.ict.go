@@ -14,7 +14,7 @@ import (
 
 // SDTS returns the generated ictiobus syntax-directed translation scheme for
 // FISHI.
-func SDTS() ictiobus.SDTS {
+func SDTS() trans.SDTS {
 	sdts := ictiobus.NewSDTS()
 
 	sdtsBindTCFishispec(sdts)
@@ -70,7 +70,7 @@ func SDTS() ictiobus.SDTS {
 	return sdts
 }
 
-func sdtsBindTCFishispec(sdts ictiobus.SDTS) {
+func sdtsBindTCFishispec(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"FISHISPEC", []string{"BLOCKS"},
 		"ast",
@@ -81,7 +81,7 @@ func sdtsBindTCFishispec(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCBlocks(sdts ictiobus.SDTS) {
+func sdtsBindTCBlocks(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"BLOCKS", []string{"BLOCKS", "BLOCK"},
 		"value",
@@ -102,7 +102,7 @@ func sdtsBindTCBlocks(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCBlock(sdts ictiobus.SDTS) {
+func sdtsBindTCBlock(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"BLOCK", []string{"GBLOCK"},
 		"ast",
@@ -131,7 +131,7 @@ func sdtsBindTCBlock(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCAblock(sdts ictiobus.SDTS) {
+func sdtsBindTCAblock(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ABLOCK", []string{"hdr-actions", "ACONTENT"},
 		"ast",
@@ -142,7 +142,7 @@ func sdtsBindTCAblock(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCTblock(sdts ictiobus.SDTS) {
+func sdtsBindTCTblock(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TBLOCK", []string{"hdr-tokens", "TCONTENT"},
 		"ast",
@@ -153,7 +153,7 @@ func sdtsBindTCTblock(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCGblock(sdts ictiobus.SDTS) {
+func sdtsBindTCGblock(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GBLOCK", []string{"hdr-grammar", "GCONTENT"},
 		"ast",
@@ -164,7 +164,7 @@ func sdtsBindTCGblock(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCTcontent(sdts ictiobus.SDTS) {
+func sdtsBindTCTcontent(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TCONTENT", []string{"TENTRY-LIST", "TSTATE-SET-LIST"},
 		"ast",
@@ -194,7 +194,7 @@ func sdtsBindTCTcontent(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCAcontent(sdts ictiobus.SDTS) {
+func sdtsBindTCAcontent(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ACONTENT", []string{"SYM-ACTIONS-LIST", "ASTATE-SET-LIST"},
 		"ast",
@@ -224,7 +224,7 @@ func sdtsBindTCAcontent(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCGcontent(sdts ictiobus.SDTS) {
+func sdtsBindTCGcontent(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GCONTENT", []string{"GRULE-LIST", "GSTATE-SET-LIST"},
 		"ast",
@@ -254,7 +254,7 @@ func sdtsBindTCGcontent(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCGstateSet(sdts ictiobus.SDTS) {
+func sdtsBindTCGstateSet(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GSTATE-SET", []string{"STATE-INS", "GRULE-LIST"},
 		"value",
@@ -266,7 +266,7 @@ func sdtsBindTCGstateSet(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCAstateSet(sdts ictiobus.SDTS) {
+func sdtsBindTCAstateSet(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ASTATE-SET", []string{"STATE-INS", "SYM-ACTIONS-LIST"},
 		"value",
@@ -278,7 +278,7 @@ func sdtsBindTCAstateSet(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCTstateSet(sdts ictiobus.SDTS) {
+func sdtsBindTCTstateSet(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TSTATE-SET", []string{"STATE-INS", "TENTRY-LIST"},
 		"value",
@@ -290,7 +290,7 @@ func sdtsBindTCTstateSet(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCProdActionList(sdts ictiobus.SDTS) {
+func sdtsBindTCProdActionList(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"PROD-ACTION-LIST", []string{"PROD-ACTION-LIST", "PROD-ACTION"},
 		"value",
@@ -311,7 +311,7 @@ func sdtsBindTCProdActionList(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCAttrRefList(sdts ictiobus.SDTS) {
+func sdtsBindTCAttrRefList(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ATTR-REF-LIST", []string{"ATTR-REF-LIST", "attr-ref"},
 		"value",
@@ -334,7 +334,7 @@ func sdtsBindTCAttrRefList(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCWith(sdts ictiobus.SDTS) {
+func sdtsBindTCWith(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"WITH", []string{"dir-with", "ATTR-REF-LIST"},
 		"value",
@@ -345,7 +345,7 @@ func sdtsBindTCWith(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCSemAction(sdts ictiobus.SDTS) {
+func sdtsBindTCSemAction(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"SEM-ACTION", []string{"dir-set", "attr-ref", "dir-hook", "id"},
 		"value",
@@ -372,7 +372,7 @@ func sdtsBindTCSemAction(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCSemActionList(sdts ictiobus.SDTS) {
+func sdtsBindTCSemActionList(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"SEM-ACTION-LIST", []string{"SEM-ACTION-LIST", "SEM-ACTION"},
 		"value",
@@ -393,7 +393,7 @@ func sdtsBindTCSemActionList(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCAsym(sdts ictiobus.SDTS) {
+func sdtsBindTCAsym(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ASYM", []string{"nonterm"},
 		"value",
@@ -431,7 +431,7 @@ func sdtsBindTCAsym(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCAsymList(sdts ictiobus.SDTS) {
+func sdtsBindTCAsymList(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ASYM-LIST", []string{"ASYM-LIST", "ASYM"},
 		"value",
@@ -452,7 +452,7 @@ func sdtsBindTCAsymList(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCAproduction(sdts ictiobus.SDTS) {
+func sdtsBindTCAproduction(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"APRODUCTION", []string{"ASYM-LIST"},
 		"value",
@@ -470,7 +470,7 @@ func sdtsBindTCAproduction(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCProdAddr(sdts ictiobus.SDTS) {
+func sdtsBindTCProdAddr(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"PROD-ADDR", []string{"dir-index", "int"},
 		"value",
@@ -490,7 +490,7 @@ func sdtsBindTCProdAddr(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCProdSpec(sdts ictiobus.SDTS) {
+func sdtsBindTCProdSpec(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"PROD-SPEC", []string{"dir-prod", "PROD-ADDR"},
 		"value",
@@ -508,7 +508,7 @@ func sdtsBindTCProdSpec(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCProdAction(sdts ictiobus.SDTS) {
+func sdtsBindTCProdAction(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"PROD-ACTION", []string{"PROD-SPEC", "SEM-ACTION-LIST"},
 		"value",
@@ -520,7 +520,7 @@ func sdtsBindTCProdAction(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCSymActions(sdts ictiobus.SDTS) {
+func sdtsBindTCSymActions(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"SYM-ACTIONS", []string{"dir-symbol", "nonterm", "PROD-ACTION-LIST"},
 		"value",
@@ -533,7 +533,7 @@ func sdtsBindTCSymActions(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCSymActionsList(sdts ictiobus.SDTS) {
+func sdtsBindTCSymActionsList(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"SYM-ACTIONS-LIST", []string{"SYM-ACTIONS-LIST", "SYM-ACTIONS"},
 		"value",
@@ -554,7 +554,7 @@ func sdtsBindTCSymActionsList(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCAstateSetList(sdts ictiobus.SDTS) {
+func sdtsBindTCAstateSetList(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ASTATE-SET-LIST", []string{"ASTATE-SET-LIST", "ASTATE-SET"},
 		"value",
@@ -575,7 +575,7 @@ func sdtsBindTCAstateSetList(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCTstateSetList(sdts ictiobus.SDTS) {
+func sdtsBindTCTstateSetList(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TSTATE-SET-LIST", []string{"TSTATE-SET-LIST", "TSTATE-SET"},
 		"value",
@@ -596,7 +596,7 @@ func sdtsBindTCTstateSetList(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCGstateSetList(sdts ictiobus.SDTS) {
+func sdtsBindTCGstateSetList(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GSTATE-SET-LIST", []string{"GSTATE-SET-LIST", "GSTATE-SET"},
 		"value",
@@ -617,7 +617,7 @@ func sdtsBindTCGstateSetList(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCGruleList(sdts ictiobus.SDTS) {
+func sdtsBindTCGruleList(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GRULE-LIST", []string{"GRULE-LIST", "GRULE"},
 		"value",
@@ -638,7 +638,7 @@ func sdtsBindTCGruleList(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCTentryList(sdts ictiobus.SDTS) {
+func sdtsBindTCTentryList(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TENTRY-LIST", []string{"TENTRY-LIST", "TENTRY"},
 		"value",
@@ -659,7 +659,7 @@ func sdtsBindTCTentryList(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCTentry(sdts ictiobus.SDTS) {
+func sdtsBindTCTentry(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TENTRY", []string{"PATTERN", "TOPTION-LIST"},
 		"value",
@@ -671,7 +671,7 @@ func sdtsBindTCTentry(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCGrule(sdts ictiobus.SDTS) {
+func sdtsBindTCGrule(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GRULE", []string{"nl-nonterm", "eq", "ALTERNATIONS"},
 		"value",
@@ -683,7 +683,7 @@ func sdtsBindTCGrule(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCAlternations(sdts ictiobus.SDTS) {
+func sdtsBindTCAlternations(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ALTERNATIONS", []string{"GPRODUCTION"},
 		"value",
@@ -704,7 +704,7 @@ func sdtsBindTCAlternations(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCGproduction(sdts ictiobus.SDTS) {
+func sdtsBindTCGproduction(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GPRODUCTION", []string{"GSYM-LIST"},
 		"value",
@@ -722,7 +722,7 @@ func sdtsBindTCGproduction(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCGsymList(sdts ictiobus.SDTS) {
+func sdtsBindTCGsymList(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GSYM-LIST", []string{"GSYM-LIST", "GSYM"},
 		"value",
@@ -743,7 +743,7 @@ func sdtsBindTCGsymList(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCPriority(sdts ictiobus.SDTS) {
+func sdtsBindTCPriority(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"PRIORITY", []string{"dir-priority", "TEXT"},
 		"value",
@@ -754,7 +754,7 @@ func sdtsBindTCPriority(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCHuman(sdts ictiobus.SDTS) {
+func sdtsBindTCHuman(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"HUMAN", []string{"dir-human", "TEXT"},
 		"value",
@@ -765,7 +765,7 @@ func sdtsBindTCHuman(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCToken(sdts ictiobus.SDTS) {
+func sdtsBindTCToken(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TOKEN", []string{"dir-token", "TEXT"},
 		"value",
@@ -776,7 +776,7 @@ func sdtsBindTCToken(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCStateshift(sdts ictiobus.SDTS) {
+func sdtsBindTCStateshift(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"STATESHIFT", []string{"dir-shift", "TEXT"},
 		"value",
@@ -787,7 +787,7 @@ func sdtsBindTCStateshift(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCToption(sdts ictiobus.SDTS) {
+func sdtsBindTCToption(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TOPTION", []string{"DISCARD"},
 		"value",
@@ -832,7 +832,7 @@ func sdtsBindTCToption(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCToptionList(sdts ictiobus.SDTS) {
+func sdtsBindTCToptionList(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TOPTION-LIST", []string{"TOPTION-LIST", "TOPTION"},
 		"value",
@@ -853,7 +853,7 @@ func sdtsBindTCToptionList(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCPattern(sdts ictiobus.SDTS) {
+func sdtsBindTCPattern(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"PATTERN", []string{"TEXT"},
 		"value",
@@ -864,7 +864,7 @@ func sdtsBindTCPattern(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCGsym(sdts ictiobus.SDTS) {
+func sdtsBindTCGsym(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"GSYM", []string{"nonterm"},
 		"value",
@@ -884,7 +884,7 @@ func sdtsBindTCGsym(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCStateIns(sdts ictiobus.SDTS) {
+func sdtsBindTCStateIns(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"STATE-INS", []string{"dir-state", "ID-EXPR"},
 		"state",
@@ -896,7 +896,7 @@ func sdtsBindTCStateIns(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCIdExpr(sdts ictiobus.SDTS) {
+func sdtsBindTCIdExpr(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"ID-EXPR", []string{"id"},
 		"value",
@@ -916,7 +916,7 @@ func sdtsBindTCIdExpr(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCText(sdts ictiobus.SDTS) {
+func sdtsBindTCText(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TEXT", []string{"NL-TEXT-ELEM", "TEXT-ELEM-LIST"},
 		"value",
@@ -946,7 +946,7 @@ func sdtsBindTCText(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCTextElemList(sdts ictiobus.SDTS) {
+func sdtsBindTCTextElemList(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TEXT-ELEM-LIST", []string{"TEXT-ELEM-LIST", "TEXT-ELEM"},
 		"value",
@@ -967,7 +967,7 @@ func sdtsBindTCTextElemList(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCNlTextElem(sdts ictiobus.SDTS) {
+func sdtsBindTCNlTextElem(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"NL-TEXT-ELEM", []string{"nl-escseq"},
 		"value",
@@ -987,7 +987,7 @@ func sdtsBindTCNlTextElem(sdts ictiobus.SDTS) {
 	)
 }
 
-func sdtsBindTCTextElem(sdts ictiobus.SDTS) {
+func sdtsBindTCTextElem(sdts trans.SDTS) {
 	sdts.BindSynthesizedAttribute(
 		"TEXT-ELEM", []string{"escseq"},
 		"value",
