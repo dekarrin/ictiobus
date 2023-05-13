@@ -14,7 +14,7 @@ import (
 )
 
 type ll1Parser struct {
-	table LL1Table
+	table ll1Table
 	g     grammar.Grammar
 	trace func(s string)
 }
@@ -81,7 +81,7 @@ func EmptyLL1Parser() *ll1Parser {
 // context-free Grammar g (k=1). The grammar must already be LL(1); it will not
 // be forced to it.
 func GenerateLL1Parser(g grammar.Grammar) (*ll1Parser, error) {
-	M, err := createLLParseTable(g)
+	M, err := generateLL1ParseTable(g)
 	if err != nil {
 		return &ll1Parser{}, err
 	}
@@ -176,159 +176,31 @@ func (ll1 *ll1Parser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 	return pt, nil
 }
 
-// LL1Table is a table for LL predictive parsing. It should not be used
-// directly and should be obtained by calling NewLL1Table().
-type LL1Table struct {
+// ll1Table is a table for LL predictive parsing. It should not be used
+// directly and should be obtained by calling newLLTable().
+type ll1Table struct {
 	d *box.Matrix2[string, grammar.Production]
 }
 
-// MarshalBinary converts M into a slice of bytes that can be decoded with
-// UnmarshalBinary.
-func (M LL1Table) MarshalBinary() ([]byte, error) {
-	var data []byte
-
-	xOrdered := M.d.DefinedXs()
-	yOrdered := M.d.DefinedYs()
-
-	sort.Strings(xOrdered)
-	sort.Strings(yOrdered)
-
-	data = append(data, rezi.EncInt(M.d.Width())...)
-	for _, x := range xOrdered {
-		col := map[string]grammar.Production{}
-
-		for _, y := range yOrdered {
-			var val *grammar.Production = M.d.Get(x, y)
-			if val == nil {
-				continue
-			}
-			col[y] = *val
-		}
-
-		data = append(data, rezi.EncString(x)...)
-		data = append(data, rezi.EncMapStringToBinary(col)...)
-	}
-
-	return data, nil
-}
-
-// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into M. All
-// of M's fields will be replaced by the fields decoded from data.
-func (M *LL1Table) UnmarshalBinary(data []byte) error {
-	var err error
-	var n int
-
-	newM := newLLParseTable()
-
-	var numEntries int
-	numEntries, n, err = rezi.DecInt(data)
-	if err != nil {
-		return err
-	}
-	data = data[n:]
-
-	for i := 0; i < numEntries; i++ {
-		var x string
-		x, n, err = rezi.DecString(data)
-		if err != nil {
-			return err
-		}
-		data = data[n:]
-
-		var ptrMap map[string]*grammar.Production
-		ptrMap, n, err = rezi.DecMapStringToBinary[*grammar.Production](data)
-		if err != nil {
-			return err
-		}
-		data = data[n:]
-
-		for y := range ptrMap {
-			newM.d.Set(x, y, *ptrMap[y])
-		}
-	}
-
-	*M = newM
-	return nil
-}
-
-// Set sets the production to use given symbol A and input symbol a.
-func (M LL1Table) Set(A string, a string, alpha grammar.Production) {
-	M.d.Set(A, a, alpha)
-}
-
-// String returns the string representation of the LL1Table.
-func (M LL1Table) String() string {
-	data := [][]string{}
-
-	terms := M.Terminals()
-	nts := M.NonTerminals()
-
-	topRow := []string{""}
-	topRow = append(topRow, terms...)
-	data = append(data, topRow)
-
-	for i := range nts {
-		dataRow := []string{nts[i]}
-		for j := range terms {
-			prod := M.Get(nts[i], terms[j])
-			dataRow = append(dataRow, prod.String())
-		}
-		data = append(data, dataRow)
-	}
-
-	return rosed.Edit("").
-		InsertTableOpts(0, data, 80, rosed.Options{
-			TableBorders: true,
-			TableHeaders: true,
-		}).
-		String()
-}
-
-// Get returns an empty Production if it does not exist, or the one at the
-// given coords.
-func (M LL1Table) Get(A string, a string) grammar.Production {
-	v := M.d.Get(A, a)
-	if v == nil {
-		return grammar.Error
-	}
-	return *v
-}
-
-// NonTerminals returns all non-terminals used as the X keys for values in this
-// table.
-func (M LL1Table) NonTerminals() []string {
-	xOrdered := M.d.DefinedXs()
-	sort.Strings(xOrdered)
-	return xOrdered
-}
-
-// Terminals returns all terminals used as the Y keys for values in this table.
-// Note that the "$" is expected to be present in all LL1 prediction tables.
-func (M LL1Table) Terminals() []string {
-	yOrdered := M.d.DefinedYs()
-	sort.Strings(yOrdered)
-	return yOrdered
-}
-
-func newLLParseTable() LL1Table {
-	return LL1Table{
+func newLL1Table() ll1Table {
+	return ll1Table{
 		d: box.NewMatrix2[string, grammar.Production](),
 	}
 }
 
-// createLLParseTable builds and returns the LL parsing table for the grammar.
+// generateLL1ParseTable builds and returns the LL parsing table for the grammar.
 // If it's not an LL(1) grammar, returns error.
 //
 // This is an implementation of Algorithm 4.31, "Construction of a predictive
 // parsing table" from the peerple deruuuuugon beeeeeerk. (purple dragon book
 // glub)
-func createLLParseTable(g grammar.Grammar) (M LL1Table, err error) {
+func generateLL1ParseTable(g grammar.Grammar) (M ll1Table, err error) {
 	if !g.IsLL1() {
 		return M, fmt.Errorf("not an LL(1) grammar")
 	}
 
 	nts := g.NonTerminals()
-	M = newLLParseTable()
+	M = newLL1Table()
 
 	// For each production A -> α of the grammar, do the following:
 	// -purple dragon book
@@ -369,4 +241,132 @@ func createLLParseTable(g grammar.Grammar) (M LL1Table, err error) {
 	}
 
 	return M, nil
+}
+
+// MarshalBinary converts M into a slice of bytes that can be decoded with
+// UnmarshalBinary.
+func (M ll1Table) MarshalBinary() ([]byte, error) {
+	var data []byte
+
+	xOrdered := M.d.DefinedXs()
+	yOrdered := M.d.DefinedYs()
+
+	sort.Strings(xOrdered)
+	sort.Strings(yOrdered)
+
+	data = append(data, rezi.EncInt(M.d.Width())...)
+	for _, x := range xOrdered {
+		col := map[string]grammar.Production{}
+
+		for _, y := range yOrdered {
+			var val *grammar.Production = M.d.Get(x, y)
+			if val == nil {
+				continue
+			}
+			col[y] = *val
+		}
+
+		data = append(data, rezi.EncString(x)...)
+		data = append(data, rezi.EncMapStringToBinary(col)...)
+	}
+
+	return data, nil
+}
+
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into M. All
+// of M's fields will be replaced by the fields decoded from data.
+func (M *ll1Table) UnmarshalBinary(data []byte) error {
+	var err error
+	var n int
+
+	newM := newLL1Table()
+
+	var numEntries int
+	numEntries, n, err = rezi.DecInt(data)
+	if err != nil {
+		return err
+	}
+	data = data[n:]
+
+	for i := 0; i < numEntries; i++ {
+		var x string
+		x, n, err = rezi.DecString(data)
+		if err != nil {
+			return err
+		}
+		data = data[n:]
+
+		var ptrMap map[string]*grammar.Production
+		ptrMap, n, err = rezi.DecMapStringToBinary[*grammar.Production](data)
+		if err != nil {
+			return err
+		}
+		data = data[n:]
+
+		for y := range ptrMap {
+			newM.d.Set(x, y, *ptrMap[y])
+		}
+	}
+
+	*M = newM
+	return nil
+}
+
+// Set sets the production to use given symbol A and input symbol a.
+func (M ll1Table) Set(A string, a string, alpha grammar.Production) {
+	M.d.Set(A, a, alpha)
+}
+
+// String returns the string representation of the LL1Table.
+func (M ll1Table) String() string {
+	data := [][]string{}
+
+	terms := M.Terminals()
+	nts := M.NonTerminals()
+
+	topRow := []string{""}
+	topRow = append(topRow, terms...)
+	data = append(data, topRow)
+
+	for i := range nts {
+		dataRow := []string{nts[i]}
+		for j := range terms {
+			prod := M.Get(nts[i], terms[j])
+			dataRow = append(dataRow, prod.String())
+		}
+		data = append(data, dataRow)
+	}
+
+	return rosed.Edit("").
+		InsertTableOpts(0, data, 80, rosed.Options{
+			TableBorders: true,
+			TableHeaders: true,
+		}).
+		String()
+}
+
+// Get returns an empty Production if it does not exist, or the one at the
+// given coords.
+func (M ll1Table) Get(A string, a string) grammar.Production {
+	v := M.d.Get(A, a)
+	if v == nil {
+		return grammar.Error
+	}
+	return *v
+}
+
+// NonTerminals returns all non-terminals used as the X keys for values in this
+// table.
+func (M ll1Table) NonTerminals() []string {
+	xOrdered := M.d.DefinedXs()
+	sort.Strings(xOrdered)
+	return xOrdered
+}
+
+// Terminals returns all terminals used as the Y keys for values in this table.
+// Note that the "$" is expected to be present in all LL1 prediction tables.
+func (M ll1Table) Terminals() []string {
+	yOrdered := M.d.DefinedYs()
+	sort.Strings(yOrdered)
+	return yOrdered
 }

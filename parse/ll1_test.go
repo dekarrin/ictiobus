@@ -74,7 +74,7 @@ func Test_LL1PredictiveParse(t *testing.T) {
 	}
 }
 
-func Test_createLL1ParseTable(t *testing.T) {
+func Test_generateLL1ParseTable(t *testing.T) {
 	testCases := []struct {
 		name   string
 		g      string
@@ -102,7 +102,7 @@ func Test_createLL1ParseTable(t *testing.T) {
 			// setup
 			assert := assert.New(t)
 			g := grammar.MustParse(tc.g)
-			llTab := newLLParseTable()
+			llTab := newLL1Table()
 			for x := range tc.expect {
 				for y := range tc.expect[x] {
 					llTab.Set(x, y, tc.expect[x][y])
@@ -112,7 +112,7 @@ func Test_createLL1ParseTable(t *testing.T) {
 			expect := llTab
 
 			// execute
-			actual, err := createLLParseTable(g)
+			actual, err := generateLL1ParseTable(g)
 
 			// assert
 			assert.NoError(err)
@@ -155,8 +155,8 @@ func Test_LL1Table_MarshalUnmarshalBinary(t *testing.T) {
 		alpha grammar.Production // production
 	}
 
-	withEntries := func(entries ...entry) LL1Table {
-		result := newLLParseTable()
+	withEntries := func(entries ...entry) ll1Table {
+		result := newLL1Table()
 
 		for _, entry := range entries {
 			result.Set(entry.A, entry.a, entry.alpha)
@@ -167,11 +167,11 @@ func Test_LL1Table_MarshalUnmarshalBinary(t *testing.T) {
 
 	testCases := []struct {
 		name  string
-		input LL1Table
+		input ll1Table
 	}{
 		{
 			name:  "empty",
-			input: newLLParseTable(),
+			input: newLL1Table(),
 		},
 		{
 			name: "one entry",
@@ -199,7 +199,7 @@ func Test_LL1Table_MarshalUnmarshalBinary(t *testing.T) {
 				return
 			}
 
-			actual := newLLParseTable()
+			actual := newLL1Table()
 
 			actualPtr := &actual
 			err = actualPtr.UnmarshalBinary(encoded)
