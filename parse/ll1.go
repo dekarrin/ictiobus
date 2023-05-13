@@ -195,7 +195,7 @@ func newLL1Table() ll1Table {
 // parsing table" from the peerple deruuuuugon beeeeeerk. (purple dragon book
 // glub)
 func generateLL1ParseTable(g grammar.Grammar) (M ll1Table, err error) {
-	if !g.IsLL1() {
+	if !IsLL1(g) {
 		return M, fmt.Errorf("not an LL(1) grammar")
 	}
 
@@ -230,7 +230,7 @@ func generateLL1ParseTable(g grammar.Grammar) (M ll1Table, err error) {
 			// add A -> α to M[A, b]. If ε is in FIRST(α) and $ is in FOLLOW(A),
 			// add A -> α to M[A, $] as well.
 			if FIRSTalpha.Has(grammar.Epsilon[0]) {
-				for _, b := range g.FOLLOW(A).Elements() {
+				for _, b := range FOLLOWSet(g, A).Elements() {
 					// we cover the $ case automatically by not rly caring about
 					// them bein glubbin terminals to begin w. W3 SH3LL H4V3
 					// 33LQU4L1TY >38]
