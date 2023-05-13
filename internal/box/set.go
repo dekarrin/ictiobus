@@ -82,6 +82,7 @@ type VSet[E any, V any] interface {
 // data type.
 type SVSet[V any] map[string]V
 
+// NewSVSet creates a new string->value set.
 func NewSVSet[V any](of ...map[string]V) SVSet[V] {
 	bs := SVSet[V](map[string]V{})
 	for _, m := range of {
@@ -92,6 +93,7 @@ func NewSVSet[V any](of ...map[string]V) SVSet[V] {
 	return bs
 }
 
+// Copy creates a deep copy of the SVSet.
 func (s SVSet[V]) Copy() Set[string] {
 	return NewSVSet(s)
 }

@@ -1,5 +1,6 @@
 // Package fe contains the frontend for analyzing FISHI
-// code. Calling Frontend() will return a full FISHI frontend ready to go.
+// code. The function [Frontend] is the primary entrypoint for callers, and will
+// return a full FISHI frontend ready for immediate use.
 package fe
 
 /*
@@ -14,14 +15,15 @@ import (
 	"os"
 
 	"github.com/dekarrin/ictiobus"
+	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/trans"
-	"github.com/dekarrin/ictiobus/types"
 
 	"github.com/dekarrin/ictiobus/fishi/syntax"
 )
 
-// FrontendOptions allows options to be set on the frontend returned by
-// Frontend. It allows setting of debug flags and other optional functionality.
+// FrontendOptions allows options to be set on the compiler frontend returned by
+// [Frontend]. It allows setting of debug flags and other optional
+// functionality.
 type FrontendOptions struct {
 
 	// LexerEager is whether the Lexer should immediately read all input the
@@ -59,13 +61,13 @@ func Frontend(hooks trans.HookMap, opts *FrontendOptions) ictiobus.Frontend[synt
 		IRAttribute: "ast",
 		Lexer:       Lexer(!opts.LexerEager),
 		Parser:      Parser(),
-		SDT:         SDTS(),
+		SDTS:        SDTS(),
 	}
 
 	// Add traces if requested
 
 	if opts.LexerTrace {
-		fe.Lexer.RegisterTokenListener(func(t types.Token) {
+		fe.Lexer.RegisterTokenListener(func(t lex.Token) {
 			fmt.Fprintf(os.Stderr, "Token: %s\n", t)
 		})
 	}
@@ -77,7 +79,7 @@ func Frontend(hooks trans.HookMap, opts *FrontendOptions) ictiobus.Frontend[synt
 	}
 
 	// Set the hooks
-	fe.SDT.SetHooks(hooks)
+	fe.SDTS.SetHooks(hooks)
 
 	return fe
 }

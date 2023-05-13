@@ -12,6 +12,7 @@ import (
 
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/grammar"
+	"github.com/dekarrin/ictiobus/parse"
 
 	"github.com/dekarrin/ictiobus/fishi/fe/fetoken"
 )
@@ -21,9 +22,9 @@ var (
 	parserData []byte
 )
 
-// Grammar returns the grammar for the parser for FISHI. The grammar will
-// also be pre-compiled with the parser, but it is included here as well for
-// convenience.
+// Grammar returns the grammar accepted by the generated ictiobus parser for
+// FISHI. This grammar will also be included with with the parser itself,
+// but it is included here as well for convenience.
 func Grammar() grammar.Grammar {
 	g := grammar.Grammar{}
 
@@ -200,8 +201,8 @@ func Grammar() grammar.Grammar {
 	return g
 }
 
-// Parser returns the ictiobus Parser compiled for FISHI.
-func Parser() ictiobus.Parser {
+// Parser returns the generated ictiobus Parser for FISHI.
+func Parser() parse.Parser {
 	p, err := ictiobus.DecodeParserBytes(parserData)
 	if err != nil {
 		panic("corrupted parser.cff file: " + err.Error())

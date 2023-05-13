@@ -10,7 +10,6 @@ import (
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
-	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/rosed"
 )
 
@@ -18,26 +17,26 @@ import (
 // Generally this should not be used directly except for internal purposes; use
 // GenerateSimpleLRParser to generate one ready for use
 func EmptySLR1Parser() *lrParser {
-	return &lrParser{table: &slrTable{}, parseType: types.ParserSLR1}
+	return &lrParser{table: &slrTable{}, parseType: AlgoSLR1}
 }
 
-// GenerateSimpleLRParser returns a parser that uses SLR bottom-up parsing to
+// GenerateSLR1Parser returns a parser that uses SLR bottom-up parsing to
 // parse languages in g. It will return an error if g is not an SLR(1) grammar.
 //
 // allowAmbig allows the use of ambiguous grammars; in cases where there is a
 // shift-reduce conflict, shift will be preferred. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func GenerateSimpleLRParser(g grammar.Grammar, allowAmbig bool) (*lrParser, []string, error) {
-	table, ambigWarns, err := constructSimpleLRParseTable(g, allowAmbig)
+func GenerateSLR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, []string, error) {
+	table, ambigWarns, err := constructSLR1ParseTable(g, allowAmbig)
 	if err != nil {
 		return &lrParser{}, ambigWarns, err
 	}
 
-	return &lrParser{table: table, parseType: types.ParserSLR1, gram: g}, ambigWarns, nil
+	return &lrParser{table: table, parseType: AlgoSLR1, gram: g}, ambigWarns, nil
 }
 
-// constructSimpleLRParseTable constructs the SLR(1) table for G. It augments
+// constructSLR1ParseTable constructs the SLR(1) table for G. It augments
 // grammar G to produce G', then the canonical collection of sets of items of G'
 // is used to construct a table with applicable GOTO and ACTION columns.
 //
@@ -52,12 +51,12 @@ func GenerateSimpleLRParser(g grammar.Grammar, allowAmbig bool) (*lrParser, []st
 // reduce/reduce conflicts will still be rejected. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func constructSimpleLRParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTable, []string, error) {
+func constructSLR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, []string, error) {
 	// we will skip a few steps here and simply grab the LR0 DFA for G' which
 	// will pretty immediately give us our GOTO() function, since as purple
 	// dragon book mentions, "intuitively, the GOTO function is used to define
 	// the transitions in the LR(0) automaton for a grammar."
-	lr0Automaton := automaton.NewLR0ViablePrefixNFA(g).ToDFA()
+	lr0Automaton := constructDFAForSLR1(g)
 	lr0Automaton.NumberStates()
 
 	table := &slrTable{
@@ -81,7 +80,7 @@ func constructSimpleLRParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTab
 		for _, a := range table.gPrime.Terminals() {
 			itemSet := table.lr0.GetValue(i)
 			var matchFound bool
-			var act LRAction
+			var act lrAction
 			for itemStr := range itemSet {
 				item := table.itemCache[itemStr]
 				A := item.NonTerminal
@@ -91,14 +90,14 @@ func constructSimpleLRParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTab
 				var followA box.Set[string]
 				if A != table.gPrime.StartSymbol() {
 					// we'll need this later, glub 38)
-					followA = table.gPrime.FOLLOW(A)
+					followA = findFOLLOWSet(table.gPrime, A)
 				}
 
 				if table.gPrime.IsTerminal(a) && len(beta) > 0 && beta[0] == a {
 					j, err := table.Goto(i, a)
 					if err == nil {
 						// match found
-						shiftAct := LRAction{Type: LRShift, State: j}
+						shiftAct := lrAction{Type: lrShift, State: j}
 						if matchFound && !shiftAct.Equal(act) {
 							if allowAmbig {
 								ambigWarns = append(ambigWarns, makeLRConflictError(act, shiftAct, a).Error()+fromState)
@@ -114,7 +113,7 @@ func constructSimpleLRParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTab
 				}
 
 				if len(beta) == 0 && A != table.gPrime.StartSymbol() && followA.Has(a) {
-					reduceAct := LRAction{Type: LRReduce, Symbol: A, Production: grammar.Production(alpha)}
+					reduceAct := lrAction{Type: lrReduce, Symbol: A, Production: grammar.Production(alpha)}
 					if matchFound && !reduceAct.Equal(act) {
 						if isSRConflict, _ := isShiftReduceConlict(act, reduceAct); isSRConflict && allowAmbig {
 							// do nothing; new action is a reduce so it's already resolved
@@ -129,7 +128,7 @@ func constructSimpleLRParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTab
 				}
 
 				if a == "$" && A == table.gPrime.StartSymbol() && len(alpha) == 1 && alpha[0] == table.gStart && len(beta) == 0 {
-					newAct := LRAction{Type: LRAccept}
+					newAct := lrAction{Type: lrAccept}
 					if matchFound && !newAct.Equal(act) {
 						return nil, ambigWarns, fmt.Errorf("grammar is not SLR(1): %w", makeLRConflictError(act, newAct, a))
 					}
@@ -153,6 +152,8 @@ type slrTable struct {
 	allowAmbig bool
 }
 
+// MarshalBinary converts slr into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (slr *slrTable) MarshalBinary() ([]byte, error) {
 	data := rezi.EncBinary(slr.gPrime)
 	data = append(data, rezi.EncString(slr.gStart)...)
@@ -182,6 +183,8 @@ func (slr *slrTable) MarshalBinary() ([]byte, error) {
 	return data, nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into slr.
+// All of slr's fields will be replaced by the fields decoded from data.
 func (slr *slrTable) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
@@ -282,12 +285,15 @@ func (slr *slrTable) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// DFAString returns a string representation of the DFA that drives the SLR
+// parser.
 func (slr *slrTable) DFAString() string {
 	var sb strings.Builder
 	automaton.OutputSetValuedDFA(&sb, slr.lr0)
 	return sb.String()
 }
 
+// String returns the string representation of the parser.
 func (slr *slrTable) String() string {
 	// need mapping of state to indexes
 	stateRefs := map[string]string{}
@@ -340,9 +346,9 @@ func (slr *slrTable) String() string {
 
 			cell := ""
 			switch act.Type {
-			case LRAccept:
+			case lrAccept:
 				cell = "acc"
-			case LRReduce:
+			case lrReduce:
 				// reduces to the state that corresponds with the symbol
 				var prodStr string
 				if len(act.Production) > 0 {
@@ -351,9 +357,9 @@ func (slr *slrTable) String() string {
 					prodStr = grammar.Epsilon.String()
 				}
 				cell = fmt.Sprintf("r%s -> %s", act.Symbol, prodStr)
-			case LRShift:
+			case lrShift:
 				cell = fmt.Sprintf("s%s", stateRefs[act.State])
-			case LRError:
+			case lrError:
 				// do nothing, err is blank
 			}
 
@@ -386,10 +392,12 @@ func (slr *slrTable) String() string {
 		String()
 }
 
+// Initial returns the starting state of the parser DFA.
 func (slr *slrTable) Initial() string {
 	return slr.lr0.Start
 }
 
+// Goto returns the state to transition to after reducing a non-terminal symbol.
 func (slr *slrTable) Goto(state, symbol string) (string, error) {
 	// as purple  dragon book mentions, "intuitively, the GOTO function is used
 	// to define the transitions in the LR(0) automaton for a grammar." We will
@@ -414,7 +422,9 @@ func (slr *slrTable) Goto(state, symbol string) (string, error) {
 	return newState, nil
 }
 
-func (slr *slrTable) Action(i, a string) LRAction {
+// Action returns the LR-parser action to perform given that the current state
+// is i and the next terminal input symbol seen is a.
+func (slr *slrTable) Action(i, a string) lrAction {
 	// step 2 of algorithm 4.46, "Constructing an SLR-parsing table", for
 	// reference
 
@@ -427,7 +437,7 @@ func (slr *slrTable) Action(i, a string) LRAction {
 	// we have gauranteed that these dont conflict during construction; still,
 	// check it so we can panic if it conflicts
 	var alreadySet bool
-	var act LRAction
+	var act lrAction
 
 	// Okay, "[some random item] is in Iᵢ" is suuuuuuuuper vague. We're
 	// basically going to have to check each item and see if it is in the
@@ -443,7 +453,7 @@ func (slr *slrTable) Action(i, a string) LRAction {
 		var followA box.Set[string]
 		if A != slr.gPrime.StartSymbol() {
 			// we'll need this later, glub 38)
-			followA = slr.gPrime.FOLLOW(A)
+			followA = findFOLLOWSet(slr.gPrime, A)
 		}
 
 		// (a) If [A -> α.aβ] is in Iᵢ and GOTO(Iᵢ, a) = Iⱼ, then set
@@ -461,7 +471,7 @@ func (slr *slrTable) Action(i, a string) LRAction {
 			// set in this case but unshore), so it is not a match.
 			if err == nil {
 				// match found
-				shiftAct := LRAction{Type: LRShift, State: j}
+				shiftAct := lrAction{Type: lrShift, State: j}
 				if alreadySet && !shiftAct.Equal(act) {
 					// assuming shift/shift conflicts do not occur, and assuming
 					// we have just created a shift, we must be in a
@@ -485,7 +495,7 @@ func (slr *slrTable) Action(i, a string) LRAction {
 		// we'll assume α can be empty.
 		// the beta we previously retrieved MUST be empty
 		if len(beta) == 0 && A != slr.gPrime.StartSymbol() && followA.Has(a) {
-			reduceAct := LRAction{Type: LRReduce, Symbol: A, Production: grammar.Production(alpha)}
+			reduceAct := lrAction{Type: lrReduce, Symbol: A, Production: grammar.Production(alpha)}
 			if alreadySet && !reduceAct.Equal(act) {
 				if isSRConflict, _ := isShiftReduceConlict(act, reduceAct); isSRConflict && slr.allowAmbig {
 					// we are in a shift/reduce conflict; the prior def is a
@@ -502,7 +512,7 @@ func (slr *slrTable) Action(i, a string) LRAction {
 
 		// (c) If [S' -> S.] is in Iᵢ, then set ACTION[i, $] to "accept".
 		if a == "$" && A == slr.gPrime.StartSymbol() && len(alpha) == 1 && alpha[0] == slr.gStart && len(beta) == 0 {
-			acceptAct := LRAction{Type: LRAccept}
+			acceptAct := lrAction{Type: lrAccept}
 			if alreadySet && !acceptAct.Equal(act) {
 				panic(fmt.Sprintf("grammar is not SLR(1): %s", makeLRConflictError(act, acceptAct, a).Error()))
 			}
@@ -513,7 +523,7 @@ func (slr *slrTable) Action(i, a string) LRAction {
 
 	// if we haven't found one, error
 	if !alreadySet {
-		act.Type = LRError
+		act.Type = lrError
 	}
 
 	return act

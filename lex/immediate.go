@@ -2,16 +2,18 @@ package lex
 
 import (
 	"io"
-
-	"github.com/dekarrin/ictiobus/types"
 )
 
 type immediateTokenStream struct {
-	tokens []types.Token
+	tokens []Token
 	cur    int
 }
 
-func (lx *lexerTemplate) ImmediatelyLex(input io.Reader) (types.TokenStream, error) {
+// ImmediatelyLex returns a token stream that goes through the entire input in
+// the provided reader and lexes all of them, returning them as a TokenStream
+// which will return them one at a time as its Next() function is called. If any
+// lexing errors occur, they will be immediately returned as a non-nil error.
+func (lx *lexerTemplate) ImmediatelyLex(input io.Reader) (TokenStream, error) {
 	// an immediate lexer is simply a 'lazy' lexer that just, keeps going. so
 	// make one of those.
 	lazyCore, err := lx.LazyLex(input)
@@ -19,7 +21,7 @@ func (lx *lexerTemplate) ImmediatelyLex(input io.Reader) (types.TokenStream, err
 		return nil, err
 	}
 
-	lexedTokens := []types.Token{}
+	lexedTokens := []Token{}
 
 	for lazyCore.HasNext() {
 		tok := lazyCore.Next()
@@ -27,7 +29,7 @@ func (lx *lexerTemplate) ImmediatelyLex(input io.Reader) (types.TokenStream, err
 		// if it's an error token, capture that and turn it into a proper
 		// 'syntax error' style error (technically it's a lexical specification
 		// error but lets not split hairs over that)
-		if tok.Class().ID() == types.TokenError.ID() {
+		if tok.Class().ID() == TokenError.ID() {
 			// stop. do not allow panic mode to continue, lexing has failed.
 
 			// create a new token to hold all values of tok except lexeme so we
@@ -40,7 +42,7 @@ func (lx *lexerTemplate) ImmediatelyLex(input io.Reader) (types.TokenStream, err
 				lineNum: tok.Line(),
 			}
 
-			return nil, types.NewSyntaxErrorFromToken(tok.Lexeme(), tokWrap)
+			return nil, NewSyntaxErrorFromToken(tok.Lexeme(), tokWrap)
 		}
 
 		lexedTokens = append(lexedTokens, tok)
@@ -55,14 +57,14 @@ func (lx *lexerTemplate) ImmediatelyLex(input io.Reader) (types.TokenStream, err
 // is types.TokenEndOfText. If an error in lexing occurs, it will return a token
 // whose Class() is types.TokenError and whose lexeme is a message explaining
 // the error.
-func (lx *immediateTokenStream) Next() types.Token {
+func (lx *immediateTokenStream) Next() Token {
 	n := lx.tokens[lx.cur]
 	lx.cur++
 	return n
 }
 
 // Peek returns the next token in the stream without advancing the stream.
-func (lx *immediateTokenStream) Peek() types.Token {
+func (lx *immediateTokenStream) Peek() Token {
 	return lx.tokens[lx.cur]
 }
 
@@ -71,6 +73,7 @@ func (lx *immediateTokenStream) HasNext() bool {
 	return lx.Remaining() > 0
 }
 
+// Remaining returns the number of tokens remaining in the token stream.
 func (lx *immediateTokenStream) Remaining() int {
 	return len(lx.tokens) - lx.cur
 }

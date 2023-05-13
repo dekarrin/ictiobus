@@ -6,7 +6,7 @@ import (
 
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/slices"
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/parse"
 )
 
 // sdts.go contains the implementation of a Syntax-Directed Translation Scheme.
@@ -16,6 +16,8 @@ type sdtsImpl struct {
 	bindings map[string]map[string][]SDDBinding
 }
 
+// SetHooks sets the hook mapping containing implementations of the hooks in the
+// SDTS. It must be called before calling Evaluate.
 func (sdts *sdtsImpl) SetHooks(hooks HookMap) {
 	// only create a new map if we don't already have one
 	if sdts.hooks == nil {
@@ -36,34 +38,30 @@ func (sdts *sdtsImpl) SetHooks(hooks HookMap) {
 	}
 }
 
-func (sdts *sdtsImpl) BindingsFor(head string, prod []string, attrRef AttrRef) []SDDBinding {
-	allForRule := sdts.Bindings(head, prod)
-
-	matchingBindings := []SDDBinding{}
-
-	for i := range allForRule {
-		if allForRule[i].Dest == attrRef {
-			matchingBindings = append(matchingBindings, allForRule[i])
-		}
-	}
-
-	return matchingBindings
-}
-
-func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals []interface{}, warns []error, err error) {
+// Evaluate executes the entire syntax-directed translation scheme on the given
+// parse tree, and returns the requested attributes from the root of the
+// generated AnnotatedParseTree. The parse tree is first annotated to produce an
+// AnnotatedParseTree, then nodes are visited in an order determined by
+// dependency graphs created on all attributes defined for the SDTS that have
+// qualifying nodes in the APT. When each node is visited, any associated SDD
+// bindings are called on it.
+//
+// This function requires that SetHooks be called with a valid set of
+// implementations for all hooks that will be called.
+func (sdts *sdtsImpl) Evaluate(tree parse.ParseTree, attributes ...string) (vals []interface{}, warns []error, err error) {
 	// don't check for no hooks being set because it's possible we are going to
 	// be handed an empty parse tree, which will fail for other reasons first
 	// or perhaps will not fail at all.
 
 	// first get an annotated parse tree
-	root := AddAttributes(tree)
-	depGraphs := DepGraph(root, sdts)
+	root := Annotate(tree)
+	depGraphs := depGraph(root, sdts)
 	var unexpectedBreaks [][4]string
 
 	if len(depGraphs) > 1 {
 		// first, eliminate all depGraphs whose head has a noFlow that applies
 		// to it.
-		updatedDepGraphs := []*DirectedGraph[DepNode]{}
+		updatedDepGraphs := []*directedGraph[depNode]{}
 		for i := range depGraphs {
 			var isRoot bool
 			var hasUnexpectedBreaks bool
@@ -116,7 +114,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 		depGraphs = updatedDepGraphs
 	}
 
-	var singleAttrRoot *DirectedGraph[DepNode]
+	var singleAttrRoot *directedGraph[depNode]
 	// if it's *still* more than 1, scan to see if it's only one attrRoot; that is a warning, not an error, unless
 	// asked to be.
 	if len(depGraphs) > 1 {
@@ -182,7 +180,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 				depGraphs:        depGraphs,
 				unexpectedBreaks: unexpectedBreaks,
 			})
-			depGraphs = []*DirectedGraph[DepNode]{singleAttrRoot}
+			depGraphs = []*directedGraph[depNode]{singleAttrRoot}
 		} else {
 			return nil, warns, evalError{
 				msg:              "applying SDTS to tree results in evaluation dependency graph with multiple disconnected root segments",
@@ -192,7 +190,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 		}
 	}
 
-	visitOrder, err := KahnSort(depGraphs[0])
+	visitOrder, err := kahnSort(depGraphs[0])
 	if err != nil {
 		return nil, warns, evalError{
 			msg:       fmt.Sprintf("sorting SDTS dependency graph: %s", err.Error()),
@@ -216,7 +214,7 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 
 		nodeRuleHead, nodeRuleProd := nodeTree.Rule()
 
-		bindingsToExec := sdts.BindingsFor(nodeRuleHead, nodeRuleProd, depNode.Dest)
+		bindingsToExec := sdts.bindingsForAttr(nodeRuleHead, nodeRuleProd, depNode.Dest)
 		for j := range bindingsToExec {
 			binding := bindingsToExec[j]
 			value, err := binding.Invoke(invokeOn, sdts.hooks)
@@ -282,24 +280,8 @@ func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals
 	return attrValues, warns, nil
 }
 
-func (sdts *sdtsImpl) Bindings(head string, prod []string) []SDDBinding {
-	forHead, ok := sdts.bindings[head]
-	if !ok {
-		return nil
-	}
-
-	symStr := strings.Join(prod, " ")
-	forProd, ok := forHead[symStr]
-	if !ok {
-		return nil
-	}
-
-	targetBindings := make([]SDDBinding, len(forProd))
-	copy(targetBindings, forProd)
-
-	return targetBindings
-}
-
+// BindSynthesizedAttribute adds a binding to the SDTS for a synthesized
+// attribute.
 func (sdts *sdtsImpl) BindSynthesizedAttribute(head string, prod []string, attrName string, hook string, withArgs []AttrRef) error {
 	// sanity checks; can we even call this?
 	if hook == "" {
@@ -351,6 +333,8 @@ func (sdts *sdtsImpl) BindSynthesizedAttribute(head string, prod []string, attrN
 	return nil
 }
 
+// BindInheritedAttribute adds a binding to the SDTS for an inherited attribute.
+// At this time, inherited attributes are not supported.
 func (sdts *sdtsImpl) BindInheritedAttribute(head string, prod []string, attrName string, hook string, withArgs []AttrRef, forProd NodeRelation) error {
 	// sanity checks; can we even call this?
 	if hook == "" {
@@ -410,6 +394,10 @@ func (sdts *sdtsImpl) BindInheritedAttribute(head string, prod []string, attrNam
 	return nil
 }
 
+// SetNoFlow explicitly marks a particular binding as expected to not 'flow' up
+// a dependency graph; that is, it will not consider it a warnable issue if
+// the value produced by it is not used by another part of the translation
+// scheme.
 func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName string, forProd NodeRelation, which int, ifParent string) error {
 	prodStr := strings.Join(prod, " ")
 
@@ -491,9 +479,50 @@ func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName
 	return nil
 }
 
+// NewSDTS creates a new, empty Syntax-Directed Translation Scheme.
 func NewSDTS() *sdtsImpl {
 	impl := sdtsImpl{
 		bindings: map[string]map[string][]SDDBinding{},
 	}
 	return &impl
+}
+
+// bindingsForAttr returns all bindings defined to apply when at a node in a parse
+// tree created by the rule production with head as its head symbol and prod
+// as its produced symbols, and when setting the attribute referred to by
+// dest. They will be returned in the order they were defined.
+func (sdts *sdtsImpl) bindingsForAttr(head string, prod []string, attrRef AttrRef) []SDDBinding {
+	allForRule := sdts.bindingsForRule(head, prod)
+
+	matchingBindings := []SDDBinding{}
+
+	for i := range allForRule {
+		if allForRule[i].Dest == attrRef {
+			matchingBindings = append(matchingBindings, allForRule[i])
+		}
+	}
+
+	return matchingBindings
+}
+
+// bindingsForRule returns all bindings defined to apply when at a node in a parse
+// tree created by the rule production with head as its head symbol and prod
+// as its produced symbols. They will be returned in the order they were
+// defined.
+func (sdts *sdtsImpl) bindingsForRule(head string, prod []string) []SDDBinding {
+	forHead, ok := sdts.bindings[head]
+	if !ok {
+		return nil
+	}
+
+	symStr := strings.Join(prod, " ")
+	forProd, ok := forHead[symStr]
+	if !ok {
+		return nil
+	}
+
+	targetBindings := make([]SDDBinding, len(forProd))
+	copy(targetBindings, forProd)
+
+	return targetBindings
 }

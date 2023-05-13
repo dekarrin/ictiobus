@@ -9,7 +9,6 @@ import (
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/trans"
-	"github.com/dekarrin/ictiobus/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,7 +47,7 @@ func Test_Spec_ValidateSDTS_disconnectedGraph(t *testing.T) {
 		{
 			name: "normal spec",
 			spec: Spec{
-				Tokens: []types.TokenClass{
+				Tokens: []lex.TokenClass{
 					lex.NewTokenClass("+", "plus sign"),
 					lex.NewTokenClass("var", "variable"),
 					lex.NewTokenClass("int", "integer"),
@@ -105,7 +104,7 @@ func Test_Spec_ValidateSDTS_disconnectedGraph(t *testing.T) {
 		{
 			name: "SDTS has disconnected depgraph but still allowed",
 			spec: Spec{
-				Tokens: []types.TokenClass{
+				Tokens: []lex.TokenClass{
 					lex.NewTokenClass("+", "plus sign"),
 					lex.NewTokenClass("*", "mult sign"),
 					lex.NewTokenClass("var", "variable"),

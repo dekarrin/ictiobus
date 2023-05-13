@@ -38,7 +38,7 @@ import (
 	"{{ .BinPkg }}/internal/{{ .FormatPkg }}"
 {{- end}}
 
-	"github.com/dekarrin/ictiobus/trans"
+	se "github.com/dekarrin/ictiobus/syntaxerr"
 	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/ictiobus/fishi"
 
@@ -199,7 +199,7 @@ func main() {
 		}
 
 		if cmdErr != nil {
-			if syntaxErr, ok := cmdErr.(*types.SyntaxError); ok {
+			if syntaxErr, ok := cmdErr.(*se.SyntaxError); ok {
 				fmt.Fprintf(os.Stderr, "%s\n", syntaxErr.MessageForFile("<COMMAND>"))
 				returnCode = ExitErrSyntax
 			} else {
@@ -306,7 +306,7 @@ func main() {
 		}
 
 		if err != nil {
-			if syntaxErr, ok := err.(*types.SyntaxError); ok {
+			if syntaxErr, ok := err.(*se.SyntaxError); ok {
 				errFilename := f
 				if f == "-" {
 					errFilename = "<STDIN>"

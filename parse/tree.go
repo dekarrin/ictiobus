@@ -1,4 +1,4 @@
-package types
+package parse
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/slices"
+	"github.com/dekarrin/ictiobus/lex"
 )
 
 const (
@@ -34,6 +35,8 @@ func makeTreeLevelPrefixLast(msg string) string {
 	return fmt.Sprintf(treeLevelPrefixLast, msg)
 }
 
+// ParseTree is a parse tree returned by a parser performing analysis on input
+// source code.
 type ParseTree struct {
 	// Terminal is whether thie node is for a terminal symbol.
 	Terminal bool
@@ -42,12 +45,14 @@ type ParseTree struct {
 	Value string
 
 	// Source is only available when Terminal is true.
-	Source Token
+	Source lex.Token
 
 	// Children is all children of the parse tree.
 	Children []*ParseTree
 }
 
+// MustParseTreeFromDiagram is the same as ParseTreeFromDiagram but panics if
+// any error occurs.
 func MustParseTreeFromDiagram(s string) *ParseTree {
 	pt, err := ParseTreeFromDiagram(s)
 	if err != nil {
@@ -230,7 +235,7 @@ func ParseTreeFromDiagram(s string) (*ParseTree, error) {
 // represents a terminal symbol. The Source token may or may not be set as
 // desired. Note that t's type being ...Token is simply to make it optional;
 // only the first such provided t is examined.
-func PTLeaf(term string, t ...Token) *ParseTree {
+func PTLeaf(term string, t ...lex.Token) *ParseTree {
 	pt := &ParseTree{Terminal: true, Value: term}
 	if len(t) > 0 {
 		pt.Source = t[0]
@@ -249,6 +254,9 @@ func PTNode(nt string, children ...*ParseTree) *ParseTree {
 	return pt
 }
 
+// Follow takes a path, denoted as a slice of indexes of children to follow,
+// starting from the ParseTree it is called on, and returns the descendant tree
+// it leads to.
 func (pt ParseTree) Follow(path []int) *ParseTree {
 	cur := &pt
 	for i := range path {

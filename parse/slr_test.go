@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_ConstructSimpleLRParseTable(t *testing.T) {
+func Test_ConstructSLR1ParseTable(t *testing.T) {
 	testCases := []struct {
 		name      string
 		grammar   string
@@ -80,7 +80,7 @@ func Test_ConstructSimpleLRParseTable(t *testing.T) {
 			g := grammar.MustParse(tc.grammar)
 
 			// execute
-			actual, _, err := constructSimpleLRParseTable(g, tc.ambig)
+			actual, _, err := constructSLR1ParseTable(g, tc.ambig)
 
 			// assert
 			if tc.expectErr {
@@ -155,7 +155,7 @@ func Test_SLR1Parse(t *testing.T) {
 			stream := mockTokens(tc.input...)
 
 			// execute
-			parser, _, err := GenerateSimpleLRParser(g, tc.ambig)
+			parser, _, err := GenerateSLR1Parser(g, tc.ambig)
 			if !assert.NoError(err, "generating SLR parser failed") {
 				return
 			}

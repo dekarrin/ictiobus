@@ -14,10 +14,9 @@ import (
 	"github.com/dekarrin/ictiobus/fishi/fe/fetoken"
 )
 
-// Lexer creates and returns the compiled ictiobus Lexer for the language
-// FISHI.
-func Lexer(lazy bool) ictiobus.Lexer {
-	var lx ictiobus.Lexer
+// Lexer returns the generated ictiobus Lexer for FISHI.
+func Lexer(lazy bool) lex.Lexer {
+	var lx lex.Lexer
 	if lazy {
 		lx = ictiobus.NewLazyLexer()
 	} else {

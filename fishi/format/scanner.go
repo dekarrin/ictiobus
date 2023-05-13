@@ -9,7 +9,7 @@ import (
 	mkparser "github.com/gomarkdown/markdown/parser"
 )
 
-type fishiScanner bool
+type fishiScanner struct{}
 
 func (fs fishiScanner) RenderNode(w io.Writer, node mkast.Node, entering bool) mkast.WalkStatus {
 	if !entering {
@@ -30,7 +30,10 @@ func (fs fishiScanner) RenderNode(w io.Writer, node mkast.Node, entering bool) m
 func (fs fishiScanner) RenderHeader(w io.Writer, ast mkast.Node) {}
 func (fs fishiScanner) RenderFooter(w io.Writer, ast mkast.Node) {}
 
-func ExtractFishiBlocksFromMarkdown(mdText []byte) []byte {
+// scanMarkdownForFishiBlocks finds all FISHI codeblocks in the given
+// Markdown bytes. The blocks' contents are appended together and returned as a
+// single slice of bytes.
+func scanMarkdownForFishiBlocks(mdText []byte) []byte {
 	doc := markdown.Parse(mdText, mkparser.New())
 	var scanner fishiScanner
 	fishi := markdown.Render(doc, scanner)

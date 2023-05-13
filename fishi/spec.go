@@ -12,8 +12,8 @@ import (
 	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
+	"github.com/dekarrin/ictiobus/parse"
 	"github.com/dekarrin/ictiobus/trans"
-	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/rosed"
 )
 
@@ -22,7 +22,7 @@ import (
 // checking it for errors with NewSpec.
 type Spec struct {
 	// Tokens is all of the tokens that are used in the language.
-	Tokens []types.TokenClass
+	Tokens []lex.TokenClass
 
 	// Patterns is a map of state names to the lexer patterns that are used
 	// while in that state.
@@ -84,8 +84,8 @@ func (spec Spec) ValidateSDTS(opts trans.ValidationOptions, hooks trans.HookMap)
 }
 
 // ClassMap is a map of string to token class with that ID.
-func (spec Spec) ClassMap() map[string]types.TokenClass {
-	classes := map[string]types.TokenClass{}
+func (spec Spec) ClassMap() map[string]lex.TokenClass {
+	classes := map[string]lex.TokenClass{}
 	for _, class := range spec.Tokens {
 		classes[class.ID()] = class
 	}
@@ -93,8 +93,8 @@ func (spec Spec) ClassMap() map[string]types.TokenClass {
 }
 
 // CreateLexer uses the Tokens and Patterns in the spec to create a new Lexer.
-func (spec Spec) CreateLexer(lazy bool) (ictiobus.Lexer, error) {
-	var lx ictiobus.Lexer
+func (spec Spec) CreateLexer(lazy bool) (lex.Lexer, error) {
+	var lx lex.Lexer
 
 	if lazy {
 		lx = ictiobus.NewLazyLexer()
@@ -159,14 +159,14 @@ func (spec Spec) CreateLexer(lazy bool) (ictiobus.Lexer, error) {
 //
 // AllowAmbig only applies for parser types that can auto-resolve ambiguity,
 // e.g. it does not apply to an LL(k) parser.
-func (spec Spec) CreateMostRestrictiveParser(allowAmbig bool) (ictiobus.Parser, []Warning, error) {
-	p, warns, err := spec.CreateParser(types.ParserLL1, false)
+func (spec Spec) CreateMostRestrictiveParser(allowAmbig bool) (parse.Parser, []Warning, error) {
+	p, warns, err := spec.CreateParser(parse.AlgoLL1, false)
 	if err != nil {
-		p, warns, err = spec.CreateParser(types.ParserSLR1, allowAmbig)
+		p, warns, err = spec.CreateParser(parse.AlgoSLR1, allowAmbig)
 		if err != nil {
-			p, warns, err = spec.CreateParser(types.ParserLALR1, allowAmbig)
+			p, warns, err = spec.CreateParser(parse.AlgoLALR1, allowAmbig)
 			if err != nil {
-				p, warns, err = spec.CreateParser(types.ParserCLR1, allowAmbig)
+				p, warns, err = spec.CreateParser(parse.AlgoCLR1, allowAmbig)
 				if err != nil {
 					return p, warns, fmt.Errorf("no parser can be generated for grammar; for CLR(1) parser, got: %w", err)
 				}
@@ -179,25 +179,25 @@ func (spec Spec) CreateMostRestrictiveParser(allowAmbig bool) (ictiobus.Parser, 
 
 // CreateParser uses the Grammar in the spec to create a new Parser of the
 // given type. Returns an error if the type is not supported.
-func (spec Spec) CreateParser(t types.ParserType, allowAmbig bool) (ictiobus.Parser, []Warning, error) {
+func (spec Spec) CreateParser(t parse.Algorithm, allowAmbig bool) (parse.Parser, []Warning, error) {
 	var warns []Warning
-	var p ictiobus.Parser
+	var p parse.Parser
 	var err error
 
 	var ambigWarns []string
 	switch t {
-	case types.ParserLALR1:
-		p, ambigWarns, err = ictiobus.NewLALR1Parser(spec.Grammar, allowAmbig)
-	case types.ParserCLR1:
+	case parse.AlgoLALR1:
+		p, ambigWarns, err = ictiobus.NewLALRParser(spec.Grammar, allowAmbig)
+	case parse.AlgoCLR1:
 		p, ambigWarns, err = ictiobus.NewCLRParser(spec.Grammar, allowAmbig)
-	case types.ParserSLR1:
+	case parse.AlgoSLR1:
 		p, ambigWarns, err = ictiobus.NewSLRParser(spec.Grammar, allowAmbig)
-	case types.ParserLL1:
+	case parse.AlgoLL1:
 		if allowAmbig {
 			return nil, nil, fmt.Errorf("LL(k) parsers do not support ambiguous grammars")
 		}
 
-		p, err = ictiobus.NewLL1Parser(spec.Grammar)
+		p, err = ictiobus.NewLLParser(spec.Grammar)
 	default:
 		return nil, nil, fmt.Errorf("unsupported parser type: %s", t)
 	}
@@ -217,7 +217,7 @@ func (spec Spec) CreateParser(t types.ParserType, allowAmbig bool) (ictiobus.Par
 }
 
 // CreateSDTS uses the TranslationScheme in the spec to create a new SDTS.
-func (spec Spec) CreateSDTS() (ictiobus.SDTS, error) {
+func (spec Spec) CreateSDTS() (trans.SDTS, error) {
 	sdts := ictiobus.NewSDTS()
 
 	for _, sdd := range spec.TranslationScheme {
@@ -383,7 +383,7 @@ func analyzeASTActionsContentSlice(
 
 			gRule := g.Rule(ruleHead)
 			if gRule.NonTerminal == "" {
-				synErr := types.NewSyntaxErrorFromToken(fmt.Sprintf("'%s' is not a non-terminal symbol in the grammar", ruleHead), symAct.SrcSym)
+				synErr := lex.NewSyntaxErrorFromToken(fmt.Sprintf("'%s' is not a non-terminal symbol in the grammar", ruleHead), symAct.SrcSym)
 				return nil, warnings, synErr
 			}
 
@@ -399,7 +399,7 @@ func analyzeASTActionsContentSlice(
 						prodsStr := textfmt.Pluralize(len(gRule.Productions), "production", "-s")
 						errFmt := "'->' by itself specifies production #%d, but grammar for %s only defines %s"
 						errMsg := fmt.Sprintf(errFmt, forProdIdx+1, ruleHead, prodsStr)
-						synErr := types.NewSyntaxErrorFromToken(errMsg, prodAct.SrcVal)
+						synErr := lex.NewSyntaxErrorFromToken(errMsg, prodAct.SrcVal)
 						return nil, warnings, synErr
 					}
 				} else if len(prodAct.ProdLiteral) > 0 {
@@ -436,7 +436,7 @@ func analyzeASTActionsContentSlice(
 					if !found {
 						errFmt := "no grammar rule specifies %s -> '%s'"
 						errMsg := fmt.Sprintf(errFmt, convertedProd.String(), ruleHead)
-						synErr := types.NewSyntaxErrorFromToken(errMsg, prodAct.SrcVal)
+						synErr := lex.NewSyntaxErrorFromToken(errMsg, prodAct.SrcVal)
 						return nil, warnings, synErr
 					}
 				} else {
@@ -456,12 +456,12 @@ func analyzeASTActionsContentSlice(
 					// convert LHS ASTAttrRef to valid translation.AttrRef
 					sdd.Attribute, err = attrRefFromASTAttrRef(semAct.LHS, g, sddRule)
 					if err != nil {
-						synErr := types.NewSyntaxErrorFromToken("invalid attrRef: "+err.Error(), semAct.LHS.Src)
+						synErr := lex.NewSyntaxErrorFromToken("invalid attrRef: "+err.Error(), semAct.LHS.Src)
 						return nil, warnings, synErr
 					}
 					// make shore we aren't trying to set somefin starting with a '$'; those are reserved
 					if strings.HasPrefix(sdd.Attribute.Name, "$") {
-						synErr := types.NewSyntaxErrorFromToken("cannot create attribute starting with reserved marker '$'", semAct.LHS.Src)
+						synErr := lex.NewSyntaxErrorFromToken("cannot create attribute starting with reserved marker '$'", semAct.LHS.Src)
 						return nil, warnings, synErr
 					}
 
@@ -471,7 +471,7 @@ func analyzeASTActionsContentSlice(
 						for i, arg := range semAct.With {
 							sdd.Args[i], err = attrRefFromASTAttrRef(arg, g, sddRule)
 							if err != nil {
-								synErr := types.NewSyntaxErrorFromToken("invalid attrRef: "+err.Error(), arg.Src)
+								synErr := lex.NewSyntaxErrorFromToken("invalid attrRef: "+err.Error(), arg.Src)
 								return nil, warnings, synErr
 							}
 						}
@@ -491,7 +491,7 @@ func analyzeASTActionsContentSlice(
 
 func analyzeASTGrammarContentSlice(
 	grammarBlocks []syntax.GrammarContent,
-	classes map[string]types.TokenClass,
+	classes map[string]lex.TokenClass,
 ) (grammar.Grammar, []Warning, error) {
 	var warnings []Warning
 
@@ -524,7 +524,7 @@ func analyzeASTGrammarContentSlice(
 
 							// ...and make sure it's in the lexer's terminals
 							if _, ok := classes[sym]; !ok {
-								synErr := types.NewSyntaxErrorFromToken(fmt.Sprintf("terminal '%s' is not a defined token class in any tokens block", sym), rule.Src)
+								synErr := lex.NewSyntaxErrorFromToken(fmt.Sprintf("terminal '%s' is not a defined token class in any tokens block", sym), rule.Src)
 								return g, warnings, synErr
 							}
 
@@ -573,7 +573,7 @@ func analyzeASTGrammarContentSlice(
 func analzyeASTTokensContentSlice(
 	tokensBlocks []syntax.TokensContent,
 	existingStates box.StringSet,
-	classes map[string]types.TokenClass,
+	classes map[string]lex.TokenClass,
 ) (map[string][]Pattern, []Warning, error) {
 	var warnings []Warning
 
@@ -590,25 +590,25 @@ func analzyeASTTokensContentSlice(
 			// get the pattern
 			p.Regex, err = regexp.Compile(entry.Pattern)
 			if err != nil {
-				synErr := types.NewSyntaxErrorFromToken(fmt.Sprintf("invalid regular expression: %s", err.Error()), entry.Src)
+				synErr := lex.NewSyntaxErrorFromToken(fmt.Sprintf("invalid regular expression: %s", err.Error()), entry.Src)
 				return nil, warnings, synErr
 			}
 
 			// make sure we only have one maximum of each option
 			if len(entry.SrcDiscard) > 1 {
-				synErr := types.NewSyntaxErrorFromToken("duplicate discard directive for entry", entry.SrcDiscard[1])
+				synErr := lex.NewSyntaxErrorFromToken("duplicate discard directive for entry", entry.SrcDiscard[1])
 				return nil, warnings, synErr
 			}
 			if len(entry.SrcHuman) > 1 {
-				synErr := types.NewSyntaxErrorFromToken("duplicate human directive for entry", entry.SrcHuman[1])
+				synErr := lex.NewSyntaxErrorFromToken("duplicate human directive for entry", entry.SrcHuman[1])
 				return nil, warnings, synErr
 			}
 			if len(entry.SrcPriority) > 1 {
-				synErr := types.NewSyntaxErrorFromToken("duplicate priority directive for entry", entry.SrcPriority[1])
+				synErr := lex.NewSyntaxErrorFromToken("duplicate priority directive for entry", entry.SrcPriority[1])
 				return nil, warnings, synErr
 			}
 			if len(entry.SrcShift) > 1 {
-				synErr := types.NewSyntaxErrorFromToken("duplicate state shift directive for entry", entry.SrcShift[1])
+				synErr := lex.NewSyntaxErrorFromToken("duplicate state shift directive for entry", entry.SrcShift[1])
 				return nil, warnings, synErr
 			}
 
@@ -621,7 +621,7 @@ func analzyeASTTokensContentSlice(
 
 				firstTok := entry.SrcDiscard[0]
 				firstIsDiscard := true
-				var secondTok types.Token
+				var secondTok lex.Token
 
 				if len(entry.SrcHuman) > 0 {
 					humanTok := entry.SrcHuman[0]
@@ -640,14 +640,14 @@ func analzyeASTTokensContentSlice(
 					var fullErrMsg string
 					if firstIsDiscard {
 						errMsg := "human/token/stateshift directive cannot be added to discarded entry:"
-						synErr1 := types.NewSyntaxErrorFromToken("initial discard defined here", firstTok)
-						synErr2 := types.NewSyntaxErrorFromToken("directive not allowed", secondTok)
+						synErr1 := lex.NewSyntaxErrorFromToken("initial discard defined here", firstTok)
+						synErr2 := lex.NewSyntaxErrorFromToken("directive not allowed", secondTok)
 
 						fullErrMsg = errMsg + "\n" + synErr1.FullMessage() + "\n" + synErr2.FullMessage()
 					} else {
 						errMsg := "can't discard an entry that will be used for stateshift or token lexing:"
-						synErr1 := types.NewSyntaxErrorFromToken("initial directive defined here", firstTok)
-						synErr2 := types.NewSyntaxErrorFromToken("discard directive not allowed", secondTok)
+						synErr1 := lex.NewSyntaxErrorFromToken("initial directive defined here", firstTok)
+						synErr2 := lex.NewSyntaxErrorFromToken("discard directive not allowed", secondTok)
 
 						fullErrMsg = errMsg + "\n" + synErr1.FullMessage() + "\n" + synErr2.FullMessage()
 					}
@@ -666,25 +666,25 @@ func analzyeASTTokensContentSlice(
 					// then there'd 8etta be a token directive
 
 					if entry.Token == "" {
-						synErr := types.NewSyntaxErrorFromToken("human directive given without token directive", entry.SrcHuman[0])
+						synErr := lex.NewSyntaxErrorFromToken("human directive given without token directive", entry.SrcHuman[0])
 						return nil, warnings, synErr
 					}
 				}
 
 				if entry.Token == "" && entry.Shift == "" {
-					synErr := types.NewSyntaxErrorFromToken("entry must have a discard, token, or stateshift directive", entry.Src)
+					synErr := lex.NewSyntaxErrorFromToken("entry must have a discard, token, or stateshift directive", entry.Src)
 					return nil, warnings, synErr
 				}
 
 				// don't try to shift to non-existent state
 				if entry.Shift != "" {
 					if !existingStates.Has(entry.Shift) {
-						synErr := types.NewSyntaxErrorFromToken("bad stateshift; shifted-to-state does not exist", entry.SrcShift[0])
+						synErr := lex.NewSyntaxErrorFromToken("bad stateshift; shifted-to-state does not exist", entry.SrcShift[0])
 						return nil, warnings, synErr
 					}
 
 					if entry.Shift == tokBl.State {
-						synErr := types.NewSyntaxErrorFromToken("bad stateshift; already in that state", entry.SrcShift[0])
+						synErr := lex.NewSyntaxErrorFromToken("bad stateshift; already in that state", entry.SrcShift[0])
 						return nil, warnings, synErr
 					}
 				}
@@ -710,13 +710,13 @@ func analzyeASTTokensContentSlice(
 			// finally, check for priority
 			if len(entry.SrcPriority) > 0 {
 				if entry.Priority == 0 {
-					warn := types.NewSyntaxErrorFromToken("setting priority to 0 has no effect", entry.SrcPriority[0])
+					warn := lex.NewSyntaxErrorFromToken("setting priority to 0 has no effect", entry.SrcPriority[0])
 					warnings = append(warnings, Warning{
 						Type:    WarnPriorityZero,
 						Message: warn.FullMessage(),
 					})
 				} else if entry.Priority < 0 {
-					synErr := types.NewSyntaxErrorFromToken("priority cannot be negative", entry.SrcPriority[0])
+					synErr := lex.NewSyntaxErrorFromToken("priority cannot be negative", entry.SrcPriority[0])
 					return nil, warnings, synErr
 				}
 
@@ -858,7 +858,7 @@ func validateParsedAttrRef(ar trans.AttrRef, g grammar.Grammar, r grammar.Rule) 
 	return nil
 }
 
-func putEntryTokenInCorrectPosForDiscardCheck(first, second *types.Token, discardIsFirst *bool, tok types.Token) {
+func putEntryTokenInCorrectPosForDiscardCheck(first, second *lex.Token, discardIsFirst *bool, tok lex.Token) {
 	if *discardIsFirst {
 		if tokenIsBefore(tok, *first) {
 			*second = *first
@@ -877,14 +877,14 @@ func putEntryTokenInCorrectPosForDiscardCheck(first, second *types.Token, discar
 	}
 }
 
-func tokenIsBefore(t1, t2 types.Token) bool {
+func tokenIsBefore(t1, t2 lex.Token) bool {
 	return t1.Line() < t2.Line() || (t1.Line() == t2.Line() && t1.LinePos() < t2.LinePos())
 }
 
-func buildTokenClasses(tcDefsTable map[string][]box.Pair[string, types.Token], states box.StringSet) (map[string]types.TokenClass, []Warning) {
+func buildTokenClasses(tcDefsTable map[string][]box.Pair[string, lex.Token], states box.StringSet) (map[string]lex.TokenClass, []Warning) {
 	var warnings []Warning
 
-	classes := make(map[string]types.TokenClass)
+	classes := make(map[string]lex.TokenClass)
 	// build token classes
 	for tok, humanDefs := range tcDefsTable {
 		// if there is no human definition, then use the token name
@@ -906,7 +906,7 @@ func buildTokenClasses(tcDefsTable map[string][]box.Pair[string, types.Token], s
 	return classes, warnings
 }
 
-func checkForDuplicateHumanDefs(tcSymTable map[string][]box.Pair[string, types.Token]) []Warning {
+func checkForDuplicateHumanDefs(tcSymTable map[string][]box.Pair[string, lex.Token]) []Warning {
 	var warnings []Warning
 	// warn for duplicate human definitions (but not missing; we will handle
 	// that during reading of tokenBlocks)
@@ -915,7 +915,7 @@ func checkForDuplicateHumanDefs(tcSymTable map[string][]box.Pair[string, types.T
 			msgStart := fmt.Sprintf("multiple distinct human-readable names given for token %q:", tok)
 			var msg string
 			for _, hd := range humanDefs {
-				synErr := types.NewSyntaxErrorFromToken("human name last defined here", hd.Second)
+				synErr := lex.NewSyntaxErrorFromToken("human name last defined here", hd.Second)
 				msg += fmt.Sprintf("%s\n", synErr.FullMessage())
 			}
 			msg = rosed.Edit(msg).IndentOpts(1, rosed.Options{IndentStr: "  "}).String()
@@ -937,12 +937,12 @@ func checkForDuplicateHumanDefs(tcSymTable map[string][]box.Pair[string, types.T
 // do not error check (but do track for multiple human definition text)
 // until the scan is complete even if we could; that way, all errors are
 // reported at once.
-func scanTokenClasses(blocks []syntax.TokensContent) (map[string][]box.Pair[string, types.Token], box.StringSet) {
+func scanTokenClasses(blocks []syntax.TokensContent) (map[string][]box.Pair[string, lex.Token], box.StringSet) {
 
 	// tcSymTable is tok-name -> pairs of human-name and token where that human
 	// name is first defined. Uses slice of pairs instead of map to preserve
 	// order.
-	tcSymTable := make(map[string][]box.Pair[string, types.Token])
+	tcSymTable := make(map[string][]box.Pair[string, lex.Token])
 
 	states := box.NewStringSet()
 
@@ -959,7 +959,7 @@ func scanTokenClasses(blocks []syntax.TokensContent) (map[string][]box.Pair[stri
 			if entry.Token != "" {
 				humanDefs, ok := tcSymTable[entry.Token]
 				if !ok {
-					humanDefs = []box.Pair[string, types.Token]{}
+					humanDefs = []box.Pair[string, lex.Token]{}
 					tcSymTable[entry.Token] = humanDefs
 				}
 				if entry.Human != "" {
@@ -968,7 +968,7 @@ func scanTokenClasses(blocks []syntax.TokensContent) (map[string][]box.Pair[stri
 					// if we already have human definition(s) for this token,
 					// only add this one if it is a distinct string.
 					if len(humanDefs) != 0 {
-						_, alreadyExists := slices.Any(humanDefs, func(hd box.Pair[string, types.Token]) bool {
+						_, alreadyExists := slices.Any(humanDefs, func(hd box.Pair[string, lex.Token]) bool {
 							return hd.First == entry.Human
 						})
 						// only need to save a new one if it doesn't already exist

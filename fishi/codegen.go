@@ -30,6 +30,7 @@ import (
 // This is the only way that we can do full validation with a hooks package.
 
 const (
+	// CommandName is the name of the ictiobus binary.
 	CommandName = "ictcc"
 )
 
@@ -497,6 +498,12 @@ func GenerateFrontendGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, pkgI
 
 func createFuncMap() template.FuncMap {
 	return template.FuncMap{
+		"lower": func(s string) string {
+			return strings.ToLower(s)
+		},
+		"upper": func(s string) string {
+			return strings.ToUpper(s)
+		},
 		"upperCamel": safeTCIdentifierName,
 		"quote": func(s string) string {
 			return fmt.Sprintf("%q", s)
@@ -507,6 +514,9 @@ func createFuncMap() template.FuncMap {
 		},
 		"title": func(s string) string {
 			return titleCaser.String(s)
+		},
+		"with_article": func(def bool, s string) string {
+			return textfmt.ArticleFor(s, def) + " " + s
 		},
 	}
 }
@@ -679,7 +689,7 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 
 	// fill rules
 
-	nts := spec.Grammar.PriorityNonTerminals()
+	nts := spec.Grammar.NonTerminalsByPriority()
 	for _, nt := range nts {
 		gRule := spec.Grammar.Rule(nt)
 		rData := cgRule{Head: gRule.NonTerminal}

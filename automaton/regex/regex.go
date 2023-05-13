@@ -1,10 +1,14 @@
+// Package regex converts regular expressions into finite automata that accept
+// them but is incomplete at this time.
 package regex
 
 import (
 	"github.com/dekarrin/ictiobus/automaton"
 )
 
-// RegexToDFA takes the given regular expression and converts it into a DFA.
+// RegexToDFA is incomplete and currently returns an empty NFA[string]. When
+// complete, it will take the given regular expression and converts it into a
+// DFA.
 //
 // This is an implementation of algorithm 3.23 "The McNaughton-Yamada-Thompson
 // algorithm to convert a regular expression to an NFA."

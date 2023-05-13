@@ -1,5 +1,6 @@
-// Package {{ .FrontendPackage }} contains the frontend for analyzing FISHI
-// code. Calling Frontend() will return a full FISHI frontend ready to go.
+// Package {{ .FrontendPackage }} contains the frontend for analyzing {{.Lang}}
+// code. The function [Frontend] is the primary entrypoint for callers, and will
+// return a full {{ .Lang }} frontend ready for immediate use.
 package {{ .FrontendPackage }}
 
 /*
@@ -15,14 +16,15 @@ import (
 
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/trans"
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/lex"
 {{if .IRPackage}}
     "{{ .IRPackage }}"
 {{end}}
 )
 
-// FrontendOptions allows options to be set on the frontend returned by
-// Frontend. It allows setting of debug flags and other optional functionality.
+// FrontendOptions allows options to be set on the compiler frontend returned by
+// [Frontend]. It allows setting of debug flags and other optional
+// functionality.
 type FrontendOptions struct {
 
     // LexerEager is whether the Lexer should immediately read all input the
@@ -73,7 +75,7 @@ func Frontend[IRType any](hooks trans.HookMap, opts *FrontendOptions) ictiobus.F
     // Add traces if requested
 
     if opts.LexerTrace {
-        fe.Lexer.RegisterTokenListener(func(t types.Token) {
+        fe.Lexer.RegisterTokenListener(func(t lex.Token) {
 			fmt.Fprintf(os.Stderr, "Token: %s\n", t)
 		})
     }

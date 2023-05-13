@@ -2,6 +2,8 @@ package trans
 
 import "fmt"
 
+// SDDBinding represents a single binding of a syntax-directed definition to a
+// rule in the grammar. It will be executed for all nodes created for that rule.
 type SDDBinding struct {
 	// Synthesized is whether the binding is for a
 	Synthesized bool
@@ -32,6 +34,7 @@ type SDDBinding struct {
 	NoFlows []string
 }
 
+// Copy returns a deep copy of the SDDBinding.
 func (bind SDDBinding) Copy() SDDBinding {
 	newBind := SDDBinding{
 		Synthesized:         bind.Synthesized,
@@ -134,6 +137,7 @@ type hookError struct {
 	msg string
 }
 
+// Error returns a message describing the error.
 func (he hookError) Error() string {
 	return he.msg
 }

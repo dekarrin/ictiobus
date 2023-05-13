@@ -1,7 +1,7 @@
-// Package {{ .TokenPkgName }} contains the token classes for the frontend. It is in a
-// separate package so that it can be imported and used by external packages
-// while still allowing those external packages to be imported by the rest of
-// the frontend, such as the fishi syntax package.
+// Package {{ .TokenPkgName }} contains the token classes used by the frontend
+// of {{ .Lang }}. It is in a separate package so that it can be imported and
+// used by external packages while still allowing those external packages to be
+// imported by the rest of the frontend.
 package {{ .TokenPkgName }}
 
 /*
@@ -13,23 +13,25 @@ created by invoking ictiobus with the following command:
 
 import (
     "github.com/dekarrin/ictiobus/lex"
-    "github.com/dekarrin/ictiobus/types"
 )
 
 var (
+{{$lang := .Lang -}}
 {{range .Classes -}}
+{{"    "}}// {{.Name}} is the token class representing {{.Human | with_article false }} in {{$lang}}.
 {{"    "}}{{.Name}} = lex.NewTokenClass("{{.ID}}", {{.Human | quote }})
+
 {{end -}}
 )
 
-var all = map[string]types.TokenClass{
+var all = map[string]lex.TokenClass{
 {{range .Classes -}}
     "{{.ID}}": {{.Name}},
 {{end -}}
 }
 
-// ByID returns the TokenClass that has the given ID. If no token class of that
-// ID exists, returns nil.
-func ByID(id string) types.TokenClass{
+// ByID returns the TokenClass in {{.Lang}} that has the given ID. If no token
+// class with that ID exists, nil is returned.
+func ByID(id string) lex.TokenClass{
     return all[id]
 }

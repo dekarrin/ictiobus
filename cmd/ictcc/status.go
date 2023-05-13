@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/syntaxerr"
 )
 
 const (
@@ -71,7 +71,7 @@ func errInvalidFlags(msg string) {
 //
 // Caller is responsible for exiting main immediately after this function
 // returns.
-func errSyntax(filename string, synErr *types.SyntaxError) {
+func errSyntax(filename string, synErr *syntaxerr.SyntaxError) {
 	if filename == "" {
 		filename = "<INPUT>"
 	}

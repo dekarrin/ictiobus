@@ -10,7 +10,6 @@ import (
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
-	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/rosed"
 )
 
@@ -18,7 +17,7 @@ import (
 // Generally this should not be used directly except for internal purposes; use
 // GenerateLALR1Parser to generate one ready for use
 func EmptyLALR1Parser() *lrParser {
-	return &lrParser{table: &lalr1Table{}, parseType: types.ParserLALR1}
+	return &lrParser{table: &lalr1Table{}, parseType: AlgoLALR1}
 }
 
 // GenerateLALR1Parser returns a parser that uses the set of canonical
@@ -35,7 +34,7 @@ func GenerateLALR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, []strin
 		return &lrParser{}, nil, err
 	}
 
-	return &lrParser{table: table, parseType: types.ParserLALR1, gram: g}, ambigWarns, nil
+	return &lrParser{table: table, parseType: AlgoLALR1, gram: g}, ambigWarns, nil
 }
 
 // constructLALR1ParseTable constructs the LALR(1) table for G.
@@ -54,8 +53,8 @@ func GenerateLALR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, []strin
 // reduce/reduce conflicts will still be rejected. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTable, []string, error) {
-	dfa, _ := automaton.NewLALR1ViablePrefixDFA(g)
+func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, []string, error) {
+	dfa, _ := constructDFAForLALR1(g)
 	dfa.NumberStates()
 
 	table := &lalr1Table{
@@ -84,7 +83,7 @@ func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTable,
 		for _, a := range table.gPrime.Terminals() {
 			itemSet := table.dfa.GetValue(i)
 			var matchFound bool
-			var act LRAction
+			var act lrAction
 			for itemStr := range itemSet {
 				item := table.itemCache[itemStr]
 				A := item.NonTerminal
@@ -95,7 +94,7 @@ func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTable,
 					j, err := table.Goto(i, a)
 					if err == nil {
 						// match found
-						shiftAct := LRAction{Type: LRShift, State: j}
+						shiftAct := lrAction{Type: lrShift, State: j}
 						if matchFound && !shiftAct.Equal(act) {
 							if allowAmbig {
 								ambigWarns = append(ambigWarns, makeLRConflictError(act, shiftAct, a).Error()+fromState)
@@ -111,7 +110,7 @@ func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTable,
 				}
 
 				if len(beta) == 0 && A != table.gPrime.StartSymbol() && a == b {
-					reduceAct := LRAction{Type: LRReduce, Symbol: A, Production: grammar.Production(alpha)}
+					reduceAct := lrAction{Type: lrReduce, Symbol: A, Production: grammar.Production(alpha)}
 					if matchFound && !reduceAct.Equal(act) {
 						if isSRConflict, _ := isShiftReduceConlict(act, reduceAct); isSRConflict && allowAmbig {
 							// do nothing; new action is a reduce so it's already resolved
@@ -126,7 +125,7 @@ func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTable,
 				}
 
 				if a == "$" && b == "$" && A == table.gPrime.StartSymbol() && len(alpha) == 1 && alpha[0] == table.gStart && len(beta) == 0 {
-					newAct := LRAction{Type: LRAccept}
+					newAct := lrAction{Type: lrAccept}
 					if matchFound && !newAct.Equal(act) {
 						return nil, ambigWarns, fmt.Errorf("grammar is not LALR(1): %w", makeLRConflictError(act, newAct, a))
 					}
@@ -150,6 +149,8 @@ type lalr1Table struct {
 	allowAmbig bool
 }
 
+// MarshalBinary converts lalr1 into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (lalr1 *lalr1Table) MarshalBinary() ([]byte, error) {
 	data := rezi.EncBinary(lalr1.gPrime)
 	data = append(data, rezi.EncString(lalr1.gStart)...)
@@ -179,6 +180,8 @@ func (lalr1 *lalr1Table) MarshalBinary() ([]byte, error) {
 	return data, nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into lalr1.
+// All of lalr1's fields will be replaced by the fields decoded from data.
 func (lalr1 *lalr1Table) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
@@ -279,13 +282,17 @@ func (lalr1 *lalr1Table) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// DFAString returns a string representation of the DFA that drives the LALR
+// parser.
 func (lalr1 *lalr1Table) DFAString() string {
 	var sb strings.Builder
 	automaton.OutputSetValuedDFA(&sb, lalr1.dfa)
 	return sb.String()
 }
 
-func (lalr1 *lalr1Table) Action(i, a string) LRAction {
+// Action returns the LR-parser action to perform given that the current state
+// is i and the next terminal input symbol seen is a.
+func (lalr1 *lalr1Table) Action(i, a string) lrAction {
 	// Algorithm 4.59, which we are using for construction of the LALR(1) parse
 	// table, explicitly mentions to construct the Action table as it is done
 	// in Algorithm 4.56.
@@ -310,7 +317,7 @@ func (lalr1 *lalr1Table) Action(i, a string) LRAction {
 	// we have gauranteed that these dont conflict during construction; still,
 	// check it so we can panic if it conflicts
 	var alreadySet bool
-	var act LRAction
+	var act lrAction
 
 	// Okay, "[some random item] is in Iᵢ" is suuuuuuuuper vague. We're
 	// basically going to have to check each item and see if it is in the
@@ -339,7 +346,7 @@ func (lalr1 *lalr1Table) Action(i, a string) LRAction {
 			// set in this case but unshore), so it is not a match.
 			if err == nil {
 				// match found
-				shiftAct := LRAction{Type: LRShift, State: j}
+				shiftAct := lrAction{Type: lrShift, State: j}
 				if alreadySet && !shiftAct.Equal(act) {
 					// assuming shift/shift conflicts do not occur, and assuming
 					// we have just created a shift, we must be in a
@@ -364,7 +371,7 @@ func (lalr1 *lalr1Table) Action(i, a string) LRAction {
 		// the beta we previously retrieved MUST be empty.
 		// further, lookahead b MUST be a.
 		if len(beta) == 0 && A != lalr1.gPrime.StartSymbol() && a == b {
-			reduceAct := LRAction{Type: LRReduce, Symbol: A, Production: grammar.Production(alpha)}
+			reduceAct := lrAction{Type: lrReduce, Symbol: A, Production: grammar.Production(alpha)}
 			if alreadySet && !reduceAct.Equal(act) {
 				if isSRConflict, _ := isShiftReduceConlict(act, reduceAct); isSRConflict && lalr1.allowAmbig {
 					// we are in a shift/reduce conflict; the prior def is a
@@ -381,7 +388,7 @@ func (lalr1 *lalr1Table) Action(i, a string) LRAction {
 
 		// (c) If [S' -> S., $] is in Iᵢ, then set ACTION[i, $] to "accept".
 		if a == "$" && b == "$" && A == lalr1.gPrime.StartSymbol() && len(alpha) == 1 && alpha[0] == lalr1.gStart && len(beta) == 0 {
-			acceptAct := LRAction{Type: LRAccept}
+			acceptAct := lrAction{Type: lrAccept}
 			if alreadySet && !acceptAct.Equal(act) {
 				panic(fmt.Sprintf("grammar is not LALR(1): %s", makeLRConflictError(act, acceptAct, a).Error()))
 			}
@@ -392,12 +399,13 @@ func (lalr1 *lalr1Table) Action(i, a string) LRAction {
 
 	// if we haven't found one, error
 	if !alreadySet {
-		act.Type = LRError
+		act.Type = lrError
 	}
 
 	return act
 }
 
+// Goto returns the state to transition to after reducing a non-terminal symbol.
 func (lalr1 *lalr1Table) Goto(state, symbol string) (string, error) {
 	newState := lalr1.dfa.Next(state, symbol)
 	if newState == "" {
@@ -406,10 +414,12 @@ func (lalr1 *lalr1Table) Goto(state, symbol string) (string, error) {
 	return newState, nil
 }
 
+// Initial returns the starting state of the parser DFA.
 func (lalr1 *lalr1Table) Initial() string {
 	return lalr1.dfa.Start
 }
 
+// String returns the string representation of the parser.
 func (lalr1 *lalr1Table) String() string {
 	// need mapping of state to indexes
 	stateRefs := map[string]string{}
@@ -462,9 +472,9 @@ func (lalr1 *lalr1Table) String() string {
 
 			cell := ""
 			switch act.Type {
-			case LRAccept:
+			case lrAccept:
 				cell = "acc"
-			case LRReduce:
+			case lrReduce:
 				// reduces to the state that corresponds with the symbol
 				var prodStr string
 				if len(act.Production) > 0 {
@@ -473,9 +483,9 @@ func (lalr1 *lalr1Table) String() string {
 					prodStr = grammar.Epsilon.String()
 				}
 				cell = fmt.Sprintf("r%s -> %s", act.Symbol, prodStr)
-			case LRShift:
+			case lrShift:
 				cell = fmt.Sprintf("s%s", stateRefs[act.State])
-			case LRError:
+			case lrError:
 				// do nothing, err is blank
 			}
 

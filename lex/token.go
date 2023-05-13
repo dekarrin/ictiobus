@@ -4,78 +4,47 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dekarrin/ictiobus/internal/rezi"
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/syntaxerr"
 )
 
-// implementation of TokenClass interface for lex package use only.
-type lexerClass struct {
-	id   string
-	name string
-}
+// Token is a lexeme read from text combined with the token class it is as well
+// as additional supplementary information gathered during lexing to inform
+// error reporting.
+type Token interface {
+	// Class returns the TokenClass of the Token.
+	Class() TokenClass
 
-func (lc *lexerClass) UnmarshalBinary(data []byte) error {
-	var err error
-	var n int
+	// Lexeme returns the text that was lexed as the TokenClass of the Token, as
+	// it appears in the source text.
+	Lexeme() string
 
-	lc.id, n, err = rezi.DecString(data)
-	if err != nil {
-		return err
-	}
-	data = data[n:]
+	// LinePos returns the 1-indexed character-of-line that the token appears
+	// on in the source text.
+	LinePos() int
 
-	lc.name, _, err = rezi.DecString(data)
-	if err != nil {
-		return err
-	}
+	// Line returns the 1-indexed line number of the line that the token appears
+	// on in the source text.
+	Line() int
 
-	return nil
-}
+	// FullLine returns the full of text of the line in source that the token
+	// appears on, including both anything that came before the token as well as
+	// after it on the line.
+	FullLine() string
 
-func (lc *lexerClass) MarshalBinary() ([]byte, error) {
-	data := rezi.EncString(lc.id)
-	data = append(data, rezi.EncString(lc.name)...)
-	return data, nil
-}
-
-func (lc *lexerClass) ID() string {
-	return lc.id
-}
-
-func (lc *lexerClass) Human() string {
-	return lc.name
-}
-
-func (lc *lexerClass) Equal(o any) bool {
-	other, ok := o.(types.TokenClass)
-	if !ok {
-		otherPtr, ok := o.(*types.TokenClass)
-		if !ok {
-			return false
-		}
-		if otherPtr == nil {
-			return false
-		}
-		other = *otherPtr
-	}
-
-	return other.ID() == lc.ID()
-}
-
-func NewTokenClass(id string, human string) *lexerClass {
-	return &lexerClass{id: id, name: human}
+	// String is the string representation.
+	String() string
 }
 
 // implementation of Token interface
 type lexerToken struct {
-	class   types.TokenClass
+	class   TokenClass
 	lexed   string
 	linePos int
 	lineNum int
 	line    string
 }
 
-func (lt lexerToken) Class() types.TokenClass {
+func (lt lexerToken) Class() TokenClass {
 	return lt.class
 }
 
@@ -102,7 +71,7 @@ func (lt lexerToken) String() string {
 	return fmt.Sprintf(fmtStr, strings.ToUpper(lt.class.ID()), lt.lineNum, lt.linePos, content)
 }
 
-func NewToken(class types.TokenClass, lexed string, linePos int, lineNum int, line string) types.Token {
+func NewToken(class TokenClass, lexed string, linePos int, lineNum int, line string) Token {
 	return lexerToken{
 		class:   class,
 		lexed:   lexed,
@@ -110,4 +79,11 @@ func NewToken(class types.TokenClass, lexed string, linePos int, lineNum int, li
 		lineNum: lineNum,
 		line:    line,
 	}
+}
+
+// NewSyntaxErrorFromToken uses the location information in the provided token
+// to create a SyntaxError with a detailed message on the error and the source
+// code which caused it.
+func NewSyntaxErrorFromToken(msg string, tok Token) *syntaxerr.SyntaxError {
+	return syntaxerr.NewSyntaxError(msg, tok.FullLine(), tok.Lexeme(), tok.Line(), tok.LinePos())
 }

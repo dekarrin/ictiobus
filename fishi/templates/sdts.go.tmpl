@@ -12,9 +12,9 @@ import (
 	"github.com/dekarrin/ictiobus/trans"
 )
 
-// SDTS returns the syntax-directed translation scheme for the {{ .Lang }}
-// frontend.
-func SDTS() ictiobus.SDTS {
+// SDTS returns the generated ictiobus syntax-directed translation scheme for
+// {{ .Lang }}.
+func SDTS() trans.SDTS {
     sdts := ictiobus.NewSDTS()
 {{ range .Bindings }}
     sdtsBind{{ .Head | upperCamel }}(sdts)
@@ -24,7 +24,7 @@ func SDTS() ictiobus.SDTS {
 }
 
 {{ range .Bindings }}
-func sdtsBind{{ .Head | upperCamel }}(sdts ictiobus.SDTS) {
+func sdtsBind{{ .Head | upperCamel }}(sdts trans.SDTS) {
 {{- $head := .Head -}}
 {{ range .Productions }}
 {{- if .Synthetic }}

@@ -9,38 +9,25 @@ import (
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/lex"
 )
 
-// LRParseTable is a table of information passed to an LR parser. These will be
+// lrParseTable is a table of information passed to an LR parser. These will be
 // generated from a grammar for the purposes of performing bottom-up parsing.
-type LRParseTable interface {
+type lrParseTable interface {
 	encoding.BinaryMarshaler
 	encoding.BinaryUnmarshaler
-
-	// Shift reads one token of input. For SR parsers that are implemented with
-	// a stack, this will push a terminal onto the stack.
-	//
-	// ABC|xyz => ABCx|yz
-	//Shift()
-
-	// Reduce applies an inverse production at the right end of the left string.
-	// For SR parsers that are implemented with a stack, this will pop 0 or more
-	// terminals off of the stack (production rhs), then will push a
-	// non-terminal onto the stack (production lhs).
-	//
-	// Given A -> xy is a production, then:
-	// Cbxy|ijk => CbA|ijk
-	//Reduce()
 
 	// Initial returns the initial state of the parse table, if that is
 	// applicable for the table.
 	Initial() string
 
-	// Action gets the next action to take based on a state i and terminal a.
-	Action(state, symbol string) LRAction
+	// Action returns the LR-parser action to perform given that the current
+	// state is i and the next terminal input symbol seen is a.
+	Action(state, symbol string) lrAction
 
-	// Goto maps a state and a grammar symbol to some other state.
+	// Goto maps a state and a grammar symbol to some other state. It specifies
+	// the state to transition to after reducing to a non-terminal symbol.
 	Goto(state, symbol string) (string, error)
 
 	// String prints a string representation of the table. If two LRParseTables
@@ -53,32 +40,41 @@ type LRParseTable interface {
 }
 
 type lrParser struct {
-	table     LRParseTable
-	parseType types.ParserType
+	table     lrParseTable
+	parseType Algorithm
 	gram      grammar.Grammar
 	trace     func(s string)
 }
 
+// Grammar returns the grammar that was used to generate the parser.
 func (lr *lrParser) Grammar() grammar.Grammar {
 	return lr.gram
 }
 
+// DFAString returns a string representation. of the DFA that drives the LR
+// parser.
 func (lr *lrParser) DFAString() string {
 	return lr.table.DFAString()
 }
 
+// RegisterTraceListener sets a function to be called with messages that
+// indicate what action the parser is taking. It is useful for debug purposes.
 func (lr *lrParser) RegisterTraceListener(listener func(s string)) {
 	lr.trace = listener
 }
 
-func (lr *lrParser) Type() types.ParserType {
+// Type returns the type of the parser.
+func (lr *lrParser) Type() Algorithm {
 	return lr.parseType
 }
 
+// TableString returns the parser table as a string.
 func (lr *lrParser) TableString() string {
 	return lr.table.String()
 }
 
+// MarshalBinary converts lr into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (lr *lrParser) MarshalBinary() ([]byte, error) {
 	data := rezi.EncString(lr.parseType.String())
 	data = append(data, rezi.EncBinary(lr.table)...)
@@ -86,6 +82,8 @@ func (lr *lrParser) MarshalBinary() ([]byte, error) {
 	return data, nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into lr.
+// All of lr's fields will be replaced by the fields decoded from data.
 func (lr *lrParser) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
@@ -96,18 +94,18 @@ func (lr *lrParser) UnmarshalBinary(data []byte) error {
 		return fmt.Errorf("parseType: %w", err)
 	}
 	data = data[n:]
-	lr.parseType, err = types.ParseParserType(parseTypeName)
+	lr.parseType, err = ParseAlgorithm(parseTypeName)
 	if err != nil {
 		return fmt.Errorf("parsing parseType: %w", err)
 	}
 
-	var tableVal LRParseTable
+	var tableVal lrParseTable
 	switch lr.parseType {
-	case types.ParserCLR1:
+	case AlgoCLR1:
 		tableVal = &canonicalLR1Table{}
-	case types.ParserLALR1:
+	case AlgoLALR1:
 		tableVal = &lalr1Table{}
-	case types.ParserSLR1:
+	case AlgoSLR1:
 		tableVal = &slrTable{}
 	default:
 		return fmt.Errorf("unknown parse type: %s", lr.parseType.String())
@@ -150,15 +148,15 @@ func (lr lrParser) notifyStatePop(s string) {
 	}
 }
 
-func (lr lrParser) notifyAction(act LRAction) {
+func (lr lrParser) notifyAction(act lrAction) {
 	lr.notifyTrace("Action: %s", act.Type.String())
 }
 
-func (lr lrParser) notifyNextToken(tok types.Token) {
+func (lr lrParser) notifyNextToken(tok lex.Token) {
 	lr.notifyTrace("Got next token: %s", tok.String())
 }
 
-func (lr lrParser) notifyTokenStack(st *box.Stack[types.Token]) {
+func (lr lrParser) notifyTokenStack(st *box.Stack[lex.Token]) {
 	stackElems := st.Elements()
 	lr.notifyTraceFn(func() string {
 		var lexStr strings.Builder
@@ -189,16 +187,18 @@ func (lr lrParser) notifyTokenStack(st *box.Stack[types.Token]) {
 	})
 }
 
-// Parse parses the input stream with the internal LR parse table.
+// Parse parses the input stream with the internal LR parse table. If any syntax
+// errors are encountered, an empty parse tree and a *types.SyntaxError is
+// returned.
 //
 // This is an implementation of Algorithm 4.44, "LR-parsing algorithm", from
 // the purple dragon book.
-func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
+func (lr *lrParser) Parse(stream lex.TokenStream) (ParseTree, error) {
 	stateStack := box.NewStack([]string{lr.table.Initial()})
 
 	// we will use these to build our parse tree
-	tokenBuffer := &box.Stack[types.Token]{}
-	subTreeRoots := &box.Stack[*types.ParseTree]{}
+	tokenBuffer := &box.Stack[lex.Token]{}
+	subTreeRoots := &box.Stack[*ParseTree]{}
 
 	// let a be the first symbol of w$;
 	a := stream.Next()
@@ -215,7 +215,7 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 		lr.notifyAction(ACTION)
 
 		switch ACTION.Type {
-		case LRShift: // if ( ACTION[s, a] = shift t )
+		case lrShift: // if ( ACTION[s, a] = shift t )
 			// add token to our buffer
 			tokenBuffer.Push(a)
 
@@ -228,7 +228,7 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 			// let a be the next input symbol
 			a = stream.Next()
 			lr.notifyNextToken(a)
-		case LRReduce: // else if ( ACTION[s, a] = reduce A -> β )
+		case lrReduce: // else if ( ACTION[s, a] = reduce A -> β )
 			A := ACTION.Symbol
 			beta := ACTION.Production
 			prodStr := strings.ToLower(beta.String())
@@ -238,12 +238,12 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 			lr.notifyTrace("%s -> %s", strings.ToUpper(A), prodStr)
 
 			// use the reduce to create a node in the parse tree
-			node := &types.ParseTree{Value: A, Children: make([]*types.ParseTree, 0)}
+			node := &ParseTree{Value: A, Children: make([]*ParseTree, 0)}
 
 			// SPECIAL CASE: if we just reduced an epsilon production, immediately
 			// add the epsilon node to the new one
 			if len(beta) == 0 {
-				node.Children = append(node.Children, &types.ParseTree{
+				node.Children = append(node.Children, &ParseTree{
 					Terminal: true,
 				})
 			}
@@ -255,13 +255,13 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 				if strings.ToLower(sym) == sym {
 					// it is a terminal. read the source from the token buffer
 					tok := tokenBuffer.Pop()
-					subNode := &types.ParseTree{Terminal: true, Value: tok.Class().ID(), Source: tok}
-					node.Children = append([]*types.ParseTree{subNode}, node.Children...)
+					subNode := &ParseTree{Terminal: true, Value: tok.Class().ID(), Source: tok}
+					node.Children = append([]*ParseTree{subNode}, node.Children...)
 				} else {
 					// it is a non-terminal. it should be in our stack of
 					// current tree roots.
 					subNode := subTreeRoots.Pop()
-					node.Children = append([]*types.ParseTree{subNode}, node.Children...)
+					node.Children = append([]*ParseTree{subNode}, node.Children...)
 				}
 			}
 			// remember it for next time
@@ -280,7 +280,7 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 			// push GOTO[t, A] onto the stack
 			toPush, err := lr.table.Goto(t, A)
 			if err != nil {
-				return types.ParseTree{}, types.NewSyntaxErrorFromToken(fmt.Sprintf("LR parsing error; DFA has no valid transition from here on %q", A), a)
+				return ParseTree{}, lex.NewSyntaxErrorFromToken(fmt.Sprintf("LR parsing error; DFA has no valid transition from here on %q", A), a)
 			}
 			stateStack.Push(toPush)
 			lr.notifyTrace("Transition %s =(%q)=> %s", t, strings.ToLower(A), toPush)
@@ -288,14 +288,14 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 
 			// output the production A -> β
 			// (TODO: put it on the parse tree)
-		case LRAccept: // else if ( ACTION[s, a] = accept )
+		case lrAccept: // else if ( ACTION[s, a] = accept )
 			// parsing is done. there should be at least one item on the stack
 			pt := subTreeRoots.Pop()
 			return *pt, nil
-		case LRError:
+		case lrError:
 			// call error-recovery routine
 			expMessage := lr.getExpectedString(s)
-			return types.ParseTree{}, types.NewSyntaxErrorFromToken(fmt.Sprintf("unexpected %s; %s", a.Class().Human(), expMessage), a)
+			return ParseTree{}, lex.NewSyntaxErrorFromToken(fmt.Sprintf("unexpected %s; %s", a.Class().Human(), expMessage), a)
 		}
 		lr.notifyTrace("-----------------")
 	}
@@ -348,14 +348,14 @@ func (lr lrParser) getExpectedString(stateName string) string {
 
 // findExpectedAt returns all token classes that are allowed/expected for
 // the given state, that is, those symbols that result in a non-error entry.
-func (lr lrParser) findExpectedTokens(stateName string) []types.TokenClass {
+func (lr lrParser) findExpectedTokens(stateName string) []lex.TokenClass {
 	terms := lr.gram.Terminals()
 
-	classes := make([]types.TokenClass, 0)
+	classes := make([]lex.TokenClass, 0)
 	for i := range terms {
 		t := lr.gram.Term(terms[i])
 		act := lr.table.Action(stateName, t.ID())
-		if act.Type != LRError {
+		if act.Type != lrError {
 			classes = append(classes, t)
 		}
 	}

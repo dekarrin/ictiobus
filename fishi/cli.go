@@ -9,14 +9,26 @@ import (
 	"github.com/dekarrin/rosed"
 )
 
+// WarnHandling is a type of handling that should be used for a particular type
+// of Warning.
 type WarnHandling int
 
 const (
+	// WarnHandlingOutput is the default handling of a warning, and indicates
+	// it should be output as normal.
 	WarnHandlingOutput WarnHandling = iota
+
+	// WarnHandlingSuppress indicates that a warning should be suppressed and
+	// that no action should be taken when it is encountered.
 	WarnHandlingSuppress
+
+	// WarnHandlingFatal indicates that a warning should be treated as a fatal
+	// error, causing immediate termination of the current procedure and
+	// possibly the entire program.
 	WarnHandlingFatal
 )
 
+// String returns the string represtnation of a WarnHandling.
 func (wh WarnHandling) String() string {
 	if wh == WarnHandlingFatal {
 		return "FATAL"
@@ -35,9 +47,18 @@ func (wh WarnHandling) String() string {
 type WarnHandler struct {
 	h map[WarnType]WarnHandling
 
-	Output      io.Writer
+	// Output is the writer that output is sent to. By default this will be
+	// os.Stderr in newly-created WarnHandlers, but this can be changed by
+	// setting Output to a different io.Writer.
+	Output io.Writer
+
+	// ErrorPrefix is the string to prepend error messages written to Output
+	// with.
 	ErrorPrefix string
-	WarnPrefix  string
+
+	// WarnPrefix is the string to prepend error messages written to Output
+	// with.
+	WarnPrefix string
 }
 
 // HandlingType returns the WarnHandling configured for the given warning type.
@@ -109,6 +130,7 @@ func (wh *WarnHandler) Handlef(fmtStr string, w Warning) (fatal error) {
 	return fatal
 }
 
+// NewWarnHandler creates a new WarnHandler with default settings.
 func NewWarnHandler() *WarnHandler {
 	return &WarnHandler{
 		h:           map[WarnType]WarnHandling{},
@@ -118,6 +140,8 @@ func NewWarnHandler() *WarnHandler {
 	}
 }
 
+// NewWarnHandlerFromCLI creates a new WarnHandler by using the provided options
+// for setting short-codes of WarnTypes, presumably as provided from CLI flags.
 func NewWarnHandlerFromCLI(suppressions, fatals []string) (*WarnHandler, error) {
 	handler := NewWarnHandler()
 

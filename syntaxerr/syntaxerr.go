@@ -1,10 +1,14 @@
-package types
+// Package syntaxerr provides a common syntax error type for all of ictiobus.
+package syntaxerr
 
 import (
 	"fmt"
 	"strings"
 )
 
+// SyntaxError is an error returned when there is a problem with the syntax of
+// analyzed code. For reporting errors to an end-user, calling FullMessage is
+// recommended over Error, as it will output context and location of the error.
 type SyntaxError struct {
 	sourceLine string
 	source     string
@@ -17,6 +21,18 @@ type SyntaxError struct {
 	message string
 }
 
+// NewSyntaxError creates a new SyntaxError with its properties set.
+func NewSyntaxError(msg string, sourceLine string, source string, line int, pos int) *SyntaxError {
+	return &SyntaxError{
+		sourceLine: sourceLine,
+		source:     source,
+		line:       line,
+		pos:        pos,
+		message:    msg,
+	}
+}
+
+// Error returns the string representation of the SyntaxError.
 func (se SyntaxError) Error() string {
 	if se.line == 0 {
 		return fmt.Sprintf("syntax error: %s", se.message)
@@ -92,14 +108,4 @@ func (se SyntaxError) SourceLineWithCursor() string {
 	}
 
 	return strings.ReplaceAll(se.sourceLine, "\t", "    ") + "\n" + cursorLine + "^"
-}
-
-func NewSyntaxErrorFromToken(msg string, tok Token) *SyntaxError {
-	return &SyntaxError{
-		message:    msg,
-		sourceLine: tok.FullLine(),
-		source:     tok.Lexeme(),
-		pos:        tok.LinePos(),
-		line:       tok.Line(),
-	}
 }

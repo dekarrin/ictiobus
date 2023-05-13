@@ -8,11 +8,15 @@ import (
 	"github.com/dekarrin/ictiobus/internal/slices"
 )
 
+// Production is a production of a grammar rule.
 type Production []string
 
 var (
+	// Epsilon represents the empty production.
 	Epsilon = Production{""}
-	Error   = Production{}
+
+	// Error is a production used to indicate an error.
+	Error = Production{}
 )
 
 // Copy returns a deep-copied duplicate of this production.
@@ -92,6 +96,7 @@ func (p Production) Equal(o any) bool {
 	return true
 }
 
+// String returns the string representation of the Production.
 func (p Production) String() string {
 	// if it's an epsilon production output that symbol only
 	if p.Equal(Epsilon) {
@@ -122,10 +127,14 @@ func (p Production) HasSymbol(sym string) bool {
 	return slices.In(sym, p)
 }
 
+// MarshalBinary converts p into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (p Production) MarshalBinary() ([]byte, error) {
 	return rezi.EncSliceString([]string(p)), nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into p. All
+// of p's fields will be replaced by the fields decoded from data.
 func (p *Production) UnmarshalBinary(data []byte) error {
 	strSlice, _, err := rezi.DecSliceString(data)
 	if err != nil {
@@ -136,7 +145,7 @@ func (p *Production) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// terminals will be upper, non-terms will be lower.
+// Rule is a set of derivation rules of a grammar for some NonTerminal.
 type Rule struct {
 	NonTerminal string
 	Productions []Production
@@ -151,7 +160,7 @@ func MustParseRule(r string) Rule {
 	return rule
 }
 
-// ParseRule parses a Rule from a string like "S -> X | Y"
+// ParseRule parses a Rule from a string like "S -> X | Y".
 func ParseRule(r string) (Rule, error) {
 	r = strings.TrimSpace(r)
 	sides := strings.Split(r, "->")
@@ -203,12 +212,16 @@ func ParseRule(r string) (Rule, error) {
 	return parsedRule, nil
 }
 
+// MarshalBinary converts r into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (r Rule) MarshalBinary() ([]byte, error) {
 	data := rezi.EncString(r.NonTerminal)
 	data = append(data, rezi.EncSliceBinary(r.Productions)...)
 	return data, nil
 }
 
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into r. All
+// of r's fields will be replaced by the fields decoded from data.
 func (r *Rule) UnmarshalBinary(data []byte) error {
 	var n int
 	var err error
@@ -267,6 +280,7 @@ func (r Rule) Copy() Rule {
 	return r2
 }
 
+// String returns the string representation of a rule.
 func (r Rule) String() string {
 	var sb strings.Builder
 

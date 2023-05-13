@@ -1,3 +1,5 @@
+// Package automaton contains automata construction used as part of creating
+// parsers.
 package automaton
 
 import (
@@ -9,18 +11,25 @@ import (
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 )
 
-type FATransition struct {
+// faTransition is a transition in a finite automaton from one state to another.
+// It contains the input string that causes the transition and the next state
+// that it transitions to.
+type faTransition struct {
 	input string
 	next  string
 }
 
-func (t FATransition) MarshalBinary() ([]byte, error) {
+// MarshalBinary converts t into a slice of bytes that can be decoded with
+// UnmarshalBinary.
+func (t faTransition) MarshalBinary() ([]byte, error) {
 	data := rezi.EncString(t.input)
 	data = append(data, rezi.EncString(t.next)...)
 	return data, nil
 }
 
-func (t *FATransition) UnmarshalBinary(data []byte) error {
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into t. All
+// of t's fields will be replaced by the fields decoded from data.
+func (t *faTransition) UnmarshalBinary(data []byte) error {
 	var err error
 	var n int
 
@@ -38,7 +47,8 @@ func (t *FATransition) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (t FATransition) String() string {
+// String returns the string representation of t.
+func (t faTransition) String() string {
 	inp := t.input
 	if inp == "" {
 		inp = "ε"
@@ -46,43 +56,48 @@ func (t FATransition) String() string {
 	return fmt.Sprintf("=(%s)=> %s", inp, t.next)
 }
 
-func mustParseFATransition(s string) FATransition {
-	t, err := parseFATransition(s)
+// MustParseTransition is the same as [ParseTransition] but panics if an error
+// is encountered while parsing the transition.
+func MustParseTransition(s string) (inputSymbol, nextState string) {
+	input, next, err := ParseTransition(s)
 	if err != nil {
 		panic(err.Error())
 	}
-	return t
+	return input, next
 }
 
-func parseFATransition(s string) (FATransition, error) {
+// ParseTransition parses a string of the form '=(T)=> T -> int * . T' for
+// finite automata transition info. The transition symbol must be in the double
+// equals arrow and the name of the new state is everyfin after that.
+func ParseTransition(s string) (inputSymbol string, nextState string, err error) {
 	s = strings.TrimSpace(s)
 	parts := strings.SplitN(s, " ", 2)
 
 	left, right := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
 
 	if len(left) < 3 {
-		return FATransition{}, fmt.Errorf("not a valid FATransition: left len < 3: %q", left)
+		return "", "", fmt.Errorf("not a valid FATransition: left len < 3: %q", left)
 	}
 
 	if left[0] != '=' {
-		return FATransition{}, fmt.Errorf("not a valid FATransition: left[0] != '=': %q", left)
+		return "", "", fmt.Errorf("not a valid FATransition: left[0] != '=': %q", left)
 	}
 	if left[1] != '(' {
-		return FATransition{}, fmt.Errorf("not a valid FATransition: left[1] != '(': %q", left)
+		return "", "", fmt.Errorf("not a valid FATransition: left[1] != '(': %q", left)
 	}
 	left = left[2:]
 	// also chop off the ending arrow
 	if len(left) < 4 {
-		return FATransition{}, fmt.Errorf("not a valid left: len(chopped) < 4: %q", left)
+		return "", "", fmt.Errorf("not a valid left: len(chopped) < 4: %q", left)
 	}
 	if left[len(left)-1] != '>' {
-		return FATransition{}, fmt.Errorf("not a valid left: chopped[-1] != '>': %q", left)
+		return "", "", fmt.Errorf("not a valid left: chopped[-1] != '>': %q", left)
 	}
 	if left[len(left)-2] != '=' {
-		return FATransition{}, fmt.Errorf("not a valid left: chopped[-2] != '=': %q", left)
+		return "", "", fmt.Errorf("not a valid left: chopped[-2] != '=': %q", left)
 	}
 	if left[len(left)-3] != ')' {
-		return FATransition{}, fmt.Errorf("not a valid left: chopped[-3] != ')': %q", left)
+		return "", "", fmt.Errorf("not a valid left: chopped[-3] != ')': %q", left)
 	}
 	input := left[:len(left)-3]
 	if input == "ε" {
@@ -92,24 +107,27 @@ func parseFATransition(s string) (FATransition, error) {
 	// next is EASY af
 	next := right
 	if next == "" {
-		return FATransition{}, fmt.Errorf("not a valid FATransition: bad next: %q", s)
+		return "", "", fmt.Errorf("not a valid FATransition: bad next: %q", s)
 	}
 
-	return FATransition{
-		input: input,
-		next:  next,
-	}, nil
+	return input, next, nil
 }
 
-type DFAState[E any] struct {
+// dfaState is a state in a DFA. It holds a 'value'; supplematory information
+// associated with the state that is not required for the DFA to function but
+// may be useful for users of the DFA.
+type dfaState[E any] struct {
 	ordering    uint64
 	name        string
 	value       E
-	transitions map[string]FATransition
+	transitions map[string]faTransition
 	accepting   bool
 }
 
-func (ds DFAState[E]) MarshalBytes(conv func(E) []byte) []byte {
+// MarshalBytes converts ds into a slice of bytes that can be decoded with
+// UnmarshalDFAStateBytes. The value held within the state is encoded to bytes
+// using the provided conversion function.
+func (ds dfaState[E]) MarshalBytes(conv func(E) []byte) []byte {
 	data := rezi.EncInt(int(ds.ordering))
 	data = append(data, rezi.EncString(ds.name)...)
 
@@ -122,8 +140,11 @@ func (ds DFAState[E]) MarshalBytes(conv func(E) []byte) []byte {
 	return data
 }
 
-func UnmarshalDFAStateBytes[E any](data []byte, conv func([]byte) (E, error)) (DFAState[E], error) {
-	var ds DFAState[E]
+// unmarshalDFAStateBytes takes a slice of bytes created by MarshalBytes and
+// decodes it into a new DFAState. The value held within the state is decoded
+// from bytes using the provided conversion function.
+func unmarshalDFAStateBytes[E any](data []byte, conv func([]byte) (E, error)) (dfaState[E], error) {
+	var ds dfaState[E]
 	var n int
 	var err error
 
@@ -157,18 +178,18 @@ func UnmarshalDFAStateBytes[E any](data []byte, conv func([]byte) (E, error)) (D
 	}
 	data = data[convLen:]
 
-	var ptrMap map[string]*FATransition
-	ptrMap, n, err = rezi.DecMapStringToBinary[*FATransition](data)
+	var ptrMap map[string]*faTransition
+	ptrMap, n, err = rezi.DecMapStringToBinary[*faTransition](data)
 	if err != nil {
 		return ds, fmt.Errorf(".transitions: %w", err)
 	}
 	if ptrMap != nil {
-		ds.transitions = map[string]FATransition{}
+		ds.transitions = map[string]faTransition{}
 		for k := range ptrMap {
 			if ptrMap[k] != nil {
 				ds.transitions[k] = *ptrMap[k]
 			} else {
-				ds.transitions[k] = FATransition{}
+				ds.transitions[k] = faTransition{}
 			}
 		}
 	} else {
@@ -184,12 +205,13 @@ func UnmarshalDFAStateBytes[E any](data []byte, conv func([]byte) (E, error)) (D
 	return ds, nil
 }
 
-func (ds DFAState[E]) Copy() DFAState[E] {
-	copied := DFAState[E]{
+// Copy creates a deep copy of the DFAState.
+func (ds dfaState[E]) Copy() dfaState[E] {
+	copied := dfaState[E]{
 		ordering:    ds.ordering,
 		name:        ds.name,
 		value:       ds.value,
-		transitions: make(map[string]FATransition),
+		transitions: make(map[string]faTransition),
 		accepting:   ds.accepting,
 	}
 
@@ -200,29 +222,33 @@ func (ds DFAState[E]) Copy() DFAState[E] {
 	return copied
 }
 
-func (ns DFAState[E]) String() string {
+// String returns the string representation of ds. The value held within ds is
+// not included in the output; use [DFAState.ValueString] for that.
+func (ds dfaState[E]) String() string {
 	var moves strings.Builder
 
-	inputs := textfmt.OrderedKeys(ns.transitions)
+	inputs := textfmt.OrderedKeys(ds.transitions)
 
 	for i, input := range inputs {
-		moves.WriteString(ns.transitions[input].String())
+		moves.WriteString(ds.transitions[input].String())
 		if i+1 < len(inputs) {
 			moves.WriteRune(',')
 			moves.WriteRune(' ')
 		}
 	}
 
-	str := fmt.Sprintf("(%s [%s])", ns.name, moves.String())
+	str := fmt.Sprintf("(%s [%s])", ds.name, moves.String())
 
-	if ns.accepting {
+	if ds.accepting {
 		str = "(" + str + ")"
 	}
 
 	return str
 }
 
-func (ns DFAState[E]) ValueString() string {
+// ValueString returns the string representation of the DFAState with the value
+// it contains included in the output.
+func (ns dfaState[E]) ValueString() string {
 	var moves strings.Builder
 
 	inputs := textfmt.OrderedKeys(ns.transitions)
@@ -244,26 +270,30 @@ func (ns DFAState[E]) ValueString() string {
 	return str
 }
 
-type NFAState[E any] struct {
+// nfaState is a state in an NFA. It holds a 'value'; supplematory information
+// associated with the state that is not required for the NFA to function but
+// may be useful for users of the NFA.
+type nfaState[E any] struct {
 	ordering    uint64
 	name        string
 	value       E
-	transitions map[string][]FATransition
+	transitions map[string][]faTransition
 	accepting   bool
 }
 
-func (ns NFAState[E]) Copy() NFAState[E] {
-	copied := NFAState[E]{
+// Copy creates a deep copy of the NFAState.
+func (ns nfaState[E]) Copy() nfaState[E] {
+	copied := nfaState[E]{
 		ordering:    ns.ordering,
 		name:        ns.name,
 		value:       ns.value,
-		transitions: make(map[string][]FATransition),
+		transitions: make(map[string][]faTransition),
 		accepting:   ns.accepting,
 	}
 
 	for k := range ns.transitions {
 		trans := ns.transitions[k]
-		transCopy := make([]FATransition, len(trans))
+		transCopy := make([]faTransition, len(trans))
 		copy(transCopy, trans)
 		copied.transitions[k] = transCopy
 	}
@@ -271,7 +301,9 @@ func (ns NFAState[E]) Copy() NFAState[E] {
 	return copied
 }
 
-func (ns NFAState[E]) String() string {
+// String returns the string representation of ns. The value held within ns is
+// not included in the output; use [NFAState.ValueString] for that.
+func (ns nfaState[E]) String() string {
 	var moves strings.Builder
 
 	inputs := textfmt.OrderedKeys(ns.transitions)
@@ -303,7 +335,9 @@ func (ns NFAState[E]) String() string {
 	return str
 }
 
-func (ns NFAState[E]) ValueString() string {
+// ValueString returns the string representation of the NFAState with the value
+// it contains included in the output.
+func (ns nfaState[E]) ValueString() string {
 	var moves strings.Builder
 
 	inputs := textfmt.OrderedKeys(ns.transitions)

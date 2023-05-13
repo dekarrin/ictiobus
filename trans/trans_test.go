@@ -11,19 +11,19 @@ func Test_IDGenerator_Next(t *testing.T) {
 		name       string
 		seed       int64
 		extraTimes int
-		expect     APTNodeID
+		expect     aptNodeID
 	}{
 		{
 			name:       "First call gives number",
 			seed:       12,
 			extraTimes: 0,
-			expect:     APTNodeID(12),
+			expect:     aptNodeID(12),
 		},
 		{
 			name:       "multiple calls",
 			seed:       12,
 			extraTimes: 20,
-			expect:     APTNodeID(32),
+			expect:     aptNodeID(32),
 		},
 	}
 
@@ -31,7 +31,7 @@ func Test_IDGenerator_Next(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			idGen := NewIDGenerator(tc.seed)
+			idGen := newIDGenerator(tc.seed)
 
 			for i := 0; i < tc.extraTimes; i++ {
 				idGen.Next()

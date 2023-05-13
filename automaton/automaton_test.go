@@ -11,27 +11,27 @@ import (
 func Test_FATransition_MarshalUnmarshalBinary(t *testing.T) {
 	testCases := []struct {
 		name  string
-		input FATransition
+		input faTransition
 	}{
 		{
 			name:  "empty",
-			input: FATransition{},
+			input: faTransition{},
 		},
 		{
 			name: "empty input",
-			input: FATransition{
+			input: faTransition{
 				next: "Kanaya Maryam",
 			},
 		},
 		{
 			name: "empty next",
-			input: FATransition{
+			input: faTransition{
 				input: "Vriska Serket",
 			},
 		},
 		{
 			name: "fully-populated value",
-			input: FATransition{
+			input: faTransition{
 				input: "a",
 				next:  "b",
 			},
@@ -47,7 +47,7 @@ func Test_FATransition_MarshalUnmarshalBinary(t *testing.T) {
 				return
 			}
 
-			actualPtr := &FATransition{}
+			actualPtr := &faTransition{}
 			err = actualPtr.UnmarshalBinary(encoded)
 			if !assert.NoError(err, "UnmarshalBinary failed") {
 				return
@@ -68,22 +68,22 @@ func Test_DFAState_MarshalUnmarshalBinary(t *testing.T) {
 
 	testCases := []struct {
 		name  string
-		input DFAState[dummy]
+		input dfaState[dummy]
 	}{
 		{
 			name:  "empty",
-			input: DFAState[dummy]{},
+			input: dfaState[dummy]{},
 		},
 		{
 			name: "fully-populated",
-			input: DFAState[dummy]{
+			input: dfaState[dummy]{
 				ordering: 28921,
 				name:     "bizarrely long name",
 				value: dummy{
 					val1: "vriska serket",
 					val2: 88888888,
 				},
-				transitions: map[string]FATransition{
+				transitions: map[string]faTransition{
 					"a": {input: "a", next: "b"},
 				},
 				accepting: true,
@@ -101,7 +101,7 @@ func Test_DFAState_MarshalUnmarshalBinary(t *testing.T) {
 				return data
 			})
 
-			actual, err := UnmarshalDFAStateBytes(encoded, func(data []byte) (dummy, error) {
+			actual, err := unmarshalDFAStateBytes(encoded, func(data []byte) (dummy, error) {
 				var d dummy
 				var n int
 				var err error

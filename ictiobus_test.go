@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	"github.com/dekarrin/ictiobus/grammar"
+	"github.com/dekarrin/ictiobus/parse"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_EncodeDecodeParserBytes(t *testing.T) {
 	testCases := []struct {
 		name  string
-		ctor  func(grammar.Grammar, bool) (Parser, []string, error)
+		ctor  func(grammar.Grammar, bool) (parse.Parser, []string, error)
 		g     string
 		ambig bool
 	}{
@@ -32,7 +33,7 @@ func Test_EncodeDecodeParserBytes(t *testing.T) {
 		},
 		{
 			name: "LALR parser",
-			ctor: NewLALR1Parser,
+			ctor: NewLALRParser,
 			g: `
 				S -> C C ;
 				C -> c C | d ;
@@ -40,8 +41,8 @@ func Test_EncodeDecodeParserBytes(t *testing.T) {
 		},
 		{
 			name: "LL parser",
-			ctor: func(g grammar.Grammar, b bool) (Parser, []string, error) {
-				p, err := NewLL1Parser(g)
+			ctor: func(g grammar.Grammar, b bool) (parse.Parser, []string, error) {
+				p, err := NewLLParser(g)
 				return p, nil, err
 			},
 			g: `

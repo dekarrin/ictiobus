@@ -21,7 +21,7 @@ type regexReader struct {
 	atEOF bool
 }
 
-func NewRegexReader(r io.Reader) *regexReader {
+func newRegexReader(r io.Reader) *regexReader {
 	return &regexReader{
 		b:     make([]byte, 0),
 		r:     bufio.NewReader(r),

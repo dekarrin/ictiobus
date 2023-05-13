@@ -1,3 +1,5 @@
+// Package fishi provides parsing and reading of FISHI frontend specifications
+// for ictiobus.
 package fishi
 
 import (
@@ -11,7 +13,7 @@ import (
 	"github.com/dekarrin/ictiobus/fishi/fe"
 	"github.com/dekarrin/ictiobus/fishi/format"
 	"github.com/dekarrin/ictiobus/fishi/syntax"
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/parse"
 )
 
 const (
@@ -26,15 +28,20 @@ const (
 	SimGenerationDir = ".sim"
 )
 
-// This type alias is dum8!!!!!!!! Just make the callers import syntax, it's not
-// like it's unexported ::::/
+// AST is an alias to syntax.AST. Callers should use that type instead as this
+// shortcut will likely eventually be removed.
 type AST = syntax.AST
 
+// This type alias is dum8!!!!!!!! Just make the callers import syntax, it's not
+// like it's unexported ::::/
+
+// Results is the results of attempting to parse a FISHI spec.
 type Results struct {
 	AST  *AST
-	Tree *types.ParseTree
+	Tree *parse.ParseTree
 }
 
+// Options is options to the FISHI frontend that can be supplied by callers.
 type Options struct {
 	LexerTrace  bool
 	ParserTrace bool
@@ -107,6 +114,9 @@ func ValidateSimulatedInput(spec Spec, md SpecMetadata, params SimulatedInputPar
 	return nil
 }
 
+// ParseMarkdownFile parses a FISHI spec in the named file containing markdown
+// text with fishi codeblocks. If opts is nil, it is treated as a pointer to a
+// zero-valued Options struct.
 func ParseMarkdownFile(filename string, opts *Options) (Results, error) {
 	f, err := os.Open(filename)
 	if err != nil {
@@ -117,6 +127,9 @@ func ParseMarkdownFile(filename string, opts *Options) (Results, error) {
 	return ParseMarkdown(f, opts)
 }
 
+// ParseMarkdownFile parses a FISHI spec read from the named Reader containing
+// markdown-formatted text with fishi codeblocks. If opts is nil, it is treated
+// as a pointer to a zero-valued Options struct.
 func ParseMarkdown(r io.Reader, opts *Options) (Results, error) {
 	bufF := bufio.NewReader(r)
 	r, err := format.NewCodeReader(bufF)
@@ -132,7 +145,7 @@ func ParseMarkdown(r io.Reader, opts *Options) (Results, error) {
 	return res, nil
 }
 
-// Parse converts the fishi source code read from the given reader into an AST.
+// Parse parses the fishi source code read from the given reader into an AST.
 func Parse(r io.Reader, opts *Options) (Results, error) {
 	if opts == nil {
 		opts = &Options{}

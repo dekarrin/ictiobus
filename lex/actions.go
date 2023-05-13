@@ -1,5 +1,6 @@
 package lex
 
+// ActionType is a type of action that the lexer can take.
 type ActionType int
 
 const (
@@ -9,12 +10,16 @@ const (
 	ActionScanAndState
 )
 
+// Action is an action for the lexer to take when it matches a defined regex
+// pattern.
 type Action struct {
 	Type    ActionType
 	ClassID string
 	State   string
 }
 
+// SwapState returns a lexer action that indicates that the lexer should swap
+// to the given state.
 func SwapState(toState string) Action {
 	return Action{
 		Type:  ActionState,
@@ -22,6 +27,9 @@ func SwapState(toState string) Action {
 	}
 }
 
+// LexAs returns a lexer action that indicates that the lexer should take the
+// source text that it matched against and lex it as a token of the given token
+// class.
 func LexAs(classID string) Action {
 	return Action{
 		Type:    ActionScan,
@@ -29,6 +37,9 @@ func LexAs(classID string) Action {
 	}
 }
 
+// LexAndSwapState returns a lexer action that indicates that the lexer should
+// take the source text that it matched against and lex it as a token of the
+// given token class, and then it should swap to the new state.
 func LexAndSwapState(classID string, newState string) Action {
 	return Action{
 		Type:    ActionScanAndState,
@@ -37,6 +48,8 @@ func LexAndSwapState(classID string, newState string) Action {
 	}
 }
 
+// Discard returns a lexer action that indicates that it should take no action
+// and effectively discard the text it matched against.
 func Discard() Action {
 	return Action{}
 }

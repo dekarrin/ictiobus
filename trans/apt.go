@@ -5,7 +5,8 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/internal/box"
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/lex"
+	"github.com/dekarrin/ictiobus/parse"
 )
 
 const (
@@ -31,6 +32,19 @@ func makeTreeLevelPrefixLast(msg string) string {
 	return fmt.Sprintf(treeLevelPrefixLast, msg)
 }
 
+// AnnotatedParseTree is a parse tree annotated with attributes at every node.
+// These attributes are set by calling hook functions on other attributes, and
+// doing so succesively is what eventually implements a complete syntax-directed
+// translation.
+//
+// Some attributes are built in; these begin with a $. This includes $id, which
+// is the ID of a node and is defined on all nodes; $ft, which is the first
+// token lexed for a node and is defined for all nodes except for terminal
+// nodes produced by an epsilon production; $text, which is the lexed text and
+// is defined only for terminal symbol nodes.
+//
+// An AnnotatedParseTree can be created from a types.ParseTree by calling
+// [Annotate].
 type AnnotatedParseTree struct {
 	// Terminal is whether this node is for a terminal symbol.
 	Terminal bool
@@ -39,26 +53,26 @@ type AnnotatedParseTree struct {
 	Symbol string
 
 	// Source is only available when Terminal is true.
-	Source types.Token
+	Source lex.Token
 
 	// Children is all children of the parse tree.
 	Children []*AnnotatedParseTree
 
 	// Attributes is the data for attributes at the given position in the parse
 	// tree.
-	Attributes NodeAttrs
+	Attributes nodeAttrs
 }
 
-// AddAttributes adds annotation fields to the given parse tree. Returns an
-// AnnotatedParseTree with only auto fields set ('$text' for terminals, '$id'
-// for all nodes, '$ft' for all nodes representing first Token of the
-// expression).
-func AddAttributes(root types.ParseTree) AnnotatedParseTree {
-	treeStack := box.NewStack([]*types.ParseTree{&root})
+// Annotate adds attribute fields to the given parse tree to convert it to an
+// AnnotatedParseTree. Returns an AnnotatedParseTree with only auto fields set
+// ('$text' for terminals, '$id' for all nodes, and '$ft' for all nodes except
+// epsilon terminal nodes, representing the first Token of the expression).
+func Annotate(root parse.ParseTree) AnnotatedParseTree {
+	treeStack := box.NewStack([]*parse.ParseTree{&root})
 	annoRoot := AnnotatedParseTree{}
 	annotatedStack := box.NewStack([]*AnnotatedParseTree{&annoRoot})
 
-	idGen := NewIDGenerator(0)
+	idGen := newIDGenerator(0)
 
 	for treeStack.Len() > 0 {
 		curTreeNode := treeStack.Pop()
@@ -68,7 +82,7 @@ func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 		curAnnoNode.Symbol = curTreeNode.Value
 		curAnnoNode.Source = curTreeNode.Source
 		curAnnoNode.Children = make([]*AnnotatedParseTree, len(curTreeNode.Children))
-		curAnnoNode.Attributes = NodeAttrs{
+		curAnnoNode.Attributes = nodeAttrs{
 			string("$id"): idGen.Next(),
 		}
 
@@ -108,6 +122,7 @@ func AddAttributes(root types.ParseTree) AnnotatedParseTree {
 	return annoRoot
 }
 
+// String returns a string representation of the APT.
 func (apt AnnotatedParseTree) String() string {
 	return apt.leveledStr("", "")
 }
@@ -149,7 +164,7 @@ func (apt AnnotatedParseTree) leveledStr(firstPrefix, contPrefix string) string 
 // children also return nil.
 //
 // Call on pointer because it may update $first if not already set.
-func (apt *AnnotatedParseTree) First() types.Token {
+func (apt *AnnotatedParseTree) First() lex.Token {
 	// epsilon is a not a token per-se
 	if apt.Symbol == "" && apt.Terminal {
 		apt.Attributes[string("$ft")] = nil
@@ -184,8 +199,8 @@ func (apt *AnnotatedParseTree) First() types.Token {
 		return nil
 	}
 
-	var first types.Token
-	first, ok = untyped.(types.Token)
+	var first lex.Token
+	first, ok = untyped.(lex.Token)
 	if !ok {
 		panic(fmt.Sprintf("$ft attribute set to non-Token typed value: %v", untyped))
 	}
@@ -193,21 +208,21 @@ func (apt *AnnotatedParseTree) First() types.Token {
 	return first
 }
 
-// Returns the ID of this node in the parse tree. All nodes have an ID
+// ID returns the ID of this node in the parse tree. All nodes have an ID
 // accessible via the special predefined attribute '$id'; this function serves
 // as a shortcut to getting the value from the node attributes with casting and
 // sanity checking handled.
 //
 // If for whatever reason the ID has not been set on this node, IDZero is
 // returned.
-func (apt AnnotatedParseTree) ID() APTNodeID {
-	var id APTNodeID
+func (apt AnnotatedParseTree) ID() aptNodeID {
+	var id aptNodeID
 	untyped, ok := apt.Attributes["$id"]
 	if !ok {
 		return id
 	}
 
-	id, ok = untyped.(APTNodeID)
+	id, ok = untyped.(aptNodeID)
 	if !ok {
 		panic(fmt.Sprintf("$id attribute set to non-APTNodeID typed value: %v", untyped))
 	}
@@ -336,7 +351,7 @@ func (apt AnnotatedParseTree) RelativeNode(rel NodeRelation) (related *Annotated
 // value which will be true. If rel specifies a node that doesn't exist relative
 // to apt, then the second value will be false and the returned node attributes
 // will be nil.
-func (apt AnnotatedParseTree) AttributesOf(rel NodeRelation) (attributes NodeAttrs, ok bool) {
+func (apt AnnotatedParseTree) AttributesOf(rel NodeRelation) (attributes nodeAttrs, ok bool) {
 	node, ok := apt.RelativeNode(rel)
 	if !ok {
 		return nil, false

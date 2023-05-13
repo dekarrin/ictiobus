@@ -32,6 +32,8 @@ type marshaledBytesProducer struct {
 	fn func() []byte
 }
 
+// MarshalBinary converts mv into a slice of bytes that can be decoded with
+// UnmarshalBinary.
 func (mv marshaledBytesProducer) MarshalBinary() ([]byte, error) {
 	return mv.fn(), nil
 }

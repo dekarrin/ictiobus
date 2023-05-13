@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dekarrin/ictiobus/grammar"
-
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/slices"
@@ -17,13 +15,20 @@ import (
 	"github.com/dekarrin/rosed"
 )
 
-// DFA is a deterministic finite automaton.
+// DFA is a deterministic finite automaton. It holds 'values' within its states;
+// supplementary information associated with each state that is not required for
+// the DFA to function.
 type DFA[E any] struct {
 	order  uint64
-	states map[string]DFAState[E]
-	Start  string
+	states map[string]dfaState[E]
+
+	// Start is the starting state of the DFA.
+	Start string
 }
 
+// MarshalBytes converts a DFA into a slice of bytes that can be decoded with
+// UnmarshalDFABytes. The value held within its states is encoded to bytes using
+// the provided conversion function.
 func (dfa DFA[E]) MarshalBytes(conv func(E) []byte) []byte {
 	data := rezi.EncInt(int(dfa.order))
 	data = append(data, rezi.EncString(dfa.Start)...)
@@ -44,6 +49,9 @@ func (dfa DFA[E]) MarshalBytes(conv func(E) []byte) []byte {
 	return data
 }
 
+// UnmarshalDFABytes takes a slice of bytes created by MarshalBytes and decodes
+// it into a new DFA. The values held within its states is decoded from bytes
+// using the provided conversion function.
 func UnmarshalDFABytes[E any](data []byte, conv func([]byte) (E, error)) (DFA[E], error) {
 	var dfa DFA[E]
 	var n int
@@ -70,11 +78,11 @@ func UnmarshalDFABytes[E any](data []byte, conv func([]byte) (E, error)) (DFA[E]
 	}
 	data = data[n:]
 	if numStates > -1 {
-		dfa.states = map[string]DFAState[E]{}
+		dfa.states = map[string]dfaState[E]{}
 		for i := 0; i < numStates; i++ {
 			var name string
 			var stateBytesLen int
-			var state DFAState[E]
+			var state dfaState[E]
 
 			name, n, err = rezi.DecString(data)
 			if err != nil {
@@ -88,7 +96,7 @@ func UnmarshalDFABytes[E any](data []byte, conv func([]byte) (E, error)) (DFA[E]
 			}
 			data = data[n:]
 			stateBytes := data[:stateBytesLen]
-			state, err = UnmarshalDFAStateBytes(stateBytes, conv)
+			state, err = unmarshalDFAStateBytes(stateBytes, conv)
 			if err != nil {
 				return dfa, fmt.Errorf(".states[%s]: %w", name, err)
 			}
@@ -103,11 +111,11 @@ func UnmarshalDFABytes[E any](data []byte, conv func([]byte) (E, error)) (DFA[E]
 	return dfa, nil
 }
 
-// Copy returns a duplicate of this DFA.
+// Copy returns a deeply-copied duplicate of this DFA.
 func (dfa DFA[E]) Copy() DFA[E] {
 	copied := DFA[E]{
 		Start:  dfa.Start,
-		states: make(map[string]DFAState[E]),
+		states: make(map[string]dfaState[E]),
 		order:  dfa.order,
 	}
 
@@ -118,19 +126,22 @@ func (dfa DFA[E]) Copy() DFA[E] {
 	return copied
 }
 
+// TransformDFA converts the values held within a DFA to new values. The
+// transform function is called on each state's value and used to create a new
+// one in a new DFA. The original DFA is not modified.
 func TransformDFA[E1, E2 any](dfa DFA[E1], transform func(old E1) E2) DFA[E2] {
 	copied := DFA[E2]{
-		states: make(map[string]DFAState[E2]),
+		states: make(map[string]dfaState[E2]),
 		Start:  dfa.Start,
 		order:  dfa.order,
 	}
 
 	for k := range dfa.states {
 		oldState := dfa.states[k]
-		copiedState := DFAState[E2]{
+		copiedState := dfaState[E2]{
 			name:        oldState.name,
 			value:       transform(oldState.value),
-			transitions: make(map[string]FATransition),
+			transitions: make(map[string]faTransition),
 			accepting:   oldState.accepting,
 			ordering:    oldState.ordering,
 		}
@@ -145,30 +156,31 @@ func TransformDFA[E1, E2 any](dfa DFA[E1], transform func(old E1) E2) DFA[E2] {
 	return copied
 }
 
-// DFAToNFA converts the DFA into an equivalent non-deterministic finite automaton
-// type. Note that the type change doesn't suddenly make usage non-deterministic
-// but it does allow for non-deterministic transitions to be added.
+// DFAToNFA converts the DFA into an equivalent non-deterministic finite
+// automaton type. Note that the type change doesn't suddenly make usage
+// non-deterministic but it does allow for non-deterministic transitions to be
+// added.
 func DFAToNFA[E any](dfa DFA[E]) NFA[E] {
 	nfa := NFA[E]{
 		Start:  dfa.Start,
-		states: map[string]NFAState[E]{},
+		states: map[string]nfaState[E]{},
 		order:  dfa.order,
 	}
 
 	for sName := range dfa.states {
 		dState := dfa.states[sName]
 
-		nState := NFAState[E]{
+		nState := nfaState[E]{
 			ordering:    dState.ordering,
 			name:        dState.name,
 			value:       dState.value,
-			transitions: map[string][]FATransition{},
+			transitions: map[string][]faTransition{},
 			accepting:   dState.accepting,
 		}
 
 		for sym := range dState.transitions {
 			dTrans := dState.transitions[sym]
-			nState.transitions[sym] = []FATransition{{input: dTrans.input, next: dTrans.next}}
+			nState.transitions[sym] = []faTransition{{input: dTrans.input, next: dTrans.next}}
 		}
 
 		nfa.states[sName] = nState
@@ -217,7 +229,7 @@ func (dfa *DFA[E]) NumberStates() {
 	// states map.
 
 	newDfa := &DFA[E]{
-		states: make(map[string]DFAState[E]),
+		states: make(map[string]dfaState[E]),
 		Start:  numMapping[dfa.Start],
 	}
 
@@ -253,6 +265,7 @@ func (dfa *DFA[E]) NumberStates() {
 	dfa.Start = newDfa.Start
 }
 
+// SetValue sets the value associated with a state of the DFA.
 func (dfa *DFA[E]) SetValue(state string, v E) {
 	s, ok := dfa.states[state]
 	if !ok {
@@ -262,6 +275,7 @@ func (dfa *DFA[E]) SetValue(state string, v E) {
 	dfa.states[state] = s
 }
 
+// GetValue gets the value associated with a state of the DFA.
 func (dfa *DFA[E]) GetValue(state string) E {
 	s, ok := dfa.states[state]
 	if !ok {
@@ -374,7 +388,9 @@ func (dfa DFA[E]) Next(fromState string, input string) string {
 	return transition.next
 }
 
-// returns a list of 2-tuples that have (fromState, input)
+// AllTransitionsTo gets all transitions to the given state. It returns a slice
+// of 2-tuples that each contain the originating state name followed by the
+// input that causes transitions to toState.
 func (dfa DFA[E]) AllTransitionsTo(toState string) [][2]string {
 	if _, ok := dfa.states[toState]; !ok {
 		// Gr8! We are done.
@@ -398,6 +414,9 @@ func (dfa DFA[E]) AllTransitionsTo(toState string) [][2]string {
 	return transitions
 }
 
+// RemoveState removes a state from the DFA. The state can only be removed if
+// there are not currently any transitions to it; trying to remove a state that
+// has transitions to it will cause a panic.
 func (dfa *DFA[E]) RemoveState(state string) {
 	_, ok := dfa.states[state]
 	if !ok {
@@ -415,27 +434,31 @@ func (dfa *DFA[E]) RemoveState(state string) {
 	delete(dfa.states, state)
 }
 
+// AddState adds a new state to the DFA.
 func (dfa *DFA[E]) AddState(state string, accepting bool) {
 	if _, ok := dfa.states[state]; ok {
 		// Gr8! We are done.
 		return
 	}
 
-	newState := DFAState[E]{
+	newState := dfaState[E]{
 		ordering:    dfa.order,
 		name:        state,
-		transitions: make(map[string]FATransition),
+		transitions: make(map[string]faTransition),
 		accepting:   accepting,
 	}
 	dfa.order++
 
 	if dfa.states == nil {
-		dfa.states = map[string]DFAState[E]{}
+		dfa.states = map[string]dfaState[E]{}
 	}
 
 	dfa.states[state] = newState
 }
 
+// RemoveTransition removes a transition from the DFA. The transition that uses
+// input to transition from fromState to toState is removed. If there is not
+// currently a transition that satisfies that, this function has no effect.
 func (dfa *DFA[E]) RemoveTransition(fromState string, input string, toState string) {
 	curFromState, ok := dfa.states[fromState]
 	if !ok {
@@ -458,6 +481,11 @@ func (dfa *DFA[E]) RemoveTransition(fromState string, input string, toState stri
 	delete(curFromState.transitions, input)
 }
 
+// AddTransition adds a new transition to the DFA. The transition will occur
+// when input is encountered while the DFA is in state fromState, and will cause
+// it to move to toState. Both fromState and toState must exist, or else a panic
+// will occur. If the given transition already exists, this function has no
+// effect.
 func (dfa *DFA[E]) AddTransition(fromState string, input string, toState string) {
 	curFromState, ok := dfa.states[fromState]
 
@@ -470,7 +498,7 @@ func (dfa *DFA[E]) AddTransition(fromState string, input string, toState string)
 		panic(fmt.Sprintf("add transition to non-existent state %q", toState))
 	}
 
-	trans := FATransition{
+	trans := faTransition{
 		input: input,
 		next:  toState,
 	}
@@ -479,6 +507,7 @@ func (dfa *DFA[E]) AddTransition(fromState string, input string, toState string)
 	dfa.states[fromState] = curFromState
 }
 
+// String returns the string representation of a DFA.
 func (dfa DFA[E]) String() string {
 	var sb strings.Builder
 
@@ -517,12 +546,9 @@ func (dfa DFA[E]) String() string {
 	return sb.String()
 }
 
-// OutputLR1ItemBasedDFA writes a pretty-print representation of a DFA whose
-// states are built from and contain sets of LR1 items. The representation is
-// written to w.
-//
-// The returned error will be non-nil only if there is an issue writting to the
-// provider writer.
+// OutputSetValuedDFA writes a pretty-print representation of a DFA whose values
+// in its states are box.SVSets of some type that implements fmt.Stringer. The
+// representation is written to w.
 func OutputSetValuedDFA[E fmt.Stringer](w io.Writer, dfa DFA[box.SVSet[E]]) {
 	// lol let's get some buffering here
 	bw := bufio.NewWriter(w)
@@ -623,6 +649,8 @@ func OutputSetValuedDFA[E fmt.Stringer](w io.Writer, dfa DFA[box.SVSet[E]]) {
 	bw.Flush()
 }
 
+// ValueString returns the string representation of the DFA with its states'
+// values included in the output.
 func (dfa DFA[E]) ValueString() string {
 	var sb strings.Builder
 
@@ -659,326 +687,4 @@ func (dfa DFA[E]) ValueString() string {
 	sb.WriteRune('>')
 
 	return sb.String()
-}
-
-// g must be non-augmented
-func NewLALR1ViablePrefixDFA(g grammar.Grammar) (DFA[box.SVSet[grammar.LR1Item]], error) {
-	lr1Dfa := NewLR1ViablePrefixDFA(g)
-
-	// get an NFA so we can start fixing things
-	lalrNfa := DFAToNFA(lr1Dfa)
-
-	// counter for unique state name
-	newStateNum := 0
-
-	// now start merging states
-	updated := true
-	for updated {
-		updated = false
-
-		alreadyMerged := box.NewStringSet()
-		states := lalrNfa.States()
-		stateVals := map[string]box.SVSet[grammar.LR1Item]{}
-		orderedStateElements := states.Elements()
-		sort.Strings(orderedStateElements)
-		for _, name := range orderedStateElements {
-			stateVals[name] = lalrNfa.GetValue(name)
-		}
-
-		for _, stateName := range orderedStateElements {
-			if alreadyMerged.Has(stateName) {
-				continue
-			}
-
-			mergeWith := []string{}
-			coreSet := grammar.CoreSet(stateVals[stateName])
-
-			// need to find ALL to merge w or this is gonna get wild REEL quick
-			for _, otherStateName := range orderedStateElements {
-				if stateName == otherStateName {
-					continue
-				}
-
-				otherCoreSet := grammar.CoreSet(stateVals[otherStateName])
-
-				// Note: we do NOT enforce an ordering in general on which
-				// states are merged first. this could cause issues; doing them
-				// in an arbitrary order
-
-				// check their cores
-				if coreSet.Equal(otherCoreSet) {
-					mergeWith = append(mergeWith, otherStateName)
-				}
-			}
-
-			// now we merge any that have been queued to do so
-			if len(mergeWith) > 0 {
-				updated = true
-				alreadyMerged.Add(stateName)
-				destState := lalrNfa.states[stateName]
-				mergedStateSet := box.NewSVSet(stateVals[stateName])
-
-				for i := range mergeWith {
-					alreadyMerged.Add(mergeWith[i])
-					mergedStateSet.AddAll(stateVals[mergeWith[i]])
-				}
-
-				// We COULD tell what new name of state would be NOW, but to keep
-				// things from overlapping during the process we will be setting
-				// to a unique number and updating after all merges are complete
-				// (at which point there should be 0 conflicting state names).
-				newStateName := fmt.Sprintf("%d", newStateNum)
-				newStateNum++
-				destState.name = mergedStateSet.StringOrdered()
-				destState.value = mergedStateSet
-
-				// and so we can rewrite transitions from the old states to the
-				// new one
-				for i := range mergeWith {
-					transitionsToMerged := lalrNfa.AllTransitionsTo(mergeWith[i])
-
-					for j := range transitionsToMerged {
-						trans := transitionsToMerged[j]
-						from := trans.from
-						sym := trans.input
-						idx := trans.index
-
-						// rewrite the transition to new state
-						lalrNfa.states[from].transitions[sym][idx] = FATransition{input: sym, next: newStateName}
-					}
-
-					// also, check to see if we need to update start
-					if lalrNfa.Start == mergeWith[i] {
-						lalrNfa.Start = newStateName
-					}
-				}
-
-				// also rewrite any transitions to the merged-to state
-				transitionsToDestState := lalrNfa.AllTransitionsTo(stateName)
-				for j := range transitionsToDestState {
-					trans := transitionsToDestState[j]
-					from := trans.from
-					sym := trans.input
-					idx := trans.index
-
-					// rewrite the transition to new state
-					lalrNfa.states[from].transitions[sym][idx] = FATransition{input: sym, next: newStateName}
-				}
-
-				// also, check to see if we need to update start
-				if lalrNfa.Start == stateName {
-					lalrNfa.Start = newStateName
-				}
-
-				// finally, enshore that any transitions we lose by deleting the
-				// old state are added to the new state. this SHOULD collapse to
-				// a single state by the time that things are done if it is
-				// indeed an LALR(1) grammar
-				for i := range mergeWith {
-					lostTransitions := lalrNfa.states[mergeWith[i]].transitions
-					for sym := range lostTransitions {
-						transForSym := lostTransitions[sym]
-						destTransForSym, ok := destState.transitions[sym]
-						if !ok {
-							destTransForSym = []FATransition{}
-						}
-
-						for j := range transForSym {
-							// is this already in the dest? don't add it if so
-							faTrans := transForSym[j]
-
-							inDestTrans := false
-							for k := range destTransForSym {
-								destFATrans := destTransForSym[k]
-								if destFATrans == faTrans {
-									inDestTrans = true
-									break
-								}
-							}
-							if !inDestTrans {
-								destTransForSym = append(destTransForSym, faTrans)
-							}
-						}
-						destState.transitions[sym] = destTransForSym
-					}
-				}
-
-				// with those updated, we can now delete the old states from
-				// the DFA
-				for i := range mergeWith {
-					delete(lalrNfa.states, mergeWith[i])
-				}
-
-				// unshore if this condition is proven not to happen, either
-				// way it's 8AD so checking
-				if _, ok := lalrNfa.states[newStateName]; ok {
-					panic(fmt.Sprintf("merged state name conflicts w state %q already in DFA", newStateName))
-				}
-
-				// enshore the updated new state is stored...
-				lalrNfa.states[newStateName] = destState
-
-				// ...and, finally, remove the old version of it
-				delete(lalrNfa.states, stateName)
-			}
-
-			// did we just update? if so, all of the pre-cached info on states
-			// and names and such is invalid due to modifying the DFA, and
-			// therefore must be regenerated before checking anyfin else.
-			//
-			// they will be auto-regenerated by the parent loop
-			if updated {
-				break
-			}
-		}
-	}
-
-	// prior to conversion to dfa, go through and update the auto-numbered states
-	lalrStates := lalrNfa.States().Elements()
-	for _, stateName := range lalrStates {
-		st := lalrNfa.states[stateName]
-
-		// we keep the name pre-calculated in .name, so check if there's a mismatch
-		if st.name != stateName {
-			newStateName := st.name
-			transitionsToMerged := lalrNfa.AllTransitionsTo(stateName)
-
-			for j := range transitionsToMerged {
-				trans := transitionsToMerged[j]
-				from := trans.from
-				sym := trans.input
-				idx := trans.index
-
-				// rewrite the transition to new state
-				lalrNfa.states[from].transitions[sym][idx] = FATransition{input: sym, next: newStateName}
-			}
-
-			// also, check to see if we need to update start
-			if lalrNfa.Start == stateName {
-				lalrNfa.Start = newStateName
-			}
-
-			// and now, swap the name for the reel one
-			lalrNfa.states[newStateName] = st
-			delete(lalrNfa.states, stateName)
-		}
-	}
-
-	lalrDfa, err := directNFAToDFA(lalrNfa)
-	if err != nil {
-		return DFA[box.SVSet[grammar.LR1Item]]{}, fmt.Errorf("grammar is not LALR(1); resulted in inconsistent state merges")
-	}
-
-	return lalrDfa, nil
-}
-
-func NewLR1ViablePrefixDFA(g grammar.Grammar) DFA[box.SVSet[grammar.LR1Item]] {
-	oldStart := g.StartSymbol()
-	g = g.Augmented()
-
-	initialItem := grammar.LR1Item{
-		LR0Item: grammar.LR0Item{
-			NonTerminal: g.StartSymbol(),
-			Right:       []string{oldStart},
-		},
-		Lookahead: "$",
-	}
-
-	startSet := g.LR1_CLOSURE(box.SVSet[grammar.LR1Item]{initialItem.String(): initialItem})
-
-	stateSets := box.NewSVSet[box.SVSet[grammar.LR1Item]]()
-	stateSets.Set(startSet.StringOrdered(), startSet)
-	transitions := map[string]map[string]FATransition{}
-
-	// following algo from http://www.cs.ecu.edu/karl/5220/spr16/Notes/Bottom-up/lr1.html
-	updates := true
-	for updates {
-		updates = false
-
-		// suppose that state q contains set I of LR(1) items
-		for _, I := range stateSets {
-
-			for _, item := range I {
-				if len(item.Right) == 0 || item.Right[0] == grammar.Epsilon[0] {
-					continue // no epsilons, deterministic finite state
-				}
-				// For each symbol s (either a token or a nonterminal) that
-				// immediately follows a dot in an LR(1) item [A → α ⋅ sβ, t] in
-				// set I...
-				s := item.Right[0]
-
-				// ...let Is be the set of all LR(1) items in I where s
-				// immediately follows the dot.
-				Is := box.NewSVSet[grammar.LR1Item]()
-				for _, checkItem := range I {
-					if len(checkItem.Right) >= 1 && checkItem.Right[0] == s {
-						newItem := checkItem.Copy()
-
-						// Move the dot to the other side of s in each of them.
-						newItem.Left = append(newItem.Left, s)
-						newItem.Right = make([]string, len(checkItem.Right)-1)
-						copy(newItem.Right, checkItem.Right[1:])
-
-						Is.Set(newItem.String(), newItem)
-					}
-				}
-
-				// That set [Is] becomes the kernel of state q', and you make a
-				// transition from q to q′ on s. As usual, form the closure of
-				// the set of LR(1) items in state q'.
-				newSet := g.LR1_CLOSURE(Is)
-
-				// add to states if not already in it
-				if !stateSets.Has(newSet.StringOrdered()) {
-					updates = true
-					stateSets.Set(newSet.StringOrdered(), newSet)
-				}
-
-				// add to transitions if not already in it
-				stateTransitions, ok := transitions[I.StringOrdered()]
-				if !ok {
-					stateTransitions = map[string]FATransition{}
-				}
-				trans, ok := stateTransitions[s]
-				if !ok {
-					trans = FATransition{}
-				}
-				if trans.next != newSet.StringOrdered() {
-					updates = true
-					trans.input = s
-					trans.next = newSet.StringOrdered()
-					stateTransitions[s] = trans
-					transitions[I.StringOrdered()] = stateTransitions
-				}
-			}
-		}
-	}
-
-	// okay, we've actually pre-calculated all DFA items so we can now add them.
-	// might be able to optimize to add on-the-fly during above loop but this is
-	// easier for the moment.
-	dfa := DFA[box.SVSet[grammar.LR1Item]]{}
-
-	// add states
-	stateElems := stateSets.Elements()
-	sort.Strings(stateElems)
-
-	for i := range stateElems {
-		sName := stateElems[i]
-		state := stateSets.Get(sName)
-		dfa.AddState(sName, true)
-		dfa.SetValue(sName, state)
-	}
-
-	// transitions
-	for onState, stateTrans := range transitions {
-		for _, t := range stateTrans {
-			dfa.AddTransition(onState, t.input, t.next)
-		}
-	}
-
-	// and start
-	dfa.Start = startSet.StringOrdered()
-
-	return dfa
 }

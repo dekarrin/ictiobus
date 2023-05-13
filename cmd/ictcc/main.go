@@ -320,8 +320,9 @@ import (
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
+	"github.com/dekarrin/ictiobus/parse"
+	"github.com/dekarrin/ictiobus/syntaxerr"
 	"github.com/dekarrin/ictiobus/trans"
-	"github.com/dekarrin/ictiobus/types"
 )
 
 var (
@@ -535,7 +536,7 @@ func main() {
 		// parse tree is per-file, so we do this immediately even on error, as
 		// it may be useful
 		if cmdRes.Tree != nil && *flagGenTree {
-			fmt.Printf("%s\n", trans.AddAttributes(*cmdRes.Tree).String())
+			fmt.Printf("%s\n", trans.Annotate(*cmdRes.Tree).String())
 		}
 
 		if cmdErr != nil {
@@ -544,7 +545,7 @@ func main() {
 				fmt.Printf("%s\n", cmdRes.AST.String())
 			}
 
-			if syntaxErr, ok := cmdErr.(*types.SyntaxError); ok {
+			if syntaxErr, ok := cmdErr.(*syntaxerr.SyntaxError); ok {
 				errSyntax("<COMMAND>", syntaxErr)
 			} else {
 				errOther(fmt.Sprintf("%s: %s", "<COMMAND>", err.Error()))
@@ -613,7 +614,7 @@ func main() {
 			// parse tree is per-file, so we do this immediately even on error, as
 			// it may be useful
 			if res.Tree != nil && *flagGenTree {
-				fmt.Printf("%s\n", trans.AddAttributes(*res.Tree).String())
+				fmt.Printf("%s\n", trans.Annotate(*res.Tree).String())
 			}
 
 			if err != nil {
@@ -622,7 +623,7 @@ func main() {
 					fmt.Printf("%s\n", res.AST.String())
 				}
 
-				if syntaxErr, ok := err.(*types.SyntaxError); ok {
+				if syntaxErr, ok := err.(*syntaxerr.SyntaxError); ok {
 					errSyntax(file, syntaxErr)
 				} else {
 					errOther(fmt.Sprintf("%s: %s", file, err.Error()))
@@ -657,7 +658,7 @@ func main() {
 	// now check err
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n")
-		if syntaxErr, ok := err.(*types.SyntaxError); ok {
+		if syntaxErr, ok := err.(*syntaxerr.SyntaxError); ok {
 			errSyntax("", syntaxErr)
 		} else {
 			errOther(err.Error())
@@ -683,7 +684,7 @@ func main() {
 	}
 
 	// spec completed and no-gen not set; try to create a parser
-	var p ictiobus.Parser
+	var p parse.Parser
 	var parserWarns []fishi.Warning
 	// if one is selected, use that one
 	if parserType != nil {
@@ -992,7 +993,7 @@ func devModeInfoFromFlags() (DevModeInfo, error) {
 // does not allow ambiguity, allowAmbig will always be false.
 //
 // err will be non-nil if there is an invalid combination of CLI flags.
-func parserSelectionFromFlags() (t *types.ParserType, allowAmbig bool, err error) {
+func parserSelectionFromFlags() (t *parse.Algorithm, allowAmbig bool, err error) {
 	// enforce mutual exclusion of cli args
 	if (*flagParserLL && (*flagParserCLR || *flagParserSLR || *flagParserLALR)) ||
 		(*flagParserCLR && (*flagParserSLR || *flagParserLALR)) ||
@@ -1005,20 +1006,20 @@ func parserSelectionFromFlags() (t *types.ParserType, allowAmbig bool, err error
 	allowAmbig = !*flagParserNoAmbig
 
 	if *flagParserLL {
-		t = new(types.ParserType)
-		*t = types.ParserLL1
+		t = new(parse.Algorithm)
+		*t = parse.AlgoLL1
 
 		// allowAmbig auto false for LL(1)
 		allowAmbig = false
 	} else if *flagParserSLR {
-		t = new(types.ParserType)
-		*t = types.ParserSLR1
+		t = new(parse.Algorithm)
+		*t = parse.AlgoSLR1
 	} else if *flagParserCLR {
-		t = new(types.ParserType)
-		*t = types.ParserCLR1
+		t = new(parse.Algorithm)
+		*t = parse.AlgoCLR1
 	} else if *flagParserLALR {
-		t = new(types.ParserType)
-		*t = types.ParserLALR1
+		t = new(parse.Algorithm)
+		*t = parse.AlgoLALR1
 	}
 
 	return
@@ -1081,7 +1082,7 @@ func printSpec(spec fishi.Spec) {
 
 	// print grammar in custom way
 	fmt.Printf("Grammar:\n")
-	nts := spec.Grammar.PriorityNonTerminals()
+	nts := spec.Grammar.NonTerminalsByPriority()
 	// ensure that the start symbol is first
 	if nts[0] != spec.Grammar.StartSymbol() {
 		startSymIdx := -1
