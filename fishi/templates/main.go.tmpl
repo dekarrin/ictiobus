@@ -39,7 +39,7 @@ import (
 {{- end}}
 
 	se "github.com/dekarrin/ictiobus/syntaxerr"
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/ictiobus/fishi"
 
 	"github.com/spf13/pflag"
@@ -133,7 +133,7 @@ func main() {
 			SkipErrors:    *flagSimSkipErrs,
 		}
 
-		sdtsWarns, sdtsErr := langFront.SDT.Validate(langFront.Parser.Grammar(), langFront.IRAttribute, di, valProd)
+		sdtsWarns, sdtsErr := langFront.SDTS.Validate(langFront.Parser.Grammar(), langFront.IRAttribute, di, valProd)
 		var warns []fishi.Warning
 		for _, w := range sdtsWarns {
 			warns = append(warns, fishi.Warning{Type: fishi.WarnValidation, Message: w})
