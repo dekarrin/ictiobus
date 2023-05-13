@@ -5,9 +5,72 @@
 package parse
 
 import (
+	"strings"
+
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
 )
+
+// IsLL1 returns whether the grammar is LL(1).
+func IsLL1(g grammar.Grammar) bool {
+	nts := g.NonTerminals()
+	for _, A := range nts {
+		AiRule := g.Rule(A)
+
+		// we'll need this later, glubglub 38)
+		followSetA := box.StringSetOf(findFOLLOWSet(g, A).Elements())
+
+		// Whenever A -> α | β are two distinct productions of G:
+		// -purple dragon book
+		for i := range AiRule.Productions {
+			for j := i + 1; j < len(AiRule.Productions); j++ {
+				alphaFIRST := g.FIRST(AiRule.Productions[i][0])
+				betaFIRST := g.FIRST(AiRule.Productions[j][0])
+
+				aFSet := box.StringSetOf(alphaFIRST.Elements())
+				bFSet := box.StringSetOf(betaFIRST.Elements())
+
+				// 1. For no terminal a do both α and β derive strings beginning
+				// with a.
+				//
+				// 2. At most of of α and β derive the empty string.
+				//
+				//
+				// ...or in other words, FIRST(α) and FIRST(β) are disjoint
+				// sets.
+				// -purple dragon book
+
+				if !aFSet.DisjointWith(bFSet) {
+					return false
+				}
+
+				// 3. If β =*> ε, then α does not derive any string beginning
+				// with a terminal in FOLLOW(A). Likewise, if α =*> ε, then β
+				// does not derive any string beginning with a terminal in
+				// FOLLOW(A).
+				//
+				//
+				// ...or in other words, if ε is in FIRST(β), then FIRST(α) and
+				// FOLLOW(A) are disjoint sets, and likewise if ε is in
+				// FIRST(α).
+				// -perple dergon berk. (Purple dragon book)
+				if bFSet.Has(grammar.Epsilon[0]) {
+					if !followSetA.DisjointWith(aFSet) {
+						return false
+					}
+				}
+				if aFSet.Has(grammar.Epsilon[0]) {
+					if !followSetA.DisjointWith(bFSet) {
+						return false
+					}
+				}
+			}
+
+		}
+	}
+
+	return true
+}
 
 // findFOLLOWSet is the used to get the findFOLLOWSet set of symbol X for generating
 // various types of parsers.
@@ -119,63 +182,63 @@ func recursiveFOLLOWSet(g grammar.Grammar, X string, prevFollowChecks box.Set[st
 	return followSet
 }
 
-// IsLL1 returns whether the grammar is LL(1).
-func IsLL1(g grammar.Grammar) bool {
-	nts := g.NonTerminals()
-	for _, A := range nts {
-		AiRule := g.Rule(A)
+// lr1CLOSURE is the closure function used for constructing LR(1) item sets for
+// use in a parser DFA.
+//
+// Note: this actually takes the grammar for each production B -> gamma in G,
+// not G'. It's assumed this function is only called on a g.Augmented()
+// instance.
+func lr1CLOSURE(g grammar.Grammar, I box.SVSet[grammar.LR1Item]) box.SVSet[grammar.LR1Item] {
+	Iset := I.Copy()
+	I = Iset.(box.SVSet[grammar.LR1Item])
 
-		// we'll need this later, glubglub 38)
-		followSetA := box.StringSetOf(findFOLLOWSet(g, A).Elements())
-
-		// Whenever A -> α | β are two distinct productions of G:
-		// -purple dragon book
-		for i := range AiRule.Productions {
-			for j := i + 1; j < len(AiRule.Productions); j++ {
-				alphaFIRST := g.FIRST(AiRule.Productions[i][0])
-				betaFIRST := g.FIRST(AiRule.Productions[j][0])
-
-				aFSet := box.StringSetOf(alphaFIRST.Elements())
-				bFSet := box.StringSetOf(betaFIRST.Elements())
-
-				// 1. For no terminal a do both α and β derive strings beginning
-				// with a.
-				//
-				// 2. At most of of α and β derive the empty string.
-				//
-				//
-				// ...or in other words, FIRST(α) and FIRST(β) are disjoint
-				// sets.
-				// -purple dragon book
-
-				if !aFSet.DisjointWith(bFSet) {
-					return false
+	updated := true
+	for updated {
+		updated = false
+		for _, it := range I {
+			if len(it.Right) >= 1 {
+				B := it.Right[0]
+				ruleB := g.Rule(B)
+				if ruleB.NonTerminal == "" {
+					continue
 				}
 
-				// 3. If β =*> ε, then α does not derive any string beginning
-				// with a terminal in FOLLOW(A). Likewise, if α =*> ε, then β
-				// does not derive any string beginning with a terminal in
-				// FOLLOW(A).
-				//
-				//
-				// ...or in other words, if ε is in FIRST(β), then FIRST(α) and
-				// FOLLOW(A) are disjoint sets, and likewise if ε is in
-				// FIRST(α).
-				// -perple dergon berk. (Purple dragon book)
-				if bFSet.Has(grammar.Epsilon[0]) {
-					if !followSetA.DisjointWith(aFSet) {
-						return false
-					}
-				}
-				if aFSet.Has(grammar.Epsilon[0]) {
-					if !followSetA.DisjointWith(bFSet) {
-						return false
+				for _, gamma := range ruleB.Productions {
+					fullArgs := make([]string, len(it.Right[1:]))
+					copy(fullArgs, it.Right[1:])
+					fullArgs = append(fullArgs, it.Lookahead)
+					for _, b := range g.FIRST_STRING(fullArgs...).Elements() {
+						if strings.ToLower(b) != b {
+							continue // terminals only
+						}
+
+						var newItem grammar.LR1Item
+
+						// SPECIAL CASE: if we're dealing with an epsilon, our
+						// item will look like "A -> .". normally we are adding
+						// a dot at the START of an item added in the LR1
+						// CLOSURE func, but since "A -> ." should always be
+						// treated as "at the end", we add a special item with
+						// only the dot, and no left or right.
+						if gamma.Equal(grammar.Epsilon) {
+							newItem = grammar.LR1Item{LR0Item: grammar.LR0Item{NonTerminal: B}, Lookahead: b}
+						} else {
+							newItem = grammar.LR1Item{
+								LR0Item: grammar.LR0Item{
+									NonTerminal: B,
+									Right:       gamma,
+								},
+								Lookahead: b,
+							}
+						}
+						if !I.Has(newItem.String()) {
+							I.Set(newItem.String(), newItem)
+							updated = true
+						}
 					}
 				}
 			}
-
 		}
 	}
-
-	return true
+	return I
 }

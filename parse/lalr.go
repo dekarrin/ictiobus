@@ -55,7 +55,7 @@ func GenerateLALR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, []strin
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
 func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTable, []string, error) {
-	dfa, _ := automaton.NewLALR1ViablePrefixDFA(g)
+	dfa, _ := constructDFAForLALR1(g)
 	dfa.NumberStates()
 
 	table := &lalr1Table{

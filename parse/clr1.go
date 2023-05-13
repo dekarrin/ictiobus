@@ -60,7 +60,7 @@ func constructCanonicalLR1ParseTable(g grammar.Grammar, allowAmbig bool) (LRPars
 	// will pretty immediately give us our GOTO() function, since as purple
 	// dragon book mentions, "intuitively, the GOTO function is used to define
 	// the transitions in the LR(0) automaton for a grammar."
-	lr1Automaton := automaton.NewLR1ViablePrefixDFA(g)
+	lr1Automaton := constructDFAForCLR1(g)
 	lr1Automaton.NumberStates()
 
 	table := &canonicalLR1Table{
