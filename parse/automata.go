@@ -3,6 +3,7 @@ package parse
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/dekarrin/ictiobus/automaton"
 	"github.com/dekarrin/ictiobus/grammar"
@@ -160,4 +161,72 @@ func constructDFAForCLR1(g grammar.Grammar) automaton.DFA[box.SVSet[grammar.LR1I
 	dfa.Start = startSet.StringOrdered()
 
 	return dfa
+}
+
+// constructNFAForSLR1 creates a new NFA whose states are made up of the sets
+// of LR(0) items used in an SLR(1) parser. The grammar of the language that
+// is accepted by the parser, g, must be SLR(1) and it must be non-augmented.
+func constructDFAForSLR1(g grammar.Grammar) automaton.DFA[box.SVSet[grammar.LR0Item]] {
+	// add the dummy production
+	oldStart := g.StartSymbol()
+	g = g.Augmented()
+
+	nfa := automaton.NFA[grammar.LR0Item]{}
+
+	// set the start state
+	nfa.Start = grammar.LR0Item{NonTerminal: g.StartSymbol(), Right: []string{oldStart}}.String()
+
+	items := g.LR0Items()
+
+	// The NFA states are the items of G
+	// (including the extra production)
+
+	// add all of them first so we don't accidentally panic on adding
+	// transitions
+	for i := range items {
+		nfa.AddState(items[i].String(), true)
+		nfa.SetValue(items[i].String(), items[i])
+	}
+
+	for i := range items {
+		item := items[i]
+
+		if len(item.Right) < 1 {
+			// don't deal w E -> αXβ. (dot at right) because it's not useful.
+			continue
+		}
+
+		alpha := item.Left
+		X := item.Right[0]
+		beta := item.Right[1:]
+
+		// For item E -> α.Xβ, where X is any grammar symbol, add transition:
+		//
+		// E -> α.Xβ  =X=>  E -> αX.β
+		toItem := grammar.LR0Item{
+			NonTerminal: item.NonTerminal,
+			Left:        append(alpha, X),
+			Right:       beta,
+		}
+		nfa.AddTransition(item.String(), X, toItem.String())
+
+		// For item E -> α.Xβ and production X -> γ (X is a non-terminal), add
+		// transition:
+		//
+		// E -> α.Xβ  =ε=>  X -> .γ
+		if strings.ToUpper(X) == X {
+			// need to do this for every production of X
+			gammas := g.Rule(X).Productions
+			for _, gamma := range gammas {
+				prodState := grammar.LR0Item{
+					NonTerminal: X,
+					Right:       gamma,
+				}
+
+				nfa.AddTransition(item.String(), "", prodState.String())
+			}
+		}
+	}
+
+	return nfa.ToDFA()
 }

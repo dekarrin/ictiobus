@@ -118,8 +118,8 @@ func buildDFA(from map[string][]string, start string, acceptingStates []string) 
 	// add transitions AFTER all states are already in or it will cause a panic
 	for k := range from {
 		for i := range from[k] {
-			transition := mustParseFATransition(from[k][i])
-			dfa.AddTransition(k, transition.input, transition.next)
+			input, next := MustParseTransition(from[k][i])
+			dfa.AddTransition(k, input, next)
 		}
 	}
 

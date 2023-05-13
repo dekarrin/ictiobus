@@ -3,7 +3,9 @@ package parse
 import (
 	"testing"
 
+	"github.com/dekarrin/ictiobus/automaton"
 	"github.com/dekarrin/ictiobus/grammar"
+	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -69,4 +71,130 @@ func Test_constructDFAForLALR1(t *testing.T) {
 		})
 	}
 
+}
+
+func Test_constructDFAForSLR1(t *testing.T) {
+	testCases := []struct {
+		name        string
+		grammar     string
+		expect      map[string][]string
+		expectStart string
+	}{
+		{
+			name: "aiken example",
+			grammar: `
+				E -> T + E | T ;
+				T -> int * T | int | ( E ) ;
+			`,
+			expect: map[string][]string{
+				// first row from vid
+				"T -> . ( E )": {
+					"=(()=> T -> ( . E )",
+				},
+				"T -> ( . E )": {
+					"=(ε)=> E -> . T",
+					"=(ε)=> E -> . T + E",
+					"=(E)=> T -> ( E . )",
+				},
+				"T -> ( E . )": {
+					"=())=> T -> ( E ) .",
+				},
+				"T -> ( E ) .": {},
+
+				// 2nd row from vid
+				"E-P -> E .": {},
+				"E -> . T + E": {
+					"=(ε)=> T -> . ( E )",
+					"=(T)=> E -> T . + E",
+					"=(ε)=> T -> . int",
+					"=(ε)=> T -> . int * T",
+				},
+				"E -> T . + E": {
+					"=(+)=> E -> T + . E",
+				},
+				"E -> T + . E": {
+					"=(ε)=> E -> . T + E",
+					"=(E)=> E -> T + E .",
+					"=(ε)=> E -> . T",
+				},
+
+				// 3rd row from vid
+				"E-P -> . E": {
+					"=(E)=> E-P -> E .",
+					"=(ε)=> E -> . T + E",
+					"=(ε)=> E -> . T",
+				},
+				"T -> . int": {
+					"=(int)=> T -> int .",
+				},
+				"T -> int .":   {},
+				"E -> T + E .": {},
+
+				// 4th row from vid
+				"E -> . T": {
+					"=(ε)=> T -> . int",
+					"=(ε)=> T -> . int * T",
+					"=(T)=> E -> T .",
+					"=(ε)=> T -> . ( E )",
+				},
+				"T -> int . * T": {
+					"=(*)=> T -> int * . T",
+				},
+
+				// 5th row from vid
+				"E -> T .": {},
+				"T -> . int * T": {
+					"=(int)=> T -> int . * T",
+				},
+				"T -> int * . T": {
+					"=(ε)=> T -> . int",
+					"=(T)=> T -> int * T .",
+					"=(ε)=> T -> . ( E )",
+					"=(ε)=> T -> . int * T",
+				},
+				"T -> int * T .": {},
+			},
+			expectStart: "E-P -> . E",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// setup
+			assert := assert.New(t)
+			g := grammar.MustParse(tc.grammar)
+			nfa := buildLR0NFA(tc.expect, tc.expectStart)
+			expect := nfa.ToDFA()
+
+			// execute
+			actual := constructDFAForSLR1(g)
+
+			// assert
+			assert.Equal(expect.String(), actual.String())
+		})
+	}
+}
+
+func buildLR0NFA(from map[string][]string, start string) *automaton.NFA[string] {
+	nfa := &automaton.NFA[string]{}
+
+	for k := range from {
+		stateItem := grammar.MustParseLR0Item(k)
+		nfa.AddState(stateItem.String(), true)
+	}
+
+	fromKeys := textfmt.OrderedKeys(from)
+
+	for _, k := range fromKeys {
+		fromItem := grammar.MustParseLR0Item(k)
+		for i := range from[k] {
+			input, next := automaton.MustParseTransition(from[k][i])
+			toItem := grammar.MustParseLR0Item(next)
+			nfa.AddTransition(fromItem.String(), input, toItem.String())
+		}
+	}
+
+	nfa.Start = start
+
+	return nfa
 }

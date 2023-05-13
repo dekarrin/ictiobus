@@ -56,43 +56,48 @@ func (t faTransition) String() string {
 	return fmt.Sprintf("=(%s)=> %s", inp, t.next)
 }
 
-func mustParseFATransition(s string) faTransition {
-	t, err := parseFATransition(s)
+// MustParseTransition is the same as [ParseTransition] but panics if an error
+// is encountered while parsing the transition.
+func MustParseTransition(s string) (inputSymbol, nextState string) {
+	input, next, err := ParseTransition(s)
 	if err != nil {
 		panic(err.Error())
 	}
-	return t
+	return input, next
 }
 
-func parseFATransition(s string) (faTransition, error) {
+// ParseTransition parses a string of the form '=(T)=> T -> int * . T' for
+// finite automata transition info. The transition symbol must be in the double
+// equals arrow and the name of the new state is everyfin after that.
+func ParseTransition(s string) (inputSymbol string, nextState string, err error) {
 	s = strings.TrimSpace(s)
 	parts := strings.SplitN(s, " ", 2)
 
 	left, right := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
 
 	if len(left) < 3 {
-		return faTransition{}, fmt.Errorf("not a valid FATransition: left len < 3: %q", left)
+		return "", "", fmt.Errorf("not a valid FATransition: left len < 3: %q", left)
 	}
 
 	if left[0] != '=' {
-		return faTransition{}, fmt.Errorf("not a valid FATransition: left[0] != '=': %q", left)
+		return "", "", fmt.Errorf("not a valid FATransition: left[0] != '=': %q", left)
 	}
 	if left[1] != '(' {
-		return faTransition{}, fmt.Errorf("not a valid FATransition: left[1] != '(': %q", left)
+		return "", "", fmt.Errorf("not a valid FATransition: left[1] != '(': %q", left)
 	}
 	left = left[2:]
 	// also chop off the ending arrow
 	if len(left) < 4 {
-		return faTransition{}, fmt.Errorf("not a valid left: len(chopped) < 4: %q", left)
+		return "", "", fmt.Errorf("not a valid left: len(chopped) < 4: %q", left)
 	}
 	if left[len(left)-1] != '>' {
-		return faTransition{}, fmt.Errorf("not a valid left: chopped[-1] != '>': %q", left)
+		return "", "", fmt.Errorf("not a valid left: chopped[-1] != '>': %q", left)
 	}
 	if left[len(left)-2] != '=' {
-		return faTransition{}, fmt.Errorf("not a valid left: chopped[-2] != '=': %q", left)
+		return "", "", fmt.Errorf("not a valid left: chopped[-2] != '=': %q", left)
 	}
 	if left[len(left)-3] != ')' {
-		return faTransition{}, fmt.Errorf("not a valid left: chopped[-3] != ')': %q", left)
+		return "", "", fmt.Errorf("not a valid left: chopped[-3] != ')': %q", left)
 	}
 	input := left[:len(left)-3]
 	if input == "ε" {
@@ -102,13 +107,10 @@ func parseFATransition(s string) (faTransition, error) {
 	// next is EASY af
 	next := right
 	if next == "" {
-		return faTransition{}, fmt.Errorf("not a valid FATransition: bad next: %q", s)
+		return "", "", fmt.Errorf("not a valid FATransition: bad next: %q", s)
 	}
 
-	return faTransition{
-		input: input,
-		next:  next,
-	}, nil
+	return input, next, nil
 }
 
 // dfaState is a state in a DFA. It holds a 'value'; supplematory information
