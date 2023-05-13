@@ -60,7 +60,7 @@ type lazyTokenStream struct {
 // token from the stream's Next() method.
 func (lx *lexerTemplate) LazyLex(input io.Reader) (types.TokenStream, error) {
 	active := &lazyTokenStream{
-		r:        NewRegexReader(input),
+		r:        newRegexReader(input),
 		patterns: make(map[string]*regexp.Regexp),
 		classes:  make(map[string]map[string]types.TokenClass),
 		actions:  make(map[string][]Action),
