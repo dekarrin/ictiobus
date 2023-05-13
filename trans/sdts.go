@@ -13,7 +13,7 @@ import (
 
 type sdtsImpl struct {
 	hooks    HookMap
-	bindings map[string]map[string][]SDDBinding
+	bindings map[string]map[string][]sddBinding
 }
 
 // SetHooks sets the hook mapping containing implementations of the hooks in the
@@ -303,19 +303,19 @@ func (sdts *sdtsImpl) BindSynthesizedAttribute(head string, prod []string, attrN
 	// get storage slice
 	bindingsForHead, ok := sdts.bindings[head]
 	if !ok {
-		bindingsForHead = map[string][]SDDBinding{}
+		bindingsForHead = map[string][]sddBinding{}
 	}
 	defer func() { sdts.bindings[head] = bindingsForHead }()
 
 	prodStr := strings.Join(prod, " ")
 	existingBindings, ok := bindingsForHead[prodStr]
 	if !ok {
-		existingBindings = make([]SDDBinding, 0)
+		existingBindings = make([]sddBinding, 0)
 	}
 	defer func() { bindingsForHead[prodStr] = existingBindings }()
 
 	// build the binding
-	bind := SDDBinding{
+	bind := sddBinding{
 		Synthesized:         true,
 		BoundRuleSymbol:     head,
 		BoundRuleProduction: make([]string, len(prod)),
@@ -364,19 +364,19 @@ func (sdts *sdtsImpl) BindInheritedAttribute(head string, prod []string, attrNam
 	// get storage slice
 	bindingsForHead, ok := sdts.bindings[head]
 	if !ok {
-		bindingsForHead = map[string][]SDDBinding{}
+		bindingsForHead = map[string][]sddBinding{}
 	}
 	defer func() { sdts.bindings[head] = bindingsForHead }()
 
 	prodStr := strings.Join(prod, " ")
 	existingBindings, ok := bindingsForHead[prodStr]
 	if !ok {
-		existingBindings = make([]SDDBinding, 0)
+		existingBindings = make([]sddBinding, 0)
 	}
 	defer func() { bindingsForHead[prodStr] = existingBindings }()
 
 	// build the binding
-	bind := SDDBinding{
+	bind := sddBinding{
 		Synthesized:         true,
 		BoundRuleSymbol:     head,
 		BoundRuleProduction: make([]string, len(prod)),
@@ -428,7 +428,7 @@ func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName
 
 	// get only the bindings for the attribute we're interested in, and track the
 	// original index of it so we can update it later.
-	candidateBindings := make([]box.Pair[SDDBinding, int], 0)
+	candidateBindings := make([]box.Pair[sddBinding, int], 0)
 	for i := range existingBindings {
 		bind := existingBindings[i]
 		if bind.Dest.Name == attrName {
@@ -440,7 +440,7 @@ func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName
 	}
 
 	// filter the bindings by synthesized or inherited
-	candidateBindings = slices.Filter(candidateBindings, func(item box.Pair[SDDBinding, int]) bool {
+	candidateBindings = slices.Filter(candidateBindings, func(item box.Pair[sddBinding, int]) bool {
 		return item.First.Synthesized
 	})
 	if len(candidateBindings) == 0 {
@@ -449,7 +449,7 @@ func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName
 
 	// filter the candidates by forProd, if applicable
 	if !synth {
-		candidateBindings = slices.Filter(candidateBindings, func(item box.Pair[SDDBinding, int]) bool {
+		candidateBindings = slices.Filter(candidateBindings, func(item box.Pair[sddBinding, int]) bool {
 			return item.First.Dest.Relation == forProd
 		})
 	}
@@ -479,22 +479,14 @@ func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName
 	return nil
 }
 
-// NewSDTS creates a new, empty Syntax-Directed Translation Scheme.
-func NewSDTS() *sdtsImpl {
-	impl := sdtsImpl{
-		bindings: map[string]map[string][]SDDBinding{},
-	}
-	return &impl
-}
-
 // bindingsForAttr returns all bindings defined to apply when at a node in a parse
 // tree created by the rule production with head as its head symbol and prod
 // as its produced symbols, and when setting the attribute referred to by
 // dest. They will be returned in the order they were defined.
-func (sdts *sdtsImpl) bindingsForAttr(head string, prod []string, attrRef AttrRef) []SDDBinding {
+func (sdts *sdtsImpl) bindingsForAttr(head string, prod []string, attrRef AttrRef) []sddBinding {
 	allForRule := sdts.bindingsForRule(head, prod)
 
-	matchingBindings := []SDDBinding{}
+	matchingBindings := []sddBinding{}
 
 	for i := range allForRule {
 		if allForRule[i].Dest == attrRef {
@@ -509,7 +501,7 @@ func (sdts *sdtsImpl) bindingsForAttr(head string, prod []string, attrRef AttrRe
 // tree created by the rule production with head as its head symbol and prod
 // as its produced symbols. They will be returned in the order they were
 // defined.
-func (sdts *sdtsImpl) bindingsForRule(head string, prod []string) []SDDBinding {
+func (sdts *sdtsImpl) bindingsForRule(head string, prod []string) []sddBinding {
 	forHead, ok := sdts.bindings[head]
 	if !ok {
 		return nil
@@ -521,7 +513,7 @@ func (sdts *sdtsImpl) bindingsForRule(head string, prod []string) []SDDBinding {
 		return nil
 	}
 
-	targetBindings := make([]SDDBinding, len(forProd))
+	targetBindings := make([]sddBinding, len(forProd))
 	copy(targetBindings, forProd)
 
 	return targetBindings

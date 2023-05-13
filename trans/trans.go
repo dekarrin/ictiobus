@@ -104,6 +104,14 @@ type SDTS interface {
 	Validate(grammar grammar.Grammar, attribute string, debug ValidationOptions, fakeValProducer ...map[string]func() string) (warns []string, err error)
 }
 
+// NewSDTS creates a new, empty Syntax-Directed Translation Scheme.
+func NewSDTS() SDTS {
+	impl := sdtsImpl{
+		bindings: map[string]map[string][]sddBinding{},
+	}
+	return &impl
+}
+
 // SetterInfo is struct passed to all bound hooks in a translation scheme to
 // provide information on what is being set. It includes the grammar symbol of
 // the node it is being set for, the first token of that symbol as it was

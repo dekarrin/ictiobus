@@ -2,9 +2,9 @@ package trans
 
 import "fmt"
 
-// SDDBinding represents a single binding of a syntax-directed definition to a
+// sddBinding represents a single binding of a syntax-directed definition to a
 // rule in the grammar. It will be executed for all nodes created for that rule.
-type SDDBinding struct {
+type sddBinding struct {
 	// Synthesized is whether the binding is for a
 	Synthesized bool
 
@@ -35,8 +35,8 @@ type SDDBinding struct {
 }
 
 // Copy returns a deep copy of the SDDBinding.
-func (bind SDDBinding) Copy() SDDBinding {
-	newBind := SDDBinding{
+func (bind sddBinding) Copy() sddBinding {
+	newBind := sddBinding{
 		Synthesized:         bind.Synthesized,
 		BoundRuleSymbol:     bind.BoundRuleSymbol,
 		BoundRuleProduction: make([]string, len(bind.BoundRuleProduction)),
@@ -54,7 +54,7 @@ func (bind SDDBinding) Copy() SDDBinding {
 }
 
 // Invoke calls the given binding while visiting an annotated parse tree node.
-func (bind SDDBinding) Invoke(apt *AnnotatedParseTree, hooksTable HookMap) (val interface{}, invokeErr error) {
+func (bind sddBinding) Invoke(apt *AnnotatedParseTree, hooksTable HookMap) (val interface{}, invokeErr error) {
 	// sanity checks; can we even call this?
 	if bind.Setter == "" {
 		return nil, hookError{msg: "binding has no setter hook defined"}

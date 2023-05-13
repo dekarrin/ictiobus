@@ -53,12 +53,7 @@ func NewLazyLexer() lex.Lexer {
 // NewParser returns what is the most flexible and efficient parser in this
 // package that can parse the given grammar. The following parsers will be
 // attempted to be built, in order, with each subsequent one attempted after the
-// prior one fails.
-//
-// * LALR(1)
-// * CLR(1)
-// * SLR(1)
-// * LL(1)
+// prior one fails: LALR(1), CLR(1), SLR(1), LL(1).
 //
 // Returns an error if no parser can be generated for the given grammar.
 //

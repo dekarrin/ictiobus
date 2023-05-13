@@ -18,7 +18,7 @@ const (
 	treeLevelPrefixNamePadChar   = '-'
 	treeLevelPrefixNamePadAmount = 3
 
-	ShortCircuitPrefix = "__ICTIO__:SHORTCIRC:"
+	shortCircuitPrefix = "__ICTIO__:SHORTCIRC:"
 )
 
 func makeTreeLevelPrefix(msg string) string {
@@ -361,7 +361,7 @@ func (pt Tree) PathToDiff(t Tree, ignoreShortCircuit bool) (path []int, diverges
 		p := checkStack.Pop()
 		tn1, tn2 := p.All()
 		n1, n2 := tn1.node, tn2.node
-		if !ignoreShortCircuit || (!(strings.HasPrefix(n1.Value, ShortCircuitPrefix) && !strings.HasPrefix(n2.Value, ShortCircuitPrefix))) {
+		if !ignoreShortCircuit || (!(strings.HasPrefix(n1.Value, shortCircuitPrefix) && !strings.HasPrefix(n2.Value, shortCircuitPrefix))) {
 			if n1.Terminal != n2.Terminal || n1.Value != n2.Value || len(n1.Children) != len(n2.Children) {
 				// diverges here
 				allPoints = append(allPoints, tn1.path.Slice())
