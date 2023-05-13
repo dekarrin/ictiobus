@@ -54,7 +54,7 @@ func GenerateLALR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, []strin
 // reduce/reduce conflicts will still be rejected. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTable, []string, error) {
+func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, []string, error) {
 	dfa, _ := constructDFAForLALR1(g)
 	dfa.NumberStates()
 
@@ -84,7 +84,7 @@ func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTable,
 		for _, a := range table.gPrime.Terminals() {
 			itemSet := table.dfa.GetValue(i)
 			var matchFound bool
-			var act LRAction
+			var act lrAction
 			for itemStr := range itemSet {
 				item := table.itemCache[itemStr]
 				A := item.NonTerminal
@@ -95,7 +95,7 @@ func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTable,
 					j, err := table.Goto(i, a)
 					if err == nil {
 						// match found
-						shiftAct := LRAction{Type: LRShift, State: j}
+						shiftAct := lrAction{Type: lrShift, State: j}
 						if matchFound && !shiftAct.Equal(act) {
 							if allowAmbig {
 								ambigWarns = append(ambigWarns, makeLRConflictError(act, shiftAct, a).Error()+fromState)
@@ -111,7 +111,7 @@ func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTable,
 				}
 
 				if len(beta) == 0 && A != table.gPrime.StartSymbol() && a == b {
-					reduceAct := LRAction{Type: LRReduce, Symbol: A, Production: grammar.Production(alpha)}
+					reduceAct := lrAction{Type: lrReduce, Symbol: A, Production: grammar.Production(alpha)}
 					if matchFound && !reduceAct.Equal(act) {
 						if isSRConflict, _ := isShiftReduceConlict(act, reduceAct); isSRConflict && allowAmbig {
 							// do nothing; new action is a reduce so it's already resolved
@@ -126,7 +126,7 @@ func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (LRParseTable,
 				}
 
 				if a == "$" && b == "$" && A == table.gPrime.StartSymbol() && len(alpha) == 1 && alpha[0] == table.gStart && len(beta) == 0 {
-					newAct := LRAction{Type: LRAccept}
+					newAct := lrAction{Type: lrAccept}
 					if matchFound && !newAct.Equal(act) {
 						return nil, ambigWarns, fmt.Errorf("grammar is not LALR(1): %w", makeLRConflictError(act, newAct, a))
 					}
@@ -293,7 +293,7 @@ func (lalr1 *lalr1Table) DFAString() string {
 
 // Action returns the LR-parser action to perform given that the current state
 // is i and the next terminal input symbol seen is a.
-func (lalr1 *lalr1Table) Action(i, a string) LRAction {
+func (lalr1 *lalr1Table) Action(i, a string) lrAction {
 	// Algorithm 4.59, which we are using for construction of the LALR(1) parse
 	// table, explicitly mentions to construct the Action table as it is done
 	// in Algorithm 4.56.
@@ -318,7 +318,7 @@ func (lalr1 *lalr1Table) Action(i, a string) LRAction {
 	// we have gauranteed that these dont conflict during construction; still,
 	// check it so we can panic if it conflicts
 	var alreadySet bool
-	var act LRAction
+	var act lrAction
 
 	// Okay, "[some random item] is in Iᵢ" is suuuuuuuuper vague. We're
 	// basically going to have to check each item and see if it is in the
@@ -347,7 +347,7 @@ func (lalr1 *lalr1Table) Action(i, a string) LRAction {
 			// set in this case but unshore), so it is not a match.
 			if err == nil {
 				// match found
-				shiftAct := LRAction{Type: LRShift, State: j}
+				shiftAct := lrAction{Type: lrShift, State: j}
 				if alreadySet && !shiftAct.Equal(act) {
 					// assuming shift/shift conflicts do not occur, and assuming
 					// we have just created a shift, we must be in a
@@ -372,7 +372,7 @@ func (lalr1 *lalr1Table) Action(i, a string) LRAction {
 		// the beta we previously retrieved MUST be empty.
 		// further, lookahead b MUST be a.
 		if len(beta) == 0 && A != lalr1.gPrime.StartSymbol() && a == b {
-			reduceAct := LRAction{Type: LRReduce, Symbol: A, Production: grammar.Production(alpha)}
+			reduceAct := lrAction{Type: lrReduce, Symbol: A, Production: grammar.Production(alpha)}
 			if alreadySet && !reduceAct.Equal(act) {
 				if isSRConflict, _ := isShiftReduceConlict(act, reduceAct); isSRConflict && lalr1.allowAmbig {
 					// we are in a shift/reduce conflict; the prior def is a
@@ -389,7 +389,7 @@ func (lalr1 *lalr1Table) Action(i, a string) LRAction {
 
 		// (c) If [S' -> S., $] is in Iᵢ, then set ACTION[i, $] to "accept".
 		if a == "$" && b == "$" && A == lalr1.gPrime.StartSymbol() && len(alpha) == 1 && alpha[0] == lalr1.gStart && len(beta) == 0 {
-			acceptAct := LRAction{Type: LRAccept}
+			acceptAct := lrAction{Type: lrAccept}
 			if alreadySet && !acceptAct.Equal(act) {
 				panic(fmt.Sprintf("grammar is not LALR(1): %s", makeLRConflictError(act, acceptAct, a).Error()))
 			}
@@ -400,7 +400,7 @@ func (lalr1 *lalr1Table) Action(i, a string) LRAction {
 
 	// if we haven't found one, error
 	if !alreadySet {
-		act.Type = LRError
+		act.Type = lrError
 	}
 
 	return act
@@ -473,9 +473,9 @@ func (lalr1 *lalr1Table) String() string {
 
 			cell := ""
 			switch act.Type {
-			case LRAccept:
+			case lrAccept:
 				cell = "acc"
-			case LRReduce:
+			case lrReduce:
 				// reduces to the state that corresponds with the symbol
 				var prodStr string
 				if len(act.Production) > 0 {
@@ -484,9 +484,9 @@ func (lalr1 *lalr1Table) String() string {
 					prodStr = grammar.Epsilon.String()
 				}
 				cell = fmt.Sprintf("r%s -> %s", act.Symbol, prodStr)
-			case LRShift:
+			case lrShift:
 				cell = fmt.Sprintf("s%s", stateRefs[act.State])
-			case LRError:
+			case lrError:
 				// do nothing, err is blank
 			}
 

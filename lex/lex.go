@@ -1,4 +1,6 @@
-// Package lex provides lexing functionality for the ictiobus parser.
+// Package lex provides lexing functionality for the ictiobus parser generator.
+// It uses the regex provided by Go's built-in RE2 engine for matching on input,
+// although this may change in the future.
 package lex
 
 import (

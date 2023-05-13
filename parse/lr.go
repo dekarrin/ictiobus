@@ -12,9 +12,9 @@ import (
 	"github.com/dekarrin/ictiobus/types"
 )
 
-// LRParseTable is a table of information passed to an LR parser. These will be
+// lrParseTable is a table of information passed to an LR parser. These will be
 // generated from a grammar for the purposes of performing bottom-up parsing.
-type LRParseTable interface {
+type lrParseTable interface {
 	encoding.BinaryMarshaler
 	encoding.BinaryUnmarshaler
 
@@ -24,7 +24,7 @@ type LRParseTable interface {
 
 	// Action returns the LR-parser action to perform given that the current
 	// state is i and the next terminal input symbol seen is a.
-	Action(state, symbol string) LRAction
+	Action(state, symbol string) lrAction
 
 	// Goto maps a state and a grammar symbol to some other state. It specifies
 	// the state to transition to after reducing to a non-terminal symbol.
@@ -40,7 +40,7 @@ type LRParseTable interface {
 }
 
 type lrParser struct {
-	table     LRParseTable
+	table     lrParseTable
 	parseType types.ParserType
 	gram      grammar.Grammar
 	trace     func(s string)
@@ -99,7 +99,7 @@ func (lr *lrParser) UnmarshalBinary(data []byte) error {
 		return fmt.Errorf("parsing parseType: %w", err)
 	}
 
-	var tableVal LRParseTable
+	var tableVal lrParseTable
 	switch lr.parseType {
 	case types.ParserCLR1:
 		tableVal = &canonicalLR1Table{}
@@ -148,7 +148,7 @@ func (lr lrParser) notifyStatePop(s string) {
 	}
 }
 
-func (lr lrParser) notifyAction(act LRAction) {
+func (lr lrParser) notifyAction(act lrAction) {
 	lr.notifyTrace("Action: %s", act.Type.String())
 }
 
@@ -215,7 +215,7 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 		lr.notifyAction(ACTION)
 
 		switch ACTION.Type {
-		case LRShift: // if ( ACTION[s, a] = shift t )
+		case lrShift: // if ( ACTION[s, a] = shift t )
 			// add token to our buffer
 			tokenBuffer.Push(a)
 
@@ -228,7 +228,7 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 			// let a be the next input symbol
 			a = stream.Next()
 			lr.notifyNextToken(a)
-		case LRReduce: // else if ( ACTION[s, a] = reduce A -> β )
+		case lrReduce: // else if ( ACTION[s, a] = reduce A -> β )
 			A := ACTION.Symbol
 			beta := ACTION.Production
 			prodStr := strings.ToLower(beta.String())
@@ -288,11 +288,11 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 
 			// output the production A -> β
 			// (TODO: put it on the parse tree)
-		case LRAccept: // else if ( ACTION[s, a] = accept )
+		case lrAccept: // else if ( ACTION[s, a] = accept )
 			// parsing is done. there should be at least one item on the stack
 			pt := subTreeRoots.Pop()
 			return *pt, nil
-		case LRError:
+		case lrError:
 			// call error-recovery routine
 			expMessage := lr.getExpectedString(s)
 			return types.ParseTree{}, types.NewSyntaxErrorFromToken(fmt.Sprintf("unexpected %s; %s", a.Class().Human(), expMessage), a)
@@ -355,7 +355,7 @@ func (lr lrParser) findExpectedTokens(stateName string) []types.TokenClass {
 	for i := range terms {
 		t := lr.gram.Term(terms[i])
 		act := lr.table.Action(stateName, t.ID())
-		if act.Type != LRError {
+		if act.Type != lrError {
 			classes = append(classes, t)
 		}
 	}

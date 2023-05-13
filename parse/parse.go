@@ -1,7 +1,7 @@
-// Package parse provides parser construction and functionality. It contains
-// everything needed to generate parsers based on LL(1), SLR(1), LR(1), or
-// LALR(1) grammars, which are able to produce parse trees when given a stream
-// of tokens as input.
+// Package parse provides parser construction and functionality for the ictiobus
+// parser generator. It can generate parsers based on LL(1), SLR(1), LR(1), or
+// LALR(1) grammars. The parsers operate on streams of tokens as input and
+// produce parse trees.
 package parse
 
 import (
