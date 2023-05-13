@@ -1,5 +1,6 @@
-// Package trans holds constructs involved in the final stage of input analysis.
-// It can also serve as an entrypoint with a full-featured translation
+// Package trans provides syntax-directed translations of parse trees for the
+// ictiobus parser generator. It is involved in the final stage of input
+// analysis. It can also serve as an entrypoint with a full-featured translation
 // intepreter engine.
 package trans
 
