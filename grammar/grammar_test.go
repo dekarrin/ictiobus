@@ -7,8 +7,6 @@ import (
 
 	"github.com/dekarrin/ictiobus/types"
 
-	"github.com/dekarrin/ictiobus/internal/box"
-	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/internal/tmatch"
 	"github.com/stretchr/testify/assert"
 )
@@ -977,111 +975,6 @@ func Test_Grammar_LeftFactor(t *testing.T) {
 			// terminals must remain unchanged
 			assert.Equal(g.terminals, actual.terminals)
 			assertIdenticalProductionSets(assert, expect, actual)
-		})
-	}
-}
-
-func Test_Grammar_FIRST(t *testing.T) {
-	testCases := []struct {
-		name   string
-		g      string
-		first  string
-		expect []string
-	}{
-		{
-			name: "empty grammar",
-			expect: []string{
-				Epsilon[0],
-			},
-		},
-		{
-			name: "first and follow sets explained example, T",
-			g: `
-				S -> K L p | g Q K     ;
-				K -> b L Q T | ε       ;
-				L -> Q a K | Q K | q a ;
-				Q -> d s | ε           ;
-				T -> g S f | m         ;
-			`,
-			first: "T",
-			expect: []string{
-				"g", "m",
-			},
-		},
-		{
-			name: "first and follow sets explained example, Q",
-			g: `
-				S -> K L p | g Q K     ;
-				K -> b L Q T | ε       ;
-				L -> Q a K | Q K | q a ;
-				Q -> d s | ε           ;
-				T -> g S f | m         ;
-			`,
-			first: "Q",
-			expect: []string{
-				"d", Epsilon[0],
-			},
-		},
-		{
-			name: "first and follow sets explained example, K",
-			g: `
-				S -> K L p | g Q K     ;
-				K -> b L Q T | ε       ;
-				L -> Q a K | Q K | q a ;
-				Q -> d s | ε           ;
-				T -> g S f | m         ;
-			`,
-			first: "K",
-			expect: []string{
-				"b", Epsilon[0],
-			},
-		},
-		{
-			name: "first and follow sets explained example, L",
-			g: `
-				S -> K L p | g Q K     ;
-				K -> b L Q T | ε       ;
-				L -> Q a K | Q K | q a ;
-				Q -> d s | ε           ;
-				T -> g S f | m         ;
-			`,
-			first: "L",
-			expect: []string{
-				"d", Epsilon[0], "q", "a", "b",
-			},
-		},
-		{
-			name: "first and follow sets explained example, S",
-			g: `
-				S -> K L p | g Q K     ;
-				K -> b L Q T | ε       ;
-				L -> Q a K | Q K | q a ;
-				Q -> d s | ε           ;
-				T -> g S f | m         ;
-			`,
-			first: "S",
-			expect: []string{
-				"b", "d", "q", "a", "b", "p", "g",
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// setup
-			assert := assert.New(t)
-			expectMap := map[string]bool{}
-			for i := range tc.expect {
-				expectMap[tc.expect[i]] = true
-			}
-
-			g := MustParse(tc.g)
-
-			// execute
-			actual := g.FIRST(tc.first)
-
-			// assert
-			assert.Equal(textfmt.OrderedKeys(expectMap), box.Alphabetized[string](actual))
 		})
 	}
 }

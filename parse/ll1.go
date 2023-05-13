@@ -207,7 +207,7 @@ func generateLL1ParseTable(g grammar.Grammar) (M ll1Table, err error) {
 	for _, A := range nts {
 		ARule := g.Rule(A)
 		for _, alpha := range ARule.Productions {
-			FIRSTalpha := box.StringSetOf(g.FIRST(alpha[0]).Elements())
+			FIRSTalpha := box.StringSetOf(findFIRSTSet(g, alpha[0]).Elements())
 
 			// 1. For each terminal a in FIRST(A), add A -> α to M[A, a].
 			// -purple dragon book

@@ -24,8 +24,8 @@ func IsLL1(g grammar.Grammar) bool {
 		// -purple dragon book
 		for i := range AiRule.Productions {
 			for j := i + 1; j < len(AiRule.Productions); j++ {
-				alphaFIRST := g.FIRST(AiRule.Productions[i][0])
-				betaFIRST := g.FIRST(AiRule.Productions[j][0])
+				alphaFIRST := findFIRSTSet(g, AiRule.Productions[i][0])
+				betaFIRST := findFIRSTSet(g, AiRule.Productions[j][0])
 
 				aFSet := box.StringSetOf(alphaFIRST.Elements())
 				bFSet := box.StringSetOf(betaFIRST.Elements())
@@ -70,6 +70,77 @@ func IsLL1(g grammar.Grammar) bool {
 	}
 
 	return true
+}
+
+// findFIRSTSet returns the findFIRSTSet set of symbol X in the grammar.
+func findFIRSTSet(g grammar.Grammar, X string) box.Set[string] {
+	return firstSetSafeRecurse(g, X, box.NewStringSet())
+}
+
+func firstSetSafeRecurse(g grammar.Grammar, X string, seen box.StringSet) box.Set[string] {
+	seen.Add(X)
+	if strings.ToLower(X) == X {
+		// terminal or epsilon
+		return box.NewStringSet(map[string]bool{X: true})
+	} else {
+		firsts := box.NewStringSet()
+		r := g.Rule(X)
+
+		for ntIdx := range r.Productions {
+			Y := r.Productions[ntIdx]
+			var gotToEnd bool
+			for k := 0; k < len(Y); k++ {
+				if !seen.Has(Y[k]) {
+					firstY := findFIRSTSet(g, Y[k])
+					for _, str := range firstY.Elements() {
+						if str != "" {
+							firsts.Add(str)
+						}
+					}
+					if firstY.Len() == 1 && firstY.Has(grammar.Epsilon[0]) {
+						firsts.Add(grammar.Epsilon[0])
+					}
+					if !firstY.Has(grammar.Epsilon[0]) {
+						// if its not, then break
+						break
+					}
+					if k+1 >= len(Y) {
+						gotToEnd = true
+					}
+				}
+			}
+			if gotToEnd {
+				firsts.Add(grammar.Epsilon[0])
+			}
+		}
+		return firsts
+	}
+}
+
+// findFIRSTSetString is identical to FIRST but for a string of symbols rather than
+// just one.
+func findFIRSTSetString(g grammar.Grammar, X ...string) box.Set[string] {
+	first := box.NewStringSet()
+	epsilonPresent := false
+	for i := range X {
+		fXi := findFIRSTSet(g, X[i])
+		epsilonPresent = false
+		for _, j := range fXi.Elements() {
+			if j != grammar.Epsilon[0] {
+				first.Add(j)
+			} else {
+				epsilonPresent = true
+			}
+		}
+		if !epsilonPresent {
+			break
+		}
+	}
+	if epsilonPresent {
+		first.Add(grammar.Epsilon[0])
+	}
+
+	return first
 }
 
 // findFOLLOWSet is the used to get the findFOLLOWSet set of symbol X for generating
@@ -132,7 +203,7 @@ func recursiveFOLLOWSet(g grammar.Grammar, X string, prevFollowChecks box.Set[st
 					// its firsts are in X's FOLLOW. Stop checking at the first
 					// in beta that is NOT reducible to eps.
 					for b := range beta {
-						betaFirst := g.FIRST(beta[b])
+						betaFirst := findFIRSTSet(g, beta[b])
 
 						for _, k := range betaFirst.Elements() {
 							if k != grammar.Epsilon[0] {
@@ -153,7 +224,7 @@ func recursiveFOLLOWSet(g grammar.Grammar, X string, prevFollowChecks box.Set[st
 					// A is the non-terminal producing X.
 					canBeAtEnd := true
 					for b := range beta {
-						betaFirst := g.FIRST(beta[b])
+						betaFirst := findFIRSTSet(g, beta[b])
 						if !betaFirst.Has(grammar.Epsilon[0]) {
 							canBeAtEnd = false
 							break
@@ -207,7 +278,7 @@ func lr1CLOSURE(g grammar.Grammar, I box.SVSet[grammar.LR1Item]) box.SVSet[gramm
 					fullArgs := make([]string, len(it.Right[1:]))
 					copy(fullArgs, it.Right[1:])
 					fullArgs = append(fullArgs, it.Lookahead)
-					for _, b := range g.FIRST_STRING(fullArgs...).Elements() {
+					for _, b := range findFIRSTSetString(g, fullArgs...).Elements() {
 						if strings.ToLower(b) != b {
 							continue // terminals only
 						}
