@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/dekarrin/ictiobus/lex"
-	"github.com/dekarrin/ictiobus/types"
 	"github.com/stretchr/testify/assert"
 
 	. "github.com/dekarrin/ictiobus/fishi/fe/fetoken"
@@ -15,16 +14,16 @@ func Test_Fishi_Lexer_AttrRef_Terminal(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  string
-		expect []types.Token
+		expect []lex.Token
 	}{
 		{
 			name: "single attr ref",
 			input: `%%actions
 					someAttrRef.value`,
-			expect: []types.Token{
+			expect: []lex.Token{
 				lex.NewToken(TCHdrActions, "%%actions", 0, 0, ""),
 				lex.NewToken(TCAttrRef, "someAttrRef.value", 0, 0, ""),
-				lex.NewToken(types.TokenEndOfText, "", 0, 0, ""),
+				lex.NewToken(lex.TokenEndOfText, "", 0, 0, ""),
 			},
 		},
 	}
@@ -67,8 +66,8 @@ func Test_Fishi_Lexer_AttrRef_Terminal(t *testing.T) {
 	}
 }
 
-func gatherTokens(stream types.TokenStream) []types.Token {
-	allTokens := []types.Token{}
+func gatherTokens(stream lex.TokenStream) []lex.Token {
+	allTokens := []lex.Token{}
 
 	for stream.HasNext() {
 		allTokens = append(allTokens, stream.Next())

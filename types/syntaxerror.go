@@ -20,6 +20,17 @@ type SyntaxError struct {
 	message string
 }
 
+// NewSyntaxError creates a new SyntaxError with its properties set.
+func NewSyntaxError(msg string, sourceLine string, source string, line int, pos int) *SyntaxError {
+	return &SyntaxError{
+		sourceLine: sourceLine,
+		source:     source,
+		line:       line,
+		pos:        pos,
+		message:    msg,
+	}
+}
+
 // Error returns the string representation of the SyntaxError.
 func (se SyntaxError) Error() string {
 	if se.line == 0 {
@@ -96,17 +107,4 @@ func (se SyntaxError) SourceLineWithCursor() string {
 	}
 
 	return strings.ReplaceAll(se.sourceLine, "\t", "    ") + "\n" + cursorLine + "^"
-}
-
-// NewSyntaxErrorFromToken uses the location information in the provided token
-// to create a SyntaxError with a detailed message on the error and the source
-// code which caused it.
-func NewSyntaxErrorFromToken(msg string, tok Token) *SyntaxError {
-	return &SyntaxError{
-		message:    msg,
-		sourceLine: tok.FullLine(),
-		source:     tok.Lexeme(),
-		pos:        tok.LinePos(),
-		line:       tok.Line(),
-	}
 }

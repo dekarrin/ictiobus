@@ -13,7 +13,7 @@ import (
 	"github.com/dekarrin/ictiobus/fishi/fe"
 	"github.com/dekarrin/ictiobus/fishi/format"
 	"github.com/dekarrin/ictiobus/fishi/syntax"
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/parse"
 )
 
 const (
@@ -38,7 +38,7 @@ type AST = syntax.AST
 // Results is the results of attempting to parse a FISHI spec.
 type Results struct {
 	AST  *AST
-	Tree *types.ParseTree
+	Tree *parse.ParseTree
 }
 
 // Options is options to the FISHI frontend that can be supplied by callers.

@@ -3,7 +3,7 @@ package fetoken
 import (
 	"testing"
 
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/lex"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,7 +11,7 @@ func TestByID(t *testing.T) {
 	testCases := []struct {
 		name   string
 		id     string
-		expect types.TokenClass
+		expect lex.TokenClass
 	}{
 		{
 			name:   "token does not exist",

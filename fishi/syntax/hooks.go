@@ -9,8 +9,8 @@ import (
 	"github.com/dekarrin/ictiobus/fishi/fe/fetoken"
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
+	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/trans"
-	"github.com/dekarrin/ictiobus/types"
 )
 
 var (
@@ -252,9 +252,9 @@ func sdtsFnGrammarContentBlocksPrepend(_ trans.SetterInfo, args []interface{}) (
 }
 
 func sdtsFnMakeProdAction(info trans.SetterInfo, args []interface{}) (interface{}, error) {
-	prodSpec, ok := args[0].(box.Triple[string, interface{}, types.Token])
+	prodSpec, ok := args[0].(box.Triple[string, interface{}, lex.Token])
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "box.Triple[string, interface{}, types.Token]")
+		return nil, NewArgTypeError(args, 0, "box.Triple[string, interface{}, lex.Token]")
 	}
 
 	semActions, ok := args[1].([]SemanticAction)
@@ -289,9 +289,9 @@ func sdtsFnMakeSymbolActions(info trans.SetterInfo, args []interface{}) (interfa
 	nonTerm := nonTermUntyped.(string)
 
 	// also grab the nonTerm's token from args
-	ntTok, ok := args[1].(types.Token)
+	ntTok, ok := args[1].(lex.Token)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "types.Token")
+		return nil, NewArgTypeError(args, 1, "lex.Token")
 	}
 
 	prodActions, ok := args[2].([]ProductionAction)
@@ -317,18 +317,18 @@ func sdtsFnMakeStateIns(info trans.SetterInfo, args []interface{}) (interface{},
 	}
 
 	// also grab the state ID's token from args
-	stateTok, ok := args[1].(types.Token)
+	stateTok, ok := args[1].(lex.Token)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "types.Token")
+		return nil, NewArgTypeError(args, 1, "lex.Token")
 	}
 
-	return box.Pair[string, types.Token]{First: state, Second: stateTok}, nil
+	return box.Pair[string, lex.Token]{First: state, Second: stateTok}, nil
 }
 
 func sdtsFnMakeGrammarContentNode(info trans.SetterInfo, args []interface{}) (interface{}, error) {
-	state, ok := args[0].(box.Pair[string, types.Token])
+	state, ok := args[0].(box.Pair[string, lex.Token])
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "box.Pair[string, types.Token]")
+		return nil, NewArgTypeError(args, 0, "box.Pair[string, lex.Token]")
 	}
 
 	rules, ok := args[1].([]GrammarRule)
@@ -339,9 +339,9 @@ func sdtsFnMakeGrammarContentNode(info trans.SetterInfo, args []interface{}) (in
 }
 
 func sdtsFnMakeActionsContentNode(info trans.SetterInfo, args []interface{}) (interface{}, error) {
-	state, ok := args[0].(box.Pair[string, types.Token])
+	state, ok := args[0].(box.Pair[string, lex.Token])
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "box.Pair[string, types.Token]")
+		return nil, NewArgTypeError(args, 0, "box.Pair[string, lex.Token]")
 	}
 
 	actions, ok := args[1].([]SymbolActions)
@@ -352,9 +352,9 @@ func sdtsFnMakeActionsContentNode(info trans.SetterInfo, args []interface{}) (in
 }
 
 func sdtsFnMakeTokensContentNode(info trans.SetterInfo, args []interface{}) (interface{}, error) {
-	state, ok := args[0].(box.Pair[string, types.Token])
+	state, ok := args[0].(box.Pair[string, lex.Token])
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "box.Pair[string, types.Token]")
+		return nil, NewArgTypeError(args, 0, "box.Pair[string, lex.Token]")
 	}
 
 	entries, ok := args[1].([]TokenEntry)
@@ -686,9 +686,9 @@ func sdtsFnMakeSemanticAction(info trans.SetterInfo, args []interface{}) (interf
 		return nil, NewArgTypeError(args, 2, "string")
 	}
 
-	hookTok, ok := args[3].(types.Token)
+	hookTok, ok := args[3].(lex.Token)
 	if !ok {
-		return nil, NewArgTypeError(args, 3, "types.Token")
+		return nil, NewArgTypeError(args, 3, "lex.Token")
 	}
 
 	var argRefs []AttrRef
@@ -712,7 +712,7 @@ func sdtsFnMakeSemanticAction(info trans.SetterInfo, args []interface{}) (interf
 
 func sdtsFnMakeProdSpecifierNext(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 	// need exact generic-filled type to match later expectations.
-	spec := box.Triple[string, interface{}, types.Token]{First: "NEXT", Second: "", Third: info.FirstToken}
+	spec := box.Triple[string, interface{}, lex.Token]{First: "NEXT", Second: "", Third: info.FirstToken}
 	return spec, nil
 }
 
@@ -723,7 +723,7 @@ func sdtsFnMakeProdSpecifierIndex(info trans.SetterInfo, args []interface{}) (in
 	}
 
 	// need exact generic-filled type to match later expectations.
-	spec := box.Triple[string, interface{}, types.Token]{First: "INDEX", Second: index, Third: info.FirstToken}
+	spec := box.Triple[string, interface{}, lex.Token]{First: "INDEX", Second: index, Third: info.FirstToken}
 	return spec, nil
 }
 
@@ -734,7 +734,7 @@ func sdtsFnMakeProdSpecifierLiteral(info trans.SetterInfo, args []interface{}) (
 	}
 
 	// need exact generic-filled type to match later expectations.
-	spec := box.Triple[string, interface{}, types.Token]{First: "LITERAL", Second: prod, Third: info.FirstToken}
+	spec := box.Triple[string, interface{}, lex.Token]{First: "LITERAL", Second: prod, Third: info.FirstToken}
 	return spec, nil
 }
 
@@ -955,7 +955,7 @@ func sdtsFnMakeTokenEntry(info trans.SetterInfo, args []interface{}) (interface{
 // for hooks to generate fake info object when needed. Sym and name can be blank
 // if desired. Returned SetterInfo will always have synthetic set to true.
 func makeFakeInfo(from interface{}, sym, name string) (trans.SetterInfo, error) {
-	tok, ok := from.(types.Token)
+	tok, ok := from.(lex.Token)
 	if !ok {
 		return trans.SetterInfo{}, fmt.Errorf("not a token")
 	}

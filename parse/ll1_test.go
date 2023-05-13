@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/dekarrin/ictiobus/grammar"
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/lex"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +32,7 @@ func Test_LL1PredictiveParse(t *testing.T) {
 				   | ε ;
 			`,
 			input: []string{
-				"int", "*", "int", types.TokenEndOfText.ID(),
+				"int", "*", "int", lex.TokenEndOfText.ID(),
 			},
 			expect: "( S )\n" +
 				`  |---: ( T )` + "\n" +

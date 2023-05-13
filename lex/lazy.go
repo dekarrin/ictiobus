@@ -8,8 +8,6 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/dekarrin/ictiobus/types"
 )
 
 var (
@@ -40,7 +38,7 @@ type lazyTokenStream struct {
 	panicMode bool
 
 	// classes mapping
-	classes map[string]map[string]types.TokenClass
+	classes map[string]map[string]TokenClass
 
 	// split actions from regexes to match indexes to capturing groups
 	actions map[string][]Action
@@ -51,18 +49,18 @@ type lazyTokenStream struct {
 	patterns map[string]*regexp.Regexp
 
 	// listener is called whenever a token is produced
-	listener func(types.Token)
+	listener func(Token)
 }
 
 // LazyLex returns a token stream that reads the provided input only as much as
 // it needs to to, preferring to stop once it has lexed a token until the next
 // call to Next(). If any lexing errors occur, they will be returned as an Error
 // token from the stream's Next() method.
-func (lx *lexerTemplate) LazyLex(input io.Reader) (types.TokenStream, error) {
+func (lx *lexerTemplate) LazyLex(input io.Reader) (TokenStream, error) {
 	active := &lazyTokenStream{
 		r:        newRegexReader(input),
 		patterns: make(map[string]*regexp.Regexp),
-		classes:  make(map[string]map[string]types.TokenClass),
+		classes:  make(map[string]map[string]TokenClass),
 		actions:  make(map[string][]Action),
 		state:    lx.StartingState(),
 		listener: lx.listener,
@@ -137,7 +135,7 @@ func (lx *lexerTemplate) LazyLex(input io.Reader) (types.TokenStream, error) {
 
 	// move over classes too (although they might not be needed)
 	for k := range lx.classes {
-		stateClasses := map[string]types.TokenClass{}
+		stateClasses := map[string]TokenClass{}
 		if k != "" {
 			defClasses, ok := lx.classes[""]
 			if ok {
@@ -166,7 +164,7 @@ func (lx *lexerTemplate) LazyLex(input io.Reader) (types.TokenStream, error) {
 // is types.TokenEndOfText. If an error in lexing occurs, it will return a token
 // whose Class() is types.TokenError and whose lexeme is a message explaining
 // the error.
-func (lx *lazyTokenStream) Next() types.Token {
+func (lx *lazyTokenStream) Next() Token {
 	if lx.done {
 		return lx.makeEOTToken()
 	}
@@ -249,7 +247,7 @@ func (lx *lazyTokenStream) Next() types.Token {
 		}
 
 		action := stateActions[actionIdx]
-		var tok types.Token
+		var tok Token
 		var retToken bool
 
 		// if lexeme has a prefix consisting of only whitespace with at least
@@ -336,7 +334,7 @@ func (lx *lazyTokenStream) Next() types.Token {
 }
 
 // Peek returns the next token in the stream without advancing the stream.
-func (lx *lazyTokenStream) Peek() types.Token {
+func (lx *lazyTokenStream) Peek() Token {
 	// preserve all parts of the lexer that might change during a call to Next()
 	// so we can restore it afterward
 	lx.r.Mark("peek")
@@ -368,7 +366,7 @@ func (lx *lazyTokenStream) HasNext() bool {
 	return !lx.done
 }
 
-func (lx *lazyTokenStream) makeToken(class types.TokenClass, lexeme string) types.Token {
+func (lx *lazyTokenStream) makeToken(class TokenClass, lexeme string) Token {
 	return lexerToken{
 		class:   class,
 		line:    lx.curFullLine,
@@ -378,20 +376,20 @@ func (lx *lazyTokenStream) makeToken(class types.TokenClass, lexeme string) type
 	}
 }
 
-func (lx *lazyTokenStream) makeEOTToken() types.Token {
-	return lx.makeToken(types.TokenEndOfText, "")
+func (lx *lazyTokenStream) makeEOTToken() Token {
+	return lx.makeToken(TokenEndOfText, "")
 }
 
-func (lx *lazyTokenStream) makeErrorTokenf(formatMsg string, args ...any) types.Token {
+func (lx *lazyTokenStream) makeErrorTokenf(formatMsg string, args ...any) Token {
 	msg := fmt.Sprintf(formatMsg, args...)
-	return lx.makeToken(types.TokenError, msg)
+	return lx.makeToken(TokenError, msg)
 }
 
 // token for read error takes the given error returned from an I/O operation,
 // sets state on lx based on whether the error is io.EOF or some other error,
 // then returns a token appropriate for the error, either one of class
 // types.TokenEndOfText for io.EOF or types.TokenError for all other errors.
-func (lx *lazyTokenStream) tokenForIOError(err error) types.Token {
+func (lx *lazyTokenStream) tokenForIOError(err error) Token {
 	lx.done = true
 
 	if err == io.EOF {

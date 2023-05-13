@@ -10,6 +10,7 @@ import (
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
+	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/types"
 )
 
@@ -109,13 +110,13 @@ func (ll1 ll1Parser) notifyPushed(s string) {
 // Parse takes a stream of tokens and parses it into a parse tree. If any syntax
 // errors are encountered, an empty parse tree and a *types.SyntaxError is
 // returned.
-func (ll1 *ll1Parser) Parse(stream types.TokenStream) (types.ParseTree, error) {
+func (ll1 *ll1Parser) Parse(stream lex.TokenStream) (ParseTree, error) {
 	symStack := box.NewStack([]string{ll1.g.StartSymbol(), "$"})
 	next := stream.Peek()
 	X := symStack.Peek()
 	ll1.notifyPopped(X)
-	pt := types.ParseTree{Value: ll1.g.StartSymbol()}
-	ptStack := box.NewStack([]*types.ParseTree{&pt})
+	pt := ParseTree{Value: ll1.g.StartSymbol()}
+	ptStack := box.NewStack([]*ParseTree{&pt})
 
 	node := ptStack.Peek()
 	for X != "$" { /* stack is not empty */
@@ -133,14 +134,14 @@ func (ll1 *ll1Parser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 				ptStack.Pop()
 				node = ptStack.Peek()
 			} else {
-				return pt, types.NewSyntaxErrorFromToken(fmt.Sprintf("There should be a %s here, but it was %q!", t.Human(), next.Lexeme()), next)
+				return pt, lex.NewSyntaxErrorFromToken(fmt.Sprintf("There should be a %s here, but it was %q!", t.Human(), next.Lexeme()), next)
 			}
 
 			next = stream.Peek()
 		} else {
 			nextProd := ll1.table.Get(X, ll1.g.TermFor(next.Class()))
 			if nextProd.Equal(grammar.Error) {
-				return pt, types.NewSyntaxErrorFromToken(fmt.Sprintf("It doesn't make any sense to put a %q here!", next.Class().Human()), next)
+				return pt, lex.NewSyntaxErrorFromToken(fmt.Sprintf("It doesn't make any sense to put a %q here!", next.Class().Human()), next)
 			}
 
 			symStack.Pop()
@@ -151,11 +152,11 @@ func (ll1 *ll1Parser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 					ll1.notifyPushed(nextProd[i])
 				}
 
-				child := &types.ParseTree{Value: nextProd[i]}
+				child := &ParseTree{Value: nextProd[i]}
 				if nextProd[i] == grammar.Epsilon[0] {
 					child.Terminal = true
 				}
-				node.Children = append([]*types.ParseTree{child}, node.Children...)
+				node.Children = append([]*ParseTree{child}, node.Children...)
 
 				if nextProd[i] != grammar.Epsilon[0] {
 					ptStack.Push(child)

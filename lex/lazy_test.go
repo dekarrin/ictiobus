@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/dekarrin/ictiobus/internal/box"
-	"github.com/dekarrin/ictiobus/types"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -19,7 +18,7 @@ var (
 	testClassEq     = NewTokenClass("equals", "'='")
 	testClassInt    = NewTokenClass("int", "integer constant")
 
-	allTestClasses = []types.TokenClass{
+	allTestClasses = []TokenClass{
 		testClassPlus,
 		testClassMult,
 		testClassLParen,
@@ -33,7 +32,7 @@ var (
 func Test_LazyLex_multilineTokenSupport(t *testing.T) {
 	nlPlus := NewTokenClass("nl_plus", "'+' on next line")
 
-	useClasses := []types.TokenClass{
+	useClasses := []TokenClass{
 		nlPlus,
 		testClassInt,
 		testClassMult,
@@ -42,7 +41,7 @@ func Test_LazyLex_multilineTokenSupport(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		classes  []types.TokenClass
+		classes  []TokenClass
 		patterns []box.Pair[string, Action]
 		input    string
 		expect   []lexerToken
@@ -64,7 +63,7 @@ func Test_LazyLex_multilineTokenSupport(t *testing.T) {
 				{line: "1 * var ", lineNum: 1, linePos: 5, class: testClassId, lexed: "var"},
 				{line: "+ 2", lineNum: 2, linePos: 1, class: nlPlus, lexed: "\n+"},
 				{line: "+ 2", lineNum: 2, linePos: 3, class: testClassInt, lexed: "2"},
-				{line: "+ 2", lineNum: 2, linePos: 4, class: types.TokenEndOfText},
+				{line: "+ 2", lineNum: 2, linePos: 4, class: TokenEndOfText},
 			},
 		},
 		{
@@ -84,7 +83,7 @@ func Test_LazyLex_multilineTokenSupport(t *testing.T) {
 				{line: "1 * var ", lineNum: 1, linePos: 5, class: testClassId, lexed: "var"},
 				{line: "+ 2", lineNum: 3, linePos: 1, class: nlPlus, lexed: "\n\n+"},
 				{line: "+ 2", lineNum: 3, linePos: 3, class: testClassInt, lexed: "2"},
-				{line: "+ 2", lineNum: 3, linePos: 4, class: types.TokenEndOfText},
+				{line: "+ 2", lineNum: 3, linePos: 4, class: TokenEndOfText},
 			},
 		},
 		{
@@ -104,7 +103,7 @@ func Test_LazyLex_multilineTokenSupport(t *testing.T) {
 				{line: "1 * var ", lineNum: 1, linePos: 5, class: testClassId, lexed: "var"},
 				{line: "+ 2", lineNum: 3, linePos: 1, class: nlPlus, lexed: "\n\n+"},
 				{line: "+ 2", lineNum: 3, linePos: 3, class: testClassInt, lexed: "2"},
-				{line: "+ 2", lineNum: 3, linePos: 4, class: types.TokenEndOfText},
+				{line: "+ 2", lineNum: 3, linePos: 4, class: TokenEndOfText},
 			},
 		},
 		{
@@ -124,7 +123,7 @@ func Test_LazyLex_multilineTokenSupport(t *testing.T) {
 				{line: "1 * var ", lineNum: 1, linePos: 5, class: testClassId, lexed: "var"},
 				{line: "+", lineNum: 3, linePos: 1, class: nlPlus, lexed: "\n\n+\n"},
 				{line: " 2", lineNum: 4, linePos: 2, class: testClassInt, lexed: "2"},
-				{line: " 2", lineNum: 4, linePos: 3, class: types.TokenEndOfText},
+				{line: " 2", lineNum: 4, linePos: 3, class: TokenEndOfText},
 			},
 		},
 		{
@@ -144,7 +143,7 @@ func Test_LazyLex_multilineTokenSupport(t *testing.T) {
 				{line: "1 * var ", lineNum: 1, linePos: 5, class: testClassId, lexed: "var"},
 				{line: "+", lineNum: 2, linePos: 1, class: nlPlus, lexed: "\n+\nA PLUS\n\n"},
 				{line: " 2", lineNum: 5, linePos: 2, class: testClassInt, lexed: "2"},
-				{line: " 2", lineNum: 5, linePos: 3, class: types.TokenEndOfText},
+				{line: " 2", lineNum: 5, linePos: 3, class: TokenEndOfText},
 			},
 		},
 		{
@@ -164,7 +163,7 @@ func Test_LazyLex_multilineTokenSupport(t *testing.T) {
 				{line: "1 * var    ", lineNum: 1, linePos: 5, class: testClassId, lexed: "var"},
 				{line: "  +k", lineNum: 2, linePos: 3, class: nlPlus, lexed: "   \n  +k\nA PLUS\n\n"},
 				{line: " 2", lineNum: 5, linePos: 2, class: testClassInt, lexed: "2"},
-				{line: " 2", lineNum: 5, linePos: 3, class: types.TokenEndOfText},
+				{line: " 2", lineNum: 5, linePos: 3, class: TokenEndOfText},
 			},
 		},
 	}
@@ -205,7 +204,7 @@ func Test_LazyLex_multilineTokenSupport(t *testing.T) {
 				expectToken := tc.expect[tokNum]
 				actualToken := stream.Next()
 
-				if actualToken.Class().ID() == types.TokenError.ID() {
+				if actualToken.Class().ID() == TokenError.ID() {
 					assert.Fail("received error token", "error: %s", actualToken.Lexeme())
 				}
 
@@ -245,7 +244,7 @@ func Test_LazyLex_multilineTokenSupport(t *testing.T) {
 func Test_LazyLex_singleStateLex(t *testing.T) {
 	testCases := []struct {
 		name       string
-		classes    []types.TokenClass
+		classes    []TokenClass
 		patterns   []string
 		lexActions []Action
 		input      string
@@ -285,7 +284,7 @@ func Test_LazyLex_singleStateLex(t *testing.T) {
 				{line: "someVar = (8 + 1)* 2", lineNum: 1, linePos: 17, class: testClassRParen, lexed: ")"},
 				{line: "someVar = (8 + 1)* 2", lineNum: 1, linePos: 18, class: testClassMult, lexed: "*"},
 				{line: "someVar = (8 + 1)* 2", lineNum: 1, linePos: 20, class: testClassInt, lexed: "2"},
-				{line: "someVar = (8 + 1)* 2", lineNum: 1, linePos: 21, class: types.TokenEndOfText},
+				{line: "someVar = (8 + 1)* 2", lineNum: 1, linePos: 21, class: TokenEndOfText},
 			},
 		},
 		{
@@ -322,7 +321,7 @@ func Test_LazyLex_singleStateLex(t *testing.T) {
 				{line: "someVar=(8+1)*2", lineNum: 1, linePos: 13, class: testClassRParen, lexed: ")"},
 				{line: "someVar=(8+1)*2", lineNum: 1, linePos: 14, class: testClassMult, lexed: "*"},
 				{line: "someVar=(8+1)*2", lineNum: 1, linePos: 15, class: testClassInt, lexed: "2"},
-				{line: "someVar=(8+1)*2", lineNum: 1, linePos: 16, class: types.TokenEndOfText},
+				{line: "someVar=(8+1)*2", lineNum: 1, linePos: 16, class: TokenEndOfText},
 			},
 		},
 		{
@@ -359,7 +358,7 @@ func Test_LazyLex_singleStateLex(t *testing.T) {
 				{line: "(8 + 1)* 2", lineNum: 2, linePos: 7, class: testClassRParen, lexed: ")"},
 				{line: "(8 + 1)* 2", lineNum: 2, linePos: 8, class: testClassMult, lexed: "*"},
 				{line: "(8 + 1)* 2", lineNum: 2, linePos: 10, class: testClassInt, lexed: "2"},
-				{line: "(8 + 1)* 2", lineNum: 2, linePos: 11, class: types.TokenEndOfText},
+				{line: "(8 + 1)* 2", lineNum: 2, linePos: 11, class: TokenEndOfText},
 			},
 		},
 	}
@@ -405,7 +404,7 @@ func Test_LazyLex_singleStateLex(t *testing.T) {
 				expectToken := tc.expect[tokNum]
 				actualToken := stream.Next()
 
-				if actualToken.Class().ID() == types.TokenError.ID() {
+				if actualToken.Class().ID() == TokenError.ID() {
 					assert.Fail("received error token", "error: %s", actualToken.Lexeme())
 				}
 

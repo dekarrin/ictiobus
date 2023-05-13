@@ -13,7 +13,6 @@ created by invoking ictiobus with the following command:
 
 import (
 	"github.com/dekarrin/ictiobus/lex"
-	"github.com/dekarrin/ictiobus/types"
 )
 
 var (
@@ -102,7 +101,7 @@ var (
 	TCTerm = lex.NewTokenClass("term", "terminal symbol literal")
 )
 
-var all = map[string]types.TokenClass{
+var all = map[string]lex.TokenClass{
 	"alt":              TCAlt,
 	"attr-ref":         TCAttrRef,
 	"dir-discard":      TCDirDiscard,
@@ -135,6 +134,6 @@ var all = map[string]types.TokenClass{
 
 // ByID returns the TokenClass in FISHI that has the given ID. If no token
 // class with that ID exists, nil is returned.
-func ByID(id string) types.TokenClass {
+func ByID(id string) lex.TokenClass {
 	return all[id]
 }

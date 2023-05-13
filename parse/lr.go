@@ -9,6 +9,7 @@ import (
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
+	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/types"
 )
 
@@ -152,11 +153,11 @@ func (lr lrParser) notifyAction(act lrAction) {
 	lr.notifyTrace("Action: %s", act.Type.String())
 }
 
-func (lr lrParser) notifyNextToken(tok types.Token) {
+func (lr lrParser) notifyNextToken(tok lex.Token) {
 	lr.notifyTrace("Got next token: %s", tok.String())
 }
 
-func (lr lrParser) notifyTokenStack(st *box.Stack[types.Token]) {
+func (lr lrParser) notifyTokenStack(st *box.Stack[lex.Token]) {
 	stackElems := st.Elements()
 	lr.notifyTraceFn(func() string {
 		var lexStr strings.Builder
@@ -193,12 +194,12 @@ func (lr lrParser) notifyTokenStack(st *box.Stack[types.Token]) {
 //
 // This is an implementation of Algorithm 4.44, "LR-parsing algorithm", from
 // the purple dragon book.
-func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
+func (lr *lrParser) Parse(stream lex.TokenStream) (ParseTree, error) {
 	stateStack := box.NewStack([]string{lr.table.Initial()})
 
 	// we will use these to build our parse tree
-	tokenBuffer := &box.Stack[types.Token]{}
-	subTreeRoots := &box.Stack[*types.ParseTree]{}
+	tokenBuffer := &box.Stack[lex.Token]{}
+	subTreeRoots := &box.Stack[*ParseTree]{}
 
 	// let a be the first symbol of w$;
 	a := stream.Next()
@@ -238,12 +239,12 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 			lr.notifyTrace("%s -> %s", strings.ToUpper(A), prodStr)
 
 			// use the reduce to create a node in the parse tree
-			node := &types.ParseTree{Value: A, Children: make([]*types.ParseTree, 0)}
+			node := &ParseTree{Value: A, Children: make([]*ParseTree, 0)}
 
 			// SPECIAL CASE: if we just reduced an epsilon production, immediately
 			// add the epsilon node to the new one
 			if len(beta) == 0 {
-				node.Children = append(node.Children, &types.ParseTree{
+				node.Children = append(node.Children, &ParseTree{
 					Terminal: true,
 				})
 			}
@@ -255,13 +256,13 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 				if strings.ToLower(sym) == sym {
 					// it is a terminal. read the source from the token buffer
 					tok := tokenBuffer.Pop()
-					subNode := &types.ParseTree{Terminal: true, Value: tok.Class().ID(), Source: tok}
-					node.Children = append([]*types.ParseTree{subNode}, node.Children...)
+					subNode := &ParseTree{Terminal: true, Value: tok.Class().ID(), Source: tok}
+					node.Children = append([]*ParseTree{subNode}, node.Children...)
 				} else {
 					// it is a non-terminal. it should be in our stack of
 					// current tree roots.
 					subNode := subTreeRoots.Pop()
-					node.Children = append([]*types.ParseTree{subNode}, node.Children...)
+					node.Children = append([]*ParseTree{subNode}, node.Children...)
 				}
 			}
 			// remember it for next time
@@ -280,7 +281,7 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 			// push GOTO[t, A] onto the stack
 			toPush, err := lr.table.Goto(t, A)
 			if err != nil {
-				return types.ParseTree{}, types.NewSyntaxErrorFromToken(fmt.Sprintf("LR parsing error; DFA has no valid transition from here on %q", A), a)
+				return ParseTree{}, lex.NewSyntaxErrorFromToken(fmt.Sprintf("LR parsing error; DFA has no valid transition from here on %q", A), a)
 			}
 			stateStack.Push(toPush)
 			lr.notifyTrace("Transition %s =(%q)=> %s", t, strings.ToLower(A), toPush)
@@ -295,7 +296,7 @@ func (lr *lrParser) Parse(stream types.TokenStream) (types.ParseTree, error) {
 		case lrError:
 			// call error-recovery routine
 			expMessage := lr.getExpectedString(s)
-			return types.ParseTree{}, types.NewSyntaxErrorFromToken(fmt.Sprintf("unexpected %s; %s", a.Class().Human(), expMessage), a)
+			return ParseTree{}, lex.NewSyntaxErrorFromToken(fmt.Sprintf("unexpected %s; %s", a.Class().Human(), expMessage), a)
 		}
 		lr.notifyTrace("-----------------")
 	}
@@ -348,10 +349,10 @@ func (lr lrParser) getExpectedString(stateName string) string {
 
 // findExpectedAt returns all token classes that are allowed/expected for
 // the given state, that is, those symbols that result in a non-error entry.
-func (lr lrParser) findExpectedTokens(stateName string) []types.TokenClass {
+func (lr lrParser) findExpectedTokens(stateName string) []lex.TokenClass {
 	terms := lr.gram.Terminals()
 
-	classes := make([]types.TokenClass, 0)
+	classes := make([]lex.TokenClass, 0)
 	for i := range terms {
 		t := lr.gram.Term(terms[i])
 		act := lr.table.Action(stateName, t.ID())

@@ -9,7 +9,6 @@ import (
 	"regexp"
 
 	"github.com/dekarrin/ictiobus/internal/unregex"
-	"github.com/dekarrin/ictiobus/types"
 )
 
 // A Lexer represents an in-progress or ready-built lexing engine ready for use.
@@ -21,11 +20,11 @@ type Lexer interface {
 	// point. If it is lazy, then error token productions will be returned to
 	// the callers of the returned TokenStream at the point where the error
 	// occured.
-	Lex(input io.Reader) (types.TokenStream, error)
+	Lex(input io.Reader) (TokenStream, error)
 
 	// RegisterClass registers a token class for use in some state of the Lexer.
 	// Token classes must be registered before they can be used.
-	RegisterClass(cl types.TokenClass, forState string)
+	RegisterClass(cl TokenClass, forState string)
 
 	// AddPattern adds a new pattern for the lexer to recognize.
 	AddPattern(pat string, action Action, forState string, priority int) error
@@ -57,7 +56,7 @@ type Lexer interface {
 
 	// RegisterTokenListener provides a function to call whenever a new token is
 	// lexed. It can be used for debug purposes.
-	RegisterTokenListener(func(t types.Token))
+	RegisterTokenListener(func(t Token))
 }
 
 type patAct struct {
@@ -73,9 +72,9 @@ type lexerTemplate struct {
 	startState string
 
 	// classes by ID by state
-	classes map[string]map[string]types.TokenClass
+	classes map[string]map[string]TokenClass
 
-	listener func(types.Token)
+	listener func(Token)
 }
 
 // NewLexer creates a new Lexer that performs lexing in a lazy or immediate
@@ -85,12 +84,12 @@ func NewLexer(lazy bool) Lexer {
 		lazy:       lazy,
 		patterns:   map[string][]patAct{},
 		startState: "",
-		classes:    map[string]map[string]types.TokenClass{},
+		classes:    map[string]map[string]TokenClass{},
 	}
 }
 
 // Lex returns a stream of tokens lexed from the given input.
-func (lx *lexerTemplate) Lex(input io.Reader) (types.TokenStream, error) {
+func (lx *lexerTemplate) Lex(input io.Reader) (TokenStream, error) {
 	if lx.lazy {
 		return lx.LazyLex(input)
 	} else {
@@ -112,7 +111,7 @@ func (lx *lexerTemplate) StartingState() string {
 
 // RegisterTokenListener provides a function to call whenever a new token is
 // lexed. It can be used for debug purposes.
-func (lx *lexerTemplate) RegisterTokenListener(fn func(t types.Token)) {
+func (lx *lexerTemplate) RegisterTokenListener(fn func(t Token)) {
 	lx.listener = fn
 }
 
@@ -122,10 +121,10 @@ func (lx *lexerTemplate) RegisterTokenListener(fn func(t types.Token)) {
 //
 // If the given token class's ID() returns a string matching one already added,
 // the provided one will replace the existing one.
-func (lx *lexerTemplate) RegisterClass(cl types.TokenClass, forState string) {
+func (lx *lexerTemplate) RegisterClass(cl TokenClass, forState string) {
 	stateClasses, ok := lx.classes[forState]
 	if !ok {
-		stateClasses = map[string]types.TokenClass{}
+		stateClasses = map[string]TokenClass{}
 	}
 
 	stateClasses[cl.ID()] = cl
@@ -140,7 +139,7 @@ func (lx *lexerTemplate) AddPattern(pat string, action Action, forState string, 
 	}
 	stateClasses, ok := lx.classes[forState]
 	if !ok {
-		stateClasses = map[string]types.TokenClass{}
+		stateClasses = map[string]TokenClass{}
 	}
 
 	compiled, err := regexp.Compile(pat)

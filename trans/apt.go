@@ -5,7 +5,8 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/internal/box"
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/lex"
+	"github.com/dekarrin/ictiobus/parse"
 )
 
 const (
@@ -52,7 +53,7 @@ type AnnotatedParseTree struct {
 	Symbol string
 
 	// Source is only available when Terminal is true.
-	Source types.Token
+	Source lex.Token
 
 	// Children is all children of the parse tree.
 	Children []*AnnotatedParseTree
@@ -66,8 +67,8 @@ type AnnotatedParseTree struct {
 // AnnotatedParseTree. Returns an AnnotatedParseTree with only auto fields set
 // ('$text' for terminals, '$id' for all nodes, and '$ft' for all nodes except
 // epsilon terminal nodes, representing the first Token of the expression).
-func Annotate(root types.ParseTree) AnnotatedParseTree {
-	treeStack := box.NewStack([]*types.ParseTree{&root})
+func Annotate(root parse.ParseTree) AnnotatedParseTree {
+	treeStack := box.NewStack([]*parse.ParseTree{&root})
 	annoRoot := AnnotatedParseTree{}
 	annotatedStack := box.NewStack([]*AnnotatedParseTree{&annoRoot})
 
@@ -163,7 +164,7 @@ func (apt AnnotatedParseTree) leveledStr(firstPrefix, contPrefix string) string 
 // children also return nil.
 //
 // Call on pointer because it may update $first if not already set.
-func (apt *AnnotatedParseTree) First() types.Token {
+func (apt *AnnotatedParseTree) First() lex.Token {
 	// epsilon is a not a token per-se
 	if apt.Symbol == "" && apt.Terminal {
 		apt.Attributes[string("$ft")] = nil
@@ -198,8 +199,8 @@ func (apt *AnnotatedParseTree) First() types.Token {
 		return nil
 	}
 
-	var first types.Token
-	first, ok = untyped.(types.Token)
+	var first lex.Token
+	first, ok = untyped.(lex.Token)
 	if !ok {
 		panic(fmt.Sprintf("$ft attribute set to non-Token typed value: %v", untyped))
 	}

@@ -15,8 +15,8 @@ import (
 	"os"
 
 	"github.com/dekarrin/ictiobus"
+	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/trans"
-	"github.com/dekarrin/ictiobus/types"
 
 	"github.com/dekarrin/ictiobus/fishi/syntax"
 )
@@ -67,7 +67,7 @@ func Frontend(hooks trans.HookMap, opts *FrontendOptions) ictiobus.Frontend[synt
 	// Add traces if requested
 
 	if opts.LexerTrace {
-		fe.Lexer.RegisterTokenListener(func(t types.Token) {
+		fe.Lexer.RegisterTokenListener(func(t lex.Token) {
 			fmt.Fprintf(os.Stderr, "Token: %s\n", t)
 		})
 	}

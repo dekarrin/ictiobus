@@ -1,4 +1,4 @@
-package types
+package parse
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/slices"
+	"github.com/dekarrin/ictiobus/lex"
 )
 
 const (
@@ -44,7 +45,7 @@ type ParseTree struct {
 	Value string
 
 	// Source is only available when Terminal is true.
-	Source Token
+	Source lex.Token
 
 	// Children is all children of the parse tree.
 	Children []*ParseTree
@@ -234,7 +235,7 @@ func ParseTreeFromDiagram(s string) (*ParseTree, error) {
 // represents a terminal symbol. The Source token may or may not be set as
 // desired. Note that t's type being ...Token is simply to make it optional;
 // only the first such provided t is examined.
-func PTLeaf(term string, t ...Token) *ParseTree {
+func PTLeaf(term string, t ...lex.Token) *ParseTree {
 	pt := &ParseTree{Terminal: true, Value: term}
 	if len(t) > 0 {
 		pt.Source = t[0]

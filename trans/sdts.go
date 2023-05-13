@@ -6,7 +6,7 @@ import (
 
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/slices"
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/parse"
 )
 
 // sdts.go contains the implementation of a Syntax-Directed Translation Scheme.
@@ -48,7 +48,7 @@ func (sdts *sdtsImpl) SetHooks(hooks HookMap) {
 //
 // This function requires that SetHooks be called with a valid set of
 // implementations for all hooks that will be called.
-func (sdts *sdtsImpl) Evaluate(tree types.ParseTree, attributes ...string) (vals []interface{}, warns []error, err error) {
+func (sdts *sdtsImpl) Evaluate(tree parse.ParseTree, attributes ...string) (vals []interface{}, warns []error, err error) {
 	// don't check for no hooks being set because it's possible we are going to
 	// be handed an empty parse tree, which will fail for other reasons first
 	// or perhaps will not fail at all.

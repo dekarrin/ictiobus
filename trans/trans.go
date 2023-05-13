@@ -8,7 +8,8 @@ import (
 	"fmt"
 
 	"github.com/dekarrin/ictiobus/grammar"
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/lex"
+	"github.com/dekarrin/ictiobus/parse"
 )
 
 // SDTS is a series of syntax-directed translations bound to syntactic rules of
@@ -87,7 +88,7 @@ type SDTS interface {
 	//
 	// Warn errors are provided in the slice of error and can be populated
 	// regardless of whether the final (actual) error is non-nil.
-	Evaluate(tree types.ParseTree, attributes ...string) (vals []interface{}, warns []error, err error)
+	Evaluate(tree parse.ParseTree, attributes ...string) (vals []interface{}, warns []error, err error)
 
 	// Validate checks whether this SDTS is valid for the given grammar. It will
 	// create a simulated parse tree that contains a node for every rule of the
@@ -114,7 +115,7 @@ type SetterInfo struct {
 	GrammarSymbol string
 
 	// The first token of the grammar symbol that the attribute is being set on.
-	FirstToken types.Token
+	FirstToken lex.Token
 
 	// The name of the attribute being set.
 	Name string

@@ -1,4 +1,4 @@
-package types
+package lex
 
 import (
 	"strings"
@@ -80,4 +80,66 @@ var (
 func MakeDefaultClass(s string) TokenClass {
 	tc := simpleTokenClass(s)
 	return &tc
+}
+
+// implementation of TokenClass interface.
+type lexerClass struct {
+	id   string
+	name string
+}
+
+// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into lc.
+// All of lc's fields will be replaced by the fields decoded from data.
+func (lc *lexerClass) UnmarshalBinary(data []byte) error {
+	var err error
+	var n int
+
+	lc.id, n, err = rezi.DecString(data)
+	if err != nil {
+		return err
+	}
+	data = data[n:]
+
+	lc.name, _, err = rezi.DecString(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// MarshalBinary converts lc into a slice of bytes that can be decoded with
+// UnmarshalBinary.
+func (lc *lexerClass) MarshalBinary() ([]byte, error) {
+	data := rezi.EncString(lc.id)
+	data = append(data, rezi.EncString(lc.name)...)
+	return data, nil
+}
+
+func (lc *lexerClass) ID() string {
+	return lc.id
+}
+
+func (lc *lexerClass) Human() string {
+	return lc.name
+}
+
+func (lc *lexerClass) Equal(o any) bool {
+	other, ok := o.(TokenClass)
+	if !ok {
+		otherPtr, ok := o.(*TokenClass)
+		if !ok {
+			return false
+		}
+		if otherPtr == nil {
+			return false
+		}
+		other = *otherPtr
+	}
+
+	return other.ID() == lc.ID()
+}
+
+func NewTokenClass(id string, human string) *lexerClass {
+	return &lexerClass{id: id, name: human}
 }

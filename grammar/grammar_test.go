@@ -1,416 +1,18 @@
 package grammar
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/lex"
 
-	"github.com/dekarrin/ictiobus/internal/tmatch"
 	"github.com/stretchr/testify/assert"
 )
 
 // testing terminals
 var (
-	testTCNumber = types.MakeDefaultClass("int")
+	testTCNumber = lex.MakeDefaultClass("int")
 )
-
-func Test_Grammar_DeriveFullTree(t *testing.T) {
-	testCases := []struct {
-		name      string
-		input     Grammar
-		expect    []types.ParseTree
-		expectErr bool
-	}{
-		{
-			name: "minimal grammar",
-			input: MustParse(`
-				S -> a   ;
-			`),
-			expect: []types.ParseTree{
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "a", Terminal: true},
-				}},
-			},
-		},
-		{
-			name: "1 rule, multi-production (terms only)",
-			input: MustParse(`
-					S -> a | b  ;
-				`),
-			expect: []types.ParseTree{
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "a", Terminal: true},
-				}},
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "b", Terminal: true},
-				}},
-			},
-		},
-		{
-			name: "minimal 2 rule grammar",
-			input: MustParse(`
-					S -> B  ;
-					B -> b  ;
-				`),
-			expect: []types.ParseTree{
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "B", Children: []*types.ParseTree{
-						{Value: "b", Terminal: true},
-					}},
-				}},
-			},
-		},
-		{
-			name: "directly recursive grammar",
-			input: MustParse(`
-					S -> S B | B  ;
-					B -> b        ;
-				`),
-			expect: []types.ParseTree{
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "S", Children: []*types.ParseTree{
-						{Value: "B", Children: []*types.ParseTree{
-							{Value: "b", Terminal: true},
-						}},
-					}},
-					{Value: "B", Children: []*types.ParseTree{
-						{Value: "b", Terminal: true},
-					}},
-				}},
-			},
-		},
-		{
-			name: "indirectly recursive grammar",
-			input: MustParse(`
-					S -> B | a ;
-					B -> S b   ;
-				`),
-			expect: []types.ParseTree{
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "B", Children: []*types.ParseTree{
-						{Value: "S", Children: []*types.ParseTree{
-							{Value: "a", Terminal: true},
-						}},
-						{Value: "b", Terminal: true},
-					}},
-				}},
-			},
-		},
-		{
-			name: "lower rule impossible to fill in one try",
-			input: MustParse(`
-					S   -> BL        ;
-					BL  -> a | b | c ;
-				`),
-			expect: []types.ParseTree{
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "BL", Children: []*types.ParseTree{
-						{Value: "a", Terminal: true},
-					}},
-				}},
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "BL", Children: []*types.ParseTree{
-						{Value: "b", Terminal: true},
-					}},
-				}},
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "BL", Children: []*types.ParseTree{
-						{Value: "c", Terminal: true},
-					}},
-				}},
-			},
-		},
-		{
-			name: "lower rule impossible to fill in one try and second try makes third symbol unreachable",
-			input: MustParse(`
-					S  -> BL     ;
-					BL -> A | b  ;
-					A  -> a      ;
-				`),
-			expect: []types.ParseTree{
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "BL", Children: []*types.ParseTree{
-						{Value: "A", Children: []*types.ParseTree{
-							{Value: "a", Terminal: true},
-						}},
-					}},
-				}},
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "BL", Children: []*types.ParseTree{
-						{Value: "b", Terminal: true},
-					}},
-				}},
-			},
-		},
-		{
-			name: "lower rule is unreachable on second try and recurses",
-			input: MustParse(`
-				S -> A | B ;
-				B -> b     ;
-				A -> a | S ;
-			`),
-			expect: []types.ParseTree{
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "A", Children: []*types.ParseTree{
-						{Value: "a", Terminal: true},
-					}},
-				}},
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "B", Children: []*types.ParseTree{
-						{Value: "b", Terminal: true},
-					}},
-				}},
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "A", Children: []*types.ParseTree{
-						{Value: "S", Children: []*types.ParseTree{
-							{Value: "B", Children: []*types.ParseTree{
-								{Value: "b", Terminal: true},
-							}},
-						}},
-					}},
-				}},
-			},
-		},
-		{
-			name: "2nd alt is never reached",
-			input: MustParse(`
-				S -> A | B ;
-				A -> a | b ;
-				B -> c | d ;
-			`),
-			expect: []types.ParseTree{
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "A", Children: []*types.ParseTree{
-						{Value: "a", Terminal: true},
-					}},
-				}},
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "B", Children: []*types.ParseTree{
-						{Value: "c", Terminal: true},
-					}},
-				}},
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "A", Children: []*types.ParseTree{
-						{Value: "b", Terminal: true},
-					}},
-				}},
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "B", Children: []*types.ParseTree{
-						{Value: "d", Terminal: true},
-					}},
-				}},
-			},
-		},
-		{
-			name: "expr grammar",
-			input: MustParse(`
-						E -> E + T | T   ;
-						T -> T * F | F   ;
-						F -> ( E ) | id  ;
-					`),
-			expect: []types.ParseTree{
-				{Value: "E", Children: []*types.ParseTree{
-					{Value: "E", Children: []*types.ParseTree{
-						{Value: "T", Children: []*types.ParseTree{
-							{Value: "T", Children: []*types.ParseTree{
-								{Value: "F", Children: []*types.ParseTree{
-									{Value: "(", Terminal: true},
-									{Value: "E", Children: []*types.ParseTree{
-										{Value: "T", Children: []*types.ParseTree{
-											{Value: "F", Children: []*types.ParseTree{
-												{Value: "id", Terminal: true},
-											}},
-										}},
-									}},
-									{Value: ")", Terminal: true},
-								}},
-							}},
-							{Value: "*", Terminal: true},
-							{Value: "F", Children: []*types.ParseTree{
-								{Value: "id", Terminal: true},
-							}},
-						}},
-					}},
-					{Value: "+", Terminal: true},
-					{Value: "T", Children: []*types.ParseTree{
-						{Value: "F", Children: []*types.ParseTree{
-							{Value: "id", Terminal: true},
-						}},
-					}},
-				}},
-			},
-		},
-		{
-			name: "grammar with epsilon",
-			input: MustParse(`
-						S -> S a | B   ;
-						B -> b | ε     ;
-					`),
-			expect: []types.ParseTree{
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "S", Children: []*types.ParseTree{
-						{Value: "B", Children: []*types.ParseTree{
-							{Value: "b", Terminal: true},
-						}},
-					}},
-					{Value: "a", Terminal: true},
-				}},
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "S", Children: []*types.ParseTree{
-						{Value: "B", Children: []*types.ParseTree{
-							{Value: "", Terminal: true},
-						}},
-					}},
-					{Value: "a", Terminal: true},
-				}},
-			},
-		},
-		{
-			name: "a* grammar",
-			input: MustParse(`
-						S -> S a | ε   ;
-					`),
-			expect: []types.ParseTree{
-				{Value: "S", Children: []*types.ParseTree{
-					{Value: "S", Children: []*types.ParseTree{
-						{Value: "", Terminal: true},
-					}},
-					{Value: "a", Terminal: true},
-				}},
-			},
-		},
-		{
-			name: "inescapable derivation cycle in single rule",
-			input: MustParse(`
-				S -> S a | S b  ;
-			`),
-			expectErr: true,
-		},
-		{
-			name: "multi-rule inescapable derivation cycle",
-			input: MustParse(`
-				S -> A a | b B  ;
-				A -> S d		;
-				B -> c S		;
-			`),
-			expectErr: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := assert.New(t)
-
-			actual, err := tc.input.DeriveFullTree()
-			if tc.expectErr {
-				assert.Error(err)
-				return
-			} else if !assert.NoError(err) {
-				return
-			}
-
-			assert.Len(actual, len(tc.expect))
-
-			limit := len(tc.expect)
-			if len(actual) < limit {
-				limit = len(actual)
-			}
-			for i := 0; i < limit; i++ {
-				assert.Equal(tc.expect[i].String(), actual[i].String())
-			}
-		})
-	}
-}
-
-func Test_Grammar_createFewestNonTermsAlternationsTable(t *testing.T) {
-	testCases := []struct {
-		name        string
-		input       Grammar
-		expect      map[string]Production
-		expectOneOf []map[string]Production // because this is testing a non-deterministic algorithm, there may be multiple possible outputs
-		expectErr   bool
-	}{
-		{
-			name: "inescapable derivation cycle in single rule",
-			input: MustParse(`
-				S -> S a | S b  ;
-			`),
-			expectErr: true,
-		},
-		{
-			name: "multi-rule inescapable derivation cycle",
-			input: MustParse(`
-				S -> A a | b B  ;
-				A -> S d		;
-				B -> c S		;
-			`),
-			expectErr: true,
-		},
-		{
-			name: "single rule",
-			input: MustParse(`
-				E -> id ;
-			`),
-			expect: map[string]Production{
-				"E": {"id"},
-			},
-		},
-		{
-			name: "simple expr grammar",
-			input: MustParse(`
-				E -> E + T | T ;
-				T -> T * F | F ;
-				F -> ( E ) | id ;
-			`),
-			expect: map[string]Production{
-				"E": {"T"}, "T": {"F"}, "F": {"id"},
-			},
-		},
-		{
-			name: "same score on rule",
-			input: MustParse(`
-				E -> E + T | T ;
-				T -> T * F | F ;
-				F -> ( E ) | id | num;
-			`),
-			expectOneOf: []map[string]Production{
-				{"E": {"T"}, "T": {"F"}, "F": {"id"}},
-				{"E": {"T"}, "T": {"F"}, "F": {"num"}},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert := assert.New(t)
-
-			// make sure we didnt accidentally make an invalid test
-			if !tc.expectErr && tc.expect == nil && tc.expectOneOf == nil {
-				panic(fmt.Sprintf("test case %s does not specify expectErr, expect, or expectOneOf", tc.name))
-			}
-
-			actual, err := tc.input.createFewestNonTermsAlternationsTable()
-			if tc.expectErr {
-				assert.Error(err)
-				return
-			} else if !assert.NoError(err) {
-				return
-			}
-
-			// if only one, check that one
-			if tc.expect != nil {
-				assert.Equal(tc.expect, actual)
-			} else {
-				// otherwise, check that it is one of the possible ones
-				assertErr := tmatch.AnyStrMapV(actual, tc.expectOneOf, tmatch.Comparer(Production.Equal))
-				assert.NoError(assertErr)
-			}
-		})
-	}
-
-}
 
 func Test_Grammar_MarshalUnmarshalBinary(t *testing.T) {
 	testCases := []struct {
@@ -482,7 +84,7 @@ func Test_Grammar_Validate(t *testing.T) {
 	testCases := []struct {
 		name      string
 		rules     []Rule
-		terminals []types.TokenClass
+		terminals []lex.TokenClass
 		expectErr bool
 	}{
 		{
@@ -491,7 +93,7 @@ func Test_Grammar_Validate(t *testing.T) {
 		},
 		{
 			name: "no rules in grammar",
-			terminals: []types.TokenClass{
+			terminals: []lex.TokenClass{
 				testTCNumber,
 			},
 			expectErr: true,
@@ -516,7 +118,7 @@ func Test_Grammar_Validate(t *testing.T) {
 					},
 				},
 			},
-			terminals: []types.TokenClass{
+			terminals: []lex.TokenClass{
 				testTCNumber,
 			},
 		},
@@ -643,7 +245,7 @@ func Test_Grammar_RemoveEpsilons(t *testing.T) {
 			// set up the grammar
 			g := Grammar{}
 			for _, term := range tc.terminals {
-				class := types.MakeDefaultClass(term)
+				class := lex.MakeDefaultClass(term)
 				g.AddTerm(class.ID(), class)
 			}
 			for _, r := range tc.rules {
@@ -783,7 +385,7 @@ func Test_Grammar_RemoveUnitProductions(t *testing.T) {
 			// set up the grammar
 			g := Grammar{}
 			for _, term := range tc.terminals {
-				class := types.MakeDefaultClass(term)
+				class := lex.MakeDefaultClass(term)
 				g.AddTerm(class.ID(), class)
 			}
 			for _, r := range tc.rules {
@@ -983,7 +585,7 @@ func setupGrammar(terminals []string, rules []string) Grammar {
 	g := Grammar{}
 
 	for _, term := range terminals {
-		class := types.MakeDefaultClass(term)
+		class := lex.MakeDefaultClass(term)
 		g.AddTerm(class.ID(), class)
 	}
 	for _, r := range rules {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/parse"
 	"github.com/dekarrin/rosed"
 )
 
@@ -15,14 +15,14 @@ import (
 // It will use fake value producer, if provided, to generate lexemes for
 // terminals in the tree; otherwise contrived values will be used.
 func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug ValidationOptions, fakeValProducer ...map[string]func() string) (warns []string, err error) {
-	pts, err := g.DeriveFullTree(fakeValProducer...)
+	pts, err := parse.DeriveFullTree(g, fakeValProducer...)
 	if err != nil {
 		return warns, fmt.Errorf("deriving fake parse tree: %w", err)
 	}
 
 	const errIndentStr = "    "
 
-	treeErrs := []box.Pair[error, *types.ParseTree]{}
+	treeErrs := []box.Pair[error, *parse.ParseTree]{}
 
 	evalErrToTreeError := func(errFromEval error) error {
 		evalErr, ok := errFromEval.(evalError)

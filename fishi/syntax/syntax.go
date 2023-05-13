@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/lex"
 )
 
 // AST is the a8stract syntax tree of a fishi spec.
@@ -338,7 +338,7 @@ type TokenOption struct {
 
 	// Src is the token that represents this TokenOption as lexed from a FISHI
 	// spec.
-	Src types.Token
+	Src lex.Token
 }
 
 // TokenEntry is a single full entry from a %%tokens block of a FISHI spec. It
@@ -373,27 +373,27 @@ type TokenEntry struct {
 
 	// Src is the first token that represents a part of this TokenEntry as lexed
 	// from a FISHI spec.
-	Src types.Token
+	Src lex.Token
 
 	// SrcDiscard is all first tokens of any %discard directives that are a part
 	// of this TokenEntry as lexed from a FISHI spec.
-	SrcDiscard []types.Token
+	SrcDiscard []lex.Token
 
 	// SrcShift is all first tokens of any %stateshift directives that are a
 	// part of this TokenEntry as lexed from a FISHI spec.
-	SrcShift []types.Token
+	SrcShift []lex.Token
 
 	// SrcToken is all first tokens of any %token directives that are a part of
 	// this TokenEntry as lexed from a FISHI spec.
-	SrcToken []types.Token
+	SrcToken []lex.Token
 
 	// SrcHuman is all first tokens of any %human directives that are a part of
 	// this TokenEntry as lexed from a FISHI spec.
-	SrcHuman []types.Token
+	SrcHuman []lex.Token
 
 	// SrcPriority is all first tokens of any %priority directives that are a
 	// part of this TokenEntry as lexed from a FISHI spec.
-	SrcPriority []types.Token
+	SrcPriority []lex.Token
 
 	// (don't need a patternTok because that pattern is the first symbol and
 	// there can only be one; tok will be the same as patternTok)
@@ -424,7 +424,7 @@ type GrammarRule struct {
 
 	// Src is the first token that represents a part of this GrammarRule as
 	// lexed from a FISHI spec.
-	Src types.Token
+	Src lex.Token
 }
 
 // String returns a string representation of the GrammarRule.
@@ -443,12 +443,12 @@ type TokensContent struct {
 
 	// Src is the first token that represents a part of this TokensContent as
 	// lexed from a FISHI spec.
-	Src types.Token
+	Src lex.Token
 
 	// SrcState is the first token that represents a part of the %state
 	// directive that defines the state that this TokensContent is for. If it is
 	// for the default state, this will be nil.
-	SrcState types.Token
+	SrcState lex.Token
 }
 
 // String returns a string representation of the TokensContent.
@@ -474,13 +474,13 @@ type GrammarContent struct {
 
 	// Src is the first token that represents a part of this GrammarContent as
 	// lexed from a FISHI spec.
-	Src types.Token
+	Src lex.Token
 
 	// SrcState is the first token that represents a part of the %state
 	// directive that defines the state that this GrammarContent is for. As
 	// states for grammar sections other than the default are not supported,
 	// this will always be nil.
-	SrcState types.Token
+	SrcState lex.Token
 }
 
 // String returns a string representation of the GrammarContent.
@@ -507,13 +507,13 @@ type ActionsContent struct {
 
 	// Src is the first token that represents a part of this ActionsContent as
 	// lexed from a FISHI spec.
-	Src types.Token
+	Src lex.Token
 
 	// SrcState is the first token that represents a part of the %state
 	// directive that defines the state that this ActionsContent is for. As
 	// states for actions sections other than the default are not supported,
 	// this will always be nil.
-	SrcState types.Token
+	SrcState lex.Token
 }
 
 // String returns a string representation of the ActionsContent.
@@ -567,7 +567,7 @@ type AttrRef struct {
 
 	// Src is the first token that represents a part of this AttrRef as lexed
 	// from a FISHI spec.
-	Src types.Token
+	Src lex.Token
 }
 
 // ParseAttrRef does a simple parse on an attribute reference from a string that
@@ -725,11 +725,11 @@ type SemanticAction struct {
 
 	// Src is the first token that represents the name of the hook as
 	// lexed from a FISHI spec.
-	SrcHook types.Token
+	SrcHook lex.Token
 
 	// Src is the first token that represents a part of this SemanticAction as
 	// lexed from a FISHI spec.
-	Src types.Token
+	Src lex.Token
 }
 
 // String returns a string representation of the SemanticAction.
@@ -774,11 +774,11 @@ type ProductionAction struct {
 
 	// Src is the first token that represents a part of this ProductionAction as
 	// lexed from a FISHI spec.
-	Src types.Token
+	Src lex.Token
 
 	// SrcVal is where the production action "value" is set; that is, the index
 	// or production. It will be nil if it is simply a prodNext.
-	SrcVal types.Token
+	SrcVal lex.Token
 }
 
 // String returns a string representation of the ProductionAction.
@@ -821,11 +821,11 @@ type SymbolActions struct {
 
 	// Src is the first token that represents a part of this SymbolActions as
 	// lexed from a FISHI spec.
-	Src types.Token
+	Src lex.Token
 
 	// SrcSym is the first token that represents a part of the symbol as lexed
 	// from a FISHI spec.
-	SrcSym types.Token
+	SrcSym lex.Token
 }
 
 // String returns a string representation of the SymbolActions.
