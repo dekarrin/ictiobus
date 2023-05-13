@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dekarrin/ictiobus/types"
+	"github.com/dekarrin/ictiobus/syntaxerr"
 )
 
 // Token is a lexeme read from text combined with the token class it is as well
@@ -84,6 +84,6 @@ func NewToken(class TokenClass, lexed string, linePos int, lineNum int, line str
 // NewSyntaxErrorFromToken uses the location information in the provided token
 // to create a SyntaxError with a detailed message on the error and the source
 // code which caused it.
-func NewSyntaxErrorFromToken(msg string, tok Token) *types.SyntaxError {
-	return types.NewSyntaxError(msg, tok.FullLine(), tok.Lexeme(), tok.Line(), tok.LinePos())
+func NewSyntaxErrorFromToken(msg string, tok Token) *syntaxerr.SyntaxError {
+	return syntaxerr.NewSyntaxError(msg, tok.FullLine(), tok.Lexeme(), tok.Line(), tok.LinePos())
 }

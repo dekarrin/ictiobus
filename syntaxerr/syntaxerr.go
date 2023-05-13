@@ -1,4 +1,5 @@
-package types
+// Package syntaxerr provides a common syntax error type for all of ictiobus.
+package syntaxerr
 
 import (
 	"fmt"

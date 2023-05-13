@@ -29,7 +29,6 @@ import (
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/parse"
 	"github.com/dekarrin/ictiobus/trans"
-	"github.com/dekarrin/ictiobus/types"
 )
 
 // NewLexer returns a lexer whose Lex method will immediately lex the entire
@@ -66,7 +65,7 @@ func NewLazyLexer() lex.Lexer {
 // allowAmbiguous allows the use of ambiguous grammars in LR parsers. It has no
 // effect on LL(1) parser generation; LL(1) grammars must be unambiguous.
 func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
-	parser, ambigWarns, err = NewLALR1Parser(g, allowAmbiguous)
+	parser, ambigWarns, err = NewLALRParser(g, allowAmbiguous)
 	if err != nil {
 		bigParseGenErr := fmt.Sprintf("LALR(1) generation: %s", err.Error())
 		// okay, what about a CLR(1) parser? (though, if LALR doesnt work, dont think CLR will)
@@ -81,7 +80,7 @@ func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, amb
 
 				// LL?
 				ambigWarns = nil
-				parser, err = NewLL1Parser(g)
+				parser, err = NewLLParser(g)
 				if err != nil {
 					bigParseGenErr += fmt.Sprintf("\nLL(1) generation: %s", err.Error())
 
@@ -146,20 +145,20 @@ func DecodeParserBytes(data []byte) (p parse.Parser, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("read parser type: %w", err)
 	}
-	parserType, err := types.ParseParserType(typeStr)
+	parserType, err := parse.ParseAlgorithm(typeStr)
 	if err != nil {
 		return nil, fmt.Errorf("decode parser type: %w", err)
 	}
 
 	// set var's concrete type by getting an empty copy
 	switch parserType {
-	case types.ParserLL1:
+	case parse.AlgoLL1:
 		p = parse.EmptyLL1Parser()
-	case types.ParserSLR1:
+	case parse.AlgoSLR1:
 		p = parse.EmptySLR1Parser()
-	case types.ParserLALR1:
+	case parse.AlgoLALR1:
 		p = parse.EmptyLALR1Parser()
-	case types.ParserCLR1:
+	case parse.AlgoCLR1:
 		p = parse.EmptyCLR1Parser()
 	default:
 		panic("should never happen: parsed parserType is not valid")
@@ -169,26 +168,34 @@ func DecodeParserBytes(data []byte) (p parse.Parser, err error) {
 	return p, err
 }
 
-// NewLALR1Parser returns an LALR(1) parser that can generate parse trees for
-// the given grammar. Returns an error if the grammar is not LALR(1).
-func NewLALR1Parser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
+// NewLALRParser returns an LALR(k) parser with the best available k for the
+// given grammar. Returns an error if the grammar is not LALR(1).
+//
+// At the time of this writing, the greatest k = 1.
+func NewLALRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	return parse.GenerateLALR1Parser(g, allowAmbiguous)
 }
 
-// NewSLRParser returns an SLR(1) parser that can generate parse trees for the
+// NewSLRParser returns an SLR(k) parser with the best available k for the
 // given grammar. Returns an error if the grammar is not SLR(1).
+//
+// At the time of this writing, the greatest k = 1.
 func NewSLRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	return parse.GenerateSLR1Parser(g, allowAmbiguous)
 }
 
-// NewLL1Parser returns an LL(1) parser that can generate parse trees for the
+// NewLLParser returns an LL(k) parser with the best available k for the
 // given grammar. Returns an error if the grammar is not LL(1).
-func NewLL1Parser(g grammar.Grammar) (parser parse.Parser, err error) {
+//
+// At the time of this writing, the greatest k = 1.
+func NewLLParser(g grammar.Grammar) (parser parse.Parser, err error) {
 	return parse.GenerateLL1Parser(g)
 }
 
-// NewCLRParser returns a canonical-LR(0) parser that can generate parse trees
-// for the given grammar. Returns an error if the grammar is not CLR(1)
+// NewCLRParser returns a canonical LR(k) parser with the best available k for
+// the given grammar. Returns an error if the grammar is not LR(1).
+//
+// At the time of this writing, the greatest k = 1.
 func NewCLRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	return parse.GenerateCLR1Parser(g, allowAmbiguous)
 }
@@ -203,19 +210,10 @@ func NewSDTS() trans.SDTS {
 type Frontend[E any] struct {
 	Lexer       lex.Lexer
 	Parser      parse.Parser
-	SDT         trans.SDTS
+	SDTS        trans.SDTS
 	IRAttribute string
-
-	// Language is the name of the langauge that the frontend is for. It must be
-	// set by the user.
-	Language string
-
-	// Version is the version of the frontend for the language. It must be set
-	// by the user. This does not necessarily indicate the version of the
-	// language itself; its possible that a later frontend may result in the
-	// exact same semantics and syntax of the language whilst using a different
-	// grammar.
-	Version string
+	Language    string
+	Version     string
 }
 
 // AnalyzeString is the same as Analyze but accepts a string as input. It simply
@@ -257,7 +255,7 @@ func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, pt *parse.ParseTree, err erro
 	}
 
 	// semantic analysis (discard warns at this stage)
-	attrVals, _, err := fe.SDT.Evaluate(parseTree, fe.IRAttribute)
+	attrVals, _, err := fe.SDTS.Evaluate(parseTree, fe.IRAttribute)
 	if err != nil {
 		return ir, &parseTree, err
 	}

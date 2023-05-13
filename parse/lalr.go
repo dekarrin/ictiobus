@@ -10,7 +10,6 @@ import (
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
-	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/rosed"
 )
 
@@ -18,7 +17,7 @@ import (
 // Generally this should not be used directly except for internal purposes; use
 // GenerateLALR1Parser to generate one ready for use
 func EmptyLALR1Parser() *lrParser {
-	return &lrParser{table: &lalr1Table{}, parseType: types.ParserLALR1}
+	return &lrParser{table: &lalr1Table{}, parseType: AlgoLALR1}
 }
 
 // GenerateLALR1Parser returns a parser that uses the set of canonical
@@ -35,7 +34,7 @@ func GenerateLALR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, []strin
 		return &lrParser{}, nil, err
 	}
 
-	return &lrParser{table: table, parseType: types.ParserLALR1, gram: g}, ambigWarns, nil
+	return &lrParser{table: table, parseType: AlgoLALR1, gram: g}, ambigWarns, nil
 }
 
 // constructLALR1ParseTable constructs the LALR(1) table for G.

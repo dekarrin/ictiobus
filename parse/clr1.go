@@ -10,7 +10,6 @@ import (
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
-	"github.com/dekarrin/ictiobus/types"
 
 	"github.com/dekarrin/rosed"
 )
@@ -19,7 +18,7 @@ import (
 // Generally this should not be used directly except for internal purposes; use
 // GenerateCanonicalLR1Parser to generate one ready for use
 func EmptyCLR1Parser() *lrParser {
-	return &lrParser{table: &canonicalLR1Table{}, parseType: types.ParserCLR1}
+	return &lrParser{table: &canonicalLR1Table{}, parseType: AlgoCLR1}
 }
 
 // GenerateCLR1Parser returns a parser that uses the set of canonical LR(1)
@@ -36,7 +35,7 @@ func GenerateCLR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, []string
 		return &lrParser{}, ambigWarns, err
 	}
 
-	return &lrParser{table: table, parseType: types.ParserCLR1, gram: g}, ambigWarns, nil
+	return &lrParser{table: table, parseType: AlgoCLR1, gram: g}, ambigWarns, nil
 }
 
 // constructCLR1ParseTable constructs the canonical LR(1) table for G.

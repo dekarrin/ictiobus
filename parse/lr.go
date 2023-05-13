@@ -10,7 +10,6 @@ import (
 	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
-	"github.com/dekarrin/ictiobus/types"
 )
 
 // lrParseTable is a table of information passed to an LR parser. These will be
@@ -42,7 +41,7 @@ type lrParseTable interface {
 
 type lrParser struct {
 	table     lrParseTable
-	parseType types.ParserType
+	parseType Algorithm
 	gram      grammar.Grammar
 	trace     func(s string)
 }
@@ -65,7 +64,7 @@ func (lr *lrParser) RegisterTraceListener(listener func(s string)) {
 }
 
 // Type returns the type of the parser.
-func (lr *lrParser) Type() types.ParserType {
+func (lr *lrParser) Type() Algorithm {
 	return lr.parseType
 }
 
@@ -95,18 +94,18 @@ func (lr *lrParser) UnmarshalBinary(data []byte) error {
 		return fmt.Errorf("parseType: %w", err)
 	}
 	data = data[n:]
-	lr.parseType, err = types.ParseParserType(parseTypeName)
+	lr.parseType, err = ParseAlgorithm(parseTypeName)
 	if err != nil {
 		return fmt.Errorf("parsing parseType: %w", err)
 	}
 
 	var tableVal lrParseTable
 	switch lr.parseType {
-	case types.ParserCLR1:
+	case AlgoCLR1:
 		tableVal = &canonicalLR1Table{}
-	case types.ParserLALR1:
+	case AlgoLALR1:
 		tableVal = &lalr1Table{}
-	case types.ParserSLR1:
+	case AlgoSLR1:
 		tableVal = &slrTable{}
 	default:
 		return fmt.Errorf("unknown parse type: %s", lr.parseType.String())

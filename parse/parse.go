@@ -6,12 +6,12 @@ package parse
 
 import (
 	"encoding"
+	"fmt"
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/lex"
-	"github.com/dekarrin/ictiobus/types"
 )
 
 // A Parser represents an in-progress or ready-built parsing engine ready for
@@ -27,7 +27,7 @@ type Parser interface {
 
 	// Type returns a string indicating what kind of parser was generated. This
 	// will be "LL(1)", "SLR(1)", "CLR(1)", or "LALR(1)"
-	Type() types.ParserType
+	Type() Algorithm
 
 	// TableString returns the parsing table as a string.
 	TableString() string
@@ -45,6 +45,37 @@ type Parser interface {
 
 	// Grammar returns the grammar that this parser can parse.
 	Grammar() grammar.Grammar
+}
+
+// Algorithm is a classification of parsers in ictiobus.
+type Algorithm string
+
+const (
+	AlgoLL1   Algorithm = "LL(1)"
+	AlgoSLR1  Algorithm = "SLR(1)"
+	AlgoCLR1  Algorithm = "CLR(1)"
+	AlgoLALR1 Algorithm = "LALR(1)"
+)
+
+// String returns the string representation of a ParserType.
+func (pt Algorithm) String() string {
+	return string(pt)
+}
+
+// ParseAlgorithm parses a string containing the name of an Algorithm.
+func ParseAlgorithm(s string) (Algorithm, error) {
+	switch s {
+	case AlgoLL1.String():
+		return AlgoLL1, nil
+	case AlgoSLR1.String():
+		return AlgoSLR1, nil
+	case AlgoCLR1.String():
+		return AlgoCLR1, nil
+	case AlgoLALR1.String():
+		return AlgoLALR1, nil
+	default:
+		return AlgoLL1, fmt.Errorf("not a valid ParserType: %q", s)
+	}
 }
 
 // IsLL1 returns whether the grammar is LL(1).

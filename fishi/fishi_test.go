@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dekarrin/ictiobus/types"
-
+	"github.com/dekarrin/ictiobus/syntaxerr"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +19,7 @@ func Test_WithFakeInput(t *testing.T) {
 	assert.NoError(actual)
 
 	if actual != nil {
-		actualSynt, ok := actual.(*types.SyntaxError)
+		actualSynt, ok := actual.(*syntaxerr.SyntaxError)
 		if ok {
 			fmt.Println(actualSynt.FullMessage())
 		}
@@ -38,7 +37,7 @@ func Test_SelfHostedMarkdown_Spec(t *testing.T) {
 	_, _, actualErr := NewSpec(*res.AST)
 
 	if actualErr != nil {
-		actualSynt, ok := actualErr.(*types.SyntaxError)
+		actualSynt, ok := actualErr.(*syntaxerr.SyntaxError)
 		if ok {
 			fmt.Println(actualSynt.FullMessage())
 		}
@@ -53,7 +52,7 @@ func Test_SelfHostedMarkdown(t *testing.T) {
 	assert.NoError(actual)
 
 	if actual != nil {
-		actualSynt, ok := actual.(*types.SyntaxError)
+		actualSynt, ok := actual.(*syntaxerr.SyntaxError)
 		if ok {
 			fmt.Println(actualSynt.FullMessage())
 		}

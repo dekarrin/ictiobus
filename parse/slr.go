@@ -10,7 +10,6 @@ import (
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
-	"github.com/dekarrin/ictiobus/types"
 	"github.com/dekarrin/rosed"
 )
 
@@ -18,7 +17,7 @@ import (
 // Generally this should not be used directly except for internal purposes; use
 // GenerateSimpleLRParser to generate one ready for use
 func EmptySLR1Parser() *lrParser {
-	return &lrParser{table: &slrTable{}, parseType: types.ParserSLR1}
+	return &lrParser{table: &slrTable{}, parseType: AlgoSLR1}
 }
 
 // GenerateSLR1Parser returns a parser that uses SLR bottom-up parsing to
@@ -34,7 +33,7 @@ func GenerateSLR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, []string
 		return &lrParser{}, ambigWarns, err
 	}
 
-	return &lrParser{table: table, parseType: types.ParserSLR1, gram: g}, ambigWarns, nil
+	return &lrParser{table: table, parseType: AlgoSLR1, gram: g}, ambigWarns, nil
 }
 
 // constructSLR1ParseTable constructs the SLR(1) table for G. It augments

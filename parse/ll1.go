@@ -11,7 +11,6 @@ import (
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/lex"
-	"github.com/dekarrin/ictiobus/types"
 )
 
 type ll1Parser struct {
@@ -91,8 +90,8 @@ func GenerateLL1Parser(g grammar.Grammar) (*ll1Parser, error) {
 
 // Type returns the type of the parser. This will be ParserLL1 for an
 // LL(1)-parser.
-func (ll1 *ll1Parser) Type() types.ParserType {
-	return types.ParserLL1
+func (ll1 *ll1Parser) Type() Algorithm {
+	return AlgoLL1
 }
 
 func (ll1 ll1Parser) notifyPopped(s string) {

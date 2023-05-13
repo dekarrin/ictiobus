@@ -61,7 +61,7 @@ func Frontend(hooks trans.HookMap, opts *FrontendOptions) ictiobus.Frontend[synt
 		IRAttribute: "ast",
 		Lexer:       Lexer(!opts.LexerEager),
 		Parser:      Parser(),
-		SDT:         SDTS(),
+		SDTS:        SDTS(),
 	}
 
 	// Add traces if requested
@@ -79,7 +79,7 @@ func Frontend(hooks trans.HookMap, opts *FrontendOptions) ictiobus.Frontend[synt
 	}
 
 	// Set the hooks
-	fe.SDT.SetHooks(hooks)
+	fe.SDTS.SetHooks(hooks)
 
 	return fe
 }

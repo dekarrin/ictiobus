@@ -990,7 +990,7 @@ func Parse(gr string) (Grammar, error) {
 		for _, p := range rule.Productions {
 			for _, sym := range p {
 				if strings.ToLower(sym) == sym && sym != "" {
-					tc := lex.MakeDefaultClass(sym)
+					tc := lex.NewTokenClass(strings.ToLower(sym), sym)
 					g.AddTerm(tc.ID(), tc)
 				}
 			}

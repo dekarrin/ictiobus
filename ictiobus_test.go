@@ -33,7 +33,7 @@ func Test_EncodeDecodeParserBytes(t *testing.T) {
 		},
 		{
 			name: "LALR parser",
-			ctor: NewLALR1Parser,
+			ctor: NewLALRParser,
 			g: `
 				S -> C C ;
 				C -> c C | d ;
@@ -42,7 +42,7 @@ func Test_EncodeDecodeParserBytes(t *testing.T) {
 		{
 			name: "LL parser",
 			ctor: func(g grammar.Grammar, b bool) (parse.Parser, []string, error) {
-				p, err := NewLL1Parser(g)
+				p, err := NewLLParser(g)
 				return p, nil, err
 			},
 			g: `

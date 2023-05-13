@@ -24,50 +24,6 @@ type TokenClass interface {
 	Equal(o any) bool
 }
 
-type simpleTokenClass string
-
-// UnmarshalBinary decodes a slice of bytes created by MarshalBinary into class.
-// All of class's fields will be replaced by the fields decoded from data.
-func (class *simpleTokenClass) UnmarshalBinary(data []byte) error {
-	s, _, err := rezi.DecString(data)
-	if err != nil {
-		return err
-	}
-
-	*class = simpleTokenClass(s)
-	return nil
-}
-
-// MarshalBinary converts class into a slice of bytes that can be decoded with
-// UnmarshalBinary.
-func (class *simpleTokenClass) MarshalBinary() ([]byte, error) {
-	return rezi.EncString(string(*class)), nil
-}
-
-func (class *simpleTokenClass) ID() string {
-	return strings.ToLower(string(*class))
-}
-
-func (class *simpleTokenClass) Human() string {
-	return string(*class)
-}
-
-func (class *simpleTokenClass) Equal(o any) bool {
-	other, ok := o.(TokenClass)
-	if !ok {
-		otherPtr, ok := o.(*TokenClass)
-		if !ok {
-			return false
-		}
-		if otherPtr == nil {
-			return false
-		}
-		other = *otherPtr
-	}
-
-	return other.ID() == class.ID()
-}
-
 var (
 	TokenUndefined = MakeDefaultClass("<ictiobus_undefined_token>")
 	TokenError     = MakeDefaultClass("<ictioubus_error>")
@@ -78,8 +34,7 @@ var (
 // lower-case version of the string as its ID and the un-modified string as its
 // Human-readable string.
 func MakeDefaultClass(s string) TokenClass {
-	tc := simpleTokenClass(s)
-	return &tc
+	return NewTokenClass(strings.ToLower(s), s)
 }
 
 // implementation of TokenClass interface.
