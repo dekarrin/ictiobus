@@ -16,7 +16,7 @@ import (
 // Returns an error if g is not LALR(1).
 func constructDFAForLALR1(g grammar.Grammar) (automaton.DFA[box.SVSet[grammar.LR1Item]], error) {
 	mergeFunc := func(x1, x2 box.SVSet[grammar.LR1Item]) bool {
-		return grammar.CoreSet(x1).Equal(grammar.CoreSet(x2))
+		return grammar.EqualCoreSets(x1.Values(), x2.Values())
 	}
 
 	reduceFunc := func(x1, x2 box.SVSet[grammar.LR1Item]) box.SVSet[grammar.LR1Item] {
