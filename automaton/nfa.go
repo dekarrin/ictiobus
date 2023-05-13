@@ -48,8 +48,8 @@ func (nfa NFA[E]) AcceptingStates() box.StringSet {
 	return accepting
 }
 
-// AllTransitionsTo gets all transitions to the given state.
-func (nfa NFA[E]) AllTransitionsTo(toState string) []nfaTransitionTo {
+// allTransitionsTo gets all transitions to the given state.
+func (nfa NFA[E]) allTransitionsTo(toState string) []nfaTransitionTo {
 	if _, ok := nfa.states[toState]; !ok {
 		// Gr8! We are done.
 		return []nfaTransitionTo{}
@@ -319,7 +319,7 @@ func (nfa *NFA[E]) MergeStatesByValue(mergeCondFn func(x1, x2 E) bool, reduceFn 
 				// and so we can rewrite transitions from the old states to the
 				// new one
 				for i := range mergeWith {
-					transitionsToMerged := nfa.AllTransitionsTo(mergeWith[i])
+					transitionsToMerged := nfa.allTransitionsTo(mergeWith[i])
 
 					for j := range transitionsToMerged {
 						trans := transitionsToMerged[j]
@@ -338,7 +338,7 @@ func (nfa *NFA[E]) MergeStatesByValue(mergeCondFn func(x1, x2 E) bool, reduceFn 
 				}
 
 				// also rewrite any transitions to the merged-to state
-				transitionsToDestState := nfa.AllTransitionsTo(stateName)
+				transitionsToDestState := nfa.allTransitionsTo(stateName)
 				for j := range transitionsToDestState {
 					trans := transitionsToDestState[j]
 					from := trans.from
@@ -425,7 +425,7 @@ func (nfa *NFA[E]) MergeStatesByValue(mergeCondFn func(x1, x2 E) bool, reduceFn 
 		// we keep the name pre-calculated in .name, so check if there's a mismatch
 		if st.name != stateName {
 			newStateName := st.name
-			transitionsToMerged := nfa.AllTransitionsTo(stateName)
+			transitionsToMerged := nfa.allTransitionsTo(stateName)
 
 			for j := range transitionsToMerged {
 				trans := transitionsToMerged[j]

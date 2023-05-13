@@ -126,36 +126,6 @@ func (dfa DFA[E]) Copy() DFA[E] {
 	return copied
 }
 
-// TransformDFA converts the values held within a DFA to new values. The
-// transform function is called on each state's value and used to create a new
-// one in a new DFA. The original DFA is not modified.
-func TransformDFA[E1, E2 any](dfa DFA[E1], transform func(old E1) E2) DFA[E2] {
-	copied := DFA[E2]{
-		states: make(map[string]dfaState[E2]),
-		Start:  dfa.Start,
-		order:  dfa.order,
-	}
-
-	for k := range dfa.states {
-		oldState := dfa.states[k]
-		copiedState := dfaState[E2]{
-			name:        oldState.name,
-			value:       transform(oldState.value),
-			transitions: make(map[string]faTransition),
-			accepting:   oldState.accepting,
-			ordering:    oldState.ordering,
-		}
-
-		for sym := range oldState.transitions {
-			copiedState.transitions[sym] = oldState.transitions[sym]
-		}
-
-		copied.states[k] = copiedState
-	}
-
-	return copied
-}
-
 // DFAToNFA converts the DFA into an equivalent non-deterministic finite
 // automaton type. Note that the type change doesn't suddenly make usage
 // non-deterministic but it does allow for non-deterministic transitions to be
@@ -388,10 +358,10 @@ func (dfa DFA[E]) Next(fromState string, input string) string {
 	return transition.next
 }
 
-// AllTransitionsTo gets all transitions to the given state. It returns a slice
+// allTransitionsTo gets all transitions to the given state. It returns a slice
 // of 2-tuples that each contain the originating state name followed by the
 // input that causes transitions to toState.
-func (dfa DFA[E]) AllTransitionsTo(toState string) [][2]string {
+func (dfa DFA[E]) allTransitionsTo(toState string) [][2]string {
 	if _, ok := dfa.states[toState]; !ok {
 		// Gr8! We are done.
 		return [][2]string{}
@@ -425,7 +395,7 @@ func (dfa *DFA[E]) RemoveState(state string) {
 	}
 
 	// is this allowed?
-	transitionsTo := dfa.AllTransitionsTo(state)
+	transitionsTo := dfa.allTransitionsTo(state)
 
 	if len(transitionsTo) > 0 {
 		panic("can't remove state that is currently traversed to")
