@@ -11,9 +11,12 @@ import (
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 )
 
-// DFA is a deterministic finite automaton. It holds 'values' within its states;
-// supplementary information associated with each state that is not required for
-// the DFA to function.
+// DFA is a deterministic finite automaton. It holds caller-set values within
+// its states; supplementary information associated with each state that is not
+// required for the DFA to function. This value can be set and retrieved with
+// SetValue and GetValue functions.
+//
+// The zero-value for a DFA is ready to be used immediately.
 type DFA[E any] struct {
 	order  uint64
 	states map[string]dfaState[E]
@@ -403,9 +406,11 @@ func (dfa *DFA[E]) RemoveState(state string) {
 	delete(dfa.states, state)
 }
 
-// AddState adds a new state to the DFA.
+// AddState adds a new state to the DFA. If the state already exists, whether it
+// is accepting is updated to match the value provided.
 func (dfa *DFA[E]) AddState(state string, accepting bool) {
-	if _, ok := dfa.states[state]; ok {
+	if s, ok := dfa.states[state]; ok {
+		s.accepting = accepting
 		// Gr8! We are done.
 		return
 	}
@@ -522,46 +527,6 @@ func (dfa DFA[E]) String() string {
 	for i := range orderedStates {
 		sb.WriteString("\n\t")
 		sb.WriteString(dfa.states[orderedStates[i]].String())
-
-		if i+1 < len(dfa.states) {
-			sb.WriteRune(',')
-		} else {
-			sb.WriteRune('\n')
-		}
-	}
-
-	sb.WriteRune('>')
-
-	return sb.String()
-}
-
-// ValueString returns the string representation of the DFA with its states'
-// values included in the output.
-func (dfa DFA[E]) ValueString() string {
-	var sb strings.Builder
-
-	sb.WriteString(fmt.Sprintf("<START: %q, STATES:", dfa.Start))
-
-	orderedStates := textfmt.OrderedKeys(dfa.states)
-	orderedStates = slices.SortBy(orderedStates, func(s1, s2 string) bool {
-		n1, err := strconv.Atoi(s1)
-		if err != nil {
-			// fallback; str comparison
-			return s1 < s2
-		}
-
-		n2, err := strconv.Atoi(s2)
-		if err != nil {
-			// fallback; str comparison
-			return s1 < s2
-		}
-
-		return n1 < n2
-	})
-
-	for i := range orderedStates {
-		sb.WriteString("\n\t")
-		sb.WriteString(dfa.states[orderedStates[i]].ValueString())
 
 		if i+1 < len(dfa.states) {
 			sb.WriteRune(',')

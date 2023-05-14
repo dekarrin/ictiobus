@@ -1,7 +1,13 @@
-// Package parse provides parser construction and functionality for the ictiobus
-// parser generator. It can generate parsers based on LL(1), SLR(1), LR(1), or
-// LALR(1) grammars. The parsers operate on streams of tokens as input and
-// produce parse trees.
+// Package parse provides language parsers for the ictiobus parser generator.
+// These parsers implement [Parser] and are invoked by calling their Parse()
+// method with a [lex.TokenStream] to get tokens from. The parser will read
+// tokens from the stream and apply syntactic analysis to try and produce a
+// parse tree, represented as a [Tree].
+//
+// This package currently provides an LL(1) parser, a Simple LR(1) parser, a
+// Canonical LR(1) parser, and an LALR(1) parser, as well as the means to
+// generate each from a context-free grammar describing the accepted language.
+// The exact type of parser needed depends on the grammar.
 package parse
 
 import (
@@ -51,17 +57,17 @@ type Parser interface {
 	DFAString() string
 
 	// Grammar returns the grammar that this parser can parse.
-	Grammar() grammar.Grammar
+	Grammar() grammar.CFG
 }
 
 // Algorithm is a classification of parsers in ictiobus.
 type Algorithm string
 
 const (
-	AlgoLL1   Algorithm = "LL(1)"
-	AlgoSLR1  Algorithm = "SLR(1)"
-	AlgoCLR1  Algorithm = "CLR(1)"
-	AlgoLALR1 Algorithm = "LALR(1)"
+	LL1   Algorithm = "LL(1)"
+	SLR1  Algorithm = "SLR(1)"
+	CLR1  Algorithm = "CLR(1)"
+	LALR1 Algorithm = "LALR(1)"
 )
 
 // String returns the string representation of a ParserType.
@@ -72,21 +78,21 @@ func (pt Algorithm) String() string {
 // ParseAlgorithm parses a string containing the name of an Algorithm.
 func ParseAlgorithm(s string) (Algorithm, error) {
 	switch s {
-	case AlgoLL1.String():
-		return AlgoLL1, nil
-	case AlgoSLR1.String():
-		return AlgoSLR1, nil
-	case AlgoCLR1.String():
-		return AlgoCLR1, nil
-	case AlgoLALR1.String():
-		return AlgoLALR1, nil
+	case LL1.String():
+		return LL1, nil
+	case SLR1.String():
+		return SLR1, nil
+	case CLR1.String():
+		return CLR1, nil
+	case LALR1.String():
+		return LALR1, nil
 	default:
-		return AlgoLL1, fmt.Errorf("not a valid ParserType: %q", s)
+		return LL1, fmt.Errorf("not a valid ParserType: %q", s)
 	}
 }
 
 // IsLL1 returns whether the grammar is LL(1).
-func IsLL1(g grammar.Grammar) bool {
+func IsLL1(g grammar.CFG) bool {
 	nts := g.NonTerminals()
 	for _, A := range nts {
 		AiRule := g.Rule(A)
@@ -147,11 +153,11 @@ func IsLL1(g grammar.Grammar) bool {
 }
 
 // findFIRSTSet returns the findFIRSTSet set of symbol X in the grammar.
-func findFIRSTSet(g grammar.Grammar, X string) box.Set[string] {
+func findFIRSTSet(g grammar.CFG, X string) box.Set[string] {
 	return firstSetSafeRecurse(g, X, box.NewStringSet())
 }
 
-func firstSetSafeRecurse(g grammar.Grammar, X string, seen box.StringSet) box.Set[string] {
+func firstSetSafeRecurse(g grammar.CFG, X string, seen box.StringSet) box.Set[string] {
 	seen.Add(X)
 	if strings.ToLower(X) == X {
 		// terminal or epsilon
@@ -193,7 +199,7 @@ func firstSetSafeRecurse(g grammar.Grammar, X string, seen box.StringSet) box.Se
 
 // findFIRSTSetString is identical to FIRST but for a string of symbols rather than
 // just one.
-func findFIRSTSetString(g grammar.Grammar, X ...string) box.Set[string] {
+func findFIRSTSetString(g grammar.CFG, X ...string) box.Set[string] {
 	first := box.NewStringSet()
 	epsilonPresent := false
 	for i := range X {
@@ -219,11 +225,11 @@ func findFIRSTSetString(g grammar.Grammar, X ...string) box.Set[string] {
 
 // findFOLLOWSet is the used to get the findFOLLOWSet set of symbol X for generating
 // various types of parsers.
-func findFOLLOWSet(g grammar.Grammar, X string) box.Set[string] {
+func findFOLLOWSet(g grammar.CFG, X string) box.Set[string] {
 	return recursiveFOLLOWSet(g, X, box.NewStringSet())
 }
 
-func recursiveFOLLOWSet(g grammar.Grammar, X string, prevFollowChecks box.Set[string]) box.Set[string] {
+func recursiveFOLLOWSet(g grammar.CFG, X string, prevFollowChecks box.Set[string]) box.Set[string] {
 	if X == "" {
 		// there is no follow set. return empty set
 		return box.NewStringSet()
@@ -333,7 +339,7 @@ func recursiveFOLLOWSet(g grammar.Grammar, X string, prevFollowChecks box.Set[st
 // Note: this actually takes the grammar for each production B -> gamma in G,
 // not G'. It's assumed this function is only called on a g.Augmented()
 // instance.
-func lr1CLOSURE(g grammar.Grammar, I box.SVSet[grammar.LR1Item]) box.SVSet[grammar.LR1Item] {
+func lr1CLOSURE(g grammar.CFG, I box.SVSet[grammar.LR1Item]) box.SVSet[grammar.LR1Item] {
 	Iset := I.Copy()
 	I = Iset.(box.SVSet[grammar.LR1Item])
 

@@ -26,7 +26,7 @@ func (ar AttrRef) String() string {
 //
 // If the AttrRef does not refer to any symbol in the rule, a blank string and a
 // non-nil error is returned.
-func (ar AttrRef) ResolveSymbol(g grammar.Grammar, head string, prod grammar.Production) (string, error) {
+func (ar AttrRef) ResolveSymbol(g grammar.CFG, head string, prod grammar.Production) (string, error) {
 	switch ar.Relation.Type {
 	case RelHead:
 		return head, nil

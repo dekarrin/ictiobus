@@ -17,11 +17,11 @@ var (
 func Test_Grammar_MarshalUnmarshalBinary(t *testing.T) {
 	testCases := []struct {
 		name  string
-		input Grammar
+		input CFG
 	}{
 		{
 			name:  "empty",
-			input: Grammar{},
+			input: CFG{},
 		},
 		{
 			name: "one rule",
@@ -56,7 +56,7 @@ func Test_Grammar_MarshalUnmarshalBinary(t *testing.T) {
 				return
 			}
 
-			actualPtr := &Grammar{}
+			actualPtr := &CFG{}
 			err = actualPtr.UnmarshalBinary(encoded)
 			if !assert.NoError(err, "UnmarshalBinary failed") {
 				return
@@ -129,7 +129,7 @@ func Test_Grammar_Validate(t *testing.T) {
 			assert := assert.New(t)
 
 			// set up the grammar
-			g := Grammar{}
+			g := CFG{}
 			for _, term := range tc.terminals {
 				g.AddTerm(term.ID(), term)
 			}
@@ -243,7 +243,7 @@ func Test_Grammar_RemoveEpsilons(t *testing.T) {
 			}
 
 			// set up the grammar
-			g := Grammar{}
+			g := CFG{}
 			for _, term := range tc.terminals {
 				class := lex.MakeDefaultClass(term)
 				g.AddTerm(class.ID(), class)
@@ -383,7 +383,7 @@ func Test_Grammar_RemoveUnitProductions(t *testing.T) {
 			}
 
 			// set up the grammar
-			g := Grammar{}
+			g := CFG{}
 			for _, term := range tc.terminals {
 				class := lex.MakeDefaultClass(term)
 				g.AddTerm(class.ID(), class)
@@ -581,8 +581,8 @@ func Test_Grammar_LeftFactor(t *testing.T) {
 	}
 }
 
-func setupGrammar(terminals []string, rules []string) Grammar {
-	g := Grammar{}
+func setupGrammar(terminals []string, rules []string) CFG {
+	g := CFG{}
 
 	for _, term := range terminals {
 		class := lex.MakeDefaultClass(term)
@@ -601,7 +601,7 @@ func setupGrammar(terminals []string, rules []string) Grammar {
 // assertIdenticalProductionSets asserts whether the two grammars have the same
 // nonterminals and that all nonterminals with the same name have the same sets
 // of productions, not necessarily in the same order.
-func assertIdenticalProductionSets(assert *assert.Assertions, expect, actual Grammar) {
+func assertIdenticalProductionSets(assert *assert.Assertions, expect, actual CFG) {
 	// priority does not matter so we check them in arbitrary order
 	expectNonTerminals := expect.NonTerminals()
 	actualNonTerminals := actual.NonTerminals()

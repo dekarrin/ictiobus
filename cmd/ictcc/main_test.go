@@ -12,7 +12,7 @@ func Test_sddRefToPrintedString(t *testing.T) {
 	testCases := []struct {
 		name   string
 		ref    trans.AttrRef
-		g      grammar.Grammar
+		g      grammar.CFG
 		rule   grammar.Rule
 		expect string
 	}{

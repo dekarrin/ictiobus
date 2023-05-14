@@ -314,7 +314,6 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/fishi"
 	"github.com/dekarrin/ictiobus/fishi/format"
 	"github.com/dekarrin/ictiobus/grammar"
@@ -885,7 +884,7 @@ func main() {
 	}
 
 	parserPath := filepath.Join(feDest, "parser.cff")
-	err = ictiobus.WriteParserFile(p, parserPath)
+	err = parse.WriteFile(p, parserPath)
 	if err != nil {
 		errGeneration(err.Error())
 		return
@@ -1007,19 +1006,19 @@ func parserSelectionFromFlags() (t *parse.Algorithm, allowAmbig bool, err error)
 
 	if *flagParserLL {
 		t = new(parse.Algorithm)
-		*t = parse.AlgoLL1
+		*t = parse.LL1
 
 		// allowAmbig auto false for LL(1)
 		allowAmbig = false
 	} else if *flagParserSLR {
 		t = new(parse.Algorithm)
-		*t = parse.AlgoSLR1
+		*t = parse.SLR1
 	} else if *flagParserCLR {
 		t = new(parse.Algorithm)
-		*t = parse.AlgoCLR1
+		*t = parse.CLR1
 	} else if *flagParserLALR {
 		t = new(parse.Algorithm)
-		*t = parse.AlgoLALR1
+		*t = parse.LALR1
 	}
 
 	return
@@ -1151,7 +1150,7 @@ func printSpec(spec fishi.Spec) {
 	}
 }
 
-func sddRefToPrintedString(ref trans.AttrRef, g grammar.Grammar, r grammar.Rule) string {
+func sddRefToPrintedString(ref trans.AttrRef, g grammar.CFG, r grammar.Rule) string {
 	// which symbol does it refer to?
 	var symName string
 	if ref.Relation.Type == trans.RelHead {

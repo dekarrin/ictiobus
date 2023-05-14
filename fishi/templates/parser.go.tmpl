@@ -10,7 +10,6 @@ created by invoking ictiobus with the following command:
 import (
     _ "embed"
 
-    "github.com/dekarrin/ictiobus"
     "github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/parse"
 
@@ -27,8 +26,8 @@ var (
 // Grammar returns the grammar accepted by the generated ictiobus parser for
 // {{ .Lang }}. This grammar will also be included with with the parser itself,
 // but it is included here as well for convenience.
-func Grammar() grammar.Grammar {
-    g := grammar.Grammar{}
+func Grammar() grammar.CFG {
+    g := grammar.CFG{}
 
 {{range .Classes -}}
 {{"    "}}g.AddTerm({{ $tokPkg }}.{{ .Name }}.ID(), {{ $tokPkg }}.{{ .Name }})
@@ -44,7 +43,7 @@ func Grammar() grammar.Grammar {
 
 // Parser returns the generated ictiobus Parser for {{ .Lang }}.
 func Parser() parse.Parser {
-    p, err := ictiobus.DecodeParserBytes(parserData)
+    p, err := parse.DecodeBytes(parserData)
     if err != nil {
         panic("corrupted parser.cff file: " + err.Error())
     }

@@ -1,14 +1,54 @@
-// Package ictiobus provides a system for constructing compiler frontends used
-// as part of research into compiling techniques. It is the tunascript compiler
-// pulled out after it turned from "small knowledge gaining side-side project"
-// into a full-blown compilers and translators learning and research project.
+// Package ictiobus provides a compiler-compiler that generates compiler
+// frontends in Go from language specifications.  Ictiobus is used and was
+// created as part of personal research into compiling techniques. It is the
+// tunascript compiler pulled out after it turned from "small knowledge gaining
+// side-side project" into a full-blown compilers and translators learning and
+// research project. The name ictiobus is based off of the name for the buffalo
+// fish due to the buffalo's relation with bison, important due to the
+// popularity of the parser generator bison and for being related to fish.
 //
-// It's based off of the name for the buffalo fish due to the buffalo's relation
-// with bison. Naturally, bison due to its popularity as a parser-generator
-// tool.
+// A compiler [Frontend] is created with ictiobus (usually using the ictcc
+// command to generate one based on a FISHI spec for a langauge), and these
+// frontends are used to parse input code into some intermediate representation
+// (IR). A Frontend holds all information needed to run analysis on input; its
+// Analyze provides a simple interface to accept code in its language and parse
+// it for the IR it was configured for.
 //
-// Ictiobus is typically used by invoking the ictcc binary command, or called
-// from Go code in the binaries it generates.
+// For instructions on using the ictcc command to generate a Frontend, see the
+// README.md file included with ictiobus, or the command documentation for
+// [github.com/dekarrin/ictiobus/cmd/ictcc].
+//
+// While the ictiobus package itself contains a few convenience functions for
+// creating the components of a Frontend, most of the functionality of the
+// compiler is delegated to packages in sub-directories of this project:
+//
+//   - The grammar and automaton packages contain fundamental types for language
+//     analysis that the rest of the compiler frontend uses.
+//
+//   - The lex package handles the lexing stage of input analysis. Tokens lexed
+//     during this stage are provided to the parsing stage via a
+//     [lex.TokenStream] produced by calling [lex.Lexer.Lex].
+//
+//   - The parse package handles the parsing stage of input analysis. This phase
+//     parses the tokens lexed from the stream into a [parse.Tree] by calling
+//     [parse.Parser.Parse] on a [lex.TokenStream].
+//
+//   - The trans package handles the translation stage of input analysis. This
+//     phase translates a parse tree into an intermediate representation (IR)
+//     that is ultimately returned as the final result of frontend analysis. The
+//     translation is applied by calling [trans.SDTS.Evaluate] on a [parse.Tree]
+//     and specifying the name of the final attribute(s) requested.
+//
+//   - The syntaxerr package provides a unifying interface for errors produced
+//     from the lexing, parsing, or translation phases of input code analysis.
+//
+//   - The fishi package reads in language specifications written in the FISHI
+//     language and produces new ictiobus parsers. It is the primary module used
+//     by the ictcc command.
+//
+// All of the above functionality is unified in the Frontend.Analyze(io.Reader)
+// function, which will run all three stages of input analysis and produce the
+// final intermediate representation.
 package ictiobus
 
 // DEV NOTE:
@@ -17,14 +57,11 @@ package ictiobus
 // validating LALR(1) grammars quickly.
 
 import (
-	"bufio"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
-	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/parse"
 	"github.com/dekarrin/ictiobus/trans"
@@ -57,7 +94,7 @@ func NewLazyLexer() lex.Lexer {
 //
 // allowAmbiguous allows the use of ambiguous grammars in LR parsers. It has no
 // effect on LL(1) parser generation; LL(1) grammars must be unambiguous.
-func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
+func NewParser(g grammar.CFG, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	parser, ambigWarns, err = NewLALRParser(g, allowAmbiguous)
 	if err != nil {
 		bigParseGenErr := fmt.Sprintf("LALR(1) generation: %s", err.Error())
@@ -86,93 +123,12 @@ func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, amb
 	return parser, ambigWarns, nil
 }
 
-// WriteParserFile stores the parser in a binary file (encoded using an
-// internal format called 'REZI'). The Parser can later be retrieved from the
-// file by calling [ReadParserFile] on it.
-func WriteParserFile(p parse.Parser, filename string) error {
-	fp, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer fp.Close()
-
-	bufWriter := bufio.NewWriter(fp)
-
-	allBytes := EncodeParserBytes(p)
-	_, err = bufWriter.Write(allBytes)
-	if err != nil {
-		return err
-	}
-	err = bufWriter.Flush()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// ReadParserFile retrieves a Parser by reading a file containing one encoded as
-// binary bytes. This will read files created with [WriteParserFile].
-func ReadParserFile(filename string) (parse.Parser, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	p, err := DecodeParserBytes(data)
-	if err != nil {
-		return nil, err
-	}
-
-	return p, nil
-}
-
-// EncodeParserBytes takes a Parser and encodes it as a binary value (using an
-// internal binary format called 'REZI').
-func EncodeParserBytes(p parse.Parser) []byte {
-	data := rezi.EncString(p.Type().String())
-	data = append(data, rezi.EncBinary(p)...)
-	return data
-}
-
-// DecodeParserBytes takes a slice of bytes containing a Parser encoded as a
-// binary value (using an internal binary format called 'REZI') and decodes it
-// into the Parser it represents.
-func DecodeParserBytes(data []byte) (p parse.Parser, err error) {
-	// first get the string giving the type
-	typeStr, n, err := rezi.DecString(data)
-	if err != nil {
-		return nil, fmt.Errorf("read parser type: %w", err)
-	}
-	parserType, err := parse.ParseAlgorithm(typeStr)
-	if err != nil {
-		return nil, fmt.Errorf("decode parser type: %w", err)
-	}
-
-	// set var's concrete type by getting an empty copy
-	switch parserType {
-	case parse.AlgoLL1:
-		p = parse.EmptyLL1Parser()
-	case parse.AlgoSLR1:
-		p = parse.EmptySLR1Parser()
-	case parse.AlgoLALR1:
-		p = parse.EmptyLALR1Parser()
-	case parse.AlgoCLR1:
-		p = parse.EmptyCLR1Parser()
-	default:
-		panic("should never happen: parsed parserType is not valid")
-	}
-
-	_, err = rezi.DecBinary(data[n:], p)
-	return p, err
-}
-
 // NewLALRParser returns an LALR(k) parser for the given grammar. The value of k
 // will be the highest possible to provide with ictiobus. Returns an error if
 // the grammar is not LALR(k).
 //
 // At the time of this writing, the greatest k = 1.
-func NewLALRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
+func NewLALRParser(g grammar.CFG, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	return parse.GenerateLALR1Parser(g, allowAmbiguous)
 }
 
@@ -181,7 +137,7 @@ func NewLALRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser,
 // the grammar is not SLR(k).
 //
 // At the time of this writing, the greatest k = 1.
-func NewSLRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
+func NewSLRParser(g grammar.CFG, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	return parse.GenerateSLR1Parser(g, allowAmbiguous)
 }
 
@@ -190,7 +146,7 @@ func NewSLRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, 
 // the grammar is not LL(k).
 //
 // At the time of this writing, the greatest k = 1.
-func NewLLParser(g grammar.Grammar) (parser parse.Parser, err error) {
+func NewLLParser(g grammar.CFG) (parser parse.Parser, err error) {
 	return parse.GenerateLL1Parser(g)
 }
 
@@ -199,17 +155,28 @@ func NewLLParser(g grammar.Grammar) (parser parse.Parser, err error) {
 // error if the grammar is not CLR(k).
 //
 // At the time of this writing, the greatest k = 1.
-func NewCLRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
+func NewCLRParser(g grammar.CFG, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	return parse.GenerateCLR1Parser(g, allowAmbiguous)
 }
 
-// NewSDTS returns a new Syntax-Directed Translation Scheme.
+// NewSDTS returns a new Syntax-Directed Translation Scheme. The SDTS will be
+// empty and ready to accept bindings, which must be manually added by callers.
 func NewSDTS() trans.SDTS {
 	return trans.NewSDTS()
 }
 
 // Frontend is a complete input-to-intermediate representation compiler
-// front-end.
+// frontend, including all information necessary to process input written in the
+// language it was created for. When Analyze is called, it reads input from the
+// provided io.Reader and produces the IR value or a syntax error if the input
+// could not be parsed.
+//
+// Creation of a Frontend is complicated and requires setting up all three
+// phases of frontend analysis; manually doing so is not recommended. Instead,
+// Frontends can be generated by running ictcc on a FISHI langage spec to
+// produce Go source code that provides a pre-configured Frontend for the
+// language. Information on doing this can be found in the README.md in the root
+// of the ictiobus repository.
 type Frontend[E any] struct {
 	Lexer       lex.Lexer
 	Parser      parse.Parser
@@ -220,31 +187,26 @@ type Frontend[E any] struct {
 }
 
 // AnalyzeString is the same as Analyze but accepts a string as input. It simply
-// creates a Reader on s and passes it to Analyze; this method is provided for
-// convenience.
-//
-// The parse tree may be valid even if there is an error, in which case pt will
-// be non-nil.
-func (fe *Frontend[E]) AnalyzeString(s string) (ir E, pt *parse.Tree, err error) {
+// creates a strings.Reader on s and passes it to Analyze; this method is
+// provided for convenience.
+func (fe Frontend[E]) AnalyzeString(s string) (ir E, pt *parse.Tree, err error) {
 	r := strings.NewReader(s)
 	return fe.Analyze(r)
 }
 
-// Analyze takes the text in reader r and performs the phases necessary to
-// produce an intermediate representation of it. First, in the lexical analysis
-// phase, it lexes the input read from r to produce a stream of tokens. This
-// stream is consumed by the syntactic analysis phase to produce a parse tree.
-// Finally, in the semantic analysis phase, the actions of the syntax-directed
-// translation scheme are applied to the parse tree to produce the final
-// intermediate representation.
+// Analyze reads input text in the Frontend's language from r and parses it to
+// produce an analyzed value. First, it lexes the input read from r using
+// fe.Lexer to produce a stream of tokens. This stream is consumed by fe.Parser
+// to produce a parse tree. Finally the actions of the syntax-directed
+// translation scheme in fe.SDTS are applied to the parse tree to annotate it,
+// and the final value for the IR is taken from the attribute named
+// fe.IRAttribute in the root node of the annotated tree.
 //
-// If there is a problem with the input, it will be returned in a SyntaxError
-// containing information about the location where it occured in the source text
-// read from r.
-//
-// The parse tree may be valid even if there is an error, in which case pt will
-// be non-nil.
-func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, pt *parse.Tree, err error) {
+// If there is a problem with the input, it will be returned in a
+// syntaxerr.Error containing information about the location where it occured in
+// the source text read from r. The returned parse tree may be valid even if
+// there is an error, in which case pt will be non-nil.
+func (fe Frontend[E]) Analyze(r io.Reader) (ir E, pt *parse.Tree, err error) {
 	// lexical analysis
 	tokStream, err := fe.Lexer.Lex(r)
 	if err != nil {

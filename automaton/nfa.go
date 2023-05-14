@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dekarrin/ictiobus/grammar"
-
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
@@ -111,11 +109,12 @@ func (nfa NFA[E]) States() []string {
 
 // NFAToDFA converts the NFA into a deterministic finite automaton accepting the
 // same strings. The function reduceFn is called for all state values being
-// combined; the first time it is called, the soFar element will be the
-// zero-value of E2.
+// combined; the first time it is called for a state, the reduced argument will
+// be the zero-value of E2, and each subsequent time it is called for the same
+// state, reduced will be the prior value that was returned from reduceFn.
 //
 // This is an implementation of algorithm 3.20 from the purple dragon book.
-func NFAToDFA[E1, E2 any](nfa NFA[E1], reduceFn func(soFar E2, elem2 E1) E2) DFA[E2] {
+func NFAToDFA[E1, E2 any](nfa NFA[E1], reduceFn func(reduced E2, next E1) E2) DFA[E2] {
 	inputSymbols := nfa.InputSymbols()
 
 	Dstart := nfa.epsilonClosure(nfa.Start)
@@ -170,7 +169,7 @@ func NFAToDFA[E1, E2 any](nfa NFA[E1], reduceFn func(soFar E2, elem2 E1) E2) DFA
 			// for ( each input symbol a )
 			for _, a := range inputSymbols {
 				// (but like, glub, not the epsilon symbol itself)
-				if a == grammar.Epsilon[0] {
+				if a == "" {
 					continue
 				}
 
@@ -458,11 +457,11 @@ func (nfa *NFA[E]) MergeStatesByValue(mergeCondFn func(x1, x2 E) bool, reduceFn 
 	}
 }
 
-// DeterministicNFAToDFA does a direct conversion of nfa to dfa without joining
-// any states. this is NOT a merging algorithm; it will return an error if the
-// given NFA[E] is not already de-facto deterministic.
-//
-// adds states in a deterministic order.
+// DeterministicNFAToDFA creates a DFA from an NFA by copying all of its states
+// and transitions exactly as they are. This performs no merges and assumes the
+// given NFA[E] is already de-facto deterministic. It will return an error if
+// the NFA contains any epsilon transitions or any transitions from the same
+// state to two different states based on the same input symbol.
 func DeterministicNFAToDFA[E any](nfa NFA[E]) (DFA[E], error) {
 	dfa := DFA[E]{
 		Start:  nfa.Start,
@@ -597,46 +596,6 @@ func (nfa NFA[E]) String() string {
 	for i := range orderedStates {
 		sb.WriteString("\n\t")
 		sb.WriteString(nfa.states[orderedStates[i]].String())
-
-		if i+1 < len(nfa.states) {
-			sb.WriteRune(',')
-		} else {
-			sb.WriteRune('\n')
-		}
-	}
-
-	sb.WriteRune('>')
-
-	return sb.String()
-}
-
-// ValueString returns the string representation of the NFA with its states'
-// values included in the output.
-func (nfa NFA[E]) ValueString() string {
-	var sb strings.Builder
-
-	sb.WriteString(fmt.Sprintf("<START: %q, STATES:", nfa.Start))
-
-	orderedStates := textfmt.OrderedKeys(nfa.states)
-	orderedStates = slices.SortBy(orderedStates, func(s1, s2 string) bool {
-		n1, err := strconv.Atoi(s1)
-		if err != nil {
-			// fallback; str comparison
-			return s1 < s2
-		}
-
-		n2, err := strconv.Atoi(s2)
-		if err != nil {
-			// fallback; str comparison
-			return s1 < s2
-		}
-
-		return n1 < n2
-	})
-
-	for i := range orderedStates {
-		sb.WriteString("\n\t")
-		sb.WriteString(nfa.states[orderedStates[i]].ValueString())
 
 		if i+1 < len(nfa.states) {
 			sb.WriteRune(',')
@@ -854,9 +813,11 @@ func (nfa NFA[E]) Join(other NFA[E], fromToOther [][3]string, otherToFrom [][3]s
 	return joined, nil
 }
 
-// AddState adds a new state to the NFA.
+// AddState adds a new state to the NFA.If the state already exists, whether it
+// is accepting is updated to match the value provided.
 func (nfa *NFA[E]) AddState(state string, accepting bool) {
-	if _, ok := nfa.states[state]; ok {
+	if s, ok := nfa.states[state]; ok {
+		s.accepting = accepting
 		// Gr8! We are done.
 		return
 	}

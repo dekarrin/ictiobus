@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
 )
 
@@ -134,21 +133,6 @@ func (lr1 *LR1Item) UnmarshalBinary(data []byte) error {
 	}
 
 	return nil
-}
-
-// EqualCoreSet returns whether the LR1Items in the slices contain the same
-// cores. The  core of an LR1 item is simply the LR0 portion of it.
-func EqualCoreSets(s1, s2 []LR1Item) bool {
-	c1 := box.NewSVSet[LR0Item]()
-	c2 := box.NewSVSet[LR0Item]()
-	for _, lr1 := range s1 {
-		c1.Set(lr1.LR0Item.String(), lr1.LR0Item)
-	}
-	for _, lr1 := range s2 {
-		c2.Set(lr1.LR0Item.String(), lr1.LR0Item)
-	}
-
-	return c1.Equal(c2)
 }
 
 // Equal returns whether the given LR0Item is equal to another LR1Item or

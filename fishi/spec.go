@@ -29,7 +29,7 @@ type Spec struct {
 	Patterns map[string][]Pattern
 
 	// Grammar is the syntactical specification of the language.
-	Grammar grammar.Grammar
+	Grammar grammar.CFG
 
 	// TranslationScheme outlines the Syntax-Directed Translation Scheme for the
 	// language by giving the instructions for each attribute.
@@ -71,7 +71,7 @@ func (spec Spec) ValidateSDTS(opts trans.ValidationOptions, hooks trans.HookMap)
 
 	allWarnings := []Warning{}
 
-	warns, sdtsErr := sdts.Validate(spec.Grammar, irAttrName, opts, valProd)
+	warns, sdtsErr := trans.Validate(sdts, spec.Grammar, irAttrName, opts, valProd)
 	for _, w := range warns {
 		allWarnings = append(allWarnings, Warning{Type: WarnValidation, Message: w})
 	}
@@ -160,13 +160,13 @@ func (spec Spec) CreateLexer(lazy bool) (lex.Lexer, error) {
 // AllowAmbig only applies for parser types that can auto-resolve ambiguity,
 // e.g. it does not apply to an LL(k) parser.
 func (spec Spec) CreateMostRestrictiveParser(allowAmbig bool) (parse.Parser, []Warning, error) {
-	p, warns, err := spec.CreateParser(parse.AlgoLL1, false)
+	p, warns, err := spec.CreateParser(parse.LL1, false)
 	if err != nil {
-		p, warns, err = spec.CreateParser(parse.AlgoSLR1, allowAmbig)
+		p, warns, err = spec.CreateParser(parse.SLR1, allowAmbig)
 		if err != nil {
-			p, warns, err = spec.CreateParser(parse.AlgoLALR1, allowAmbig)
+			p, warns, err = spec.CreateParser(parse.LALR1, allowAmbig)
 			if err != nil {
-				p, warns, err = spec.CreateParser(parse.AlgoCLR1, allowAmbig)
+				p, warns, err = spec.CreateParser(parse.CLR1, allowAmbig)
 				if err != nil {
 					return p, warns, fmt.Errorf("no parser can be generated for grammar; for CLR(1) parser, got: %w", err)
 				}
@@ -186,13 +186,13 @@ func (spec Spec) CreateParser(t parse.Algorithm, allowAmbig bool) (parse.Parser,
 
 	var ambigWarns []string
 	switch t {
-	case parse.AlgoLALR1:
+	case parse.LALR1:
 		p, ambigWarns, err = ictiobus.NewLALRParser(spec.Grammar, allowAmbig)
-	case parse.AlgoCLR1:
+	case parse.CLR1:
 		p, ambigWarns, err = ictiobus.NewCLRParser(spec.Grammar, allowAmbig)
-	case parse.AlgoSLR1:
+	case parse.SLR1:
 		p, ambigWarns, err = ictiobus.NewSLRParser(spec.Grammar, allowAmbig)
-	case parse.AlgoLL1:
+	case parse.LL1:
 		if allowAmbig {
 			return nil, nil, fmt.Errorf("LL(k) parsers do not support ambiguous grammars")
 		}
@@ -222,12 +222,12 @@ func (spec Spec) CreateSDTS() (trans.SDTS, error) {
 
 	for _, sdd := range spec.TranslationScheme {
 		if sdd.Attribute.Relation.Type == trans.RelHead {
-			err := sdts.BindSynthesizedAttribute(sdd.Rule.NonTerminal, sdd.Rule.Productions[0], sdd.Attribute.Name, sdd.Hook, sdd.Args)
+			err := sdts.Bind(sdd.Rule.NonTerminal, sdd.Rule.Productions[0], sdd.Attribute.Name, sdd.Hook, sdd.Args)
 			if err != nil {
 				return nil, fmt.Errorf("cannot bind synthesized attribute for %s: %w", sdd.Attribute, err)
 			}
 		} else {
-			err := sdts.BindInheritedAttribute(sdd.Rule.NonTerminal, sdd.Rule.Productions[0], sdd.Attribute.Name, sdd.Hook, sdd.Args, sdd.Attribute.Relation)
+			err := sdts.BindI(sdd.Rule.NonTerminal, sdd.Rule.Productions[0], sdd.Attribute.Name, sdd.Hook, sdd.Args, sdd.Attribute.Relation)
 			if err != nil {
 				return nil, fmt.Errorf("cannot bind inherited attribute for %s: %w", sdd.Attribute, err)
 			}
@@ -365,7 +365,7 @@ func NewSpec(ast AST) (spec Spec, warnings []Warning, err error) {
 
 func analyzeASTActionsContentSlice(
 	actionsBlocks []syntax.ActionsContent,
-	g grammar.Grammar,
+	g grammar.CFG,
 ) ([]SDD, []Warning, error) {
 	var warnings []Warning
 	var scheme []SDD
@@ -492,10 +492,10 @@ func analyzeASTActionsContentSlice(
 func analyzeASTGrammarContentSlice(
 	grammarBlocks []syntax.GrammarContent,
 	classes map[string]lex.TokenClass,
-) (grammar.Grammar, []Warning, error) {
+) (grammar.CFG, []Warning, error) {
 	var warnings []Warning
 
-	g := grammar.Grammar{}
+	g := grammar.CFG{}
 	hitFirst := false
 
 	// track terminals in the grammar to make sure they're all used
@@ -737,7 +737,7 @@ func analzyeASTTokensContentSlice(
 }
 
 // r is rule to check against, only first production is checked.
-func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.Grammar, r grammar.Rule) (trans.AttrRef, error) {
+func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.CFG, r grammar.Rule) (trans.AttrRef, error) {
 	var ar trans.AttrRef
 	if astRef.Head {
 		ar = trans.AttrRef{
@@ -827,7 +827,7 @@ func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.Grammar, r grammar.R
 
 // it is assumed that the parsed ref refers to an existing symbol; not checking
 // that here.
-func validateParsedAttrRef(ar trans.AttrRef, g grammar.Grammar, r grammar.Rule) error {
+func validateParsedAttrRef(ar trans.AttrRef, g grammar.CFG, r grammar.Rule) error {
 	// need to know if we are dealing with a terminal or not
 	isTerm := false
 

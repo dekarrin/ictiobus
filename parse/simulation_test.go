@@ -12,7 +12,7 @@ import (
 func Test_Grammar_DeriveFullTree(t *testing.T) {
 	testCases := []struct {
 		name      string
-		input     grammar.Grammar
+		input     grammar.CFG
 		expect    []Tree
 		expectErr bool
 	}{
@@ -320,7 +320,7 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 func Test_Grammar_createFewestNonTermsAlternationsTable(t *testing.T) {
 	testCases := []struct {
 		name        string
-		input       grammar.Grammar
+		input       grammar.CFG
 		expect      map[string]grammar.Production
 		expectOneOf []map[string]grammar.Production // because this is testing a non-deterministic algorithm, there may be multiple possible outputs
 		expectErr   bool

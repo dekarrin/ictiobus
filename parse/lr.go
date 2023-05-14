@@ -42,12 +42,12 @@ type lrParseTable interface {
 type lrParser struct {
 	table     lrParseTable
 	parseType Algorithm
-	gram      grammar.Grammar
+	gram      grammar.CFG
 	trace     func(s string)
 }
 
 // Grammar returns the grammar that was used to generate the parser.
-func (lr *lrParser) Grammar() grammar.Grammar {
+func (lr *lrParser) Grammar() grammar.CFG {
 	return lr.gram
 }
 
@@ -101,11 +101,11 @@ func (lr *lrParser) UnmarshalBinary(data []byte) error {
 
 	var tableVal lrParseTable
 	switch lr.parseType {
-	case AlgoCLR1:
+	case CLR1:
 		tableVal = &canonicalLR1Table{}
-	case AlgoLALR1:
+	case LALR1:
 		tableVal = &lalr1Table{}
-	case AlgoSLR1:
+	case SLR1:
 		tableVal = &slrTable{}
 	default:
 		return fmt.Errorf("unknown parse type: %s", lr.parseType.String())

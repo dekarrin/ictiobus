@@ -1,5 +1,27 @@
-// Package automaton contains automata, theoretical structures that change state
-// based on reading some input.
+// Package automaton provides automata, theoretical structures that change state
+// based on reading some input. This package focuses on finite automata. A
+// finite automaton (FA) consists of a set of states, a set of input symbols
+// known as its alphabet, a set of one or more states in the FA that are
+// *accepting*, a set of states that a symbol from its alphabet will cause
+// transition to while in a particular state (also known as a state's transition
+// function), and the state the FA starts in. Once an FA is created, it is
+// used by following a path through it determined by reading some input string
+// of symbols and traversering to the state given by feeding an input symbol in
+// to the transition function for the state the FA is currently in. Once all
+// input is consumed, the state the FA is in is examined; if it is an accepting
+// state, the input is considered accepted, otherwise it is considered not
+// accepted.
+//
+// Of particular note, automata are widely used to implement various algorithms
+// important to parsing. They are used for implementing regular expressions,
+// determining parser actions in LR-parsers, and other purposes beyond the scope
+// of this document.
+//
+// This package provides the [NFA] and [DFA] structs for a non-deterministic and
+// deterministic finite automaton respectively. The structs in this package
+// diverge slightly from the theoretical definition of FAs in that they
+// additionally hold a value in each state, which can be used for storing, for
+// instance, sets of LR items associated with a state.
 package automaton
 
 import (
@@ -68,7 +90,7 @@ func MustParseTransition(s string) (inputSymbol, nextState string) {
 
 // ParseTransition parses a string of the form '=(T)=> T -> int * . T' for
 // finite automata transition info. The transition symbol must be in the double
-// equals arrow and the name of the new state is everyfin after that.
+// equals arrow and the name of the new state is everything after that.
 func ParseTransition(s string) (inputSymbol string, nextState string, err error) {
 	s = strings.TrimSpace(s)
 	parts := strings.SplitN(s, " ", 2)
@@ -246,30 +268,6 @@ func (ds dfaState[E]) String() string {
 	return str
 }
 
-// ValueString returns the string representation of the DFAState with the value
-// it contains included in the output.
-func (ns dfaState[E]) ValueString() string {
-	var moves strings.Builder
-
-	inputs := textfmt.OrderedKeys(ns.transitions)
-
-	for i, input := range inputs {
-		moves.WriteString(ns.transitions[input].String())
-		if i+1 < len(inputs) {
-			moves.WriteRune(',')
-			moves.WriteRune(' ')
-		}
-	}
-
-	str := fmt.Sprintf("(%s %q [%s])", ns.name, fmt.Sprintf("%v", ns.value), moves.String())
-
-	if ns.accepting {
-		str = "(" + str + ")"
-	}
-
-	return str
-}
-
 // nfaState is a state in an NFA. It holds a 'value'; supplematory information
 // associated with the state that is not required for the NFA to function but
 // may be useful for users of the NFA.
@@ -327,40 +325,6 @@ func (ns nfaState[E]) String() string {
 	}
 
 	str := fmt.Sprintf("(%s [%s])", ns.name, moves.String())
-
-	if ns.accepting {
-		str = "(" + str + ")"
-	}
-
-	return str
-}
-
-// ValueString returns the string representation of the NFAState with the value
-// it contains included in the output.
-func (ns nfaState[E]) ValueString() string {
-	var moves strings.Builder
-
-	inputs := textfmt.OrderedKeys(ns.transitions)
-
-	for i, input := range inputs {
-		var tStrings []string
-
-		for _, t := range ns.transitions[input] {
-			tStrings = append(tStrings, t.String())
-		}
-
-		sort.Strings(tStrings)
-
-		for tIdx, t := range tStrings {
-			moves.WriteString(t)
-			if tIdx+1 < len(tStrings) || i+1 < len(inputs) {
-				moves.WriteRune(',')
-				moves.WriteRune(' ')
-			}
-		}
-	}
-
-	str := fmt.Sprintf("(%s %q [%s])", ns.name, fmt.Sprintf("%v", ns.value), moves.String())
 
 	if ns.accepting {
 		str = "(" + str + ")"

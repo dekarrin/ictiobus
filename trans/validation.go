@@ -14,7 +14,7 @@ import (
 //
 // It will use fake value producer, if provided, to generate lexemes for
 // terminals in the tree; otherwise contrived values will be used.
-func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug ValidationOptions, fakeValProducer ...map[string]func() string) (warns []string, err error) {
+func Validate(sdts SDTS, g grammar.CFG, attribute string, debug ValidationOptions, fakeValProducer ...map[string]func() string) (warns []string, err error) {
 	pts, err := parse.DeriveFullTree(g, fakeValProducer...)
 	if err != nil {
 		return warns, fmt.Errorf("deriving fake parse tree: %w", err)

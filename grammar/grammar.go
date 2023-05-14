@@ -1,4 +1,13 @@
 // Package grammar implements context-free grammars and associated constructs.
+// A context-free grammar describes a language using a series of production
+// rules. They are often represented using BNF, which looks something like this:
+//
+//	SUM  ::= EXPR '+' EXPR
+//	EXPR ::= int | identifier
+//
+// This package provides [CFG] for representing and manipulating such a grammar.
+// In ictiobus they are used to automatically generate parsers by querying a CFG
+// for information on its rules.
 package grammar
 
 import (
@@ -15,9 +24,12 @@ import (
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 )
 
-// Grammar for tunascript language, used by a parsing algorithm to create a
-// parse tree from some input.
-type Grammar struct {
+// CFG is a context-free grammar for a language. It holds the rules and
+// derivations that make up the grammar, and maintains the terminal and
+// non-terminal symbols that are in it in the order they are defined.
+//
+// The zero-value is a CFG ready to be used.
+type CFG struct {
 	rulesByName map[string]int
 
 	// main rules store, not just doing a simple map bc
@@ -64,7 +76,7 @@ func (m *marshaledTokenClass) UnmarshalBinary(data []byte) error {
 
 // MarshalBinary converts g into a slice of bytes that can be decoded with
 // UnmarshalBinary.
-func (g Grammar) MarshalBinary() ([]byte, error) {
+func (g CFG) MarshalBinary() ([]byte, error) {
 	data := rezi.EncMapStringToInt(g.rulesByName)
 	rulesData := rezi.EncSliceBinary(g.rules)
 	data = append(data, rulesData...)
@@ -84,7 +96,7 @@ func (g Grammar) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary decodes a slice of bytes created by MarshalBinary into g. All
 // of g's fields will be replaced by the fields decoded from data.
-func (g *Grammar) UnmarshalBinary(data []byte) error {
+func (g *CFG) UnmarshalBinary(data []byte) error {
 	var n int
 	var err error
 
@@ -132,14 +144,16 @@ func (g *Grammar) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// Terminals returns an ordered list of the terminals in the grammar.
-func (g Grammar) Terminals() []string {
+// Terminals returns the set of terminal symbols in the grammar. Elements in the
+// returned slice will be in a stable order, but it will not necessarily be
+// related to the order they were added to the grammar.
+func (g CFG) Terminals() []string {
 	return textfmt.OrderedKeys(g.terminals)
 }
 
 // Augmented returns a new grammar that is a copy of this one but with the start
-// symbol S changed to a new rule, S' -> S.
-func (g Grammar) Augmented() Grammar {
+// symbol S changed to a new rule, S' -> S. All other rules are kept the same.
+func (g CFG) Augmented() CFG {
 	// get a copy, this will modify g
 	g = g.Copy()
 
@@ -152,33 +166,36 @@ func (g Grammar) Augmented() Grammar {
 	return g
 }
 
-// IsTerminal returns whether the given symbol is a terminal.
-func (g Grammar) IsTerminal(sym string) bool {
+// IsTerminal returns whether the given symbol is a terminal used in the CFG.
+func (g CFG) IsTerminal(sym string) bool {
 	_, ok := g.terminals[sym]
 	return ok
 }
 
-// IsNonTerminal returns whether the given symbol is a non-terminal.
-func (g Grammar) IsNonTerminal(sym string) bool {
+// IsNonTerminal returns whether the given symbol is a non-terminal used in the
+// CFG.
+func (g CFG) IsNonTerminal(sym string) bool {
 	_, ok := g.rulesByName[sym]
 	return ok
 }
 
-// LR0Items returns all LR0 Items in the grammar.
-func (g Grammar) LR0Items() []LR0Item {
+// LR0Items returns all LR0 items of rules in the grammar. These items can be
+// used by LR parser generator algorithms to create a parsing DFA for the
+// grammar.
+func (g CFG) LR0Items() []LR0Item {
 	nonTerms := g.NonTerminals()
 
 	items := []LR0Item{}
 	for _, nt := range nonTerms {
 		r := g.Rule(nt)
-		items = append(items, r.LRItems()...)
+		items = append(items, r.lrItems()...)
 	}
 	return items
 }
 
-// Copy makes a duplicate deep copy of the grammar.
-func (g Grammar) Copy() Grammar {
-	g2 := Grammar{
+// Copy makes a deep copy of the grammar.
+func (g CFG) Copy() CFG {
+	g2 := CFG{
 		rulesByName: make(map[string]int, len(g.rulesByName)),
 		rules:       make([]Rule, len(g.rules)),
 		terminals:   make(map[string]lex.TokenClass, len(g.terminals)),
@@ -202,7 +219,7 @@ func (g Grammar) Copy() Grammar {
 
 // StartSymbol returns the defined start symbol for the grammar. If one is set
 // in g.Start, that is returned, otherwise "S" is.
-func (g Grammar) StartSymbol() string {
+func (g CFG) StartSymbol() string {
 	if g.Start == "" {
 		return "S"
 	} else {
@@ -211,15 +228,15 @@ func (g Grammar) StartSymbol() string {
 }
 
 // String returns a string representation of the grammar.
-func (g Grammar) String() string {
+func (g CFG) String() string {
 	return fmt.Sprintf("(%q, R=%q)", textfmt.OrderedKeys(g.terminals), g.rules)
 }
 
-// Rule returns the grammar rule for the given nonterminal symbol.
-// If there is no rule defined for that nonterminal, a Rule with an empty
-// NonTerminal field is returned; else it will be the same string as the one
-// passed in to the function.
-func (g Grammar) Rule(nonterminal string) Rule {
+// Rule returns the grammar rule for the given non-terminal symbol. If there is
+// no rule defined for that nonterminal, a Rule with an empty NonTerminal field
+// is returned; otherwise it will be the same string as the one passed in to the
+// function.
+func (g CFG) Rule(nonterminal string) Rule {
 	if g.rulesByName == nil {
 		return Rule{}
 	}
@@ -231,10 +248,9 @@ func (g Grammar) Rule(nonterminal string) Rule {
 	}
 }
 
-// Term returns the tokenClass that the given terminal symbol maps to. If the
-// given terminal symbol is not defined as a terminal symbol in this grammar,
-// the special TokenClass UndefinedToken is returned.
-func (g Grammar) Term(terminal string) lex.TokenClass {
+// Term returns the TokenClass that the given terminal symbol maps to. If the
+// symbol is not defined in this grammar, lex.TokenUndefined is returned.
+func (g CFG) Term(terminal string) lex.TokenClass {
 	if g.terminals == nil {
 		return lex.TokenUndefined
 	}
@@ -246,20 +262,20 @@ func (g Grammar) Term(terminal string) lex.TokenClass {
 	}
 }
 
-// AddTerm adds the given terminal along with the tokenClass that corresponds to
+// AddTerm adds the given terminal along with the TokenClass that corresponds to
 // it; tokens must be of that class in order to match the terminal.
 //
-// The mapping of terminal symbol IDs to tokenClasses must be 1-to-1; i.e. It is
-// an error to map multiple terms to the same tokenClass, and it is an error to
-// map the same term to multiple tokenClasses.
+// The mapping of terminal symbol IDs to TokenClasses must be 1-to-1; i.e. It is
+// an error to map multiple terms to the same TokenClass, and it is an error to
+// map the same term to multiple TokenClasses.
 //
 // As a result, redefining the same term will cause the old one to be removed,
 // and during validation if multiple terminals are matched to the same
 // tokenClass it will be considered an error.
 //
-// It is an error to map any terminal to types.TokenUndefined or
-// types.TokenEndOfText and attempting to do so will panic immediately.
-func (g *Grammar) AddTerm(terminal string, class lex.TokenClass) {
+// It is an error to map any terminal to lex.TokenUndefined or
+// lex.TokenEndOfText and attempting to do so will cause a panic.
+func (g *CFG) AddTerm(terminal string, class lex.TokenClass) {
 	if terminal == "" {
 		panic("empty terminal not allowed")
 	}
@@ -292,8 +308,8 @@ func (g *Grammar) AddTerm(terminal string, class lex.TokenClass) {
 }
 
 // RemoveUnusedTerminals removes all terminals that are not currently used by
-// any rule.
-func (g *Grammar) RemoveUnusedTerminals() {
+// any rule in the grammar.
+func (g *CFG) RemoveUnusedTerminals() {
 	producedTerms := box.NewStringSet()
 	terms := g.Terminals()
 
@@ -327,7 +343,7 @@ func (g *Grammar) RemoveUnusedTerminals() {
 //
 // If the grammar already does not contain the given nonterminal this function
 // has no effect.
-func (g *Grammar) RemoveTerm(t string) {
+func (g *CFG) RemoveTerm(t string) {
 	// is this rule even present?
 	delete(g.terminals, t)
 }
@@ -338,7 +354,7 @@ func (g *Grammar) RemoveTerm(t string) {
 //
 // If the grammar already does not contain the given non-terminal this function
 // has no effect.
-func (g *Grammar) RemoveRule(nonterminal string) {
+func (g *CFG) RemoveRule(nonterminal string) {
 	// is this rule even present?
 
 	ruleIdx, ok := g.rulesByName[nonterminal]
@@ -370,7 +386,7 @@ func (g *Grammar) RemoveRule(nonterminal string) {
 //
 // All rules require at least one symbol in the production. For episilon
 // production, give only the empty string.
-func (g *Grammar) AddRule(nonterminal string, production []string) {
+func (g *CFG) AddRule(nonterminal string, production []string) {
 	if nonterminal == "" {
 		panic("empty nonterminal name not allowed for production rule")
 	}
@@ -412,15 +428,16 @@ func (g *Grammar) AddRule(nonterminal string, production []string) {
 	g.rules[curIdx] = curRule
 }
 
-// NonTerminals returns list of all the non-terminal symbols. All will be upper
-// case.
-func (g Grammar) NonTerminals() []string {
+// NonTerminals returns a list of all the non-terminal symbols in the grammar.
+// Elements in the returned slice will be in a stable order, but necessarily the
+// same order as they were added in. All will be upper-case.
+func (g CFG) NonTerminals() []string {
 	return textfmt.OrderedKeys(g.rulesByName)
 }
 
 // NonTerminalsByPriority returns list of all the non-terminal symbols in the order
-// they were defined in. All will be upper case.
-func (g Grammar) NonTerminalsByPriority() []string {
+// they were defined in. All will be upper-case.
+func (g CFG) NonTerminalsByPriority() []string {
 	termNames := []string{}
 	for _, r := range g.rules {
 		termNames = append(termNames, r.NonTerminal)
@@ -433,7 +450,7 @@ func (g Grammar) NonTerminalsByPriority() []string {
 // reverse order from the order they were defined in. This is handy because it
 // can have the effect of causing iteration to do so in a manner that a human
 // might do looking at a grammar, reversed.
-func (g Grammar) NonTerminalsByReversePriority() []string {
+func (g CFG) NonTerminalsByReversePriority() []string {
 	termNames := []string{}
 	for _, r := range g.rules {
 		termNames = append([]string{r.NonTerminal}, termNames...)
@@ -446,7 +463,7 @@ func (g Grammar) NonTerminalsByReversePriority() []string {
 // where A and B are both non-terminals. The returned list contains rules
 // mapping the non-terminal to the other non-terminal; all other productions
 // from the grammar will not be present.
-func (g Grammar) UnitProductions() []Rule {
+func (g CFG) UnitProductions() []Rule {
 	allUnitProductions := []Rule{}
 
 	for _, nonTerm := range g.NonTerminals() {
@@ -462,7 +479,7 @@ func (g Grammar) UnitProductions() []Rule {
 
 // HasUnreachables returns whether the grammar currently has unreachle
 // non-terminals.
-func (g Grammar) HasUnreachableNonTerminals() bool {
+func (g CFG) HasUnreachableNonTerminals() bool {
 	for _, nonTerm := range g.NonTerminals() {
 		if nonTerm == g.StartSymbol() {
 			continue
@@ -493,7 +510,7 @@ func (g Grammar) HasUnreachableNonTerminals() bool {
 // UnreachableNonTerminals returns all non-terminals (excluding the start
 // symbol) that are currently unreachable due to not being produced by any other
 // grammar rule.
-func (g Grammar) UnreachableNonTerminals() []string {
+func (g CFG) UnreachableNonTerminals() []string {
 	unreachables := []string{}
 
 	for _, nonTerm := range g.NonTerminals() {
@@ -524,7 +541,7 @@ func (g Grammar) UnreachableNonTerminals() []string {
 
 // RemoveUnitProductions returns a Grammar that derives strings equivalent to
 // this one but with all unit production rules removed.
-func (g Grammar) RemoveUnitProductions() Grammar {
+func (g CFG) RemoveUnitProductions() CFG {
 	for _, nt := range g.NonTerminals() {
 		rule := g.Rule(nt)
 		resolvedSymbols := map[string]bool{}
@@ -561,14 +578,14 @@ func (g Grammar) RemoveUnitProductions() Grammar {
 	// okay, now just remove the unreachable ones (not strictly necessary for
 	// all interpretations of unit production removal but lets do it anyways for
 	// simplicity)
-	g = g.RemoveUreachableNonTerminals()
+	g = g.RemoveUnreachableNonTerminals()
 
 	return g
 }
 
 // RemoveUnreachableNonTerminals returns a grammar with all unreachable
 // non-terminals removed.
-func (g Grammar) RemoveUreachableNonTerminals() Grammar {
+func (g CFG) RemoveUnreachableNonTerminals() CFG {
 	for g.HasUnreachableNonTerminals() {
 		for _, nt := range g.UnreachableNonTerminals() {
 			g.RemoveRule(nt)
@@ -582,7 +599,7 @@ func (g Grammar) RemoveUreachableNonTerminals() Grammar {
 // automatically eliminated.
 //
 // Call Validate before this or it may go poorly.
-func (g Grammar) RemoveEpsilons() Grammar {
+func (g CFG) RemoveEpsilons() CFG {
 	// run this in a loop until all vars have epsilon propagated out
 
 	propagated := map[string]bool{}
@@ -710,7 +727,7 @@ func (g Grammar) RemoveEpsilons() Grammar {
 //
 // This is an implementation of Algorithm 4.19 from the purple dragon book,
 // "Eliminating left recursion".
-func (g Grammar) RemoveLeftRecursion() Grammar {
+func (g CFG) RemoveLeftRecursion() CFG {
 	// precond: grammar must have no epsilon productions or unit productions
 	g = g.RemoveEpsilons().RemoveUnitProductions()
 
@@ -830,12 +847,12 @@ func (g Grammar) RemoveLeftRecursion() Grammar {
 		}
 	}
 
-	g = g.RemoveUreachableNonTerminals()
+	g = g.RemoveUnreachableNonTerminals()
 
 	return g
 }
 
-func (g *Grammar) insertRule(r Rule, idx int) {
+func (g *CFG) insertRule(r Rule, idx int) {
 	// explicitly copy the end of the slice because trying to
 	// save a post list and then modifying has lead to aliasing
 	// issues in past
@@ -856,7 +873,7 @@ func (g *Grammar) insertRule(r Rule, idx int) {
 //
 // This is an implementation of Algorithm 4.21 from the purple dragon book,
 // "Left factoring a grammar".
-func (g Grammar) LeftFactor() Grammar {
+func (g CFG) LeftFactor() CFG {
 	changes := true
 	for changes {
 		changes = false
@@ -932,7 +949,7 @@ func (g Grammar) LeftFactor() Grammar {
 }
 
 // MustParse is identical to [Parse] but panics if an error is encountered.
-func MustParse(gr string) Grammar {
+func MustParse(gr string) CFG {
 	g, err := Parse(gr)
 	if err != nil {
 		panic(err.Error())
@@ -943,15 +960,17 @@ func MustParse(gr string) Grammar {
 // Parse parses a 'grammar string' into a Grammar object. The string must have
 // a semicolon between rules, spaces between each symbol, non-terminals must
 // contain at least one upper-case letter. Epsilon "ε" is used for the epsilon
-// production. Example:
+// production.
+//
+// Example:
 //
 //	S -> A | B ;
 //	A -> a | ε ;
 //	B -> A b | c ;
-func Parse(gr string) (Grammar, error) {
+func Parse(gr string) (CFG, error) {
 	lines := strings.Split(gr, ";")
 
-	var g Grammar
+	var g CFG
 	onFirst := true
 	for _, line := range lines {
 		if strings.TrimSpace(line) == "" {
@@ -960,7 +979,7 @@ func Parse(gr string) (Grammar, error) {
 
 		rule, err := ParseRule(line)
 		if err != nil {
-			return Grammar{}, err
+			return CFG{}, err
 		}
 
 		if onFirst {
@@ -985,7 +1004,7 @@ func Parse(gr string) (Grammar, error) {
 
 // TermFor returns the term used in the grammar to represent the given
 // TokenClass. If tc is not a TokenClass in the grammar, "" is returned.
-func (g Grammar) TermFor(tc lex.TokenClass) string {
+func (g CFG) TermFor(tc lex.TokenClass) string {
 	if tc.ID() == lex.TokenEndOfText.ID() {
 		return "$"
 	}
@@ -999,7 +1018,7 @@ func (g Grammar) TermFor(tc lex.TokenClass) string {
 
 // GenerateUniqueName generates a name for a non-terminal gauranteed to be
 // unique within the grammar, based on original if one is provided.
-func (g Grammar) GenerateUniqueName(original string) string {
+func (g CFG) GenerateUniqueName(original string) string {
 	newName := original + "-P"
 	existingRule := g.Rule(newName)
 	for existingRule.NonTerminal != "" {
@@ -1012,7 +1031,7 @@ func (g Grammar) GenerateUniqueName(original string) string {
 
 // GenerateUniqueTerminal generates a name for a terminal gauranteed to be
 // unique within the grammar, based on the given original if one is provided.
-func (g Grammar) GenerateUniqueTerminal(original string) string {
+func (g CFG) GenerateUniqueTerminal(original string) string {
 	newName := original
 	addedHyphen := false
 	existingTerm := g.Term(newName)
@@ -1114,7 +1133,7 @@ func getEpsilonRewrites(epsilonableNonterm string, prod Production) []Production
 
 // Validates that the current rules form a complete grammar with no
 // missing definitions. TODO: should also dupe-check rules.
-func (g Grammar) Validate() error {
+func (g CFG) Validate() error {
 	if g.rulesByName == nil {
 		g.rulesByName = map[string]int{}
 	}

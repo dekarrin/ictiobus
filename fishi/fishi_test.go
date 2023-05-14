@@ -29,7 +29,7 @@ func Test_WithFakeInput(t *testing.T) {
 func Test_SelfHostedMarkdown_Spec(t *testing.T) {
 	assert := assert.New(t)
 
-	res, err := ParseMarkdownFile("../fishi.md", nil)
+	res, err := ParseMarkdownFile("../docs/fishi.md", nil)
 	if !assert.NoError(err) {
 		return
 	}
@@ -47,7 +47,7 @@ func Test_SelfHostedMarkdown_Spec(t *testing.T) {
 func Test_SelfHostedMarkdown(t *testing.T) {
 	assert := assert.New(t)
 
-	_, actual := ParseMarkdownFile("../fishi.md", nil)
+	_, actual := ParseMarkdownFile("../docs/fishi.md", nil)
 
 	assert.NoError(actual)
 

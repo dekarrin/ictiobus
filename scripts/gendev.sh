@@ -17,4 +17,4 @@ cd "$(dirname "$0")/.."
 	-d fishic \
 	--dev \
 	-f fishi/format \
-	fishi.md "$@"
+	docs/fishi.md "$@"

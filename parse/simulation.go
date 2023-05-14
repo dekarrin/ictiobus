@@ -18,7 +18,7 @@ import (
 // a key in it. If the map is not provided or does not contain a key for a
 // token class matching a terminal being generated, a default string will be
 // automatically generated for it.
-func DeriveFullTree(g grammar.Grammar, fakeValProducer ...map[string]func() string) ([]Tree, error) {
+func DeriveFullTree(g grammar.CFG, fakeValProducer ...map[string]func() string) ([]Tree, error) {
 	// create a function to get a value for any terminal from the
 	// fakeValProducer, falling back on default behavior if none is provided or
 	// if a token class is not found in the fakeValProducer.
@@ -295,7 +295,7 @@ func DeriveFullTree(g grammar.Grammar, fakeValProducer ...map[string]func() stri
 
 // deriveShortest returns the parse tree for the given symbol with the fewest
 // possible number of nodes.
-func deriveShortestTree(g grammar.Grammar, sym string, shortestDerivation map[string]grammar.Production, tokMaker func(term string) lex.Token) *Tree {
+func deriveShortestTree(g grammar.CFG, sym string, shortestDerivation map[string]grammar.Production, tokMaker func(term string) lex.Token) *Tree {
 	root := &Tree{
 		Value: sym,
 	}
@@ -342,7 +342,7 @@ func deriveShortestTree(g grammar.Grammar, sym string, shortestDerivation map[st
 // createFewestNonTermsAlternationsTable returns a map of non-terminals to the
 // production in their associated rule that using to derive would result in the
 // fewest new non-terminals being derived for that rule.
-func createFewestNonTermsAlternationsTable(g grammar.Grammar) (map[string]grammar.Production, error) {
+func createFewestNonTermsAlternationsTable(g grammar.CFG) (map[string]grammar.Production, error) {
 	// DEFINITION OF SCORE:
 	// S(rule) = Floor(S(prod1) + S(prod2) + ... + S(prodN))
 	// S(prod) = num N of non terminals in a production + S(nonterm1) + S(nonterm2) + ... + S(nontermN)

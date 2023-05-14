@@ -17,7 +17,7 @@ import (
 // Generally this should not be used directly except for internal purposes; use
 // GenerateLALR1Parser to generate one ready for use
 func EmptyLALR1Parser() Parser {
-	return &lrParser{table: &lalr1Table{}, parseType: AlgoLALR1}
+	return &lrParser{table: &lalr1Table{}, parseType: LALR1}
 }
 
 // GenerateLALR1Parser returns a parser that uses the set of canonical
@@ -28,13 +28,13 @@ func EmptyLALR1Parser() Parser {
 // shift-reduce conflict, shift will be preferred. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func GenerateLALR1Parser(g grammar.Grammar, allowAmbig bool) (Parser, []string, error) {
+func GenerateLALR1Parser(g grammar.CFG, allowAmbig bool) (Parser, []string, error) {
 	table, ambigWarns, err := constructLALR1ParseTable(g, allowAmbig)
 	if err != nil {
 		return &lrParser{}, nil, err
 	}
 
-	return &lrParser{table: table, parseType: AlgoLALR1, gram: g}, ambigWarns, nil
+	return &lrParser{table: table, parseType: LALR1, gram: g}, ambigWarns, nil
 }
 
 // constructLALR1ParseTable constructs the LALR(1) table for G.
@@ -53,7 +53,7 @@ func GenerateLALR1Parser(g grammar.Grammar, allowAmbig bool) (Parser, []string, 
 // reduce/reduce conflicts will still be rejected. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, []string, error) {
+func constructLALR1ParseTable(g grammar.CFG, allowAmbig bool) (lrParseTable, []string, error) {
 	dfa, _ := constructDFAForLALR1(g)
 	dfa.NumberStates()
 
@@ -140,7 +140,7 @@ func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable,
 }
 
 type lalr1Table struct {
-	gPrime     grammar.Grammar
+	gPrime     grammar.CFG
 	gStart     string
 	dfa        automaton.DFA[box.SVSet[grammar.LR1Item]]
 	itemCache  map[string]grammar.LR1Item

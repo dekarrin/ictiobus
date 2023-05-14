@@ -17,7 +17,7 @@ import (
 // Generally this should not be used directly except for internal purposes; use
 // GenerateSimpleLRParser to generate one ready for use
 func EmptySLR1Parser() Parser {
-	return &lrParser{table: &slrTable{}, parseType: AlgoSLR1}
+	return &lrParser{table: &slrTable{}, parseType: SLR1}
 }
 
 // GenerateSLR1Parser returns a parser that uses SLR bottom-up parsing to
@@ -27,13 +27,13 @@ func EmptySLR1Parser() Parser {
 // shift-reduce conflict, shift will be preferred. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func GenerateSLR1Parser(g grammar.Grammar, allowAmbig bool) (Parser, []string, error) {
+func GenerateSLR1Parser(g grammar.CFG, allowAmbig bool) (Parser, []string, error) {
 	table, ambigWarns, err := constructSLR1ParseTable(g, allowAmbig)
 	if err != nil {
 		return &lrParser{}, ambigWarns, err
 	}
 
-	return &lrParser{table: table, parseType: AlgoSLR1, gram: g}, ambigWarns, nil
+	return &lrParser{table: table, parseType: SLR1, gram: g}, ambigWarns, nil
 }
 
 // constructSLR1ParseTable constructs the SLR(1) table for G. It augments
@@ -51,7 +51,7 @@ func GenerateSLR1Parser(g grammar.Grammar, allowAmbig bool) (Parser, []string, e
 // reduce/reduce conflicts will still be rejected. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func constructSLR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, []string, error) {
+func constructSLR1ParseTable(g grammar.CFG, allowAmbig bool) (lrParseTable, []string, error) {
 	// we will skip a few steps here and simply grab the LR0 DFA for G' which
 	// will pretty immediately give us our GOTO() function, since as purple
 	// dragon book mentions, "intuitively, the GOTO function is used to define
@@ -143,7 +143,7 @@ func constructSLR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, 
 }
 
 type slrTable struct {
-	gPrime     grammar.Grammar
+	gPrime     grammar.CFG
 	gStart     string
 	lr0        automaton.DFA[box.SVSet[grammar.LR0Item]]
 	itemCache  map[string]grammar.LR0Item
