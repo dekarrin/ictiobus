@@ -14,11 +14,11 @@ import (
 	"text/template"
 	"unicode"
 
-	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/shellout"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
+	"github.com/dekarrin/ictiobus/parse"
 	"github.com/dekarrin/ictiobus/trans"
 	"github.com/dekarrin/rosed"
 	"golang.org/x/text/cases"
@@ -319,7 +319,7 @@ func generateBinaryMainGo(spec Spec, md SpecMetadata, params mainBinaryParams) (
 	// since GenerateCompilerGo ensures the directory exists, we can now copy
 	// the encoded parser into it as well.
 	parserPath := filepath.Join(fePkgPath, "parser.cff")
-	err = ictiobus.WriteParserFile(params.Parser, parserPath)
+	err = parse.WriteFile(params.Parser, parserPath)
 	if err != nil {
 		return gci, fmt.Errorf("writing parser: %w", err)
 	}

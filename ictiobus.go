@@ -57,14 +57,11 @@ package ictiobus
 // validating LALR(1) grammars quickly.
 
 import (
-	"bufio"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/dekarrin/ictiobus/grammar"
-	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/parse"
 	"github.com/dekarrin/ictiobus/trans"
@@ -124,87 +121,6 @@ func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, amb
 	}
 
 	return parser, ambigWarns, nil
-}
-
-// WriteParserFile stores the parser in a binary file (encoded using an
-// internal format called 'REZI'). The Parser can later be retrieved from the
-// file by calling [ReadParserFile] on it.
-func WriteParserFile(p parse.Parser, filename string) error {
-	fp, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer fp.Close()
-
-	bufWriter := bufio.NewWriter(fp)
-
-	allBytes := EncodeParserBytes(p)
-	_, err = bufWriter.Write(allBytes)
-	if err != nil {
-		return err
-	}
-	err = bufWriter.Flush()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// ReadParserFile retrieves a Parser by reading a file containing one encoded as
-// binary bytes. This will read files created with [WriteParserFile].
-func ReadParserFile(filename string) (parse.Parser, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	p, err := DecodeParserBytes(data)
-	if err != nil {
-		return nil, err
-	}
-
-	return p, nil
-}
-
-// EncodeParserBytes takes a Parser and encodes it as a binary value (using an
-// internal binary format called 'REZI').
-func EncodeParserBytes(p parse.Parser) []byte {
-	data := rezi.EncString(p.Type().String())
-	data = append(data, rezi.EncBinary(p)...)
-	return data
-}
-
-// DecodeParserBytes takes a slice of bytes containing a Parser encoded as a
-// binary value (using an internal binary format called 'REZI') and decodes it
-// into the Parser it represents.
-func DecodeParserBytes(data []byte) (p parse.Parser, err error) {
-	// first get the string giving the type
-	typeStr, n, err := rezi.DecString(data)
-	if err != nil {
-		return nil, fmt.Errorf("read parser type: %w", err)
-	}
-	parserType, err := parse.ParseAlgorithm(typeStr)
-	if err != nil {
-		return nil, fmt.Errorf("decode parser type: %w", err)
-	}
-
-	// set var's concrete type by getting an empty copy
-	switch parserType {
-	case parse.AlgoLL1:
-		p = parse.EmptyLL1Parser()
-	case parse.AlgoSLR1:
-		p = parse.EmptySLR1Parser()
-	case parse.AlgoLALR1:
-		p = parse.EmptyLALR1Parser()
-	case parse.AlgoCLR1:
-		p = parse.EmptyCLR1Parser()
-	default:
-		panic("should never happen: parsed parserType is not valid")
-	}
-
-	_, err = rezi.DecBinary(data[n:], p)
-	return p, err
 }
 
 // NewLALRParser returns an LALR(k) parser for the given grammar. The value of k

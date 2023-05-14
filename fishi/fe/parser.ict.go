@@ -10,7 +10,6 @@ created by invoking ictiobus with the following command:
 import (
 	_ "embed"
 
-	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/parse"
 
@@ -203,7 +202,7 @@ func Grammar() grammar.Grammar {
 
 // Parser returns the generated ictiobus Parser for FISHI.
 func Parser() parse.Parser {
-	p, err := ictiobus.DecodeParserBytes(parserData)
+	p, err := parse.DecodeBytes(parserData)
 	if err != nil {
 		panic("corrupted parser.cff file: " + err.Error())
 	}

@@ -314,7 +314,6 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/fishi"
 	"github.com/dekarrin/ictiobus/fishi/format"
 	"github.com/dekarrin/ictiobus/grammar"
@@ -885,7 +884,7 @@ func main() {
 	}
 
 	parserPath := filepath.Join(feDest, "parser.cff")
-	err = ictiobus.WriteParserFile(p, parserPath)
+	err = parse.WriteFile(p, parserPath)
 	if err != nil {
 		errGeneration(err.Error())
 		return
