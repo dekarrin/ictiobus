@@ -885,7 +885,7 @@ func main() {
 	}
 
 	parserPath := filepath.Join(feDest, "parser.cff")
-	err = ictiobus.SaveParserToDisk(p, parserPath)
+	err = ictiobus.WriteParserFile(p, parserPath)
 	if err != nil {
 		errGeneration(err.Error())
 		return

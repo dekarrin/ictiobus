@@ -319,7 +319,7 @@ func generateBinaryMainGo(spec Spec, md SpecMetadata, params mainBinaryParams) (
 	// since GenerateCompilerGo ensures the directory exists, we can now copy
 	// the encoded parser into it as well.
 	parserPath := filepath.Join(fePkgPath, "parser.cff")
-	err = ictiobus.SaveParserToDisk(params.Parser, parserPath)
+	err = ictiobus.WriteParserFile(params.Parser, parserPath)
 	if err != nil {
 		return gci, fmt.Errorf("writing parser: %w", err)
 	}

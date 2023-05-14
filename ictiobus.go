@@ -1,5 +1,5 @@
-// Package ictiobus contains parsers and parser-generator constructs used as
-// part of research into compiling techniques. It is the tunascript compilers
+// Package ictiobus provides a system for constructing compiler frontends used
+// as part of research into compiling techniques. It is the tunascript compiler
 // pulled out after it turned from "small knowledge gaining side-side project"
 // into a full-blown compilers and translators learning and research project.
 //
@@ -7,7 +7,8 @@
 // with bison. Naturally, bison due to its popularity as a parser-generator
 // tool.
 //
-// Ictiobus is typically used by invoking the ictcc binary command.
+// Ictiobus is typically used by invoking the ictcc binary command, or called
+// from Go code in the binaries it generates.
 package ictiobus
 
 // DEV NOTE:
@@ -42,8 +43,7 @@ func NewLexer() lex.Lexer {
 // NewLazyLexer returns a Lexer whose Lex method will return a TokenStream that
 // is lazily executed; that is to say, calling Next() on the token stream will
 // perform only enough lexical analysis to produce the next token. Additionally,
-// that TokenStream may produce an error token, which parsers would need to
-// handle appropriately.
+// that TokenStream may produce an error token.
 func NewLazyLexer() lex.Lexer {
 	return lex.NewLexer(true)
 }
@@ -86,8 +86,10 @@ func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, amb
 	return parser, ambigWarns, nil
 }
 
-// SaveParserToDisk stores the parser in a binary file format on disk.
-func SaveParserToDisk(p parse.Parser, filename string) error {
+// WriteParserFile stores the parser in a binary file (encoded using an
+// internal format called 'REZI'). The Parser can later be retrieved from the
+// file by calling [ReadParserFile] on it.
+func WriteParserFile(p parse.Parser, filename string) error {
 	fp, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -109,8 +111,9 @@ func SaveParserToDisk(p parse.Parser, filename string) error {
 	return nil
 }
 
-// GetParserFromDisk retrieves the parser from a binary file on disk.
-func GetParserFromDisk(filename string) (parse.Parser, error) {
+// ReadParserFile retrieves a Parser by reading a file containing one encoded as
+// binary bytes. This will read files created with [WriteParserFile].
+func ReadParserFile(filename string) (parse.Parser, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -124,14 +127,17 @@ func GetParserFromDisk(filename string) (parse.Parser, error) {
 	return p, nil
 }
 
-// EncodeParserBytes takes a parser and returns the encoded bytes.
+// EncodeParserBytes takes a Parser and encodes it as a binary value (using an
+// internal binary format called 'REZI').
 func EncodeParserBytes(p parse.Parser) []byte {
 	data := rezi.EncString(p.Type().String())
 	data = append(data, rezi.EncBinary(p)...)
 	return data
 }
 
-// DecodeParserBytes takes bytes and returns the Parser encoded within it.
+// DecodeParserBytes takes a slice of bytes containing a Parser encoded as a
+// binary value (using an internal binary format called 'REZI') and decodes it
+// into the Parser it represents.
 func DecodeParserBytes(data []byte) (p parse.Parser, err error) {
 	// first get the string giving the type
 	typeStr, n, err := rezi.DecString(data)
@@ -161,32 +167,36 @@ func DecodeParserBytes(data []byte) (p parse.Parser, err error) {
 	return p, err
 }
 
-// NewLALRParser returns an LALR(k) parser with the best available k for the
-// given grammar. Returns an error if the grammar is not LALR(1).
+// NewLALRParser returns an LALR(k) parser for the given grammar. The value of k
+// will be the highest possible to provide with ictiobus. Returns an error if
+// the grammar is not LALR(k).
 //
 // At the time of this writing, the greatest k = 1.
 func NewLALRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	return parse.GenerateLALR1Parser(g, allowAmbiguous)
 }
 
-// NewSLRParser returns an SLR(k) parser with the best available k for the
-// given grammar. Returns an error if the grammar is not SLR(1).
+// NewSLRParser returns an SLR(k) parser for the given grammar. The value of k
+// will be the highest possible to provide with ictiobus. Returns an error if
+// the grammar is not SLR(k).
 //
 // At the time of this writing, the greatest k = 1.
 func NewSLRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	return parse.GenerateSLR1Parser(g, allowAmbiguous)
 }
 
-// NewLLParser returns an LL(k) parser with the best available k for the
-// given grammar. Returns an error if the grammar is not LL(1).
+// NewLLParser returns an LL(k) parser for the given grammar. The value of k
+// will be the highest possible to provide with ictiobus. Returns an error if
+// the grammar is not LL(k).
 //
 // At the time of this writing, the greatest k = 1.
 func NewLLParser(g grammar.Grammar) (parser parse.Parser, err error) {
 	return parse.GenerateLL1Parser(g)
 }
 
-// NewCLRParser returns a canonical LR(k) parser with the best available k for
-// the given grammar. Returns an error if the grammar is not LR(1).
+// NewCLRParser returns a canonical LR(k) parser for the given grammar. The
+// value of k will be the highest possible to provide with ictiobus. Returns an
+// error if the grammar is not CLR(k).
 //
 // At the time of this writing, the greatest k = 1.
 func NewCLRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
@@ -230,7 +240,7 @@ func (fe *Frontend[E]) AnalyzeString(s string) (ir E, pt *parse.Tree, err error)
 //
 // If there is a problem with the input, it will be returned in a SyntaxError
 // containing information about the location where it occured in the source text
-// s.
+// read from r.
 //
 // The parse tree may be valid even if there is an error, in which case pt will
 // be non-nil.
