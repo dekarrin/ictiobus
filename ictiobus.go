@@ -1,14 +1,54 @@
-// Package ictiobus provides a system for constructing compiler frontends used
-// as part of research into compiling techniques. It is the tunascript compiler
-// pulled out after it turned from "small knowledge gaining side-side project"
-// into a full-blown compilers and translators learning and research project.
+// Package ictiobus provides a compiler-compiler that generates compiler
+// frontends in Go from language specifications.  Ictiobus is used and was
+// created as part of personal research into compiling techniques. It is the
+// tunascript compiler pulled out after it turned from "small knowledge gaining
+// side-side project" into a full-blown compilers and translators learning and
+// research project. The name ictiobus is based off of the name for the buffalo
+// fish due to the buffalo's relation with bison, important due to the
+// popularity of the parser generator bison and for being related to fish.
 //
-// It's based off of the name for the buffalo fish due to the buffalo's relation
-// with bison. Naturally, bison due to its popularity as a parser-generator
-// tool.
+// A compiler [Frontend] is created with ictiobus (usually using the ictcc
+// command to generate one based on a FISHI spec for a langauge), and these
+// frontends are used to parse input code into some intermediate representation
+// (IR). A Frontend holds all information needed to run analysis on input; its
+// Analyze provides a simple interface to accept code in its language and parse
+// it for the IR it was configured for.
 //
-// Ictiobus is typically used by invoking the ictcc binary command, or called
-// from Go code in the binaries it generates.
+// For instructions on using the ictcc command to generate a Frontend, see the
+// README.md file included with ictiobus, or the command documentation for
+// [github.com/dekarrin/ictiobus/cmd/ictcc].
+//
+// While the ictiobus package itself contains a few convenience functions for
+// creating the components of a Frontend, most of the functionality of the
+// compiler is delegated to packages in sub-directories of this project:
+//
+//   - The grammar and automaton packages contain fundamental types for language
+//     analysis that the rest of the compiler frontend uses.
+//
+//   - The lex package handles the lexing stage of input analysis. Tokens lexed
+//     during this stage are provided to the parsing stage via a
+//     [lex.TokenStream] produced by calling [lex.Lexer.Lex].
+//
+//   - The parse package handles the parsing stage of input analysis. This phase
+//     parses the tokens lexed from the stream into a [parse.Tree] by calling
+//     [parse.Parser.Parse] on a [lex.TokenStream].
+//
+//   - The trans package handles the translation stage of input analysis. This
+//     phase translates a parse tree into an intermediate representation (IR)
+//     that is ultimately returned as the final result of frontend analysis. The
+//     translation is applied by calling [trans.SDTS.Evaluate] on a [parse.Tree]
+//     and specifying the name of the final attribute(s) requested.
+//
+//   - The syntaxerr package provides a unifying interface for errors produced
+//     from the lexing, parsing, or translation phases of input code analysis.
+//
+//   - The fishi package reads in language specifications written in the FISHI
+//     language and produces new ictiobus parsers. It is the primary module used
+//     by the ictcc command.
+//
+// All of the above functionality is unified in the Frontend.Analyze(io.Reader)
+// function, which will run all three stages of input analysis and produce the
+// final intermediate representation.
 package ictiobus
 
 // DEV NOTE:
@@ -225,7 +265,7 @@ type Frontend[E any] struct {
 //
 // The parse tree may be valid even if there is an error, in which case pt will
 // be non-nil.
-func (fe *Frontend[E]) AnalyzeString(s string) (ir E, pt *parse.Tree, err error) {
+func (fe Frontend[E]) AnalyzeString(s string) (ir E, pt *parse.Tree, err error) {
 	r := strings.NewReader(s)
 	return fe.Analyze(r)
 }
@@ -244,7 +284,7 @@ func (fe *Frontend[E]) AnalyzeString(s string) (ir E, pt *parse.Tree, err error)
 //
 // The parse tree may be valid even if there is an error, in which case pt will
 // be non-nil.
-func (fe *Frontend[E]) Analyze(r io.Reader) (ir E, pt *parse.Tree, err error) {
+func (fe Frontend[E]) Analyze(r io.Reader) (ir E, pt *parse.Tree, err error) {
 	// lexical analysis
 	tokStream, err := fe.Lexer.Lex(r)
 	if err != nil {

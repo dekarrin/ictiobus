@@ -18,6 +18,18 @@ import (
 //
 // Strictly speaking, this is closer to an Attribute grammar.
 type SDTS interface {
+	// Evaluate takes a parse tree and executes the semantic actions defined as
+	// SDDBindings for a node for each node in the tree and on completion,
+	// returns the requested attributes values from the root node. Execution
+	// order is automatically determined by taking the dependency graph of the
+	// SDTS; cycles are not supported. Do note that this does not require the
+	// SDTS to be S-attributed or L-attributed, only that it not have cycles in
+	// its value dependency graph.
+	//
+	// Warn errors are provided in the slice of error and can be populated
+	// regardless of whether the final (actual) error is non-nil.
+	Evaluate(tree parse.Tree, attributes ...string) (vals []interface{}, warns []error, err error)
+
 	// SetHooks sets the hook table for mapping SDTS hook names as used in a
 	// call to BindSynthesizedAttribute or BindInheritedAttribute to their
 	// actual implementations.
@@ -77,18 +89,6 @@ type SDTS interface {
 	// - ifParent is the symbol that the parent of the node must be for no flow
 	// to be considered acceptable.
 	SetNoFlow(synth bool, head string, prod []string, attrName string, forProd NodeRelation, which int, ifParent string) error
-
-	// Evaluate takes a parse tree and executes the semantic actions defined as
-	// SDDBindings for a node for each node in the tree and on completion,
-	// returns the requested attributes values from the root node. Execution
-	// order is automatically determined by taking the dependency graph of the
-	// SDTS; cycles are not supported. Do note that this does not require the
-	// SDTS to be S-attributed or L-attributed, only that it not have cycles in
-	// its value dependency graph.
-	//
-	// Warn errors are provided in the slice of error and can be populated
-	// regardless of whether the final (actual) error is non-nil.
-	Evaluate(tree parse.Tree, attributes ...string) (vals []interface{}, warns []error, err error)
 
 	// Validate checks whether this SDTS is valid for the given grammar. It will
 	// create a simulated parse tree that contains a node for every rule of the

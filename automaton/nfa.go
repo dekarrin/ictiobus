@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dekarrin/ictiobus/grammar"
-
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
@@ -170,7 +168,7 @@ func NFAToDFA[E1, E2 any](nfa NFA[E1], reduceFn func(soFar E2, elem2 E1) E2) DFA
 			// for ( each input symbol a )
 			for _, a := range inputSymbols {
 				// (but like, glub, not the epsilon symbol itself)
-				if a == grammar.Epsilon[0] {
+				if a == "" {
 					continue
 				}
 
