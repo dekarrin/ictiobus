@@ -289,7 +289,7 @@ func (slr *slrTable) UnmarshalBinary(data []byte) error {
 // parser.
 func (slr *slrTable) DFAString() string {
 	var sb strings.Builder
-	automaton.OutputSetValuedDFA(&sb, slr.lr0)
+	outputSetValuedDFA(&sb, slr.lr0)
 	return sb.String()
 }
 

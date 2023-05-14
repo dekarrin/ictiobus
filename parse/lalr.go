@@ -286,7 +286,7 @@ func (lalr1 *lalr1Table) UnmarshalBinary(data []byte) error {
 // parser.
 func (lalr1 *lalr1Table) DFAString() string {
 	var sb strings.Builder
-	automaton.OutputSetValuedDFA(&sb, lalr1.dfa)
+	outputSetValuedDFA(&sb, lalr1.dfa)
 	return sb.String()
 }
 

@@ -291,7 +291,7 @@ func (clr1 *canonicalLR1Table) UnmarshalBinary(data []byte) error {
 // parser.
 func (clr1 *canonicalLR1Table) DFAString() string {
 	var sb strings.Builder
-	automaton.OutputSetValuedDFA(&sb, clr1.lr1)
+	outputSetValuedDFA(&sb, clr1.lr1)
 	return sb.String()
 }
 

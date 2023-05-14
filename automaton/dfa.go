@@ -1,10 +1,7 @@
 package automaton
 
 import (
-	"bufio"
 	"fmt"
-	"io"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -12,7 +9,6 @@ import (
 	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
-	"github.com/dekarrin/rosed"
 )
 
 // DFA is a deterministic finite automaton. It holds 'values' within its states;
@@ -477,6 +473,26 @@ func (dfa *DFA[E]) AddTransition(fromState string, input string, toState string)
 	dfa.states[fromState] = curFromState
 }
 
+// GetTransitions returns the transitions out of state fromState. They are
+// returned as a list of [2]string; the first item is the input symbol, the
+// second is the the state the DFA transitions to on that input.
+//
+// If given a state that does not exist, a slice of len 0 is returned.
+func (dfa DFA[E]) GetTransitions(fromState string) [][2]string {
+	from, ok := dfa.states[fromState]
+	if !ok {
+		return nil
+	}
+
+	var transitions [][2]string
+	for k := range from.transitions {
+		t := from.transitions[k]
+		transitions = append(transitions, [2]string{t.input, t.next})
+	}
+
+	return transitions
+}
+
 // String returns the string representation of a DFA.
 func (dfa DFA[E]) String() string {
 	var sb strings.Builder
@@ -514,109 +530,6 @@ func (dfa DFA[E]) String() string {
 	sb.WriteRune('>')
 
 	return sb.String()
-}
-
-// OutputSetValuedDFA writes a pretty-print representation of a DFA whose values
-// in its states are box.SVSets of some type that implements fmt.Stringer. The
-// representation is written to w.
-func OutputSetValuedDFA[E fmt.Stringer](w io.Writer, dfa DFA[box.SVSet[E]]) {
-	// lol let's get some buffering here
-	bw := bufio.NewWriter(w)
-
-	bw.WriteString("DFA:\n")
-	bw.WriteString("\tStart: ")
-	bw.WriteRune('"')
-	bw.WriteString(dfa.Start)
-	bw.WriteString("\"\n")
-
-	// now get ordered states
-	orderedStates := textfmt.OrderedKeys(dfa.states)
-	orderedStates = slices.SortBy(orderedStates, func(s1, s2 string) bool {
-		n1, err := strconv.Atoi(s1)
-		if err != nil {
-			// fallback; str comparison
-			return s1 < s2
-		}
-
-		n2, err := strconv.Atoi(s2)
-		if err != nil {
-			// fallback; str comparison
-			return s1 < s2
-		}
-
-		return n1 < n2
-	})
-
-	tabOpts := rosed.Options{TableBorders: true}
-
-	bw.WriteString("\tStates:")
-	// write out each state in a reasonable way
-	for i := range orderedStates {
-		bw.WriteString("\n")
-		state := dfa.states[orderedStates[i]]
-		layout := rosed.Editor{Options: tabOpts}
-
-		// get name and accepting data
-		nameCell := fmt.Sprintf("%q", state.name)
-		if state.accepting {
-			nameCell = "(" + nameCell + ")"
-		}
-		nameData := [][]string{{nameCell}}
-
-		// get item data for the state, in deterministic ordering
-		itemData := [][]string{}
-		items := state.value
-
-		lrItemNames := items.Elements()
-		sort.Strings(lrItemNames)
-
-		for i := range lrItemNames {
-			it := items.Get(lrItemNames[i])
-			cell := fmt.Sprintf("[%s]", it.String())
-			itemData = append(itemData, []string{cell})
-		}
-
-		// okay, finally, get transitions, in deterministic ordering
-		transData := [][]string{}
-		transOrdered := textfmt.OrderedKeys(state.transitions)
-
-		for i := range transOrdered {
-			t := state.transitions[transOrdered[i]]
-
-			cell := fmt.Sprintf("%q ==> %q", t.input, t.next)
-			transData = append(transData, []string{cell})
-		}
-
-		layout = layout.
-			InsertTable(rosed.End, nameData, 80)
-
-		if len(itemData) > 0 {
-			layout = layout.
-				LinesFrom(-1).
-				Delete(0, 81).
-				Commit().
-				InsertTable(rosed.End, itemData, 80)
-		}
-
-		if len(transData) > 0 {
-			layout = layout.
-				LinesFrom(-1).
-				Delete(0, 81).
-				Commit().
-				InsertTable(rosed.End, transData, 80)
-		}
-
-		str := layout.
-			Indent(1).
-			String()
-
-		bw.WriteString(str)
-	}
-	if len(orderedStates) == 0 {
-		bw.WriteString(" (none)\n")
-	}
-
-	bw.Flush()
 }
 
 // ValueString returns the string representation of the DFA with its states'
