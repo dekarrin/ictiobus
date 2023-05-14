@@ -105,13 +105,13 @@ func createAlternationFA(left, right automaton.NFA[string]) automaton.NFA[string
 // panics if there is not exactly one accepting state in provided nfa
 func getSingleAcceptState(nfa automaton.NFA[string]) string {
 	allAcceptStates := nfa.AcceptingStates()
-	if allAcceptStates.Len() != 1 {
+	if len(allAcceptStates) != 1 {
 		panic("NFA has multiple acceptance states")
 	}
 
 	// we just verified there's exactly one element in set and can now do this:
 	var accept string
-	for k := range allAcceptStates {
+	for _, k := range allAcceptStates {
 		accept = k
 	}
 

@@ -228,5 +228,11 @@ func constructDFAForSLR1(g grammar.Grammar) automaton.DFA[box.SVSet[grammar.LR0I
 		}
 	}
 
-	return nfa.ToDFA()
+	return automaton.NFAToDFA(nfa, func(soFar box.SVSet[grammar.LR0Item], elem2 grammar.LR0Item) box.SVSet[grammar.LR0Item] {
+		if soFar == nil {
+			soFar = box.NewSVSet[grammar.LR0Item]()
+		}
+		soFar.Set(elem2.String(), elem2)
+		return soFar
+	})
 }
