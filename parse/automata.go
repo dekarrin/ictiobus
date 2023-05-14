@@ -14,7 +14,7 @@ import (
 // the sets of items used in an LALR(1) parser. The grammar of the language that is
 // accepted by the parser, g, must be LALR(1) and it must be non-augmented.
 // Returns an error if g is not LALR(1).
-func constructDFAForLALR1(g grammar.Grammar) (automaton.DFA[box.SVSet[grammar.LR1Item]], error) {
+func constructDFAForLALR1(g grammar.CFG) (automaton.DFA[box.SVSet[grammar.LR1Item]], error) {
 
 	// EqualCoreSet returns whether the LR1Items in the slices contain the same
 	// cores. The  core of an LR1 item is simply the LR0 portion of it.
@@ -59,7 +59,7 @@ func constructDFAForLALR1(g grammar.Grammar) (automaton.DFA[box.SVSet[grammar.LR
 // constructDFAForCLR1 creates a new DFA whose states are made up of the sets
 // of items used in a canonical LR(1) parser. The grammar of the language that
 // is accepted by the parser, g, must be LR(1) and it must be non-augmented.
-func constructDFAForCLR1(g grammar.Grammar) automaton.DFA[box.SVSet[grammar.LR1Item]] {
+func constructDFAForCLR1(g grammar.CFG) automaton.DFA[box.SVSet[grammar.LR1Item]] {
 	oldStart := g.StartSymbol()
 	g = g.Augmented()
 
@@ -178,7 +178,7 @@ func constructDFAForCLR1(g grammar.Grammar) automaton.DFA[box.SVSet[grammar.LR1I
 // constructNFAForSLR1 creates a new NFA whose states are made up of the sets
 // of LR(0) items used in an SLR(1) parser. The grammar of the language that
 // is accepted by the parser, g, must be SLR(1) and it must be non-augmented.
-func constructDFAForSLR1(g grammar.Grammar) automaton.DFA[box.SVSet[grammar.LR0Item]] {
+func constructDFAForSLR1(g grammar.CFG) automaton.DFA[box.SVSet[grammar.LR0Item]] {
 	// add the dummy production
 	oldStart := g.StartSymbol()
 	g = g.Augmented()

@@ -29,7 +29,7 @@ type Spec struct {
 	Patterns map[string][]Pattern
 
 	// Grammar is the syntactical specification of the language.
-	Grammar grammar.Grammar
+	Grammar grammar.CFG
 
 	// TranslationScheme outlines the Syntax-Directed Translation Scheme for the
 	// language by giving the instructions for each attribute.
@@ -365,7 +365,7 @@ func NewSpec(ast AST) (spec Spec, warnings []Warning, err error) {
 
 func analyzeASTActionsContentSlice(
 	actionsBlocks []syntax.ActionsContent,
-	g grammar.Grammar,
+	g grammar.CFG,
 ) ([]SDD, []Warning, error) {
 	var warnings []Warning
 	var scheme []SDD
@@ -492,10 +492,10 @@ func analyzeASTActionsContentSlice(
 func analyzeASTGrammarContentSlice(
 	grammarBlocks []syntax.GrammarContent,
 	classes map[string]lex.TokenClass,
-) (grammar.Grammar, []Warning, error) {
+) (grammar.CFG, []Warning, error) {
 	var warnings []Warning
 
-	g := grammar.Grammar{}
+	g := grammar.CFG{}
 	hitFirst := false
 
 	// track terminals in the grammar to make sure they're all used
@@ -737,7 +737,7 @@ func analzyeASTTokensContentSlice(
 }
 
 // r is rule to check against, only first production is checked.
-func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.Grammar, r grammar.Rule) (trans.AttrRef, error) {
+func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.CFG, r grammar.Rule) (trans.AttrRef, error) {
 	var ar trans.AttrRef
 	if astRef.Head {
 		ar = trans.AttrRef{
@@ -827,7 +827,7 @@ func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.Grammar, r grammar.R
 
 // it is assumed that the parsed ref refers to an existing symbol; not checking
 // that here.
-func validateParsedAttrRef(ar trans.AttrRef, g grammar.Grammar, r grammar.Rule) error {
+func validateParsedAttrRef(ar trans.AttrRef, g grammar.CFG, r grammar.Rule) error {
 	// need to know if we are dealing with a terminal or not
 	isTerm := false
 

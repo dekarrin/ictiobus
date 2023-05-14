@@ -29,7 +29,7 @@ func EmptyCLR1Parser() Parser {
 // shift-reduce conflict, shift will be preferred. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func GenerateCLR1Parser(g grammar.Grammar, allowAmbig bool) (Parser, []string, error) {
+func GenerateCLR1Parser(g grammar.CFG, allowAmbig bool) (Parser, []string, error) {
 	table, ambigWarns, err := constructCLR1ParseTable(g, allowAmbig)
 	if err != nil {
 		return &lrParser{}, ambigWarns, err
@@ -54,7 +54,7 @@ func GenerateCLR1Parser(g grammar.Grammar, allowAmbig bool) (Parser, []string, e
 // reduce/reduce conflicts will still be rejected. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func constructCLR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, []string, error) {
+func constructCLR1ParseTable(g grammar.CFG, allowAmbig bool) (lrParseTable, []string, error) {
 	// we will skip a few steps here and simply grab the LR0 DFA for G' which
 	// will pretty immediately give us our GOTO() function, since as purple
 	// dragon book mentions, "intuitively, the GOTO function is used to define
@@ -145,7 +145,7 @@ func constructCLR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, 
 }
 
 type canonicalLR1Table struct {
-	gPrime     grammar.Grammar
+	gPrime     grammar.CFG
 	gStart     string
 	lr1        automaton.DFA[box.SVSet[grammar.LR1Item]]
 	itemCache  map[string]grammar.LR1Item

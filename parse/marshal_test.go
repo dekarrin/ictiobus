@@ -10,7 +10,7 @@ import (
 func Test_EncodeDecodeParserBytes(t *testing.T) {
 	testCases := []struct {
 		name  string
-		ctor  func(grammar.Grammar, bool) (Parser, []string, error)
+		ctor  func(grammar.CFG, bool) (Parser, []string, error)
 		g     string
 		ambig bool
 	}{
@@ -40,7 +40,7 @@ func Test_EncodeDecodeParserBytes(t *testing.T) {
 		},
 		{
 			name: "LL parser",
-			ctor: func(g grammar.Grammar, b bool) (Parser, []string, error) {
+			ctor: func(g grammar.CFG, b bool) (Parser, []string, error) {
 				p, err := GenerateLL1Parser(g)
 				return p, nil, err
 			},

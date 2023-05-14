@@ -24,8 +24,8 @@ var (
 // Grammar returns the grammar accepted by the generated ictiobus parser for
 // FISHI. This grammar will also be included with with the parser itself,
 // but it is included here as well for convenience.
-func Grammar() grammar.Grammar {
-	g := grammar.Grammar{}
+func Grammar() grammar.CFG {
+	g := grammar.CFG{}
 
 	g.AddTerm(fetoken.TCAlt.ID(), fetoken.TCAlt)
 	g.AddTerm(fetoken.TCAttrRef.ID(), fetoken.TCAttrRef)

@@ -42,12 +42,12 @@ type lrParseTable interface {
 type lrParser struct {
 	table     lrParseTable
 	parseType Algorithm
-	gram      grammar.Grammar
+	gram      grammar.CFG
 	trace     func(s string)
 }
 
 // Grammar returns the grammar that was used to generate the parser.
-func (lr *lrParser) Grammar() grammar.Grammar {
+func (lr *lrParser) Grammar() grammar.CFG {
 	return lr.gram
 }
 

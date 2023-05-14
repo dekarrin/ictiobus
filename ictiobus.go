@@ -94,7 +94,7 @@ func NewLazyLexer() lex.Lexer {
 //
 // allowAmbiguous allows the use of ambiguous grammars in LR parsers. It has no
 // effect on LL(1) parser generation; LL(1) grammars must be unambiguous.
-func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
+func NewParser(g grammar.CFG, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	parser, ambigWarns, err = NewLALRParser(g, allowAmbiguous)
 	if err != nil {
 		bigParseGenErr := fmt.Sprintf("LALR(1) generation: %s", err.Error())
@@ -128,7 +128,7 @@ func NewParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, amb
 // the grammar is not LALR(k).
 //
 // At the time of this writing, the greatest k = 1.
-func NewLALRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
+func NewLALRParser(g grammar.CFG, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	return parse.GenerateLALR1Parser(g, allowAmbiguous)
 }
 
@@ -137,7 +137,7 @@ func NewLALRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser,
 // the grammar is not SLR(k).
 //
 // At the time of this writing, the greatest k = 1.
-func NewSLRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
+func NewSLRParser(g grammar.CFG, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	return parse.GenerateSLR1Parser(g, allowAmbiguous)
 }
 
@@ -146,7 +146,7 @@ func NewSLRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, 
 // the grammar is not LL(k).
 //
 // At the time of this writing, the greatest k = 1.
-func NewLLParser(g grammar.Grammar) (parser parse.Parser, err error) {
+func NewLLParser(g grammar.CFG) (parser parse.Parser, err error) {
 	return parse.GenerateLL1Parser(g)
 }
 
@@ -155,7 +155,7 @@ func NewLLParser(g grammar.Grammar) (parser parse.Parser, err error) {
 // error if the grammar is not CLR(k).
 //
 // At the time of this writing, the greatest k = 1.
-func NewCLRParser(g grammar.Grammar, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
+func NewCLRParser(g grammar.CFG, allowAmbiguous bool) (parser parse.Parser, ambigWarns []string, err error) {
 	return parse.GenerateCLR1Parser(g, allowAmbiguous)
 }
 

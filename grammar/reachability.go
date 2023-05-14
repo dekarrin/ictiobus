@@ -10,7 +10,7 @@ import (
 // if it can, additional returns a set of Rules that each contain exactly one
 // production; each is a derivation that must be done to a symbol of the prior
 // derived to string to ultimately end up at end.
-func (g Grammar) ReachableFrom(start string, end string) (bool, []Rule) {
+func (g CFG) ReachableFrom(start string, end string) (bool, []Rule) {
 	if !g.IsNonTerminal(start) {
 		return false, nil
 	}

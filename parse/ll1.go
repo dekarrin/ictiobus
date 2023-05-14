@@ -15,12 +15,12 @@ import (
 
 type ll1Parser struct {
 	table ll1Table
-	g     grammar.Grammar
+	g     grammar.CFG
 	trace func(s string)
 }
 
 // Grammar returns the grammar that was used to generate the parser.
-func (ll *ll1Parser) Grammar() grammar.Grammar {
+func (ll *ll1Parser) Grammar() grammar.CFG {
 	return ll.g
 }
 
@@ -80,7 +80,7 @@ func EmptyLL1Parser() Parser {
 // The returned parser parses the input using LL(k) parsing rules on the
 // context-free Grammar g (k=1). The grammar must already be LL(1); it will not
 // be forced to it.
-func GenerateLL1Parser(g grammar.Grammar) (Parser, error) {
+func GenerateLL1Parser(g grammar.CFG) (Parser, error) {
 	M, err := generateLL1ParseTable(g)
 	if err != nil {
 		return &ll1Parser{}, err
@@ -194,7 +194,7 @@ func newLL1Table() ll1Table {
 // This is an implementation of Algorithm 4.31, "Construction of a predictive
 // parsing table" from the peerple deruuuuugon beeeeeerk. (purple dragon book
 // glub)
-func generateLL1ParseTable(g grammar.Grammar) (M ll1Table, err error) {
+func generateLL1ParseTable(g grammar.CFG) (M ll1Table, err error) {
 	if !IsLL1(g) {
 		return M, fmt.Errorf("not an LL(1) grammar")
 	}

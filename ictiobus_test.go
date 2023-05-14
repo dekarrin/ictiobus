@@ -87,7 +87,7 @@ func (mp mockParser) Type() parse.Algorithm                { return parse.AlgoLL
 func (mp mockParser) TableString() string                  { return "" }
 func (mp mockParser) RegisterTraceListener(func(s string)) {}
 func (mp mockParser) DFAString() string                    { return "" }
-func (mp mockParser) Grammar() grammar.Grammar             { return grammar.Grammar{} }
+func (mp mockParser) Grammar() grammar.CFG                 { return grammar.CFG{} }
 func (mp mockParser) UnmarshalBinary(b []byte) error       { return nil }
 
 type mockSDTS struct {

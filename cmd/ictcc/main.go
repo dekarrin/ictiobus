@@ -1150,7 +1150,7 @@ func printSpec(spec fishi.Spec) {
 	}
 }
 
-func sddRefToPrintedString(ref trans.AttrRef, g grammar.Grammar, r grammar.Rule) string {
+func sddRefToPrintedString(ref trans.AttrRef, g grammar.CFG, r grammar.Rule) string {
 	// which symbol does it refer to?
 	var symName string
 	if ref.Relation.Type == trans.RelHead {
