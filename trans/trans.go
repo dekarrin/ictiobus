@@ -7,7 +7,6 @@ package trans
 import (
 	"fmt"
 
-	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/lex"
 	"github.com/dekarrin/ictiobus/parse"
 )
@@ -43,11 +42,14 @@ type SDTS interface {
 	// set will be the one that is used.
 	SetHooks(hooks HookMap)
 
-	// BindInheritedAttribute creates a new SDTS binding for setting the value
-	// of an inherited attribute with name attrName. The production that the
-	// inherited attribute is set on is specified with forProd, which must have
-	// its Type set to something other than RelHead (inherited attributes can be
-	// set only on production symbols).
+	// BindI creates a new SDTS binding for setting the value of an inherited
+	// attribute with name attrName. The production that the inherited attribute
+	// is set on is specified with forProd, which must have its Type set to
+	// something other than RelHead (inherited attributes can be set only on
+	// production symbols).
+	//
+	// Inherited properties on SDTSs are not supported or tested at this time.
+	// This function should only be called for experimental purposes.
 	//
 	// The binding applies only on nodes in the parse tree created by parsing
 	// the grammar rule productions with head symbol head and production symbols
@@ -59,49 +61,24 @@ type SDTS interface {
 	// node and attribute name whose value to retrieve in the withArgs slice.
 	// Explicitlygiving the referenced attributes in this fashion makes it easy
 	// to determine the dependency graph for later execution.
-	BindInheritedAttribute(head string, prod []string, attrName string, hook string, withArgs []AttrRef, forProd NodeRelation) error
+	BindI(head string, prod []string, attrName string, hook string, withArgs []AttrRef, forProd NodeRelation) error
 
-	// BindSynthesizedAttribute creates a new SDTS binding for setting the value
-	// of a synthesized attribute with name attrName. The attribute is set on
-	// the symbol at the head of the rule that the binding is being created for.
+	// Bind creates a new SDTS binding for setting the value of a synthesized
+	// attribute with name attrName. The attribute is set on the symbol at the
+	// head of the rule that the binding is being created for.
 	//
-	// The binding applies only on nodes in the parse tree created by parsing
+	// The binding will be applied to nodes in the parse tree created by parsing
 	// the grammar rule productions with head symbol head and production symbols
 	// prod.
 	//
-	// The AttributeSetter bound to hook is called when the synthesized value
-	// attrName is to be set, in order to calculate the new value. Attribute
-	// values to pass in as arguments are specified by passing references to the
-	// node and attribute name whose value to retrieve in the withArgs slice.
-	// Explicitly giving the referenced attributes in this fashion makes it easy
-	// to determine the dependency graph for later execution.
-	BindSynthesizedAttribute(head string, prod []string, attrName string, hook string, withArgs []AttrRef) error
-
-	// SetNoFlow sets a binding to be explicitly allowed to not be required to
-	// flow up to a particular parent. This will prevent it from causing an
-	// error if it results in a disconnected dependency graph if the node of
-	// that binding has the given parent.
-	//
-	// - forProd is only used if synth is false. It specifies the production
-	// that the binding to match must apply to.
-	// - which is the index of the binding to set it on, if multiple match the
-	// prior criteria. Set to -1 or less to set it on all matching bindings.
-	// - ifParent is the symbol that the parent of the node must be for no flow
-	// to be considered acceptable.
-	SetNoFlow(synth bool, head string, prod []string, attrName string, forProd NodeRelation, which int, ifParent string) error
-
-	// Validate checks whether this SDTS is valid for the given grammar. It will
-	// create a simulated parse tree that contains a node for every rule of the
-	// given grammar and will attempt to evaluate it, returning an error if
-	// there is any issue running the bindings.
-	//
-	// fakeValProducer should be a map of token class IDs to functions that can
-	// produce fake values for the given token class. This is used to simulate
-	// actual lexemes in the parse tree. If not provided, entirely contrived
-	// values will be used, which may not behave as expected with the SDTS. To
-	// get one that will use the configured regexes of tokens used for lexing,
-	// call FakeLexemeProducer on a Lexer.
-	Validate(grammar grammar.Grammar, attribute string, debug ValidationOptions, fakeValProducer ...map[string]func() string) (warns []string, err error)
+	// The Hook implementation bound to hook is called when the synthesized
+	// value attrName is to be set, in order to calculate the new value.
+	// Attribute values to pass in as arguments are specified by passing
+	// references to the node and attribute name whose value to retrieve in the
+	// withArgs slice. Explicitly giving the referenced attributes in this
+	// fashion makes it easy to determine the dependency graph for later
+	// execution.
+	Bind(head string, prod []string, attrName string, hook string, withArgs []AttrRef) error
 }
 
 // NewSDTS creates a new, empty Syntax-Directed Translation Scheme.

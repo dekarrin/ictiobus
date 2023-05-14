@@ -133,7 +133,7 @@ func main() {
 			SkipErrors:    *flagSimSkipErrs,
 		}
 
-		sdtsWarns, sdtsErr := langFront.SDTS.Validate(langFront.Parser.Grammar(), langFront.IRAttribute, di, valProd)
+		sdtsWarns, sdtsErr := trans.Validate(langFront.SDTS, langFront.Parser.Grammar(), langFront.IRAttribute, di, valProd)
 		var warns []fishi.Warning
 		for _, w := range sdtsWarns {
 			warns = append(warns, fishi.Warning{Type: fishi.WarnValidation, Message: w})

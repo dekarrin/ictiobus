@@ -28,9 +28,9 @@ func sdtsBind{{ .Head | upperCamel }}(sdts trans.SDTS) {
 {{- $head := .Head -}}
 {{ range .Productions }}
 {{- if .Synthetic }}
-    sdts.BindSynthesizedAttribute(
+    sdts.Bind(
 {{- else }}
-    sdts.BindInheritedAttribute(
+    sdts.BindI(
 {{- end }}
         "{{ $head }}", []string{ {{- range .Symbols }}"{{ . }}", {{- end -}} },
         "{{ .Attribute }}",

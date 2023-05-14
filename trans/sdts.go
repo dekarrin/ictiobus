@@ -282,7 +282,7 @@ func (sdts *sdtsImpl) Evaluate(tree parse.Tree, attributes ...string) (vals []in
 
 // BindSynthesizedAttribute adds a binding to the SDTS for a synthesized
 // attribute.
-func (sdts *sdtsImpl) BindSynthesizedAttribute(head string, prod []string, attrName string, hook string, withArgs []AttrRef) error {
+func (sdts *sdtsImpl) Bind(head string, prod []string, attrName string, hook string, withArgs []AttrRef) error {
 	// sanity checks; can we even call this?
 	if hook == "" {
 		return fmt.Errorf("cannot bind to empty hook")
@@ -333,9 +333,9 @@ func (sdts *sdtsImpl) BindSynthesizedAttribute(head string, prod []string, attrN
 	return nil
 }
 
-// BindInheritedAttribute adds a binding to the SDTS for an inherited attribute.
+// BindI adds a binding to the SDTS for an inherited attribute.
 // At this time, inherited attributes are not supported.
-func (sdts *sdtsImpl) BindInheritedAttribute(head string, prod []string, attrName string, hook string, withArgs []AttrRef, forProd NodeRelation) error {
+func (sdts *sdtsImpl) BindI(head string, prod []string, attrName string, hook string, withArgs []AttrRef, forProd NodeRelation) error {
 	// sanity checks; can we even call this?
 	if hook == "" {
 		return fmt.Errorf("cannot bind to empty hook")

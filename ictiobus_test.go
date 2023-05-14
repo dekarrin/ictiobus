@@ -98,15 +98,9 @@ func (ms mockSDTS) Evaluate(p parse.Tree, attrs ...string) ([]interface{}, []err
 	return ms.fn(p, attrs...)
 }
 func (mp mockSDTS) SetHooks(hooks trans.HookMap) {}
-func (mp mockSDTS) BindInheritedAttribute(head string, prod []string, attrName string, hook string, withArgs []trans.AttrRef, forProd trans.NodeRelation) error {
+func (mp mockSDTS) BindI(head string, prod []string, attrName string, hook string, withArgs []trans.AttrRef, forProd trans.NodeRelation) error {
 	return nil
 }
-func (mp mockSDTS) BindSynthesizedAttribute(head string, prod []string, attrName string, hook string, withArgs []trans.AttrRef) error {
+func (mp mockSDTS) Bind(head string, prod []string, attrName string, hook string, withArgs []trans.AttrRef) error {
 	return nil
-}
-func (mp mockSDTS) SetNoFlow(synth bool, head string, prod []string, attrName string, forProd trans.NodeRelation, which int, ifParent string) error {
-	return nil
-}
-func (mp mockSDTS) Validate(grammar grammar.Grammar, attribute string, debug trans.ValidationOptions, fakeValProducer ...map[string]func() string) (warns []string, err error) {
-	return nil, nil
 }

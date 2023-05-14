@@ -71,7 +71,7 @@ func (spec Spec) ValidateSDTS(opts trans.ValidationOptions, hooks trans.HookMap)
 
 	allWarnings := []Warning{}
 
-	warns, sdtsErr := sdts.Validate(spec.Grammar, irAttrName, opts, valProd)
+	warns, sdtsErr := trans.Validate(sdts, spec.Grammar, irAttrName, opts, valProd)
 	for _, w := range warns {
 		allWarnings = append(allWarnings, Warning{Type: WarnValidation, Message: w})
 	}
@@ -222,12 +222,12 @@ func (spec Spec) CreateSDTS() (trans.SDTS, error) {
 
 	for _, sdd := range spec.TranslationScheme {
 		if sdd.Attribute.Relation.Type == trans.RelHead {
-			err := sdts.BindSynthesizedAttribute(sdd.Rule.NonTerminal, sdd.Rule.Productions[0], sdd.Attribute.Name, sdd.Hook, sdd.Args)
+			err := sdts.Bind(sdd.Rule.NonTerminal, sdd.Rule.Productions[0], sdd.Attribute.Name, sdd.Hook, sdd.Args)
 			if err != nil {
 				return nil, fmt.Errorf("cannot bind synthesized attribute for %s: %w", sdd.Attribute, err)
 			}
 		} else {
-			err := sdts.BindInheritedAttribute(sdd.Rule.NonTerminal, sdd.Rule.Productions[0], sdd.Attribute.Name, sdd.Hook, sdd.Args, sdd.Attribute.Relation)
+			err := sdts.BindI(sdd.Rule.NonTerminal, sdd.Rule.Productions[0], sdd.Attribute.Name, sdd.Hook, sdd.Args, sdd.Attribute.Relation)
 			if err != nil {
 				return nil, fmt.Errorf("cannot bind inherited attribute for %s: %w", sdd.Attribute, err)
 			}
