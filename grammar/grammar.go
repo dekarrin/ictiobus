@@ -171,7 +171,7 @@ func (g Grammar) LR0Items() []LR0Item {
 	items := []LR0Item{}
 	for _, nt := range nonTerms {
 		r := g.Rule(nt)
-		items = append(items, r.LRItems()...)
+		items = append(items, r.lrItems()...)
 	}
 	return items
 }
@@ -561,14 +561,14 @@ func (g Grammar) RemoveUnitProductions() Grammar {
 	// okay, now just remove the unreachable ones (not strictly necessary for
 	// all interpretations of unit production removal but lets do it anyways for
 	// simplicity)
-	g = g.RemoveUreachableNonTerminals()
+	g = g.RemoveUnreachableNonTerminals()
 
 	return g
 }
 
 // RemoveUnreachableNonTerminals returns a grammar with all unreachable
 // non-terminals removed.
-func (g Grammar) RemoveUreachableNonTerminals() Grammar {
+func (g Grammar) RemoveUnreachableNonTerminals() Grammar {
 	for g.HasUnreachableNonTerminals() {
 		for _, nt := range g.UnreachableNonTerminals() {
 			g.RemoveRule(nt)
@@ -830,7 +830,7 @@ func (g Grammar) RemoveLeftRecursion() Grammar {
 		}
 	}
 
-	g = g.RemoveUreachableNonTerminals()
+	g = g.RemoveUnreachableNonTerminals()
 
 	return g
 }

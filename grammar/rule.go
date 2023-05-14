@@ -27,10 +27,10 @@ func (p Production) Copy() Production {
 	return p2
 }
 
-// AllLR0Items returns all LR0 items of the production. Note: a Production does not
+// allLR0Items returns all LR0 items of the production. Note: a Production does not
 // know what non-terminal produces it, so the NonTerminal field of the returned
 // LR0Items will be blank.
-func (p Production) AllLR0Items() []LR0Item {
+func (p Production) allLR0Items() []LR0Item {
 	if p.Equal(Epsilon) {
 		// not a typo: don't return an empty slice of items, return a slice
 		// containing a single empty item ("NonTerminal -> .")
@@ -251,11 +251,11 @@ func (r *Rule) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// Returns all LRItems in the Rule with their NonTerminal field properly set.
-func (r Rule) LRItems() []LR0Item {
+// Returns all lrItems in the Rule with their NonTerminal field properly set.
+func (r Rule) lrItems() []LR0Item {
 	items := []LR0Item{}
 	for _, p := range r.Productions {
-		prodItems := p.AllLR0Items()
+		prodItems := p.allLR0Items()
 		for i := range prodItems {
 			item := prodItems[i]
 			item.NonTerminal = r.NonTerminal
@@ -295,29 +295,6 @@ func (r Rule) String() string {
 	}
 
 	return sb.String()
-}
-
-// ReplaceProduction returns a rule that does not include the given production
-// and subsitutes the given production(s) for it. If no productions are given
-// the specified production is simply removed. If the specified production
-// does not exist, the replacements are added to the end of the rule.
-func (r Rule) ReplaceProduction(p Production, replacements ...Production) Rule {
-	var addedReplacements bool
-	newProds := []Production{}
-	for i := range r.Productions {
-		if !r.Productions[i].Equal(p) {
-			newProds = append(newProds, r.Productions[i])
-		} else if len(replacements) > 0 {
-			newProds = append(newProds, replacements...)
-			addedReplacements = true
-		}
-	}
-	if !addedReplacements {
-		newProds = append(newProds, replacements...)
-	}
-
-	r.Productions = newProds
-	return r
 }
 
 // Equal returns whether Rule is equal to another value. It will not be equal
