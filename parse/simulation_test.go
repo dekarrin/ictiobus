@@ -13,7 +13,7 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 	testCases := []struct {
 		name      string
 		input     grammar.Grammar
-		expect    []ParseTree
+		expect    []Tree
 		expectErr bool
 	}{
 		{
@@ -21,8 +21,8 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 			input: grammar.MustParse(`
 				S -> a   ;
 			`),
-			expect: []ParseTree{
-				{Value: "S", Children: []*ParseTree{
+			expect: []Tree{
+				{Value: "S", Children: []*Tree{
 					{Value: "a", Terminal: true},
 				}},
 			},
@@ -32,11 +32,11 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 			input: grammar.MustParse(`
 					S -> a | b  ;
 				`),
-			expect: []ParseTree{
-				{Value: "S", Children: []*ParseTree{
+			expect: []Tree{
+				{Value: "S", Children: []*Tree{
 					{Value: "a", Terminal: true},
 				}},
-				{Value: "S", Children: []*ParseTree{
+				{Value: "S", Children: []*Tree{
 					{Value: "b", Terminal: true},
 				}},
 			},
@@ -47,9 +47,9 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 					S -> B  ;
 					B -> b  ;
 				`),
-			expect: []ParseTree{
-				{Value: "S", Children: []*ParseTree{
-					{Value: "B", Children: []*ParseTree{
+			expect: []Tree{
+				{Value: "S", Children: []*Tree{
+					{Value: "B", Children: []*Tree{
 						{Value: "b", Terminal: true},
 					}},
 				}},
@@ -61,14 +61,14 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 					S -> S B | B  ;
 					B -> b        ;
 				`),
-			expect: []ParseTree{
-				{Value: "S", Children: []*ParseTree{
-					{Value: "S", Children: []*ParseTree{
-						{Value: "B", Children: []*ParseTree{
+			expect: []Tree{
+				{Value: "S", Children: []*Tree{
+					{Value: "S", Children: []*Tree{
+						{Value: "B", Children: []*Tree{
 							{Value: "b", Terminal: true},
 						}},
 					}},
-					{Value: "B", Children: []*ParseTree{
+					{Value: "B", Children: []*Tree{
 						{Value: "b", Terminal: true},
 					}},
 				}},
@@ -80,10 +80,10 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 					S -> B | a ;
 					B -> S b   ;
 				`),
-			expect: []ParseTree{
-				{Value: "S", Children: []*ParseTree{
-					{Value: "B", Children: []*ParseTree{
-						{Value: "S", Children: []*ParseTree{
+			expect: []Tree{
+				{Value: "S", Children: []*Tree{
+					{Value: "B", Children: []*Tree{
+						{Value: "S", Children: []*Tree{
 							{Value: "a", Terminal: true},
 						}},
 						{Value: "b", Terminal: true},
@@ -97,19 +97,19 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 					S   -> BL        ;
 					BL  -> a | b | c ;
 				`),
-			expect: []ParseTree{
-				{Value: "S", Children: []*ParseTree{
-					{Value: "BL", Children: []*ParseTree{
+			expect: []Tree{
+				{Value: "S", Children: []*Tree{
+					{Value: "BL", Children: []*Tree{
 						{Value: "a", Terminal: true},
 					}},
 				}},
-				{Value: "S", Children: []*ParseTree{
-					{Value: "BL", Children: []*ParseTree{
+				{Value: "S", Children: []*Tree{
+					{Value: "BL", Children: []*Tree{
 						{Value: "b", Terminal: true},
 					}},
 				}},
-				{Value: "S", Children: []*ParseTree{
-					{Value: "BL", Children: []*ParseTree{
+				{Value: "S", Children: []*Tree{
+					{Value: "BL", Children: []*Tree{
 						{Value: "c", Terminal: true},
 					}},
 				}},
@@ -122,16 +122,16 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 					BL -> A | b  ;
 					A  -> a      ;
 				`),
-			expect: []ParseTree{
-				{Value: "S", Children: []*ParseTree{
-					{Value: "BL", Children: []*ParseTree{
-						{Value: "A", Children: []*ParseTree{
+			expect: []Tree{
+				{Value: "S", Children: []*Tree{
+					{Value: "BL", Children: []*Tree{
+						{Value: "A", Children: []*Tree{
 							{Value: "a", Terminal: true},
 						}},
 					}},
 				}},
-				{Value: "S", Children: []*ParseTree{
-					{Value: "BL", Children: []*ParseTree{
+				{Value: "S", Children: []*Tree{
+					{Value: "BL", Children: []*Tree{
 						{Value: "b", Terminal: true},
 					}},
 				}},
@@ -144,21 +144,21 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 				B -> b     ;
 				A -> a | S ;
 			`),
-			expect: []ParseTree{
-				{Value: "S", Children: []*ParseTree{
-					{Value: "A", Children: []*ParseTree{
+			expect: []Tree{
+				{Value: "S", Children: []*Tree{
+					{Value: "A", Children: []*Tree{
 						{Value: "a", Terminal: true},
 					}},
 				}},
-				{Value: "S", Children: []*ParseTree{
-					{Value: "B", Children: []*ParseTree{
+				{Value: "S", Children: []*Tree{
+					{Value: "B", Children: []*Tree{
 						{Value: "b", Terminal: true},
 					}},
 				}},
-				{Value: "S", Children: []*ParseTree{
-					{Value: "A", Children: []*ParseTree{
-						{Value: "S", Children: []*ParseTree{
-							{Value: "B", Children: []*ParseTree{
+				{Value: "S", Children: []*Tree{
+					{Value: "A", Children: []*Tree{
+						{Value: "S", Children: []*Tree{
+							{Value: "B", Children: []*Tree{
 								{Value: "b", Terminal: true},
 							}},
 						}},
@@ -173,24 +173,24 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 				A -> a | b ;
 				B -> c | d ;
 			`),
-			expect: []ParseTree{
-				{Value: "S", Children: []*ParseTree{
-					{Value: "A", Children: []*ParseTree{
+			expect: []Tree{
+				{Value: "S", Children: []*Tree{
+					{Value: "A", Children: []*Tree{
 						{Value: "a", Terminal: true},
 					}},
 				}},
-				{Value: "S", Children: []*ParseTree{
-					{Value: "B", Children: []*ParseTree{
+				{Value: "S", Children: []*Tree{
+					{Value: "B", Children: []*Tree{
 						{Value: "c", Terminal: true},
 					}},
 				}},
-				{Value: "S", Children: []*ParseTree{
-					{Value: "A", Children: []*ParseTree{
+				{Value: "S", Children: []*Tree{
+					{Value: "A", Children: []*Tree{
 						{Value: "b", Terminal: true},
 					}},
 				}},
-				{Value: "S", Children: []*ParseTree{
-					{Value: "B", Children: []*ParseTree{
+				{Value: "S", Children: []*Tree{
+					{Value: "B", Children: []*Tree{
 						{Value: "d", Terminal: true},
 					}},
 				}},
@@ -203,16 +203,16 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 						T -> T * F | F   ;
 						F -> ( E ) | id  ;
 					`),
-			expect: []ParseTree{
-				{Value: "E", Children: []*ParseTree{
-					{Value: "E", Children: []*ParseTree{
-						{Value: "T", Children: []*ParseTree{
-							{Value: "T", Children: []*ParseTree{
-								{Value: "F", Children: []*ParseTree{
+			expect: []Tree{
+				{Value: "E", Children: []*Tree{
+					{Value: "E", Children: []*Tree{
+						{Value: "T", Children: []*Tree{
+							{Value: "T", Children: []*Tree{
+								{Value: "F", Children: []*Tree{
 									{Value: "(", Terminal: true},
-									{Value: "E", Children: []*ParseTree{
-										{Value: "T", Children: []*ParseTree{
-											{Value: "F", Children: []*ParseTree{
+									{Value: "E", Children: []*Tree{
+										{Value: "T", Children: []*Tree{
+											{Value: "F", Children: []*Tree{
 												{Value: "id", Terminal: true},
 											}},
 										}},
@@ -221,14 +221,14 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 								}},
 							}},
 							{Value: "*", Terminal: true},
-							{Value: "F", Children: []*ParseTree{
+							{Value: "F", Children: []*Tree{
 								{Value: "id", Terminal: true},
 							}},
 						}},
 					}},
 					{Value: "+", Terminal: true},
-					{Value: "T", Children: []*ParseTree{
-						{Value: "F", Children: []*ParseTree{
+					{Value: "T", Children: []*Tree{
+						{Value: "F", Children: []*Tree{
 							{Value: "id", Terminal: true},
 						}},
 					}},
@@ -241,18 +241,18 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 						S -> S a | B   ;
 						B -> b | ε     ;
 					`),
-			expect: []ParseTree{
-				{Value: "S", Children: []*ParseTree{
-					{Value: "S", Children: []*ParseTree{
-						{Value: "B", Children: []*ParseTree{
+			expect: []Tree{
+				{Value: "S", Children: []*Tree{
+					{Value: "S", Children: []*Tree{
+						{Value: "B", Children: []*Tree{
 							{Value: "b", Terminal: true},
 						}},
 					}},
 					{Value: "a", Terminal: true},
 				}},
-				{Value: "S", Children: []*ParseTree{
-					{Value: "S", Children: []*ParseTree{
-						{Value: "B", Children: []*ParseTree{
+				{Value: "S", Children: []*Tree{
+					{Value: "S", Children: []*Tree{
+						{Value: "B", Children: []*Tree{
 							{Value: "", Terminal: true},
 						}},
 					}},
@@ -265,9 +265,9 @@ func Test_Grammar_DeriveFullTree(t *testing.T) {
 			input: grammar.MustParse(`
 						S -> S a | ε   ;
 					`),
-			expect: []ParseTree{
-				{Value: "S", Children: []*ParseTree{
-					{Value: "S", Children: []*ParseTree{
+			expect: []Tree{
+				{Value: "S", Children: []*Tree{
+					{Value: "S", Children: []*Tree{
 						{Value: "", Terminal: true},
 					}},
 					{Value: "a", Terminal: true},

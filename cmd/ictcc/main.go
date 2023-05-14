@@ -545,7 +545,7 @@ func main() {
 				fmt.Printf("%s\n", cmdRes.AST.String())
 			}
 
-			if syntaxErr, ok := cmdErr.(*syntaxerr.SyntaxError); ok {
+			if syntaxErr, ok := cmdErr.(*syntaxerr.Error); ok {
 				errSyntax("<COMMAND>", syntaxErr)
 			} else {
 				errOther(fmt.Sprintf("%s: %s", "<COMMAND>", err.Error()))
@@ -623,7 +623,7 @@ func main() {
 					fmt.Printf("%s\n", res.AST.String())
 				}
 
-				if syntaxErr, ok := err.(*syntaxerr.SyntaxError); ok {
+				if syntaxErr, ok := err.(*syntaxerr.Error); ok {
 					errSyntax(file, syntaxErr)
 				} else {
 					errOther(fmt.Sprintf("%s: %s", file, err.Error()))
@@ -658,7 +658,7 @@ func main() {
 	// now check err
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n")
-		if syntaxErr, ok := err.(*syntaxerr.SyntaxError); ok {
+		if syntaxErr, ok := err.(*syntaxerr.Error); ok {
 			errSyntax("", syntaxErr)
 		} else {
 			errOther(err.Error())
@@ -885,7 +885,7 @@ func main() {
 	}
 
 	parserPath := filepath.Join(feDest, "parser.cff")
-	err = ictiobus.SaveParserToDisk(p, parserPath)
+	err = ictiobus.WriteParserFile(p, parserPath)
 	if err != nil {
 		errGeneration(err.Error())
 		return

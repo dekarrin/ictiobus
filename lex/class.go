@@ -95,6 +95,8 @@ func (lc *lexerClass) Equal(o any) bool {
 	return other.ID() == lc.ID()
 }
 
-func NewTokenClass(id string, human string) *lexerClass {
+// NewTokenClass creates a new token class with the given id and human readable
+// name.
+func NewTokenClass(id string, human string) TokenClass {
 	return &lexerClass{id: id, name: human}
 }

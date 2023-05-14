@@ -47,33 +47,33 @@ const (
 
 // Names of each file that is generated.
 const (
-	GeneratedTokensFilename   = "tokens.ict.go"
-	GeneratedLexerFilename    = "lexer.ict.go"
-	GeneratedParserFilename   = "parser.ict.go"
-	GeneratedSDTSFilename     = "sdts.ict.go"
-	GeneratedFrontendFilename = "frontend.ict.go"
-	GeneratedMainFilename     = "main.ict.go"
+	generatedTokensFilename   = "tokens.ict.go"
+	generatedLexerFilename    = "lexer.ict.go"
+	generatedParserFilename   = "parser.ict.go"
+	generatedSDTSFilename     = "sdts.ict.go"
+	generatedFrontendFilename = "frontend.ict.go"
+	generatedMainFilename     = "main.ict.go"
 )
 
 // Default template strings for each component of the generated compiler.
 var (
 	//go:embed templates/tokens.go.tmpl
-	TemplateTokens string
+	templateTokens string
 
 	//go:embed templates/lexer.go.tmpl
-	TemplateLexer string
+	templateLexer string
 
 	//go:embed templates/parser.go.tmpl
-	TemplateParser string
+	templateParser string
 
 	//go:embed templates/sdts.go.tmpl
-	TemplateSDTS string
+	templateSDTS string
 
 	//go:embed templates/frontend.go.tmpl
-	TemplateFrontend string
+	templateFrontend string
 
 	//go:embed templates/main.go.tmpl
-	TemplateMainFile string
+	templateMainFile string
 )
 
 var (
@@ -93,19 +93,19 @@ var (
 	}
 
 	defaultTemplates = map[string]string{
-		ComponentTokens:   TemplateTokens,
-		ComponentLexer:    TemplateLexer,
-		ComponentParser:   TemplateParser,
-		ComponentSDTS:     TemplateSDTS,
-		ComponentFrontend: TemplateFrontend,
-		ComponentMainFile: TemplateMainFile,
+		ComponentTokens:   templateTokens,
+		ComponentLexer:    templateLexer,
+		ComponentParser:   templateParser,
+		ComponentSDTS:     templateSDTS,
+		ComponentFrontend: templateFrontend,
+		ComponentMainFile: templateMainFile,
 	}
 )
 
-// ExecuteTestCompiler runs the compiler pointed to by gci in validation mode.
+// executeTestCompiler runs the compiler pointed to by gci in validation mode.
 //
 // If valOptions is nil, the default validation options are used.
-func ExecuteTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOptions, warnOpts *WarnHandler, quietMode bool) error {
+func executeTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOptions, warnOpts *WarnHandler, quietMode bool) error {
 	if valOptions == nil {
 		valOptions = &trans.ValidationOptions{}
 	}
@@ -165,7 +165,7 @@ func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, params DiagBinParams)
 		outDir = filepath.Join(params.PathPrefix, outDir)
 	}
 
-	gci, err := GenerateBinaryMainGo(spec, md, MainBinaryParams{
+	gci, err := generateBinaryMainGo(spec, md, mainBinaryParams{
 		Parser:              params.Parser,
 		HooksPkgDir:         params.HooksPkgDir,
 		HooksExpr:           params.HooksExpr,
@@ -203,7 +203,7 @@ func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, params DiagBinParams)
 	return nil
 }
 
-// GenerateBinaryMainGo generates (but does not yet run) a test compiler for the
+// generateBinaryMainGo generates (but does not yet run) a test compiler for the
 // given spec and pre-created parser, using the provided hooks package. Once it
 // is created, it will be able to be executed by calling go run on the provided
 // mainfile from the outDir.
@@ -217,7 +217,7 @@ func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, params DiagBinParams)
 // or var name.
 //
 // opts must be non-nil and IRType must be set.
-func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (GeneratedCodeInfo, error) {
+func generateBinaryMainGo(spec Spec, md SpecMetadata, params mainBinaryParams) (GeneratedCodeInfo, error) {
 	if params.Opts.IRType == "" {
 		return GeneratedCodeInfo{}, fmt.Errorf("IRType must be set in options")
 	}
@@ -232,7 +232,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	// as the hooks package.
 	separateFormatImport := params.FormatPkgDir != params.HooksPkgDir && params.FormatPkgDir != ""
 
-	irFQPackage, irType, irPackage, irTypeBare, irErr := ParseFQType(params.Opts.IRType)
+	irFQPackage, irType, irPackage, irTypeBare, irErr := parseFQType(params.Opts.IRType)
 	if irErr != nil {
 		return GeneratedCodeInfo{}, fmt.Errorf("parsing IRType: %w", irErr)
 	}
@@ -308,7 +308,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	// that they refer to the correct one.
 	if irPackage == hooksPkgName {
 		feIRPkg := filepath.ToSlash(filepath.Join(binPkg, "internal", hooksPkgName))
-		feFQir := MakeFQType(feIRPkg, irType)
+		feFQir := makeFQType(feIRPkg, irType)
 		feOpts.IRType = feFQir
 	}
 	err = GenerateFrontendGo(spec, md, params.FrontendPkgName, fePkgPath, fePkgImport, &feOpts)
@@ -319,7 +319,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	// since GenerateCompilerGo ensures the directory exists, we can now copy
 	// the encoded parser into it as well.
 	parserPath := filepath.Join(fePkgPath, "parser.cff")
-	err = ictiobus.SaveParserToDisk(params.Parser, parserPath)
+	err = ictiobus.WriteParserFile(params.Parser, parserPath)
 	if err != nil {
 		return gci, fmt.Errorf("writing parser: %w", err)
 	}
@@ -356,7 +356,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	}
 	fnMap := createFuncMap()
 	renderFiles := map[string]codegenTemplate{
-		ComponentMainFile: {nil, GeneratedMainFilename},
+		ComponentMainFile: {nil, generatedMainFilename},
 	}
 
 	// initialize templates
@@ -466,11 +466,11 @@ func GenerateFrontendGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, pkgI
 	fnMap := createFuncMap()
 
 	renderFiles := map[string]codegenTemplate{
-		ComponentTokens:   {nil, filepath.Join(pkgName+"token", GeneratedTokensFilename)},
-		ComponentLexer:    {nil, GeneratedLexerFilename},
-		ComponentParser:   {nil, GeneratedParserFilename},
-		ComponentSDTS:     {nil, GeneratedSDTSFilename},
-		ComponentFrontend: {nil, GeneratedFrontendFilename},
+		ComponentTokens:   {nil, filepath.Join(pkgName+"token", generatedTokensFilename)},
+		ComponentLexer:    {nil, generatedLexerFilename},
+		ComponentParser:   {nil, generatedParserFilename},
+		ComponentSDTS:     {nil, generatedSDTSFilename},
+		ComponentFrontend: {nil, generatedFrontendFilename},
 	}
 
 	// initialize templates
@@ -608,7 +608,7 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 
 	// if IR type is specified, use it
 	if fqIRType != "" {
-		irPkg, irType, _, irTypeBare, err := ParseFQType(fqIRType)
+		irPkg, irType, _, irTypeBare, err := parseFQType(fqIRType)
 		if err == nil {
 			if irPkg == "builtin" {
 				// if it's a builtin type there's no need to do the import and

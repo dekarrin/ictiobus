@@ -19,7 +19,7 @@ func Test_WithFakeInput(t *testing.T) {
 	assert.NoError(actual)
 
 	if actual != nil {
-		actualSynt, ok := actual.(*syntaxerr.SyntaxError)
+		actualSynt, ok := actual.(*syntaxerr.Error)
 		if ok {
 			fmt.Println(actualSynt.FullMessage())
 		}
@@ -37,7 +37,7 @@ func Test_SelfHostedMarkdown_Spec(t *testing.T) {
 	_, _, actualErr := NewSpec(*res.AST)
 
 	if actualErr != nil {
-		actualSynt, ok := actualErr.(*syntaxerr.SyntaxError)
+		actualSynt, ok := actualErr.(*syntaxerr.Error)
 		if ok {
 			fmt.Println(actualSynt.FullMessage())
 		}
@@ -52,7 +52,7 @@ func Test_SelfHostedMarkdown(t *testing.T) {
 	assert.NoError(actual)
 
 	if actual != nil {
-		actualSynt, ok := actual.(*syntaxerr.SyntaxError)
+		actualSynt, ok := actual.(*syntaxerr.Error)
 		if ok {
 			fmt.Println(actualSynt.FullMessage())
 		}

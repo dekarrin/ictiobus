@@ -76,6 +76,9 @@ type VSet[E any, V any] interface {
 	// Get retrieves the value of an element. The value of the element is
 	// returned if it exists, otherwise the zero-value for V is returned.
 	Get(element E) V
+
+	// Values gets all of the values as would be returned by Elements().
+	Values() []V
 }
 
 // Set that uses strings as its item type and some other type as its stored
@@ -91,6 +94,19 @@ func NewSVSet[V any](of ...map[string]V) SVSet[V] {
 		}
 	}
 	return bs
+}
+
+// Values returns the values in the set as they would be returned by calling
+// Get on each item of the slice returned by Elements().
+func (s SVSet[V]) Values() []V {
+	var vals []V
+
+	for _, elem := range s.Elements() {
+		v := s.Get(elem)
+		vals = append(vals, v)
+	}
+
+	return vals
 }
 
 // Copy creates a deep copy of the SVSet.

@@ -18,7 +18,7 @@ const (
 	treeLevelPrefixNamePadChar   = '-'
 	treeLevelPrefixNamePadAmount = 3
 
-	ShortCircuitPrefix = "__ICTIO__:SHORTCIRC:"
+	shortCircuitPrefix = "__ICTIO__:SHORTCIRC:"
 )
 
 func makeTreeLevelPrefix(msg string) string {
@@ -35,9 +35,9 @@ func makeTreeLevelPrefixLast(msg string) string {
 	return fmt.Sprintf(treeLevelPrefixLast, msg)
 }
 
-// ParseTree is a parse tree returned by a parser performing analysis on input
+// Tree is a parse tree returned by a parser performing analysis on input
 // source code.
-type ParseTree struct {
+type Tree struct {
 	// Terminal is whether thie node is for a terminal symbol.
 	Terminal bool
 
@@ -48,12 +48,12 @@ type ParseTree struct {
 	Source lex.Token
 
 	// Children is all children of the parse tree.
-	Children []*ParseTree
+	Children []*Tree
 }
 
 // MustParseTreeFromDiagram is the same as ParseTreeFromDiagram but panics if
 // any error occurs.
-func MustParseTreeFromDiagram(s string) *ParseTree {
+func MustParseTreeFromDiagram(s string) *Tree {
 	pt, err := ParseTreeFromDiagram(s)
 	if err != nil {
 		panic(err)
@@ -83,10 +83,10 @@ func MustParseTreeFromDiagram(s string) *ParseTree {
 //				  ]
 //
 //		    ]
-func ParseTreeFromDiagram(s string) (*ParseTree, error) {
+func ParseTreeFromDiagram(s string) (*Tree, error) {
 	var err error
-	var pt *ParseTree
-	st := &box.Stack[*ParseTree]{}
+	var pt *Tree
+	st := &box.Stack[*Tree]{}
 
 	var curLine int
 	var inEscape bool
@@ -120,7 +120,7 @@ func ParseTreeFromDiagram(s string) (*ParseTree, error) {
 		case '(':
 			if st.Len() == 0 {
 				// just put it on the stack itself
-				st.Push(&ParseTree{Terminal: true})
+				st.Push(&Tree{Terminal: true})
 			} else {
 				// make it a child of the top of the stack and push it on.
 				parent := st.Pop()
@@ -135,7 +135,7 @@ func ParseTreeFromDiagram(s string) (*ParseTree, error) {
 					parent.Value = text.String()
 				}
 
-				child := &ParseTree{Terminal: true}
+				child := &Tree{Terminal: true}
 				parent.Children = append(parent.Children, child)
 				st.Push(parent)
 				st.Push(child)
@@ -164,7 +164,7 @@ func ParseTreeFromDiagram(s string) (*ParseTree, error) {
 		case '[':
 			if st.Len() == 0 {
 				// just put it on the stack itself
-				st.Push(&ParseTree{Terminal: false})
+				st.Push(&Tree{Terminal: false})
 			} else {
 				// make it a child of the top of the stack and push it on.
 				parent := st.Pop()
@@ -179,7 +179,7 @@ func ParseTreeFromDiagram(s string) (*ParseTree, error) {
 					parent.Value = text.String()
 				}
 
-				child := &ParseTree{Terminal: false}
+				child := &Tree{Terminal: false}
 				parent.Children = append(parent.Children, child)
 				st.Push(parent)
 				st.Push(child)
@@ -231,22 +231,22 @@ func ParseTreeFromDiagram(s string) (*ParseTree, error) {
 	return pt, nil
 }
 
-// PTLeaf is a convenience function for creating a new ParseTree that
+// Leaf is a convenience function for creating a new ParseTree that
 // represents a terminal symbol. The Source token may or may not be set as
 // desired. Note that t's type being ...Token is simply to make it optional;
 // only the first such provided t is examined.
-func PTLeaf(term string, t ...lex.Token) *ParseTree {
-	pt := &ParseTree{Terminal: true, Value: term}
+func Leaf(term string, t ...lex.Token) *Tree {
+	pt := &Tree{Terminal: true, Value: term}
 	if len(t) > 0 {
 		pt.Source = t[0]
 	}
 	return pt
 }
 
-// PTNode is a convenience function for creating a new ParseTree that
+// Node is a convenience function for creating a new ParseTree that
 // represents a non-terminal symbol with minimal text.
-func PTNode(nt string, children ...*ParseTree) *ParseTree {
-	pt := &ParseTree{
+func Node(nt string, children ...*Tree) *Tree {
+	pt := &Tree{
 		Terminal: false,
 		Value:    nt,
 		Children: children,
@@ -257,7 +257,7 @@ func PTNode(nt string, children ...*ParseTree) *ParseTree {
 // Follow takes a path, denoted as a slice of indexes of children to follow,
 // starting from the ParseTree it is called on, and returns the descendant tree
 // it leads to.
-func (pt ParseTree) Follow(path []int) *ParseTree {
+func (pt Tree) Follow(path []int) *Tree {
 	cur := &pt
 	for i := range path {
 		if path[i] < 0 || path[i] >= len(cur.Children) {
@@ -273,17 +273,17 @@ func (pt ParseTree) Follow(path []int) *ParseTree {
 // String returns a prettified representation of the entire parse tree suitable
 // for use in line-by-line comparisons of tree structure. Two parse trees are
 // considered semantcally identical if they produce identical String() output.
-func (pt ParseTree) String() string {
+func (pt Tree) String() string {
 	return pt.leveledStr("", "")
 }
 
 // Copy returns a duplicate, deeply-copied parse tree.
-func (pt ParseTree) Copy() ParseTree {
-	newPt := ParseTree{
+func (pt Tree) Copy() Tree {
+	newPt := Tree{
 		Terminal: pt.Terminal,
 		Value:    pt.Value,
 		Source:   pt.Source,
-		Children: make([]*ParseTree, len(pt.Children)),
+		Children: make([]*Tree, len(pt.Children)),
 	}
 
 	for i := range pt.Children {
@@ -304,11 +304,11 @@ func (pt ParseTree) Copy() ParseTree {
 // compared, not their contents.
 //
 // Runs in O(n) time with respect to the number of nodes in the trees.
-func (pt ParseTree) Equal(o any) bool {
-	other, ok := o.(ParseTree)
+func (pt Tree) Equal(o any) bool {
+	other, ok := o.(Tree)
 	if !ok {
 		// also okay if its the pointer value, as long as its non-nil
-		otherPtr, ok := o.(*ParseTree)
+		otherPtr, ok := o.(*Tree)
 		if !ok {
 			return false
 		} else if otherPtr == nil {
@@ -351,7 +351,7 @@ func (pt ParseTree) Equal(o any) bool {
 // trees are compared, not their contents.
 //
 // Runs in O(n) time with respect to the number of nodes in the trees.
-func (pt ParseTree) PathToDiff(t ParseTree, ignoreShortCircuit bool) (path []int, diverges bool) {
+func (pt Tree) PathToDiff(t Tree, ignoreShortCircuit bool) (path []int, diverges bool) {
 	checkStack := &box.Stack[box.HPair[treeNode]]{}
 	checkStack.Push(box.HPairOf(treeNode{&t, slices.LList[int]{}}, treeNode{&pt, slices.LList[int]{}}))
 
@@ -361,7 +361,7 @@ func (pt ParseTree) PathToDiff(t ParseTree, ignoreShortCircuit bool) (path []int
 		p := checkStack.Pop()
 		tn1, tn2 := p.All()
 		n1, n2 := tn1.node, tn2.node
-		if !ignoreShortCircuit || (!(strings.HasPrefix(n1.Value, ShortCircuitPrefix) && !strings.HasPrefix(n2.Value, ShortCircuitPrefix))) {
+		if !ignoreShortCircuit || (!(strings.HasPrefix(n1.Value, shortCircuitPrefix) && !strings.HasPrefix(n2.Value, shortCircuitPrefix))) {
 			if n1.Terminal != n2.Terminal || n1.Value != n2.Value || len(n1.Children) != len(n2.Children) {
 				// diverges here
 				allPoints = append(allPoints, tn1.path.Slice())
@@ -420,7 +420,7 @@ func (pt ParseTree) PathToDiff(t ParseTree, ignoreShortCircuit bool) (path []int
 // where each is the child index of the node to traverse to. If it is empty,
 // then the root node is the first node where sub is a sub-tree; this is not
 // necessarily the same as equality.
-func (pt ParseTree) IsSubTreeOf(t ParseTree) (contains bool, path []int) {
+func (pt Tree) IsSubTreeOf(t Tree) (contains bool, path []int) {
 	checkStack := &box.Stack[treeNode]{}
 	checkStack.Push(treeNode{&t, slices.LList[int]{}})
 
@@ -442,7 +442,7 @@ func (pt ParseTree) IsSubTreeOf(t ParseTree) (contains bool, path []int) {
 	return false, nil
 }
 
-func (pt ParseTree) leveledStr(firstPrefix, contPrefix string) string {
+func (pt Tree) leveledStr(firstPrefix, contPrefix string) string {
 	var sb strings.Builder
 
 	sb.WriteString(firstPrefix)
@@ -471,6 +471,6 @@ func (pt ParseTree) leveledStr(firstPrefix, contPrefix string) string {
 }
 
 type treeNode struct {
-	node *ParseTree
+	node *Tree
 	path slices.LList[int]
 }

@@ -360,7 +360,13 @@ func Test_NFA_ToDFA(t *testing.T) {
 			expect := buildDFA(tc.expect, tc.expectStart, tc.expectAccept)
 
 			// execute
-			actual := nfa.ToDFA()
+			actual := NFAToDFA(*nfa, func(soFar box.SVSet[string], elem2 string) box.SVSet[string] {
+				if soFar == nil {
+					soFar = box.NewSVSet[string]()
+				}
+				soFar.Set(elem2, elem2)
+				return soFar
+			})
 
 			// assert
 			assert.Equal(expect.String(), actual.String())

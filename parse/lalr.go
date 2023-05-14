@@ -16,7 +16,7 @@ import (
 // EmptyLALR1Parser returns a completely empty LALR1Parser, unsuitable for use.
 // Generally this should not be used directly except for internal purposes; use
 // GenerateLALR1Parser to generate one ready for use
-func EmptyLALR1Parser() *lrParser {
+func EmptyLALR1Parser() Parser {
 	return &lrParser{table: &lalr1Table{}, parseType: AlgoLALR1}
 }
 
@@ -28,7 +28,7 @@ func EmptyLALR1Parser() *lrParser {
 // shift-reduce conflict, shift will be preferred. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func GenerateLALR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, []string, error) {
+func GenerateLALR1Parser(g grammar.Grammar, allowAmbig bool) (Parser, []string, error) {
 	table, ambigWarns, err := constructLALR1ParseTable(g, allowAmbig)
 	if err != nil {
 		return &lrParser{}, nil, err
@@ -68,7 +68,7 @@ func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable,
 	}
 
 	// collect item cache from the states of our lr1 DFA
-	allStates := textfmt.OrderedKeys(table.dfa.States())
+	allStates := table.dfa.States()
 	for _, dfaStateName := range allStates {
 		itemSet := table.dfa.GetValue(dfaStateName)
 		for k := range itemSet {
@@ -78,10 +78,10 @@ func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable,
 
 	// check that we dont hit conflicts in ACTION
 	var ambigWarns []string
-	for i := range dfa.States() {
-		fromState := fmt.Sprintf(" (from DFA state %q)", textfmt.TruncateWith(i, 4, "..."))
+	for _, stateName := range dfa.States() {
+		fromState := fmt.Sprintf(" (from DFA state %q)", textfmt.TruncateWith(stateName, 4, "..."))
 		for _, a := range table.gPrime.Terminals() {
-			itemSet := table.dfa.GetValue(i)
+			itemSet := table.dfa.GetValue(stateName)
 			var matchFound bool
 			var act lrAction
 			for itemStr := range itemSet {
@@ -91,7 +91,7 @@ func constructLALR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable,
 				beta := item.Right
 				b := item.Lookahead
 				if table.gPrime.IsTerminal(a) && len(beta) > 0 && beta[0] == a {
-					j, err := table.Goto(i, a)
+					j, err := table.Goto(stateName, a)
 					if err == nil {
 						// match found
 						shiftAct := lrAction{Type: lrShift, State: j}
@@ -286,7 +286,7 @@ func (lalr1 *lalr1Table) UnmarshalBinary(data []byte) error {
 // parser.
 func (lalr1 *lalr1Table) DFAString() string {
 	var sb strings.Builder
-	automaton.OutputSetValuedDFA(&sb, lalr1.dfa)
+	outputSetValuedDFA(&sb, lalr1.dfa)
 	return sb.String()
 }
 
@@ -424,9 +424,7 @@ func (lalr1 *lalr1Table) String() string {
 	// need mapping of state to indexes
 	stateRefs := map[string]string{}
 
-	// need to gaurantee order
-	stateNames := lalr1.dfa.States().Elements()
-	sort.Strings(stateNames)
+	stateNames := lalr1.dfa.States()
 
 	// put the initial state first
 	for i := range stateNames {

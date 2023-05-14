@@ -1,5 +1,5 @@
-// Package automaton contains automata construction used as part of creating
-// parsers.
+// Package automaton contains automata, theoretical structures that change state
+// based on reading some input.
 package automaton
 
 import (

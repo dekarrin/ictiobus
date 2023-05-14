@@ -22,7 +22,7 @@ func (sdts *sdtsImpl) Validate(g grammar.Grammar, attribute string, debug Valida
 
 	const errIndentStr = "    "
 
-	treeErrs := []box.Pair[error, *parse.ParseTree]{}
+	treeErrs := []box.Pair[error, *parse.Tree]{}
 
 	evalErrToTreeError := func(errFromEval error) error {
 		evalErr, ok := errFromEval.(evalError)

@@ -136,16 +136,19 @@ func (lr1 *LR1Item) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// CoreSet returns the set of cores in a set of LR1 items. A core of an LR1 item
-// is simply the LR0 portion of it.
-func CoreSet(s box.VSet[string, LR1Item]) box.SVSet[LR0Item] {
-	cores := box.NewSVSet[LR0Item]()
-	for _, elem := range s.Elements() {
-		lr1 := s.Get(elem)
-		cores.Set(lr1.LR0Item.String(), lr1.LR0Item)
+// EqualCoreSet returns whether the LR1Items in the slices contain the same
+// cores. The  core of an LR1 item is simply the LR0 portion of it.
+func EqualCoreSets(s1, s2 []LR1Item) bool {
+	c1 := box.NewSVSet[LR0Item]()
+	c2 := box.NewSVSet[LR0Item]()
+	for _, lr1 := range s1 {
+		c1.Set(lr1.LR0Item.String(), lr1.LR0Item)
+	}
+	for _, lr1 := range s2 {
+		c2.Set(lr1.LR0Item.String(), lr1.LR0Item)
 	}
 
-	return cores
+	return c1.Equal(c2)
 }
 
 // Equal returns whether the given LR0Item is equal to another LR1Item or

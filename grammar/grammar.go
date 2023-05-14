@@ -15,24 +15,6 @@ import (
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 )
 
-var (
-	// expressionGrammar_4_1 is the Grammar corresponding to expression
-	// grammar (4.1) from the dragon book.
-	//
-	// It has start symbol E, non-terminals {E, T, F}, terminals {+, *, (, ),
-	// id}, and the following rules:
-	//
-	// E -> E + T | T
-	// T -> T * F | F
-	// F -> ( E ) | id
-	//
-	ExpressionGrammar_4_1 = MustParse(`
-		E -> E + T | T;
-		T -> T * F | F;
-		F -> ( E ) | id;
-	`)
-)
-
 // Grammar for tunascript language, used by a parsing algorithm to create a
 // parse tree from some input.
 type Grammar struct {

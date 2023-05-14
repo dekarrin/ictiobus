@@ -71,7 +71,7 @@ func errInvalidFlags(msg string) {
 //
 // Caller is responsible for exiting main immediately after this function
 // returns.
-func errSyntax(filename string, synErr *syntaxerr.SyntaxError) {
+func errSyntax(filename string, synErr *syntaxerr.Error) {
 	if filename == "" {
 		filename = "<INPUT>"
 	}

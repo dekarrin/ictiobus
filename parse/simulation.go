@@ -18,7 +18,7 @@ import (
 // a key in it. If the map is not provided or does not contain a key for a
 // token class matching a terminal being generated, a default string will be
 // automatically generated for it.
-func DeriveFullTree(g grammar.Grammar, fakeValProducer ...map[string]func() string) ([]ParseTree, error) {
+func DeriveFullTree(g grammar.Grammar, fakeValProducer ...map[string]func() string) ([]Tree, error) {
 	// create a function to get a value for any terminal from the
 	// fakeValProducer, falling back on default behavior if none is provided or
 	// if a token class is not found in the fakeValProducer.
@@ -106,14 +106,14 @@ func DeriveFullTree(g grammar.Grammar, fakeValProducer ...map[string]func() stri
 		return true
 	}
 
-	finalTrees := []ParseTree{}
+	finalTrees := []Tree{}
 
 	for len(toCreate) > 0 {
-		root := &ParseTree{
+		root := &Tree{
 			Terminal: false,
 			Value:    g.StartSymbol(),
 		}
-		treeStack := box.NewStack([]*ParseTree{root})
+		treeStack := box.NewStack([]*Tree{root})
 
 		for treeStack.Len() > 0 {
 			pt := treeStack.Pop()
@@ -137,18 +137,18 @@ func DeriveFullTree(g grammar.Grammar, fakeValProducer ...map[string]func() stri
 			if option.Equal(grammar.Epsilon) {
 				// epsilon prod must be specifically added to done here since it
 				// would not be added to the done list otherwise
-				pt.Children = []*ParseTree{{Terminal: true}}
+				pt.Children = []*Tree{{Terminal: true}}
 			} else {
-				pt.Children = make([]*ParseTree, len(option))
+				pt.Children = make([]*Tree, len(option))
 				for i, sym := range option {
 					if g.IsTerminal(sym) {
-						pt.Children[i] = &ParseTree{
+						pt.Children[i] = &Tree{
 							Value:    sym,
 							Terminal: true,
 							Source:   makeTermSource(sym),
 						}
 					} else {
-						pt.Children[i] = &ParseTree{
+						pt.Children[i] = &Tree{
 							Value: sym,
 						}
 					}
@@ -279,7 +279,7 @@ func DeriveFullTree(g grammar.Grammar, fakeValProducer ...map[string]func() stri
 		}
 
 		if len(removeItems) > 0 {
-			updatedFinal := make([]ParseTree, 0)
+			updatedFinal := make([]Tree, 0)
 			for i := 0; i < len(finalTrees); i++ {
 				if !slices.In(i, removeItems) {
 					updatedFinal = append(updatedFinal, finalTrees[i])
@@ -295,12 +295,12 @@ func DeriveFullTree(g grammar.Grammar, fakeValProducer ...map[string]func() stri
 
 // deriveShortest returns the parse tree for the given symbol with the fewest
 // possible number of nodes.
-func deriveShortestTree(g grammar.Grammar, sym string, shortestDerivation map[string]grammar.Production, tokMaker func(term string) lex.Token) *ParseTree {
-	root := &ParseTree{
+func deriveShortestTree(g grammar.Grammar, sym string, shortestDerivation map[string]grammar.Production, tokMaker func(term string) lex.Token) *Tree {
+	root := &Tree{
 		Value: sym,
 	}
 
-	treeStack := box.NewStack([]*ParseTree{root})
+	treeStack := box.NewStack([]*Tree{root})
 
 	for treeStack.Len() > 0 {
 		pt := treeStack.Pop()
@@ -311,18 +311,18 @@ func deriveShortestTree(g grammar.Grammar, sym string, shortestDerivation map[st
 
 		option := shortestDerivation[pt.Value]
 		if option.Equal(grammar.Epsilon) {
-			pt.Children = []*ParseTree{{Terminal: true}}
+			pt.Children = []*Tree{{Terminal: true}}
 		} else {
-			pt.Children = make([]*ParseTree, len(option))
+			pt.Children = make([]*Tree, len(option))
 			for i, sym := range option {
 				if g.IsTerminal(sym) {
-					pt.Children[i] = &ParseTree{
+					pt.Children[i] = &Tree{
 						Value:    sym,
 						Terminal: true,
 						Source:   tokMaker(sym),
 					}
 				} else {
-					pt.Children[i] = &ParseTree{
+					pt.Children[i] = &Tree{
 						Value: sym,
 					}
 				}

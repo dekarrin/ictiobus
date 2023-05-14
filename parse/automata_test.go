@@ -5,6 +5,7 @@ import (
 
 	"github.com/dekarrin/ictiobus/automaton"
 	"github.com/dekarrin/ictiobus/grammar"
+	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/stretchr/testify/assert"
 )
@@ -164,7 +165,13 @@ func Test_constructDFAForSLR1(t *testing.T) {
 			assert := assert.New(t)
 			g := grammar.MustParse(tc.grammar)
 			nfa := buildLR0NFA(tc.expect, tc.expectStart)
-			expect := nfa.ToDFA()
+			expect := automaton.NFAToDFA(*nfa, func(soFar box.SVSet[string], elem2 string) box.SVSet[string] {
+				if soFar == nil {
+					soFar = box.NewSVSet[string]()
+				}
+				soFar.Set(elem2, elem2)
+				return soFar
+			})
 
 			// execute
 			actual := constructDFAForSLR1(g)

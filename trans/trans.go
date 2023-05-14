@@ -88,7 +88,7 @@ type SDTS interface {
 	//
 	// Warn errors are provided in the slice of error and can be populated
 	// regardless of whether the final (actual) error is non-nil.
-	Evaluate(tree parse.ParseTree, attributes ...string) (vals []interface{}, warns []error, err error)
+	Evaluate(tree parse.Tree, attributes ...string) (vals []interface{}, warns []error, err error)
 
 	// Validate checks whether this SDTS is valid for the given grammar. It will
 	// create a simulated parse tree that contains a node for every rule of the
@@ -102,6 +102,14 @@ type SDTS interface {
 	// get one that will use the configured regexes of tokens used for lexing,
 	// call FakeLexemeProducer on a Lexer.
 	Validate(grammar grammar.Grammar, attribute string, debug ValidationOptions, fakeValProducer ...map[string]func() string) (warns []string, err error)
+}
+
+// NewSDTS creates a new, empty Syntax-Directed Translation Scheme.
+func NewSDTS() SDTS {
+	impl := sdtsImpl{
+		bindings: map[string]map[string][]sddBinding{},
+	}
+	return &impl
 }
 
 // SetterInfo is struct passed to all bound hooks in a translation scheme to

@@ -38,7 +38,7 @@ type AST = syntax.AST
 // Results is the results of attempting to parse a FISHI spec.
 type Results struct {
 	AST  *AST
-	Tree *parse.ParseTree
+	Tree *parse.Tree
 }
 
 // Options is options to the FISHI frontend that can be supplied by callers.
@@ -84,7 +84,7 @@ func ValidateSimulatedInput(spec Spec, md SpecMetadata, params SimulatedInputPar
 
 	// not setting the format package and call here because we don't need
 	// preformatting to run verification simulation.
-	genInfo, err := GenerateBinaryMainGo(spec, md, MainBinaryParams{
+	genInfo, err := generateBinaryMainGo(spec, md, mainBinaryParams{
 		Parser:              params.Parser,
 		HooksPkgDir:         params.HooksPkgDir,
 		HooksExpr:           params.HooksExpr,
@@ -98,7 +98,7 @@ func ValidateSimulatedInput(spec Spec, md SpecMetadata, params SimulatedInputPar
 		return fmt.Errorf("generate test compiler: %w", err)
 	}
 
-	err = ExecuteTestCompiler(genInfo, params.ValidationOpts, params.WarningHandler, params.QuietMode)
+	err = executeTestCompiler(genInfo, params.ValidationOpts, params.WarningHandler, params.QuietMode)
 	if err != nil {
 		return fmt.Errorf("execute test compiler: %w", err)
 	}
@@ -169,7 +169,7 @@ func Parse(r io.Reader, opts *Options) (Results, error) {
 	return res, nil
 }
 
-// ParseFQType parses a fully-qualified type name into its package and type
+// parseFQType parses a fully-qualified type name into its package and type
 // along with the name of the package. Any number of leading [] and * are
 // allowed, but map types are not supported, although types with an underlying
 // map type are supported.
@@ -177,9 +177,9 @@ func Parse(r io.Reader, opts *Options) (Results, error) {
 // Unqualified built-in types are allowed; they will be returned with pkgName
 // 'builtin'.
 //
-// For example, ParseFQType("[]*github.com/ictiobus/fishi.Options") would return
+// For example, parseFQType("[]*github.com/ictiobus/fishi.Options") would return
 // "github.com/ictiobus/fishi", "[]*fishi.Options", "fishi", "[]*Options", nil.
-func ParseFQType(fqType string) (pkg, typeName, pkgName, bareType string, err error) {
+func parseFQType(fqType string) (pkg, typeName, pkgName, bareType string, err error) {
 	preType := ""
 	for strings.HasPrefix(fqType, "[]") || strings.HasPrefix(fqType, "*") {
 		if strings.HasPrefix(fqType, "[]") {
@@ -204,10 +204,10 @@ func ParseFQType(fqType string) (pkg, typeName, pkgName, bareType string, err er
 	return fqPackage, irType, pkgName, bareType, nil
 }
 
-// MakeFQType makes a fully-qualified type name from the given package and type.
+// makeFQType makes a fully-qualified type name from the given package and type.
 // The typeName may include the package name, but it is not required and will be
 // ignored in favor of using pkg. Pkg must be the fully-qualified package name.
-func MakeFQType(pkg, typeName string) string {
+func makeFQType(pkg, typeName string) string {
 	preType := ""
 	for strings.HasPrefix(typeName, "[]") || strings.HasPrefix(typeName, "*") {
 		if strings.HasPrefix(typeName, "[]") {

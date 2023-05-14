@@ -199,7 +199,7 @@ func main() {
 		}
 
 		if cmdErr != nil {
-			if syntaxErr, ok := cmdErr.(*se.SyntaxError); ok {
+			if syntaxErr, ok := cmdErr.(*se.Error); ok {
 				fmt.Fprintf(os.Stderr, "%s\n", syntaxErr.MessageForFile("<COMMAND>"))
 				returnCode = ExitErrSyntax
 			} else {
@@ -306,7 +306,7 @@ func main() {
 		}
 
 		if err != nil {
-			if syntaxErr, ok := err.(*se.SyntaxError); ok {
+			if syntaxErr, ok := err.(*se.Error); ok {
 				errFilename := f
 				if f == "-" {
 					errFilename = "<STDIN>"

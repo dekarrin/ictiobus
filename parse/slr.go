@@ -16,7 +16,7 @@ import (
 // EmptySLR1Parser returns a completely empty SLR1Parser, unsuitable for use.
 // Generally this should not be used directly except for internal purposes; use
 // GenerateSimpleLRParser to generate one ready for use
-func EmptySLR1Parser() *lrParser {
+func EmptySLR1Parser() Parser {
 	return &lrParser{table: &slrTable{}, parseType: AlgoSLR1}
 }
 
@@ -27,7 +27,7 @@ func EmptySLR1Parser() *lrParser {
 // shift-reduce conflict, shift will be preferred. If the grammar is detected as
 // ambiguous, the 2nd arg 'ambiguity warnings' will be filled with each
 // ambiguous case detected.
-func GenerateSLR1Parser(g grammar.Grammar, allowAmbig bool) (*lrParser, []string, error) {
+func GenerateSLR1Parser(g grammar.Grammar, allowAmbig bool) (Parser, []string, error) {
 	table, ambigWarns, err := constructSLR1ParseTable(g, allowAmbig)
 	if err != nil {
 		return &lrParser{}, ambigWarns, err
@@ -75,10 +75,10 @@ func constructSLR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, 
 
 	// check ahead to see if we would get conflicts in ACTION function
 	var ambigWarns []string
-	for i := range lr0Automaton.States() {
-		fromState := fmt.Sprintf(" (from DFA state %q)", textfmt.TruncateWith(i, 4, "..."))
+	for _, stateName := range lr0Automaton.States() {
+		fromState := fmt.Sprintf(" (from DFA state %q)", textfmt.TruncateWith(stateName, 4, "..."))
 		for _, a := range table.gPrime.Terminals() {
-			itemSet := table.lr0.GetValue(i)
+			itemSet := table.lr0.GetValue(stateName)
 			var matchFound bool
 			var act lrAction
 			for itemStr := range itemSet {
@@ -94,7 +94,7 @@ func constructSLR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, 
 				}
 
 				if table.gPrime.IsTerminal(a) && len(beta) > 0 && beta[0] == a {
-					j, err := table.Goto(i, a)
+					j, err := table.Goto(stateName, a)
 					if err == nil {
 						// match found
 						shiftAct := lrAction{Type: lrShift, State: j}
@@ -289,7 +289,7 @@ func (slr *slrTable) UnmarshalBinary(data []byte) error {
 // parser.
 func (slr *slrTable) DFAString() string {
 	var sb strings.Builder
-	automaton.OutputSetValuedDFA(&sb, slr.lr0)
+	outputSetValuedDFA(&sb, slr.lr0)
 	return sb.String()
 }
 
@@ -299,8 +299,7 @@ func (slr *slrTable) String() string {
 	stateRefs := map[string]string{}
 
 	// need to gaurantee order
-	stateNames := slr.lr0.States().Elements()
-	sort.Strings(stateNames)
+	stateNames := slr.lr0.States()
 
 	// put the initial state first
 	for i := range stateNames {
