@@ -54,8 +54,7 @@ will be scanned for code fences with a langauge tag of `fishi`. FISHI is the
 Frontend Instruction Specification for self-Hosting Ictiobus and is the primary
 way that languages are specified to build compilers for.
 
-These files are read in and then a compiler is produced. At least in theory. For
-now, it only prints an AST out.
+These files are read in and then a compiler is produced.
 
 ```shell
 ./ictcc test/test.md
