@@ -1,4 +1,7 @@
 // Package syntaxerr provides a common syntax error type for all of ictiobus.
+// Regardless of which stage of frontend analysis the error occured in, it will
+// be returend as an [Error] from this package that can be examined for
+// information on the context of the error to report to the user.
 package syntaxerr
 
 import (

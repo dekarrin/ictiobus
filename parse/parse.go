@@ -1,7 +1,13 @@
-// Package parse provides parser construction and functionality for the ictiobus
-// parser generator. It can generate parsers based on LL(1), SLR(1), LR(1), or
-// LALR(1) grammars. The parsers operate on streams of tokens as input and
-// produce parse trees.
+// Package parse provides language parsers for the ictiobus parser generator.
+// These parsers implement [Parser] and are invoked by calling their Parse()
+// method with a [lex.TokenStream] to get tokens from. The parser will read
+// tokens from the stream and apply syntactic analysis to try and produce a
+// parse tree, represented as a [Tree].
+//
+// This package currently provides an LL(1) parser, a Simple LR(1) parser, a
+// Canonical LR(1) parser, and an LALR(1) parser, as well as the means to
+// generate each from a context-free grammar describing the accepted language.
+// The exact type of parser needed depends on the grammar.
 package parse
 
 import (

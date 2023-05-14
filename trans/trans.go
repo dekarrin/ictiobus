@@ -1,7 +1,13 @@
 // Package trans provides syntax-directed translations of parse trees for the
 // ictiobus parser generator. It is involved in the final stage of input
-// analysis. It can also serve as an entrypoint with a full-featured translation
-// intepreter engine.
+// analysis. A complete [SDTS]'s Evaluate() function is called with a
+// [parse.Tree] as input to produce the final result of the analysis, the
+// intermediate representation.
+//
+// At this time, while there are function stubs and supposed availability of
+// inherited attributes in an SDTS, only S-attributed attribute grammars are
+// supported at this time. Attempting to use inherited attributes will result in
+// untested and undefined behavior.
 package trans
 
 import (
@@ -15,7 +21,8 @@ import (
 // a grammar. It is used for evaluation of a parse tree into an intermediate
 // representation, or for direct execution.
 //
-// Strictly speaking, this is closer to an Attribute grammar.
+// This is a representation of the additions to a grammar which would make it an
+// attribute gramamr.
 type SDTS interface {
 	// Evaluate takes a parse tree and executes the semantic actions defined as
 	// SDDBindings for a node for each node in the tree and on completion,
