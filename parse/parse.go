@@ -58,10 +58,10 @@ type Parser interface {
 type Algorithm string
 
 const (
-	AlgoLL1   Algorithm = "LL(1)"
-	AlgoSLR1  Algorithm = "SLR(1)"
-	AlgoCLR1  Algorithm = "CLR(1)"
-	AlgoLALR1 Algorithm = "LALR(1)"
+	LL1   Algorithm = "LL(1)"
+	SLR1  Algorithm = "SLR(1)"
+	CLR1  Algorithm = "CLR(1)"
+	LALR1 Algorithm = "LALR(1)"
 )
 
 // String returns the string representation of a ParserType.
@@ -72,16 +72,16 @@ func (pt Algorithm) String() string {
 // ParseAlgorithm parses a string containing the name of an Algorithm.
 func ParseAlgorithm(s string) (Algorithm, error) {
 	switch s {
-	case AlgoLL1.String():
-		return AlgoLL1, nil
-	case AlgoSLR1.String():
-		return AlgoSLR1, nil
-	case AlgoCLR1.String():
-		return AlgoCLR1, nil
-	case AlgoLALR1.String():
-		return AlgoLALR1, nil
+	case LL1.String():
+		return LL1, nil
+	case SLR1.String():
+		return SLR1, nil
+	case CLR1.String():
+		return CLR1, nil
+	case LALR1.String():
+		return LALR1, nil
 	default:
-		return AlgoLL1, fmt.Errorf("not a valid ParserType: %q", s)
+		return LL1, fmt.Errorf("not a valid ParserType: %q", s)
 	}
 }
 

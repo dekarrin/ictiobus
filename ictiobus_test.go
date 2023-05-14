@@ -83,7 +83,7 @@ func (mp mockParser) Parse(s lex.TokenStream) (parse.Tree, error) {
 	return mp.fn(s)
 }
 func (mp mockParser) MarshalBinary() ([]byte, error)       { return nil, nil }
-func (mp mockParser) Type() parse.Algorithm                { return parse.AlgoLL1 }
+func (mp mockParser) Type() parse.Algorithm                { return parse.LL1 }
 func (mp mockParser) TableString() string                  { return "" }
 func (mp mockParser) RegisterTraceListener(func(s string)) {}
 func (mp mockParser) DFAString() string                    { return "" }

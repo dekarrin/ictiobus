@@ -17,7 +17,7 @@ import (
 // Generally this should not be used directly except for internal purposes; use
 // GenerateSimpleLRParser to generate one ready for use
 func EmptySLR1Parser() Parser {
-	return &lrParser{table: &slrTable{}, parseType: AlgoSLR1}
+	return &lrParser{table: &slrTable{}, parseType: SLR1}
 }
 
 // GenerateSLR1Parser returns a parser that uses SLR bottom-up parsing to
@@ -33,7 +33,7 @@ func GenerateSLR1Parser(g grammar.CFG, allowAmbig bool) (Parser, []string, error
 		return &lrParser{}, ambigWarns, err
 	}
 
-	return &lrParser{table: table, parseType: AlgoSLR1, gram: g}, ambigWarns, nil
+	return &lrParser{table: table, parseType: SLR1, gram: g}, ambigWarns, nil
 }
 
 // constructSLR1ParseTable constructs the SLR(1) table for G. It augments

@@ -91,7 +91,7 @@ func GenerateLL1Parser(g grammar.CFG) (Parser, error) {
 // Type returns the type of the parser. This will be ParserLL1 for an
 // LL(1)-parser.
 func (ll1 *ll1Parser) Type() Algorithm {
-	return AlgoLL1
+	return LL1
 }
 
 func (ll1 ll1Parser) notifyPopped(s string) {

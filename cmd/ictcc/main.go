@@ -1006,19 +1006,19 @@ func parserSelectionFromFlags() (t *parse.Algorithm, allowAmbig bool, err error)
 
 	if *flagParserLL {
 		t = new(parse.Algorithm)
-		*t = parse.AlgoLL1
+		*t = parse.LL1
 
 		// allowAmbig auto false for LL(1)
 		allowAmbig = false
 	} else if *flagParserSLR {
 		t = new(parse.Algorithm)
-		*t = parse.AlgoSLR1
+		*t = parse.SLR1
 	} else if *flagParserCLR {
 		t = new(parse.Algorithm)
-		*t = parse.AlgoCLR1
+		*t = parse.CLR1
 	} else if *flagParserLALR {
 		t = new(parse.Algorithm)
-		*t = parse.AlgoLALR1
+		*t = parse.LALR1
 	}
 
 	return

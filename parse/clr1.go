@@ -18,7 +18,7 @@ import (
 // Generally this should not be used directly except for internal purposes; use
 // GenerateCanonicalLR1Parser to generate one ready for use
 func EmptyCLR1Parser() Parser {
-	return &lrParser{table: &canonicalLR1Table{}, parseType: AlgoCLR1}
+	return &lrParser{table: &canonicalLR1Table{}, parseType: CLR1}
 }
 
 // GenerateCLR1Parser returns a parser that uses the set of canonical LR(1)
@@ -35,7 +35,7 @@ func GenerateCLR1Parser(g grammar.CFG, allowAmbig bool) (Parser, []string, error
 		return &lrParser{}, ambigWarns, err
 	}
 
-	return &lrParser{table: table, parseType: AlgoCLR1, gram: g}, ambigWarns, nil
+	return &lrParser{table: table, parseType: CLR1, gram: g}, ambigWarns, nil
 }
 
 // constructCLR1ParseTable constructs the canonical LR(1) table for G.

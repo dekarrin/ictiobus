@@ -1,6 +1,17 @@
 // Package lex provides lexing functionality for the ictiobus parser generator.
-// It uses the regex provided by Go's built-in RE2 engine for matching on input,
-// although this may change in the future.
+// It uses the regex provided by Go's built-in RE2 engine for matching on input
+// and supports multiple states and state swapping, although does not retain any
+// info about prior states.
+//
+// All lexers provided by this package support four different handlings of input
+// pattern matching: lex the input and return a token of some class, change the
+// lexer state to a new one, lex a token *and then* change the lexer state to a
+// new one, or discard the matched text and continue from after it.
+//
+// Lexing is invoked by obtaining a [Lexer] and calling its Lex method. This
+// will return a [TokenStream] that returns tokens lexed from input when its
+// Next method is called. This TokenStream can be passed on to further stages of
+// input analysis, such as a parser.
 package lex
 
 import (

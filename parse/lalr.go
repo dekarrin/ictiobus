@@ -17,7 +17,7 @@ import (
 // Generally this should not be used directly except for internal purposes; use
 // GenerateLALR1Parser to generate one ready for use
 func EmptyLALR1Parser() Parser {
-	return &lrParser{table: &lalr1Table{}, parseType: AlgoLALR1}
+	return &lrParser{table: &lalr1Table{}, parseType: LALR1}
 }
 
 // GenerateLALR1Parser returns a parser that uses the set of canonical
@@ -34,7 +34,7 @@ func GenerateLALR1Parser(g grammar.CFG, allowAmbig bool) (Parser, []string, erro
 		return &lrParser{}, nil, err
 	}
 
-	return &lrParser{table: table, parseType: AlgoLALR1, gram: g}, ambigWarns, nil
+	return &lrParser{table: table, parseType: LALR1, gram: g}, ambigWarns, nil
 }
 
 // constructLALR1ParseTable constructs the LALR(1) table for G.

@@ -160,13 +160,13 @@ func (spec Spec) CreateLexer(lazy bool) (lex.Lexer, error) {
 // AllowAmbig only applies for parser types that can auto-resolve ambiguity,
 // e.g. it does not apply to an LL(k) parser.
 func (spec Spec) CreateMostRestrictiveParser(allowAmbig bool) (parse.Parser, []Warning, error) {
-	p, warns, err := spec.CreateParser(parse.AlgoLL1, false)
+	p, warns, err := spec.CreateParser(parse.LL1, false)
 	if err != nil {
-		p, warns, err = spec.CreateParser(parse.AlgoSLR1, allowAmbig)
+		p, warns, err = spec.CreateParser(parse.SLR1, allowAmbig)
 		if err != nil {
-			p, warns, err = spec.CreateParser(parse.AlgoLALR1, allowAmbig)
+			p, warns, err = spec.CreateParser(parse.LALR1, allowAmbig)
 			if err != nil {
-				p, warns, err = spec.CreateParser(parse.AlgoCLR1, allowAmbig)
+				p, warns, err = spec.CreateParser(parse.CLR1, allowAmbig)
 				if err != nil {
 					return p, warns, fmt.Errorf("no parser can be generated for grammar; for CLR(1) parser, got: %w", err)
 				}
@@ -186,13 +186,13 @@ func (spec Spec) CreateParser(t parse.Algorithm, allowAmbig bool) (parse.Parser,
 
 	var ambigWarns []string
 	switch t {
-	case parse.AlgoLALR1:
+	case parse.LALR1:
 		p, ambigWarns, err = ictiobus.NewLALRParser(spec.Grammar, allowAmbig)
-	case parse.AlgoCLR1:
+	case parse.CLR1:
 		p, ambigWarns, err = ictiobus.NewCLRParser(spec.Grammar, allowAmbig)
-	case parse.AlgoSLR1:
+	case parse.SLR1:
 		p, ambigWarns, err = ictiobus.NewSLRParser(spec.Grammar, allowAmbig)
-	case parse.AlgoLL1:
+	case parse.LL1:
 		if allowAmbig {
 			return nil, nil, fmt.Errorf("LL(k) parsers do not support ambiguous grammars")
 		}

@@ -1,4 +1,13 @@
 // Package grammar implements context-free grammars and associated constructs.
+// A context-free grammar describes a language using a series of production
+// rules. They are often represented using BNF, which looks something like this:
+//
+//	SUM  ::= EXPR '+' EXPR
+//	EXPR ::= int | identifier
+//
+// This package provides [CFG] for representing and manipulating such a grammar.
+// In ictiobus they are used to automatically generate parsers by querying a CFG
+// for information on its rules.
 package grammar
 
 import (
@@ -135,13 +144,15 @@ func (g *CFG) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// Terminals returns an ordered list of the terminals in the grammar.
+// Terminals returns the set of terminal symbols in the grammar. Elements in the
+// returned slice will be in a stable order, but it will not necessarily be
+// related to the order they were added to the grammar.
 func (g CFG) Terminals() []string {
 	return textfmt.OrderedKeys(g.terminals)
 }
 
 // Augmented returns a new grammar that is a copy of this one but with the start
-// symbol S changed to a new rule, S' -> S.
+// symbol S changed to a new rule, S' -> S. All other rules are kept the same.
 func (g CFG) Augmented() CFG {
 	// get a copy, this will modify g
 	g = g.Copy()
@@ -155,19 +166,22 @@ func (g CFG) Augmented() CFG {
 	return g
 }
 
-// IsTerminal returns whether the given symbol is a terminal.
+// IsTerminal returns whether the given symbol is a terminal used in the CFG.
 func (g CFG) IsTerminal(sym string) bool {
 	_, ok := g.terminals[sym]
 	return ok
 }
 
-// IsNonTerminal returns whether the given symbol is a non-terminal.
+// IsNonTerminal returns whether the given symbol is a non-terminal used in the
+// CFG.
 func (g CFG) IsNonTerminal(sym string) bool {
 	_, ok := g.rulesByName[sym]
 	return ok
 }
 
-// LR0Items returns all LR0 Items in the grammar.
+// LR0Items returns all LR0 items of rules in the grammar. These items can be
+// used by LR parser generator algorithms to create a parsing DFA for the
+// grammar.
 func (g CFG) LR0Items() []LR0Item {
 	nonTerms := g.NonTerminals()
 
@@ -179,7 +193,7 @@ func (g CFG) LR0Items() []LR0Item {
 	return items
 }
 
-// Copy makes a duplicate deep copy of the grammar.
+// Copy makes a deep copy of the grammar.
 func (g CFG) Copy() CFG {
 	g2 := CFG{
 		rulesByName: make(map[string]int, len(g.rulesByName)),
@@ -218,10 +232,10 @@ func (g CFG) String() string {
 	return fmt.Sprintf("(%q, R=%q)", textfmt.OrderedKeys(g.terminals), g.rules)
 }
 
-// Rule returns the grammar rule for the given nonterminal symbol.
-// If there is no rule defined for that nonterminal, a Rule with an empty
-// NonTerminal field is returned; else it will be the same string as the one
-// passed in to the function.
+// Rule returns the grammar rule for the given non-terminal symbol. If there is
+// no rule defined for that nonterminal, a Rule with an empty NonTerminal field
+// is returned; otherwise it will be the same string as the one passed in to the
+// function.
 func (g CFG) Rule(nonterminal string) Rule {
 	if g.rulesByName == nil {
 		return Rule{}
@@ -234,9 +248,8 @@ func (g CFG) Rule(nonterminal string) Rule {
 	}
 }
 
-// Term returns the tokenClass that the given terminal symbol maps to. If the
-// given terminal symbol is not defined as a terminal symbol in this grammar,
-// the special TokenClass UndefinedToken is returned.
+// Term returns the TokenClass that the given terminal symbol maps to. If the
+// symbol is not defined in this grammar, lex.TokenUndefined is returned.
 func (g CFG) Term(terminal string) lex.TokenClass {
 	if g.terminals == nil {
 		return lex.TokenUndefined
@@ -249,19 +262,19 @@ func (g CFG) Term(terminal string) lex.TokenClass {
 	}
 }
 
-// AddTerm adds the given terminal along with the tokenClass that corresponds to
+// AddTerm adds the given terminal along with the TokenClass that corresponds to
 // it; tokens must be of that class in order to match the terminal.
 //
-// The mapping of terminal symbol IDs to tokenClasses must be 1-to-1; i.e. It is
-// an error to map multiple terms to the same tokenClass, and it is an error to
-// map the same term to multiple tokenClasses.
+// The mapping of terminal symbol IDs to TokenClasses must be 1-to-1; i.e. It is
+// an error to map multiple terms to the same TokenClass, and it is an error to
+// map the same term to multiple TokenClasses.
 //
 // As a result, redefining the same term will cause the old one to be removed,
 // and during validation if multiple terminals are matched to the same
 // tokenClass it will be considered an error.
 //
-// It is an error to map any terminal to types.TokenUndefined or
-// types.TokenEndOfText and attempting to do so will panic immediately.
+// It is an error to map any terminal to lex.TokenUndefined or
+// lex.TokenEndOfText and attempting to do so will cause a panic.
 func (g *CFG) AddTerm(terminal string, class lex.TokenClass) {
 	if terminal == "" {
 		panic("empty terminal not allowed")
@@ -295,7 +308,7 @@ func (g *CFG) AddTerm(terminal string, class lex.TokenClass) {
 }
 
 // RemoveUnusedTerminals removes all terminals that are not currently used by
-// any rule.
+// any rule in the grammar.
 func (g *CFG) RemoveUnusedTerminals() {
 	producedTerms := box.NewStringSet()
 	terms := g.Terminals()
@@ -415,14 +428,15 @@ func (g *CFG) AddRule(nonterminal string, production []string) {
 	g.rules[curIdx] = curRule
 }
 
-// NonTerminals returns list of all the non-terminal symbols. All will be upper
-// case.
+// NonTerminals returns a list of all the non-terminal symbols in the grammar.
+// Elements in the returned slice will be in a stable order, but necessarily the
+// same order as they were added in. All will be upper-case.
 func (g CFG) NonTerminals() []string {
 	return textfmt.OrderedKeys(g.rulesByName)
 }
 
 // NonTerminalsByPriority returns list of all the non-terminal symbols in the order
-// they were defined in. All will be upper case.
+// they were defined in. All will be upper-case.
 func (g CFG) NonTerminalsByPriority() []string {
 	termNames := []string{}
 	for _, r := range g.rules {
@@ -946,7 +960,9 @@ func MustParse(gr string) CFG {
 // Parse parses a 'grammar string' into a Grammar object. The string must have
 // a semicolon between rules, spaces between each symbol, non-terminals must
 // contain at least one upper-case letter. Epsilon "ε" is used for the epsilon
-// production. Example:
+// production.
+//
+// Example:
 //
 //	S -> A | B ;
 //	A -> a | ε ;

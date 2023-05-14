@@ -32,13 +32,13 @@ func DecodeBytes(data []byte) (p Parser, err error) {
 
 	// set var's concrete type by getting an empty copy
 	switch parserType {
-	case AlgoLL1:
+	case LL1:
 		p = EmptyLL1Parser()
-	case AlgoSLR1:
+	case SLR1:
 		p = EmptySLR1Parser()
-	case AlgoLALR1:
+	case LALR1:
 		p = EmptyLALR1Parser()
-	case AlgoCLR1:
+	case CLR1:
 		p = EmptyCLR1Parser()
 	default:
 		panic("should never happen: parsed parserType is not valid")
