@@ -2,10 +2,10 @@ package automaton
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
 	"github.com/dekarrin/ictiobus/internal/slices"
 	"github.com/dekarrin/ictiobus/internal/textfmt"
@@ -162,7 +162,7 @@ func (dfa *DFA[E]) NumberStates() {
 	if _, ok := dfa.states[dfa.Start]; !ok {
 		panic("can't number states of DFA with no start state set")
 	}
-	origStateNames := textfmt.OrderedKeys(dfa.States())
+	origStateNames := dfa.States()
 
 	// make shore to pull out starting state and place at front
 	startIdx := -1
@@ -326,13 +326,16 @@ func (dfa DFA[E]) Validate() error {
 	return nil
 }
 
-// States returns all states in the dfa.
-func (dfa DFA[E]) States() box.StringSet {
-	states := box.NewStringSet()
+// States returns all names of states in the DFA. Ordering of the states in the
+// returned slice is guaranteed to be stable.
+func (dfa DFA[E]) States() []string {
+	states := []string{}
 
 	for k := range dfa.states {
-		states.Add(k)
+		states = append(states, k)
 	}
+
+	sort.Strings(states)
 
 	return states
 }
@@ -367,7 +370,7 @@ func (dfa DFA[E]) allTransitionsTo(toState string) [][2]string {
 
 	s := dfa.States()
 
-	for _, sName := range s.Elements() {
+	for _, sName := range s {
 		state := dfa.states[sName]
 		for k := range state.transitions {
 			if state.transitions[k].next == toState {

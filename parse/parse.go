@@ -402,7 +402,7 @@ func outputSetValuedDFA[E fmt.Stringer](w io.Writer, dfa automaton.DFA[box.SVSet
 	bw.WriteString("\"\n")
 
 	// now get ordered states
-	orderedStates := dfa.States().Elements()
+	orderedStates := dfa.States()
 	orderedStates = slices.SortBy(orderedStates, func(s1, s2 string) bool {
 		n1, err := strconv.Atoi(s1)
 		if err != nil {

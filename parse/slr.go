@@ -75,10 +75,10 @@ func constructSLR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, 
 
 	// check ahead to see if we would get conflicts in ACTION function
 	var ambigWarns []string
-	for i := range lr0Automaton.States() {
-		fromState := fmt.Sprintf(" (from DFA state %q)", textfmt.TruncateWith(i, 4, "..."))
+	for _, stateName := range lr0Automaton.States() {
+		fromState := fmt.Sprintf(" (from DFA state %q)", textfmt.TruncateWith(stateName, 4, "..."))
 		for _, a := range table.gPrime.Terminals() {
-			itemSet := table.lr0.GetValue(i)
+			itemSet := table.lr0.GetValue(stateName)
 			var matchFound bool
 			var act lrAction
 			for itemStr := range itemSet {
@@ -94,7 +94,7 @@ func constructSLR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, 
 				}
 
 				if table.gPrime.IsTerminal(a) && len(beta) > 0 && beta[0] == a {
-					j, err := table.Goto(i, a)
+					j, err := table.Goto(stateName, a)
 					if err == nil {
 						// match found
 						shiftAct := lrAction{Type: lrShift, State: j}
@@ -299,8 +299,7 @@ func (slr *slrTable) String() string {
 	stateRefs := map[string]string{}
 
 	// need to gaurantee order
-	stateNames := slr.lr0.States().Elements()
-	sort.Strings(stateNames)
+	stateNames := slr.lr0.States()
 
 	// put the initial state first
 	for i := range stateNames {

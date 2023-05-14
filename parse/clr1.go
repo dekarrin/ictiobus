@@ -73,7 +73,7 @@ func constructCLR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, 
 	}
 
 	// collect item cache from the states of our lr1 DFA
-	allStates := textfmt.OrderedKeys(table.lr1.States())
+	allStates := table.lr1.States()
 	for _, dfaStateName := range allStates {
 		itemSet := table.lr1.GetValue(dfaStateName)
 		for k := range itemSet {
@@ -83,10 +83,10 @@ func constructCLR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, 
 
 	// check that we dont hit conflicts in ACTION
 	var ambigWarns []string
-	for i := range lr1Automaton.States() {
-		fromState := fmt.Sprintf(" (from DFA state %q)", textfmt.TruncateWith(i, 4, "..."))
+	for _, stateName := range lr1Automaton.States() {
+		fromState := fmt.Sprintf(" (from DFA state %q)", textfmt.TruncateWith(stateName, 4, "..."))
 		for _, a := range table.gPrime.Terminals() {
-			itemSet := table.lr1.GetValue(i)
+			itemSet := table.lr1.GetValue(stateName)
 			var matchFound bool
 			var act lrAction
 			for itemStr := range itemSet {
@@ -96,7 +96,7 @@ func constructCLR1ParseTable(g grammar.Grammar, allowAmbig bool) (lrParseTable, 
 				beta := item.Right
 				b := item.Lookahead
 				if table.gPrime.IsTerminal(a) && len(beta) > 0 && beta[0] == a {
-					j, err := table.Goto(i, a)
+					j, err := table.Goto(stateName, a)
 					if err == nil {
 						// match found
 						shiftAct := lrAction{Type: lrShift, State: j}
@@ -300,9 +300,7 @@ func (clr1 *canonicalLR1Table) String() string {
 	// need mapping of state to indexes
 	stateRefs := map[string]string{}
 
-	// need to gaurantee order
-	stateNames := clr1.lr1.States().Elements()
-	sort.Strings(stateNames)
+	stateNames := clr1.lr1.States()
 
 	// put the initial state first
 	for i := range stateNames {
