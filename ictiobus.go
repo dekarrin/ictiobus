@@ -7,9 +7,7 @@
 // with bison. Naturally, bison due to its popularity as a parser-generator
 // tool.
 //
-// This will probably never be as good as bison, so consider using that. This is
-// for research and does not seek to replace existing toolchains in any
-// practical fashion.
+// Ictiobus is typically used by invoking the ictcc binary command.
 package ictiobus
 
 // DEV NOTE:
