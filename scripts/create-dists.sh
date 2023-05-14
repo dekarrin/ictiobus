@@ -109,7 +109,9 @@ do
   distfolder="$dist_versioned_name"
   rm -rf "$distfolder" "$dist_latest_name.tar.gz" "$dist_versioned_name.tar.gz"
   mkdir "$distfolder"
-  cp README.md fishi.md source.tar.gz "$distfolder"
+  mkdir "$distfolder/docs"
+  cp docs/*.md "$distfolder/docs"
+  cp README.md source.tar.gz "$distfolder"
   
   if [ "$current_os" != "windows" ]
   then

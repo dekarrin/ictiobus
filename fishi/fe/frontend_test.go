@@ -18,7 +18,7 @@ func Test_Fishi_Spec(t *testing.T) {
 	assert := assert.New(t)
 
 	// open fishi.md
-	fileR, err := os.Open("../../fishi.md")
+	fileR, err := os.Open("../../docs/fishi.md")
 	if !assert.NoError(err) {
 		return
 	}

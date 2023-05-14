@@ -32,5 +32,5 @@ echo "Generating new frontend in fishi/fe..."
 	--dest fishi/fe \
 	-l FISHI -v 1.0.0 \
 	--hooks fishi/syntax \
-	fishi.md "$@"
+	docs/fishi.md "$@"
 
