@@ -43,9 +43,9 @@ type GeneratedCodeInfo struct {
 	Path string
 }
 
-// MainBinaryParams is paramters for generating a main.go file for a binary.
+// mainBinaryParams is paramters for generating a main.go file for a binary.
 // Unless otherwise specified, all fields are required.
-type MainBinaryParams struct {
+type mainBinaryParams struct {
 	// Parser is the parser to use for the generated compiler.
 	Parser parse.Parser
 

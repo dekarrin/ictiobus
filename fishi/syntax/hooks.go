@@ -89,7 +89,7 @@ func sdtsFnMakeFishispec(_ trans.SetterInfo, args []interface{}) (interface{}, e
 	list, ok := args[0].([]Block)
 	if !ok {
 		// can't directly return nil because we'd lose the type information
-		return nil, NewArgTypeError(args, 0, "[]Block")
+		return nil, newArgTypeError(args, 0, "[]Block")
 	}
 
 	return AST{Nodes: list}, nil
@@ -98,12 +98,12 @@ func sdtsFnMakeFishispec(_ trans.SetterInfo, args []interface{}) (interface{}, e
 func sdtsFnBlockListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]Block)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]Block")
+		return nil, newArgTypeError(args, 0, "[]Block")
 	}
 
 	toAppend, ok := args[1].(Block)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "Block")
+		return nil, newArgTypeError(args, 1, "Block")
 	}
 
 	list = append(list, toAppend)
@@ -113,7 +113,7 @@ func sdtsFnBlockListAppend(_ trans.SetterInfo, args []interface{}) (interface{},
 func sdtsFnBlockListStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	toAppend, ok := args[0].(Block)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "Block")
+		return nil, newArgTypeError(args, 0, "Block")
 	}
 
 	return []Block{toAppend}, nil
@@ -122,7 +122,7 @@ func sdtsFnBlockListStart(_ trans.SetterInfo, args []interface{}) (interface{}, 
 func sdtsFnMakeGrammarBlock(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]GrammarContent)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]GrammarContent")
+		return nil, newArgTypeError(args, 0, "[]GrammarContent")
 	}
 
 	return GrammarBlock{Content: list}, nil
@@ -131,7 +131,7 @@ func sdtsFnMakeGrammarBlock(_ trans.SetterInfo, args []interface{}) (interface{}
 func sdtsFnMakeTokensBlock(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]TokensContent)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]TokensContent")
+		return nil, newArgTypeError(args, 0, "[]TokensContent")
 	}
 
 	return TokensBlock{Content: list}, nil
@@ -140,7 +140,7 @@ func sdtsFnMakeTokensBlock(_ trans.SetterInfo, args []interface{}) (interface{},
 func sdtsFnMakeActionsBlock(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]ActionsContent)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]ActionsContent")
+		return nil, newArgTypeError(args, 0, "[]ActionsContent")
 	}
 
 	return ActionsBlock{Content: list}, nil
@@ -149,7 +149,7 @@ func sdtsFnMakeActionsBlock(_ trans.SetterInfo, args []interface{}) (interface{}
 func sdtsFnGrammarContentBlocksStartRuleList(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	rules, ok := args[0].([]GrammarRule)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]GrammarRule")
+		return nil, newArgTypeError(args, 0, "[]GrammarRule")
 	}
 	toAppend := GrammarContent{
 		Rules: rules,
@@ -162,7 +162,7 @@ func sdtsFnGrammarContentBlocksStartRuleList(_ trans.SetterInfo, args []interfac
 func sdtsFnTokensContentBlocksStartEntryList(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	entries, ok := args[0].([]TokenEntry)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]TokenEntry")
+		return nil, newArgTypeError(args, 0, "[]TokenEntry")
 	}
 	toAppend := TokensContent{
 		Entries: entries,
@@ -175,7 +175,7 @@ func sdtsFnTokensContentBlocksStartEntryList(_ trans.SetterInfo, args []interfac
 func sdtsFnActionsContentBlocksStartSymbolActionsList(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	actions, ok := args[0].([]SymbolActions)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]SymbolActions")
+		return nil, newArgTypeError(args, 0, "[]SymbolActions")
 	}
 	toAppend := ActionsContent{
 		Actions: actions,
@@ -189,13 +189,13 @@ func sdtsFnActionsContentBlocksPrepend(_ trans.SetterInfo, args []interface{}) (
 	// state blocks
 	list, ok := args[0].([]ActionsContent)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]ActionsContent")
+		return nil, newArgTypeError(args, 0, "[]ActionsContent")
 	}
 
 	// stateless block
 	actions, ok := args[1].([]SymbolActions)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "[]SymbolActions")
+		return nil, newArgTypeError(args, 1, "[]SymbolActions")
 	}
 	toAppend := ActionsContent{
 		Actions: actions,
@@ -211,13 +211,13 @@ func sdtsFnTokensContentBlocksPrepend(_ trans.SetterInfo, args []interface{}) (i
 	// state blocks
 	list, ok := args[0].([]TokensContent)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]TokensContent")
+		return nil, newArgTypeError(args, 0, "[]TokensContent")
 	}
 
 	// stateless block
 	tokens, ok := args[1].([]TokenEntry)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "[]TokenEntry")
+		return nil, newArgTypeError(args, 1, "[]TokenEntry")
 	}
 	toAppend := TokensContent{
 		Entries: tokens,
@@ -233,13 +233,13 @@ func sdtsFnGrammarContentBlocksPrepend(_ trans.SetterInfo, args []interface{}) (
 	// state blocks
 	list, ok := args[0].([]GrammarContent)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]GrammarContent")
+		return nil, newArgTypeError(args, 0, "[]GrammarContent")
 	}
 
 	// stateless block
 	rules, ok := args[1].([]GrammarRule)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "[]GrammarRule")
+		return nil, newArgTypeError(args, 1, "[]GrammarRule")
 	}
 	toAppend := GrammarContent{
 		Rules: rules,
@@ -254,12 +254,12 @@ func sdtsFnGrammarContentBlocksPrepend(_ trans.SetterInfo, args []interface{}) (
 func sdtsFnMakeProdAction(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 	prodSpec, ok := args[0].(box.Triple[string, interface{}, lex.Token])
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "box.Triple[string, interface{}, lex.Token]")
+		return nil, newArgTypeError(args, 0, "box.Triple[string, interface{}, lex.Token]")
 	}
 
 	semActions, ok := args[1].([]SemanticAction)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "[]SemanticAction")
+		return nil, newArgTypeError(args, 1, "[]SemanticAction")
 	}
 
 	pa := ProductionAction{
@@ -275,7 +275,7 @@ func sdtsFnMakeProdAction(info trans.SetterInfo, args []interface{}) (interface{
 	} else if prodSpec.First == "NEXT" {
 		pa.ProdNext = true
 	} else {
-		return nil, NewArgError(args, 0, "unknown spec type %q; must be one of \"LITERAL\", \"INDEX\", or \"NEXT\"", prodSpec.First)
+		return nil, newArgError(args, 0, "unknown spec type %q; must be one of \"LITERAL\", \"INDEX\", or \"NEXT\"", prodSpec.First)
 	}
 
 	return pa, nil
@@ -291,12 +291,12 @@ func sdtsFnMakeSymbolActions(info trans.SetterInfo, args []interface{}) (interfa
 	// also grab the nonTerm's token from args
 	ntTok, ok := args[1].(lex.Token)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "lex.Token")
+		return nil, newArgTypeError(args, 1, "lex.Token")
 	}
 
 	prodActions, ok := args[2].([]ProductionAction)
 	if !ok {
-		return nil, NewArgTypeError(args, 2, "[]ProductionAction")
+		return nil, newArgTypeError(args, 2, "[]ProductionAction")
 	}
 
 	sa := SymbolActions{
@@ -313,13 +313,13 @@ func sdtsFnMakeSymbolActions(info trans.SetterInfo, args []interface{}) (interfa
 func sdtsFnMakeStateIns(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 	state, ok := args[0].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
+		return nil, newArgTypeError(args, 0, "string")
 	}
 
 	// also grab the state ID's token from args
 	stateTok, ok := args[1].(lex.Token)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "lex.Token")
+		return nil, newArgTypeError(args, 1, "lex.Token")
 	}
 
 	return box.Pair[string, lex.Token]{First: state, Second: stateTok}, nil
@@ -328,12 +328,12 @@ func sdtsFnMakeStateIns(info trans.SetterInfo, args []interface{}) (interface{},
 func sdtsFnMakeGrammarContentNode(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 	state, ok := args[0].(box.Pair[string, lex.Token])
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "box.Pair[string, lex.Token]")
+		return nil, newArgTypeError(args, 0, "box.Pair[string, lex.Token]")
 	}
 
 	rules, ok := args[1].([]GrammarRule)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "[]GrammarRule")
+		return nil, newArgTypeError(args, 1, "[]GrammarRule")
 	}
 	return GrammarContent{Rules: rules, State: state.First, SrcState: state.Second, Src: info.FirstToken}, nil
 }
@@ -341,12 +341,12 @@ func sdtsFnMakeGrammarContentNode(info trans.SetterInfo, args []interface{}) (in
 func sdtsFnMakeActionsContentNode(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 	state, ok := args[0].(box.Pair[string, lex.Token])
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "box.Pair[string, lex.Token]")
+		return nil, newArgTypeError(args, 0, "box.Pair[string, lex.Token]")
 	}
 
 	actions, ok := args[1].([]SymbolActions)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "[]SymbolActions")
+		return nil, newArgTypeError(args, 1, "[]SymbolActions")
 	}
 	return ActionsContent{Actions: actions, State: state.First, SrcState: state.Second, Src: info.FirstToken}, nil
 }
@@ -354,12 +354,12 @@ func sdtsFnMakeActionsContentNode(info trans.SetterInfo, args []interface{}) (in
 func sdtsFnMakeTokensContentNode(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 	state, ok := args[0].(box.Pair[string, lex.Token])
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "box.Pair[string, lex.Token]")
+		return nil, newArgTypeError(args, 0, "box.Pair[string, lex.Token]")
 	}
 
 	entries, ok := args[1].([]TokenEntry)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "[]TokenEntry")
+		return nil, newArgTypeError(args, 1, "[]TokenEntry")
 	}
 
 	return TokensContent{Entries: entries, State: state.First, SrcState: state.Second, Src: info.FirstToken}, nil
@@ -368,7 +368,7 @@ func sdtsFnMakeTokensContentNode(info trans.SetterInfo, args []interface{}) (int
 func sdtsFnTrimString(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	str, ok := args[0].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
+		return nil, newArgTypeError(args, 0, "string")
 	}
 	return strings.TrimSpace(str), nil
 }
@@ -380,7 +380,7 @@ func sdtsFnMakeDiscardOption(info trans.SetterInfo, args []interface{}) (interfa
 func sdtsFnMakeStateshiftOption(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 	state, ok := args[0].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
+		return nil, newArgTypeError(args, 0, "string")
 	}
 
 	return TokenOption{Type: TokenOptStateshift, Value: state, Src: info.FirstToken}, nil
@@ -389,7 +389,7 @@ func sdtsFnMakeStateshiftOption(info trans.SetterInfo, args []interface{}) (inte
 func sdtsFnMakeHumanOption(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 	human, ok := args[0].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
+		return nil, newArgTypeError(args, 0, "string")
 	}
 
 	return TokenOption{Type: TokenOptHuman, Value: human, Src: info.FirstToken}, nil
@@ -398,7 +398,7 @@ func sdtsFnMakeHumanOption(info trans.SetterInfo, args []interface{}) (interface
 func sdtsFnMakeTokenOption(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 	t, ok := args[0].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
+		return nil, newArgTypeError(args, 0, "string")
 	}
 
 	return TokenOption{Type: TokenOptToken, Value: t, Src: info.FirstToken}, nil
@@ -407,7 +407,7 @@ func sdtsFnMakeTokenOption(info trans.SetterInfo, args []interface{}) (interface
 func sdtsFnMakePriorityOption(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 	priority, ok := args[0].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
+		return nil, newArgTypeError(args, 0, "string")
 	}
 
 	return TokenOption{Type: TokenOptPriority, Value: priority, Src: info.FirstToken}, nil
@@ -418,12 +418,12 @@ func sdtsFnIdentity(_ trans.SetterInfo, args []interface{}) (interface{}, error)
 func sdtsFnInterpretEscape(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	str, ok := args[0].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
+		return nil, newArgTypeError(args, 0, "string")
 	}
 
 	str = strings.TrimLeftFunc(str, unicode.IsSpace) // lets us handle startLineEscseq as well, glub!
 	if len(str) < len("%!") {
-		return nil, NewArgError(args, 0, "string too short to be an escape sequence: %q", str)
+		return nil, newArgError(args, 0, "string too short to be an escape sequence: %q", str)
 	}
 
 	// escape sequence is %!, so just take the chars after that
@@ -433,11 +433,11 @@ func sdtsFnInterpretEscape(_ trans.SetterInfo, args []interface{}) (interface{},
 func sdtsFnAppendStrings(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	str1, ok := args[0].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
+		return nil, newArgTypeError(args, 0, "string")
 	}
 	str2, ok := args[1].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "string")
+		return nil, newArgTypeError(args, 1, "string")
 	}
 
 	return str1 + str2, nil
@@ -446,11 +446,11 @@ func sdtsFnAppendStrings(_ trans.SetterInfo, args []interface{}) (interface{}, e
 func sdtsFnAppendStringsTrimmed(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	str1, ok := args[0].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
+		return nil, newArgTypeError(args, 0, "string")
 	}
 	str2, ok := args[1].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "string")
+		return nil, newArgTypeError(args, 1, "string")
 	}
 
 	return strings.TrimSpace(str1 + str2), nil
@@ -459,7 +459,7 @@ func sdtsFnAppendStringsTrimmed(_ trans.SetterInfo, args []interface{}) (interfa
 func sdtsFnGetNonterminal(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	str, ok := args[0].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
+		return nil, newArgTypeError(args, 0, "string")
 	}
 
 	return strings.TrimSpace(str), nil
@@ -468,12 +468,12 @@ func sdtsFnGetNonterminal(_ trans.SetterInfo, args []interface{}) (interface{}, 
 func sdtsFnGetInt(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	str, ok := args[0].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
+		return nil, newArgTypeError(args, 0, "string")
 	}
 
 	iVal, err := strconv.Atoi(str)
 	if err != nil {
-		return nil, NewArgError(args, 0, err.Error())
+		return nil, newArgError(args, 0, err.Error())
 	}
 	return iVal, nil
 }
@@ -481,7 +481,7 @@ func sdtsFnGetInt(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 func sdtsFnGetTerminal(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	str, ok := args[0].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
+		return nil, newArgTypeError(args, 0, "string")
 	}
 
 	return strings.ToLower(str), nil
@@ -490,12 +490,12 @@ func sdtsFnGetTerminal(_ trans.SetterInfo, args []interface{}) (interface{}, err
 func sdtsFnRuleListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]GrammarRule)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]GrammarRule")
+		return nil, newArgTypeError(args, 0, "[]GrammarRule")
 	}
 
 	toAppend, ok := args[1].(GrammarRule)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "GrammarRule")
+		return nil, newArgTypeError(args, 1, "GrammarRule")
 	}
 
 	list = append(list, toAppend)
@@ -505,12 +505,12 @@ func sdtsFnRuleListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, 
 func sdtsFnEntryListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]TokenEntry)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]TokenEntry")
+		return nil, newArgTypeError(args, 0, "[]TokenEntry")
 	}
 
 	toAppend, ok := args[1].(TokenEntry)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "TokenEntry")
+		return nil, newArgTypeError(args, 1, "TokenEntry")
 	}
 
 	list = append(list, toAppend)
@@ -520,12 +520,12 @@ func sdtsFnEntryListAppend(_ trans.SetterInfo, args []interface{}) (interface{},
 func sdtsFnActionsStateBlockListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]ActionsContent)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]ActionsContent")
+		return nil, newArgTypeError(args, 0, "[]ActionsContent")
 	}
 
 	toAppend, ok := args[1].(ActionsContent)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "ActionsContent")
+		return nil, newArgTypeError(args, 1, "ActionsContent")
 	}
 
 	list = append(list, toAppend)
@@ -535,12 +535,12 @@ func sdtsFnActionsStateBlockListAppend(_ trans.SetterInfo, args []interface{}) (
 func sdtsFnTokensStateBlockListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]TokensContent)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]TokensContent")
+		return nil, newArgTypeError(args, 0, "[]TokensContent")
 	}
 
 	toAppend, ok := args[1].(TokensContent)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "TokensContent")
+		return nil, newArgTypeError(args, 1, "TokensContent")
 	}
 
 	list = append(list, toAppend)
@@ -550,12 +550,12 @@ func sdtsFnTokensStateBlockListAppend(_ trans.SetterInfo, args []interface{}) (i
 func sdtsFnGrammarStateBlockListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]GrammarContent)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]GrammarContent")
+		return nil, newArgTypeError(args, 0, "[]GrammarContent")
 	}
 
 	toAppend, ok := args[1].(GrammarContent)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "GrammarContent")
+		return nil, newArgTypeError(args, 1, "GrammarContent")
 	}
 
 	list = append(list, toAppend)
@@ -565,12 +565,12 @@ func sdtsFnGrammarStateBlockListAppend(_ trans.SetterInfo, args []interface{}) (
 func sdtsFnSymbolActionsListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]SymbolActions)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]SymbolActions")
+		return nil, newArgTypeError(args, 0, "[]SymbolActions")
 	}
 
 	toAppend, ok := args[1].(SymbolActions)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "SymbolActions")
+		return nil, newArgTypeError(args, 1, "SymbolActions")
 	}
 
 	list = append(list, toAppend)
@@ -580,12 +580,12 @@ func sdtsFnSymbolActionsListAppend(_ trans.SetterInfo, args []interface{}) (inte
 func sdtsFnProdActionListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]ProductionAction)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]ProductionAction")
+		return nil, newArgTypeError(args, 0, "[]ProductionAction")
 	}
 
 	toAppend, ok := args[1].(ProductionAction)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "ProductionAction")
+		return nil, newArgTypeError(args, 1, "ProductionAction")
 	}
 
 	list = append(list, toAppend)
@@ -595,12 +595,12 @@ func sdtsFnProdActionListAppend(_ trans.SetterInfo, args []interface{}) (interfa
 func sdtsFnSemanticActionListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]SemanticAction)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]SemanticAction")
+		return nil, newArgTypeError(args, 0, "[]SemanticAction")
 	}
 
 	toAppend, ok := args[1].(SemanticAction)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "SemanticAction")
+		return nil, newArgTypeError(args, 1, "SemanticAction")
 	}
 
 	list = append(list, toAppend)
@@ -610,18 +610,18 @@ func sdtsFnSemanticActionListAppend(_ trans.SetterInfo, args []interface{}) (int
 func sdtsFnAttrRefListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]AttrRef)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]AttrRef")
+		return nil, newArgTypeError(args, 0, "[]AttrRef")
 	}
 
 	// get token of attr ref to build fake info object to pass to sdtsFnGetAttrRef's info.
 	fakeInfo, err := makeFakeInfo(args[2], fetoken.TCAttrRef.ID(), "value")
 	if err != nil {
-		return nil, NewArgError(args, 2, err.Error())
+		return nil, newArgError(args, 2, err.Error())
 	}
 
 	toAppendUncast, err := sdtsFnGetAttrRef(fakeInfo, args[1:])
 	if err != nil {
-		if hookErr, ok := err.(*HookArgError); ok {
+		if hookErr, ok := err.(*hookArgError); ok {
 			hookErr.Args = args
 			hookErr.ArgNum = 1
 			return nil, hookErr
@@ -638,7 +638,7 @@ func sdtsFnAttrRefListStart(_ trans.SetterInfo, args []interface{}) (interface{}
 	// get token of attr ref to build fake info object to pass to sdtsFnGetAttrRef's info.
 	fakeInfo, err := makeFakeInfo(args[1], fetoken.TCAttrRef.ID(), "value")
 	if err != nil {
-		return nil, NewArgError(args, 1, err.Error())
+		return nil, newArgError(args, 1, err.Error())
 	}
 
 	toAppendUncast, err := sdtsFnGetAttrRef(fakeInfo, args[0:])
@@ -655,12 +655,12 @@ func sdtsFnGetAttrRef(info trans.SetterInfo, args []interface{}) (interface{}, e
 
 	str, ok := args[0].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
+		return nil, newArgTypeError(args, 0, "string")
 	} else {
 		var err error
 		attrRef, err = ParseAttrRef(str)
 		if err != nil {
-			return nil, NewArgError(args, 0, err.Error())
+			return nil, newArgError(args, 0, err.Error())
 		}
 	}
 
@@ -672,7 +672,7 @@ func sdtsFnGetAttrRef(info trans.SetterInfo, args []interface{}) (interface{}, e
 func sdtsFnMakeSemanticAction(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 	fakeInfo, err := makeFakeInfo(args[1], fetoken.TCAttrRef.ID(), "value")
 	if err != nil {
-		return nil, NewArgError(args, 1, err.Error())
+		return nil, newArgError(args, 1, err.Error())
 	}
 
 	attrRefUncast, err := sdtsFnGetAttrRef(fakeInfo, args[0:])
@@ -683,19 +683,19 @@ func sdtsFnMakeSemanticAction(info trans.SetterInfo, args []interface{}) (interf
 
 	hookId, ok := args[2].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 2, "string")
+		return nil, newArgTypeError(args, 2, "string")
 	}
 
 	hookTok, ok := args[3].(lex.Token)
 	if !ok {
-		return nil, NewArgTypeError(args, 3, "lex.Token")
+		return nil, newArgTypeError(args, 3, "lex.Token")
 	}
 
 	var argRefs []AttrRef
 	if len(args) > 4 {
 		argRefs, ok = args[4].([]AttrRef)
 		if !ok {
-			return nil, NewArgTypeError(args, 4, "[]AttrRef")
+			return nil, newArgTypeError(args, 4, "[]AttrRef")
 		}
 	}
 
@@ -730,7 +730,7 @@ func sdtsFnMakeProdSpecifierIndex(info trans.SetterInfo, args []interface{}) (in
 func sdtsFnMakeProdSpecifierLiteral(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 	prod, ok := args[0].([]string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]string")
+		return nil, newArgTypeError(args, 0, "[]string")
 	}
 
 	// need exact generic-filled type to match later expectations.
@@ -741,7 +741,7 @@ func sdtsFnMakeProdSpecifierLiteral(info trans.SetterInfo, args []interface{}) (
 func sdtsFnProdActionListStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	toAppend, ok := args[0].(ProductionAction)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "ProductionAction")
+		return nil, newArgTypeError(args, 0, "ProductionAction")
 	}
 
 	return []ProductionAction{toAppend}, nil
@@ -750,7 +750,7 @@ func sdtsFnProdActionListStart(_ trans.SetterInfo, args []interface{}) (interfac
 func sdtsFnSemanticActionListStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	toAppend, ok := args[0].(SemanticAction)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "SemanticAction")
+		return nil, newArgTypeError(args, 0, "SemanticAction")
 	}
 
 	return []SemanticAction{toAppend}, nil
@@ -759,7 +759,7 @@ func sdtsFnSemanticActionListStart(_ trans.SetterInfo, args []interface{}) (inte
 func sdtsFnRuleListStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	toAppend, ok := args[0].(GrammarRule)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "GrammarRule")
+		return nil, newArgTypeError(args, 0, "GrammarRule")
 	}
 
 	return []GrammarRule{toAppend}, nil
@@ -768,7 +768,7 @@ func sdtsFnRuleListStart(_ trans.SetterInfo, args []interface{}) (interface{}, e
 func sdtsFnGrammarStateBlockListStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	toAppend, ok := args[0].(GrammarContent)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "GrammarContent")
+		return nil, newArgTypeError(args, 0, "GrammarContent")
 	}
 
 	return []GrammarContent{toAppend}, nil
@@ -777,7 +777,7 @@ func sdtsFnGrammarStateBlockListStart(_ trans.SetterInfo, args []interface{}) (i
 func sdtsFnTokensStateBlockListStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	toAppend, ok := args[0].(TokensContent)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "TokensContent")
+		return nil, newArgTypeError(args, 0, "TokensContent")
 	}
 
 	return []TokensContent{toAppend}, nil
@@ -786,7 +786,7 @@ func sdtsFnTokensStateBlockListStart(_ trans.SetterInfo, args []interface{}) (in
 func sdtsFnActionsStateBlockListStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	toAppend, ok := args[0].(ActionsContent)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "ActionsContent")
+		return nil, newArgTypeError(args, 0, "ActionsContent")
 	}
 
 	return []ActionsContent{toAppend}, nil
@@ -795,7 +795,7 @@ func sdtsFnActionsStateBlockListStart(_ trans.SetterInfo, args []interface{}) (i
 func sdtsFnSymbolActionsListStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	toAppend, ok := args[0].(SymbolActions)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "SymbolActions")
+		return nil, newArgTypeError(args, 0, "SymbolActions")
 	}
 
 	return []SymbolActions{toAppend}, nil
@@ -804,7 +804,7 @@ func sdtsFnSymbolActionsListStart(_ trans.SetterInfo, args []interface{}) (inter
 func sdtsFnEntryListStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	toAppend, ok := args[0].(TokenEntry)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "TokenEntry")
+		return nil, newArgTypeError(args, 0, "TokenEntry")
 	}
 
 	return []TokenEntry{toAppend}, nil
@@ -813,12 +813,12 @@ func sdtsFnEntryListStart(_ trans.SetterInfo, args []interface{}) (interface{}, 
 func sdtsFnStringListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]string")
+		return nil, newArgTypeError(args, 0, "[]string")
 	}
 
 	toAppend, ok := args[1].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "string")
+		return nil, newArgTypeError(args, 1, "string")
 	}
 
 	list = append(list, toAppend)
@@ -829,7 +829,7 @@ func sdtsFnStringListAppend(_ trans.SetterInfo, args []interface{}) (interface{}
 func sdtsFnTokenOptListStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	toAppend, ok := args[0].(TokenOption)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "TokenOption")
+		return nil, newArgTypeError(args, 0, "TokenOption")
 	}
 
 	return []TokenOption{toAppend}, nil
@@ -838,12 +838,12 @@ func sdtsFnTokenOptListStart(_ trans.SetterInfo, args []interface{}) (interface{
 func sdtsFnTokenOptListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]TokenOption)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]TokenOption")
+		return nil, newArgTypeError(args, 0, "[]TokenOption")
 	}
 
 	toAppend, ok := args[1].(TokenOption)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "TokenOption")
+		return nil, newArgTypeError(args, 1, "TokenOption")
 	}
 
 	list = append(list, toAppend)
@@ -858,7 +858,7 @@ func sdtsFnStringListStart(_ trans.SetterInfo, args []interface{}) (interface{},
 func sdtsFnStringListListStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	toAppend, ok := args[0].([]string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[]string")
+		return nil, newArgTypeError(args, 0, "[]string")
 	}
 
 	return [][]string{toAppend}, nil
@@ -867,12 +867,12 @@ func sdtsFnStringListListStart(_ trans.SetterInfo, args []interface{}) (interfac
 func sdtsFnStringListListAppend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([][]string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "[][]string")
+		return nil, newArgTypeError(args, 0, "[][]string")
 	}
 
 	toAppend, ok := args[1].([]string)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "[]string")
+		return nil, newArgTypeError(args, 1, "[]string")
 	}
 
 	list = append(list, toAppend)
@@ -892,12 +892,12 @@ func sdtsFnMakeRule(info trans.SetterInfo, args []interface{}) (interface{}, err
 
 	nt, ok := ntInterface.(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
+		return nil, newArgTypeError(args, 0, "string")
 	}
 
 	productions, ok := args[1].([][]string)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "[][]string")
+		return nil, newArgTypeError(args, 1, "[][]string")
 	}
 
 	gr := grammar.Rule{NonTerminal: nt, Productions: []grammar.Production{}}
@@ -917,12 +917,12 @@ func sdtsFnMakeRule(info trans.SetterInfo, args []interface{}) (interface{}, err
 func sdtsFnMakeTokenEntry(info trans.SetterInfo, args []interface{}) (interface{}, error) {
 	pattern, ok := args[0].(string)
 	if !ok {
-		return nil, NewArgTypeError(args, 0, "string")
+		return nil, newArgTypeError(args, 0, "string")
 	}
 
 	tokenOpts, ok := args[1].([]TokenOption)
 	if !ok {
-		return nil, NewArgTypeError(args, 1, "[]TokenOption")
+		return nil, newArgTypeError(args, 1, "[]TokenOption")
 	}
 
 	t := TokenEntry{Pattern: pattern, Src: info.FirstToken}

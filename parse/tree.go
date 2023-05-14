@@ -231,11 +231,11 @@ func ParseTreeFromDiagram(s string) (*Tree, error) {
 	return pt, nil
 }
 
-// PTLeaf is a convenience function for creating a new ParseTree that
+// Leaf is a convenience function for creating a new ParseTree that
 // represents a terminal symbol. The Source token may or may not be set as
 // desired. Note that t's type being ...Token is simply to make it optional;
 // only the first such provided t is examined.
-func PTLeaf(term string, t ...lex.Token) *Tree {
+func Leaf(term string, t ...lex.Token) *Tree {
 	pt := &Tree{Terminal: true, Value: term}
 	if len(t) > 0 {
 		pt.Source = t[0]
@@ -243,9 +243,9 @@ func PTLeaf(term string, t ...lex.Token) *Tree {
 	return pt
 }
 
-// PTNode is a convenience function for creating a new ParseTree that
+// Node is a convenience function for creating a new ParseTree that
 // represents a non-terminal symbol with minimal text.
-func PTNode(nt string, children ...*Tree) *Tree {
+func Node(nt string, children ...*Tree) *Tree {
 	pt := &Tree{
 		Terminal: false,
 		Value:    nt,
