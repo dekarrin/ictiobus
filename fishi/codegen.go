@@ -47,33 +47,33 @@ const (
 
 // Names of each file that is generated.
 const (
-	GeneratedTokensFilename   = "tokens.ict.go"
-	GeneratedLexerFilename    = "lexer.ict.go"
-	GeneratedParserFilename   = "parser.ict.go"
-	GeneratedSDTSFilename     = "sdts.ict.go"
-	GeneratedFrontendFilename = "frontend.ict.go"
-	GeneratedMainFilename     = "main.ict.go"
+	generatedTokensFilename   = "tokens.ict.go"
+	generatedLexerFilename    = "lexer.ict.go"
+	generatedParserFilename   = "parser.ict.go"
+	generatedSDTSFilename     = "sdts.ict.go"
+	generatedFrontendFilename = "frontend.ict.go"
+	generatedMainFilename     = "main.ict.go"
 )
 
 // Default template strings for each component of the generated compiler.
 var (
 	//go:embed templates/tokens.go.tmpl
-	TemplateTokens string
+	templateTokens string
 
 	//go:embed templates/lexer.go.tmpl
-	TemplateLexer string
+	templateLexer string
 
 	//go:embed templates/parser.go.tmpl
-	TemplateParser string
+	templateParser string
 
 	//go:embed templates/sdts.go.tmpl
-	TemplateSDTS string
+	templateSDTS string
 
 	//go:embed templates/frontend.go.tmpl
-	TemplateFrontend string
+	templateFrontend string
 
 	//go:embed templates/main.go.tmpl
-	TemplateMainFile string
+	templateMainFile string
 )
 
 var (
@@ -93,12 +93,12 @@ var (
 	}
 
 	defaultTemplates = map[string]string{
-		ComponentTokens:   TemplateTokens,
-		ComponentLexer:    TemplateLexer,
-		ComponentParser:   TemplateParser,
-		ComponentSDTS:     TemplateSDTS,
-		ComponentFrontend: TemplateFrontend,
-		ComponentMainFile: TemplateMainFile,
+		ComponentTokens:   templateTokens,
+		ComponentLexer:    templateLexer,
+		ComponentParser:   templateParser,
+		ComponentSDTS:     templateSDTS,
+		ComponentFrontend: templateFrontend,
+		ComponentMainFile: templateMainFile,
 	}
 )
 
@@ -356,7 +356,7 @@ func GenerateBinaryMainGo(spec Spec, md SpecMetadata, params MainBinaryParams) (
 	}
 	fnMap := createFuncMap()
 	renderFiles := map[string]codegenTemplate{
-		ComponentMainFile: {nil, GeneratedMainFilename},
+		ComponentMainFile: {nil, generatedMainFilename},
 	}
 
 	// initialize templates
@@ -466,11 +466,11 @@ func GenerateFrontendGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, pkgI
 	fnMap := createFuncMap()
 
 	renderFiles := map[string]codegenTemplate{
-		ComponentTokens:   {nil, filepath.Join(pkgName+"token", GeneratedTokensFilename)},
-		ComponentLexer:    {nil, GeneratedLexerFilename},
-		ComponentParser:   {nil, GeneratedParserFilename},
-		ComponentSDTS:     {nil, GeneratedSDTSFilename},
-		ComponentFrontend: {nil, GeneratedFrontendFilename},
+		ComponentTokens:   {nil, filepath.Join(pkgName+"token", generatedTokensFilename)},
+		ComponentLexer:    {nil, generatedLexerFilename},
+		ComponentParser:   {nil, generatedParserFilename},
+		ComponentSDTS:     {nil, generatedSDTSFilename},
+		ComponentFrontend: {nil, generatedFrontendFilename},
 	}
 
 	// initialize templates
