@@ -357,6 +357,12 @@ the diagnostics binary, including how to make it perform preprocessing on input
 before executing it or how to manually run SDTS validation, see the appropriate
 section in the [ictcc manual](docs/ictcc.md).
 
+### Using the Generated Frontend
+
+(WIP forgot to mention the calling conventions here, outline: 1 Analyze func, 2
+changes to func caused by --ir, 3 getting the hooks table. Give a sample 'all in
+one' solution)
+
 ## Development
 If you're developing on ictiobus, you must have at least Go 1.19 in order to
 support generics. Ictiobus relies somewhat heavily on their existence.
