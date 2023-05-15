@@ -193,8 +193,8 @@ func hookLookupValue(_ trans.SetterInfo, args []interface{}) (interface{}, error
     varName, _ := args[0].(string)
 
     // in a real program, we might use a lookup table to find real value of the
-    // variable as this function is called. For now, we'll just return the
-    // length of the variable name.
+    // variable, as this function name implies. For now, to keep things simple
+    // we'll just use the length of the variable name as its value.
     return len(varName), nil
 }
 ```
@@ -355,16 +355,17 @@ $ ./nil -C '(8 + 2) * 6'   # test parentheses grouping
 
 The diagnostics binary is a powerful tool for testing. For more information on
 the diagnostics binary, including how to make it perform preprocessing on input
-before executing it or manually run SDTS validation, see the appropriate section
-in the [ictcc manual](docs/ictcc.md).
+before executing it or how to manually run SDTS validation, see the appropriate
+section in the [ictcc manual](docs/ictcc.md).
 
 ## Development
 If you're developing on ictiobus, you must have at least Go 1.19 in order to
 support generics. Ictiobus relies somewhat heavily on their existence.
 
-One of the most important and frequently done tasks is to create a new version
-of the ictcc command, the primary entrypoint into frontend generation. This can
-be done by calling `scripts/build.sh` from bash or a compatible shell:
+### Building
+
+To create a new version of the ictcc command, the primary entrypoint into
+frontend generation, call `scripts/build.sh` from bash or a compatible shell:
 
 ```bash
 $ scripts/build.sh
