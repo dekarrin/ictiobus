@@ -12,19 +12,18 @@ Ullman (otherwise known as the "Purple Dragon Book"). It is first and foremost
 an experimental learning system and secondarily the parser generator used as the
 parser for a scripting language in the tunaquest text adventure engine.
 
-The name `ictiobus` comes from the latin name for the buffalo fish. The buffalo
+The name `ictiobus` comes from the Latin name for the buffalo fish. The buffalo
 (as in the non-fish kind) is related to the bison, and `bison` is a popular
 parser-generator. That, combined with the fact that the name `ictiobus` doesn't
 seem likely to be confused with other tools, is why the name was chosen.
 
 ## Using Ictiobus
 
-Ictiobus is used to develop parsers and other tools for languages. This allows
-new languages to be created and programs written in Go to easily generate a
-parser for that language, enabling the creation of new scripting languages. In
-theory its output could be plugged into a modern compiler middle end or back
-end, but this is not the intent and its really mostly for designing your own
-quick scripting languages.
+Ictiobus is used to generate parsers and other tools for languages. This allows
+new languages to be created for use within programs written in Go; it lets you
+create new scripting languages! In theory, its output could be plugged into a
+modern compiler middle end or back end, but this is not the intent; its main
+purposes is to help you design and use your own scripting languages.
 
 ### Overview: Creating Scripting Languages
 
@@ -43,8 +42,8 @@ frontend for the language it describes. It outputs Go code with the token
 definitions, generated lexer, generated parser, and generated syntax-directed
 translation scheme built from the spec. The package it outputs will include a
 `Frontend()` function which can be called by outside code to get a Frontend;
-from there, `Analyze(io.Reader)` can be called on readers containg the scripting
-language to parse them into the intermediate representation.
+from there, `Analyze(io.Reader)` can be called on readers containingg the
+scripting language to parse them into the intermediate representation.
 
 For more information on using `ictcc`, invoke it with `-h` to see the help,
 check the Go docs page for the ictcc command, or see the
@@ -73,7 +72,7 @@ using it to define specs, see the [FISHI manual](docs/fishi-usage.md).
 A FISHI spec is defined in a markdown file with codeblocks containing FISHI
 marked with the label "fishi". These are the only parts of the document that
 will be read by the parser generator tool, `ictcc`. Within these blocks, you'll
-need at least one each of the three parts of a FISHI spec:
+need at least one of each of the three parts of a FISHI spec:
 
 * A `%%tokens` block, which gives definitions of the tokens in your language and
 defines the text patterns that the lexer should use to find them in source text.
@@ -202,7 +201,7 @@ func hookLookupValue(_ trans.SetterInfo, args []interface{}) (interface{}, error
 Note that a spec is not necessarily required to have Go implementations
 associated with the hook functions before `ictcc` can be run on it at all. Some
 modes of operation only require looking at the FISHI spec, and some don't even
-require that an `%%actions` section exist. But Go hook impelmentations are
+require that an `%%actions` section exist. But Go hook implementations are
 required to use automatic SDTS validation when generating a new compiler
 frontend, an important step that can greatly reduce testing time. Additionally,
 the Go hook implementations are required at run-time to be provided by callers
@@ -212,9 +211,9 @@ who wish to obtain a Frontend, even if they are not provided when calling
 ### Running `ictcc`
 The `ictcc` command takes FISHI spec files and performs analysis on them to
 ultimately produce a complete frontend for the language in the spec. The files
-will be scanned for code fences with a langauge tag of `fishi`. FISHI is the
-Frontend Instruction Specification for Hosting in Ictiobus and is the primary
-way that languages are specified to build compilers for.
+will be scanned for code fences with a language tag of `fishi`. FISHI is the
+Frontend Instruction Specification for Hosting in Ictiobus and is how languages
+to build compilers for is are specified.
 
 These files are read in and then a compiler frontend is produced. With no other
 options, ictcc will read in the spec file(s), attempt to create the most
@@ -255,7 +254,7 @@ above section on creating a FISHI spec for an example of one), it is recommended
 you provide it to ictcc so the validation process can execute.
 
 You will need to provide two flags to do this. The `--ir` flag specifies the
-type that the Frontend will return from parsing the input; SDTS validatation
+type that the Frontend will return from parsing the input; SDTS validation
 requires knowing the type in order to test the value returned from the SDTS.
 
 But `--ir` by itself isn't quite enough for validation to run; it also needs the
@@ -266,7 +265,7 @@ this by necessity; it cannot evaluate the translation scheme on a parse tree
 without knowing which functions to call.
 
 For instance, for the above NeatLang spec, we could give SDTS hook
-implemenations in a Go package called `neatlanghooks` in the current directory.
+implementations in a Go package called `neatlanghooks` in the current directory.
 The neatlanghooks package would define functions needed and provide bindings of
 hook implementations to names in an exported variable, by default called
 `HooksTable`. When calling ictcc, we specify the path to `neatlanghooks` and
@@ -308,7 +307,7 @@ more detailed explanation of the two flags.
 The diagnostics binary is created by specifying `--diag` (or just `-d`) and
 giving a path for the new binary. For example, if we wanted to create a
 diagnostics binary called `nli` (for NeatLang Interpreter, glub) for the
-NeatLang langauge used as an example in this doc, we would do the following:
+NeatLang language used as an example in this doc, we would do the following:
 
 ```shell
 $ ictcc neatlang-spec.md --ir int --hooks ./neatlanghooks --diag nli -n
