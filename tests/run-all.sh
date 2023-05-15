@@ -39,6 +39,8 @@ do
     then
       echo "Output does not match expected: FAIL" >&2
       test_failed=1
+    else
+      echo "PASS"
     fi
   fi
 

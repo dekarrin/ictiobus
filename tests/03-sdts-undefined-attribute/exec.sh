@@ -7,7 +7,7 @@ echo "[1/1] Building diag binary should fail during SDTS validation:"
 	--ir 'int' \
 	-l SimpleMath -v 1.0.0 \
 	-d "$script_path/testdiag" \
-    --hooks "$script_path/.hooks" \
+	--hooks "$script_path/.hooks" \
 	--dev \
 	-S all \
 	-nq \
