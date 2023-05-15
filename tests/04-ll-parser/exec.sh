@@ -6,11 +6,12 @@ echo "[PRE] Build with ictcc:"
 ./ictcc --ll \
 	-l SimpleMath -v 1.0.0 \
 	-d "$script_path/testdiag" \
-    --hooks "$script_path/.hooks" \
+	--hooks "$script_path/.hooks" \
 	--ir 'int' \
 	--dev \
 	-nq \
 	"$script_path/simplemath-ll.md" || { echo "FAIL" >&2 ; exit 1 ; }
+
 echo "(done)"
 
 echo "[1/4] Evaluate 2+3:"

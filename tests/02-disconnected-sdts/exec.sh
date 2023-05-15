@@ -7,7 +7,7 @@ echo "[PRE] Build diag binary:"
 	--ir 'int' \
 	-l SimpleMath -v 1.0.0 \
 	-d "$script_path/testdiag" \
-    --hooks "$script_path/.hooks" \
+	--hooks "$script_path/.hooks" \
 	--dev \
 	-S all \
 	-nq \
