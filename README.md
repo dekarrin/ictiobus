@@ -82,9 +82,9 @@ will use to generate a parse tree from input tokens.
 translation to take to convert a parse tree into a final value that you will
 receive when calling `Analyze(io.Reader)` on input written in the new language.
 
-Your spec might look like the following example.
+Your spec might look like the following example:
 
-neatlang-spec.md:
+`neatlang-spec.md`
 
     # NeatLang Specification
 
@@ -128,6 +128,11 @@ neatlang-spec.md:
     -> int       : {^}.value = int({0}.$text)
     ```
 
+The first action definition for the starting symbol in the `%%actions` section 
+of the grammar is important; the name of the attribute used there (`.value` in
+`%symbol {S}` in the above example) is the one that the final value parsed from
+the input code is taken from (the "intermediate representation", or IR).
+
 For the most part, FISHI is self-contained and builds up definitions used in one
 section from FISHI code in a prior section; `%%tokens` sections define token
 classes to be used as terminal symbols in a grammar, `%%grammar` sections define
@@ -144,9 +149,9 @@ names used in the FISHI spec to their implementation functions. Later, when
 `ictcc` is called, it will be informed of this code's location using CLI
 arguments.
 
-The hook functions for the above spec might look something like the following.
+The hook functions for the above spec might look something like the following:
 
-neatlanghooks/neatlanghooks.go:
+`neatlanghooks/neatlanghooks.go`
 
 ```go
 package neatlanghooks
@@ -356,6 +361,122 @@ The diagnostics binary is a powerful tool for testing. For more information on
 the diagnostics binary, including how to make it perform preprocessing on input
 before executing it or how to manually run SDTS validation, see the appropriate
 section in the [ictcc manual](docs/ictcc.md).
+
+### Using the Generated Frontend
+
+Once you've generated a new Go package containing the frontend with `ictcc`, you
+can access it from external Go code.
+
+The generated package contains a `Frontend()` function that will return the
+ready-to-use frontend. The exact form of this function will vary a bit; by
+default, this function will be parameterized with a generic type argument that
+gives the type of the intermediate value returned by the frontend. Users of the
+frontend must provide this parameter when they call `Frontend()` and it must
+match what the SDTS is actually generating.
+
+The exception to this is if the frontend is generated with knowledge of what
+that type is by giving it as the `--ir` argument to `ictcc`. This changes the
+signature of `Frontend()` from
+`Frontend[E](trans.HooksTable, *FrontendOptions) ictiobus.Frontend[E]` to
+`Frontend(trans.HooksTable, *FrontendOptions) ictiobus.Frontend[<type specified by --ir>]`
+so that callers need not provide the IR type.
+
+To obtain the frontend from calling code, you will need to provide a hooks table
+that maps SDTS hook names to their implementations (For an example of one, see
+the `neatlanghooks/neatlanghooks.go` file in the Creating The FISHI Spec section
+above). Additionally, a `FrontendOptions` may be provided to further customize
+the returned Frontend, but it may also be set to `nil` to use default options.
+
+Once a Frontend is obtained, `Analyze()` can be called on it, which accepts an
+`io.Reader` and parses any code inside it to the intermediate value.
+
+To use the generated frontend for the above example of 'NeatLang' which was
+generated in the package fe, assuming that the local codebase we are working in
+is a Go module called 'github.com/example/neato', we might do the following
+in our main.go file:
+
+`main.go`
+
+```go
+package main
+
+import (
+    "os"
+    "fmt"
+
+    "github.com/dekarrin/ictiobus/syntaxerr"
+
+    "github.com/example/neato/neatlanghooks"
+    "github.com/example/neato/fe"
+)
+
+func main() {
+    // The hooks table is defined in our neatlanghooks package, so we can get
+    // that now:
+    hooksTable := neatlanghooks.HooksTable
+
+    // we don't really care about setting debug options right now, so a nil
+    // frontend options object is fine.
+    var feOpts *fe.FrontendOptions
+
+    // we know the Frontend will produce an int because we have set up the hook
+    // function which creates the value to be assigned to the attribute called
+    // "value" to return an int. Specifically, according to our FISHI spec it is
+    // always going to be assigned using either the 'add' hook or 'identity'
+    // hook, i.e. hookAdd or hookIdentity in neatlanghooks, both of which we
+    // have written to ensure that they will always return an int.
+    scriptEngine := fe.Frontend[int](hooksTable, feOpts)
+
+    // alternatively, if we had used --ir int in ictcc while generating this,
+    // then Frontend() will not be parameterized:
+    // scriptEngine := fe.Frontend(hooksTable, feOpts)
+
+    // Great! Now that we have the input, we can use it to analyze code in a
+    // reader:
+
+    f, err := os.Open("some-neatlang-expressions.txt")
+    if err != nil {
+        panic(err)
+    }
+    defer f.Close()
+
+    // 2nd return value is the parse tree, which we don't really care about
+    // right here.
+    value, _, err := scriptEngine.Analyze(f)
+    if err != nil {
+        if syntaxErr, ok := err.(*syntaxerr.Error); ok {
+            // if it's an ictiobus syntax error, display the detailed message
+            // to the user:
+            fmt.Fprintf(os.Stderr, "%s\n", syntaxErr.FullMessage())
+            return
+        } else {
+            panic(err)
+        }
+    }
+
+    fmt.Printf("Result from file: %v\n", value)
+
+    // or we can use AnalyzeString if we just want to run a string of source code:
+    value, _, err = scriptEngine.AnalyzeString("8 + 24")
+    if err != nil {
+        if syntaxErr, ok := err.(*syntaxerr.Error); ok {
+            // if it's an ictiobus syntax error, display the detailed message
+            // to the user:
+            fmt.Fprintf(os.Stderr, syntaxErr.FullMessage())
+            return
+        } else {
+            panic(err)
+        }
+    }
+
+    fmt.Printf("Result from string: %v\n", value)
+}
+```
+
+And that's pretty much it! This was just a simple example that uses the SDTS
+itself to both translate and immediately evaluate expressions; more advanced
+scripting languages might instead return an abstract syntax tree which is then
+further processed to do things.
 
 ## Development
 If you're developing on ictiobus, you must have at least Go 1.19 in order to
