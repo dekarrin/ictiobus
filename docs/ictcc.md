@@ -1,4 +1,4 @@
-# `ictcc` Manual
+# ictcc Manual
 `ictcc` is the "Ictiobus Compiler-Compiler"; it is a command line tool that
 reads a specification for a language and produces Go code for a compiler
 frontend that can accept input written in that language.
@@ -214,21 +214,126 @@ unifies all components into a single type, plugs in the interface to the
 implementations of the translation scheme's hook functions, sets any options
 requested, and returns the ready-to-use Frontend object.
 
-Tokens package summary.
+Inside of the frontend package, there will be the tokens package. This contains
+all of the token classes for the language as well as a single `ByID()` function
+which will return the token class that was created for the given text token
+class ID. The ID will match the name of token class given in the FISHI spec the
+frontend was generated from. The tokens package is separate from the main one
+for historical reasons and may eventually be remerged back into the
+frontend package.
 
-Frontend function signature
+The frontend package's `Frontend()` function has a signature that varies
+depending on how ictcc was invoked. By default, since the returned type of
+Frontend() is type-parameterized with respect to the type of the IR it returns,
+the function will itself be type-parameterized and require the caller to know
+the IR type and pass it in with the call to Frontend. On the other hand, if this
+type is passed to ictcc with the --ir parameter, then it will have enough
+information to fill the parameter in itself, and the generated `Frontend()` will
+not require the caller to provide it at runtime.
 
-Function hooks
+Regardless of whether it was generated with type parameterization, `Frontend()`
+requires two arguments. The first is a table that maps the names of hooks used
+in the syntax-directed translation to their implementations. Here is an example
+of the definition of such a table, referring to unexported functions in the same
+package it is in:
 
-Frontend options
+```go
+var (
+	HooksTable = trans.HookMap{
+		"int":          hookInt,
+		"identity":     hookIdentity,
+		"add":          hookAdd,
+		"mult":         hookMult,
+		"lookup_value": hookLookupValue,
+	}
+)
 
-Using the Frontend
+// an example function to show the signature of hook implementations
+func hookInt(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    str, _ := args[0].(string)
+    return strconv.Atoi(str)
+}
 
-- note on Langauge and Version being basically set by generation -l and -v
+// ... more hook functions would be below or elsewhere in the package
+```
 
-Catching Syntax Errors
+The second argument to `Frontend()` is a `FrontendOptions` pointer. This is an
+options object that contains all options to control the behavior of the
+frontend; this includes enabling debugging information, lazy lexer selection,
+and any other features that can be tweaked. It can be set to `nil` to use the
+default options (no lexer debug output, no parser debug output, lazy lexer
+enabled).
 
-WIP
+Once `Frontend()` is successfully called, it will return a
+`github.com/dekarrin/ictiobus.Frontend`. This `Frontend` struct is ready for
+immediate use with no further configuration; all of that was handled by the call
+to `Frontend()`. It can immediately be used to analyze input and parse it into
+an IR value by calling `Frontend.Analyze(io.Reader)`. This will return three
+items: the IR value, the parse tree from the parsing stage, and an error. Note
+that even if the error is non-nil, the parse tree may itself still be valid, if
+for instance the parse succeeded but the syntax-directed translation had an
+error. The parse tree will be non-nil whenever it is valid.
+
+The returned `Frontend` has a few properties that refer to the language it was
+built for. `Frontend.Language` is set from the value of -l/--lang-name passed in
+to ictcc at generation time. `Frontend.Version` is similarly set from the value
+of -v/--lang-ver.
+
+Both `Frontend.Analyze` and `Frontend.AnalyzeString` will return in-depth syntax
+errors with detailed information if it encounters an issue while lexing,
+parsing, or translating the input source text. The returned error in that case
+will be of type `*github.com/dekarrin/ictiobus/syntaxerr.Error`, and it can be
+used with a checked cast.
+
+The following is a complete example of a main function which obtains a frontend
+from the generated package and then uses it to try and parse input:
+
+```go
+func main() {
+
+    // hookspkg is a user-defined package where a hooks table is defined.
+    hooksTable := hookspkg.HooksTable
+
+    // fe is the name of the ictcc-generated package
+    var feOpts *fe.FrontendOptions
+
+    // Obtain a frontend that was set up to parse and interpret input to an
+    // int IR value.
+    scriptEngine := fe.Frontend[int](hooksTable, feOpts)
+
+    // alternatively, if we had used --ir int in ictcc while generating this,
+    // then Frontend() will not be parameterized:
+    // scriptEngine := fe.Frontend(hooksTable, feOpts)
+
+    if len(os.Args) < 2 {
+        fmt.Fprintf(os.Stderr, "ERROR: need to provide a file to execute\n")
+        return
+    }
+
+    f, err := os.Open(os.Args[1])
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+        return
+    }
+    defer f.Close()
+
+    // 2nd return value is the parse tree, which we don't really care about
+    // right here.
+    value, _, err := scriptEngine.Analyze(f)
+    if err != nil {
+        if syntaxErr, ok := err.(*syntaxerr.Error); ok {
+            // if it's an ictiobus syntax error, display the detailed message
+            // to the user:
+            fmt.Fprintf(os.Stderr, "ERROR: %s\n", syntaxErr.FullMessage())
+            return
+        } else {
+            panic(err)
+        }
+    }
+
+    fmt.Printf("Result from file: %v\n", value)
+}
+```
 
 ## Parser Algorithm Selection
 Ictiobus is capable of producing several different types of parsers, each with a
