@@ -111,13 +111,52 @@ supported by the shell:
 
 ## Output Control
 
-Note on suppression
+Ictiobus outputs several messages as it processes specs, giving its progress and
+noting warnings that occur during generation. This output can be controlled
+using CLI flags.
 
-Note on warning promotion
+Quiet mode is enabled by passing the -q/--quiet to ictcc. This will disable all
+progress and supplementary output messages. This has no effect on error message
+output or warning message output; additionally, output that is specifically
+requested via CLI args (such as a spec listing requested with -s) is output
+regardless of whether quiet mode is enabled.
 
-Note on quiet mode.
+Warnings encountered during frontend generation are printed to stderr by
+default. There are several categories of warnings, and each may be suppressed or
+promoted to a fatal error. To suppress a warning, use the -S/--suppress flag and
+give the type of warning to suppress. To promote a warning to a fatal error, use
+the -F/--fatal flag and give the type of warning to promote. Multiple -S and -F
+flags may be given in a single invocation of ictcc. If both -S and -F are given
+for the same warning, -F takes precedence.
 
-Note on prefix switch.
+Besides a specific warning type, "all" may be given as the argument to a -F or
+-S to specify that all warnings regardless of their type should be treated as
+fatal or suppressed. The following warning types are available to be
+suppressed/fatalized:
+
+* `dupe_human`    - issued when there are multiple different human names defined
+                    for the same token in a spec.
+* `missing_human` - issued when there is no human name defined for some token in
+                    a spec.
+* `priority`      - issued when a spec marks a lexer action explicitly as having
+                    priority 0, the default priority, therefore having no
+                    effect.
+* `unused`        - issued when a token defined in a spec is never used in any
+                    rule of the context free grammar as a terminal symbol.
+* `ambig`         - issued when a grammar results in a parser with an ambiguous
+                    parsing decision (LR conflict) for some rule of the grammar.
+* `validation`    - issued when a warnable condition occurs during frontend
+                    validation.
+* `import`        - issued when the correct import for generated code cannot be
+                    inferred due to outputing the Go package into a directory
+                    not within a Go module, GOPATH, or GOROOT.
+* `val_args`      - issued when validation cannot be performed due to a missing
+                    --hook or --ir flag.
+
+The prefix for all generated code can be set using the --prefix flag. Note that
+this may also change where generated binaries are placed, so it should be used
+with care. In general, unless doing work on ictcc itself, it makes more sense to
+directly control the output destination with the --dest flag.
 
 ## Generated Code
 
@@ -189,6 +228,7 @@ Using the Frontend
 
 Catching Syntax Errors
 
+WIP
 
 ## Parser Algorithm Selection
 Ictiobus is capable of producing several different types of parsers, each with a
@@ -272,12 +312,9 @@ to be resolved by hand.
 
 Ictcc uses sim to verify generated. note go is invoked, and requires use of IR
 value and hooks value. Also mention --hooks-table
-
 Description of process of derivation. Include limitation wrt to the tree
 over-generation
-
 Description of using derived tree on grammar.
-
 Description of using flags to control behavior, and in-depth... debug section
 will refer to here.
 
@@ -289,38 +326,34 @@ will refer to here.
 -p/-preproc
 -s/--spec output the spec
 
+WIP
 
 ### Diagnostic Binary
 
 Note go is invoked, and requires ir and hooks. Also mention --hooks-table.
-
 Basic use, for input reading. -C more useful here.
-
 Debugging options for showing the lexer and parser as they go.
-
 Debugging options for seeing parse tree.
-
 Enabling pre-format of input code.
-
 Turning on simulation mode, and using it. Refer to lang sim section for more in
 depth info.
 
+WIP
 ## Development on Ictcc
 
 Note flags: --debug-lexer, --debug-parser.
-
 -a/--ast output spec ast
 -t/--tree output spec parse tree
-
 --preserve-bin-source.
-
 --debug-templates
-
 --tmpl-* (main, parser, lexer, sdts, tokens, frontend)
 
+WIP
 ## Command Reference
 ictcc produces compiler frontends written in Go for languages specified with the
 FISHI specification langauge.
+
+WIP
 
 Usage:
 
