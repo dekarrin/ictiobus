@@ -413,7 +413,16 @@ the case, it's possible that selecting a different LR parser may resolve the
 issue. Otherwise, the ambiguity in the grammar which caused the issue will need
 to be resolved by hand.
 
-## Language Simulation
+## Debugging Specs
+
+-T/--parse-table
+-D/--dfa
+-p/-preproc
+-s/--spec output the spec
+
+WIP
+
+### Language Simulation
 
 Ictcc uses sim to verify generated. note go is invoked, and requires use of IR
 value and hooks value. Also mention --hooks-table
@@ -425,15 +434,6 @@ will refer to here.
 
 WIP
 
-
-## Debugging Specs
-
--T/--parse-table
--D/--dfa
--p/-preproc
--s/--spec output the spec
-
-WIP
 
 ### Diagnostic Binary
 
