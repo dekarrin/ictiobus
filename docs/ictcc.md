@@ -24,6 +24,10 @@ original source code. Whatever is decided on to be the IR as determined from the
 FISHI spec will be used as the return value of a `Frontend`'s `Analyze`
 function.
 
+## Requirements
+
+WIP n on needing go for diagnostic and sim but not strictly required.
+
 ## Reading Input
 All input to ictcc is provided as files formatted as "FISHI markdown files"; the
 specifics of this format are laid out in the [FISHI manual](fishi-usage.md), but
@@ -86,16 +90,202 @@ FISHI markdown in the -C will be executed:
 ./ictcc -C "$(printf '```fishi\n%%%%tokens\n\d+  %%token int\n%%%%grammar\n{S} = {S} int | int\n```\n')"
 ```
 
-Users of ictcc are not advised to attempt this, but the -C flag can be useful
-for reading in a file using subshell redirection, if desired:
+The -C flag can be useful for reading in a file using subshell redirection, if
+supported by the shell:
 
 ```
 ./ictcc -C "$(<some-spec.md)"
 ```
 
-## Compiler Algorithm Selection
+## Output Control
 
-## Using The Generated Frontend
+Note on suppression
+
+Note on warning promotion
+
+Note on quiet mode.
+
+Note on prefix switch.
+
+## Generated Code
+
+Unless the -n/--no-gen flag is specified, invoking ictcc will produce a compiler
+frontend as its main artifact. This consists of several Go source code files
+that are placed in one or more Go packages rooted in a single directory. This
+package provides several functions to give access to the entire frontend, or to
+the components of it. Most users of ictiobus will simply call the `Frontend()`
+function, which combines all the components into a single frontend type.
+
+The directory that the generated files are placed in can
+be set with --dest; by default it will be a directory called 'fe' in the current
+working directory. The name of the Go packages can also be altered with the
+--pkg flag; by default, the primary frontend package name will be "fe". There
+will also be a sub-package located inside that contains all of the generated
+token classes. This package will be named the same as the frontend package, but
+suffixed with "token" (so "fetoken" by default).
+
+The default directory tree of output files will look something like the
+following:
+
+    (directory ictcc was invoked from)
+    |-- fe
+    |   |-- fetoken
+    |   |   \-- tokens.ict.go
+    |   |
+    |   |-- frontend.ict.go
+    |   |-- lexer.ict.go
+    |   |-- parser.cff
+    |   |-- parser.ict.go
+    |   \-- sdts.ict.go
+    |
+    \...(any other pre-existing files/dirs)
+
+All generated Go source file names end in .ict.go, and should be relatively
+human-readable. Files that end in .cff are binary data files in "compiled FISHI
+format" - these hold ia component of the frontend that is pre-compiled and
+encoded in an internal binary format called 'REZI' and are not human-readable.
+
+The output Go pacakge contains several functions that return components of the
+generated frontend:
+
+* `fe.Lexer(bool)` returns the generated lexer. If true is given, the lexer will
+perform *lazy* lexing, that is, when a token is requested of it, it will only
+consume enough input to return the next token, continuing only once another
+token is requested.
+* `fe.Parser()` returns the generated parser.
+* `fe.Grammar()` returns the context-free grammar that the frontend was
+generated for.
+* `fe.SDTS()` returns the generated syntax-directed translation scheme.
+* `fe.Frontend(trans.HookMap, *FrontendOptions)` (or
+`fe.Frontend[E](trans.HookMap, *FrontendOptions)`, depending on how it was
+generated), returns the complete frontend immediately ready to be used. It
+unifies all components into a single type, plugs in the interface to the
+implementations of the translation scheme's hook functions, sets any options
+requested, and returns the ready-to-use Frontend object.
+
+Tokens package summary.
+
+Frontend function signature
+
+Function hooks
+
+Frontend options
+
+Using the Frontend
+
+- note on Langauge and Version being basically set by generation -l and -v
+
+Catching Syntax Errors
+
+
+## Parser Algorithm Selection
+Ictiobus is capable of producing several different types of parsers, each with a
+different algorithm for construction, parsing itself, or both. Each algorithm
+has its own restrictions for what types of grammars it can be used with as well
+as the size in memory of the parser itself. Additionally, some algorithms may
+result in a parser with different worst-case parsing performance than other
+algorithms, although at this time all algorithms supported by ictcc run in O(n).
+
+A parsing algorithm may be manually selected by users of ictcc by passing in the
+appropriate CLI flag. By default, if no parser algorithm is specified, ictcc
+will attempt to automatically select one; each will be tried in the order listed
+below, which is in general from most restrictive in which grammars they can
+accept to least, and from smallest footprint in memory to largest, until one is
+found that can parse the grammar in the spec.
+
+* LL(k), selected with --ll. The *L*eft-to-right, *L*eftmost derivation parser
+is a top-down parsing algorithm that is relatively restrictive in the grammars
+it is able to parse. It is known to result in small parsers that have a fairly
+fast construction time.
+* SLR(k), selected with --slr. Also known as the simple LR(k) parser. The
+*S*imple *L*eft-to-right, *R*ightmost derivation (in reverse) parser builds a
+DFA from sets of LR items of a grammar and uses that to determine actions to
+take when parsing. It is known to result in parsers that are often larger than
+LL parsers and are much slower to construct, but can accept many more languages
+than them.
+* LALR(k), selected with --lalr. The *L*ook-*A*head *L*eft-to-right, *R*ightmost
+derivation (in reverse) parser also builds a DFA from sets of LR items of a
+grammar, but it uses a more complex construction than SLR parsers. It accepts
+almost as many langauges as a CLR parser, and often has significantly less of a
+memory footprint due to a merging algorithm it applies during DFA construction.
+* CLR(k), selected with --clr. Also known as the canonical LR(k) parser. The
+*C*anonical *L*eft-to-right, *R*ightmost derivation (in reverse) parser uses the
+same algorithm as LALR to build the initial DFA, but does not do the merging
+afterwords that LALR does. As a result, the CLR parser can accept the most
+languages of all algorithms listed here, but takes up the most space in memory.
+
+Many parsing algorithms have a 'k' in their names; this stands for the number of
+lookahead tokens from input that it uses to decide how to parse it. At the time
+of this writing, ictcc can only produce parsers whose k = 1. For futureproofing
+purposes, it is gauranteed that if ictcc ever becomes capable of higher values
+of k, it will always select the lowest one required to build a parser for that
+algorithm.
+
+Automatic selection of the parsing algorithm may be slow; because of theoretical
+restrictions, the problem of whether a paraticular type of parser that accepts
+a particular grammar can be constructed can often only be answered by fully
+constructing the parser and then testing it for validity. This means that, for
+instance, if a grammar is parsable by a CLR parser, but not by an LL, SLR, or
+LALR parser, ictcc would first try to construct every other type of parser as it
+goes down the list before finally arriving at the CLR parser. Because of this,
+it may be desirable to allow automatic algorithm selection to run only when
+making changes to the grammar, and once ictcc finds the one that works, manually
+setting it for future executions.
+
+## Ambiguity Resolution
+Describe resolution process.
+
+Note on --no-ambig.
+
+## Language Simulation
+
+Ictcc uses sim to verify generated. note go is invoked, and requires use of IR
+value and hooks value. Also mention --hooks-table
+
+Description of process of derivation. Include limitation wrt to the tree
+over-generation
+
+Description of using derived tree on grammar.
+
+Description of using flags to control behavior, and in-depth... debug section
+will refer to here.
+
+
+## Debugging Specs
+
+-T/--parse-table
+-D/--dfa
+-p/-preproc
+-s/--spec output the spec
+
+
+### Diagnostic Binary
+
+Note go is invoked, and requires ir and hooks. Also mention --hooks-table.
+
+Basic use, for input reading. -C more useful here.
+
+Debugging options for showing the lexer and parser as they go.
+
+Debugging options for seeing parse tree.
+
+Enabling pre-format of input code.
+
+Turning on simulation mode, and using it. Refer to lang sim section for more in
+depth info.
+
+## Development on Ictcc
+
+Note flags: --debug-lexer, --debug-parser.
+
+-a/--ast output spec ast
+-t/--tree output spec parse tree
+
+--preserve-bin-source.
+
+--debug-templates
+
+--tmpl-* (main, parser, lexer, sdts, tokens, frontend)
 
 ## Command Reference
 ictcc produces compiler frontends written in Go for languages specified with the

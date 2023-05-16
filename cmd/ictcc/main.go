@@ -73,7 +73,7 @@ Flags:
 		Set the version of the language to generate a frontend for. Defaults to
 		"v0.0.0".
 
-	-p/--preproc
+	-P/--preproc
 		Show the output of running preprocessing on input files. This will show
 		the exact code that is going to be parsed by ictcc before such parsing
 		occurs.
@@ -336,7 +336,7 @@ var (
 	flagShowSpec   = pflag.BoolP("spec", "s", false, "Print the FISHI spec interpreted from the analyzed fishi")
 	flagLang       = pflag.StringP("lang", "l", "Unspecified", "The name of the languae being generated")
 	flagLangVer    = pflag.StringP("lang-ver", "v", "v0.0.0", "The version of the language to generate")
-	flagPreproc    = pflag.BoolP("preproc", "p", false, "Print the preprocessed FISHI code before compiling it")
+	flagPreproc    = pflag.BoolP("preproc", "P", false, "Print the preprocessed FISHI code before compiling it")
 	flagParseTable = pflag.BoolP("parse-table", "T", false, "Print the parse table used by the generated parser")
 	flagDFA        = pflag.BoolP("dfa", "D", false, "Print the complete DFA of the parser")
 

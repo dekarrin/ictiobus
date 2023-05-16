@@ -79,7 +79,7 @@ var (
 	flagSimFirstErr  	= pflag.Bool("sim-first-err", false, "Show only the first error found in SDTS validation of simulated trees")
 	flagSimSkipErrs		= pflag.Int("sim-skip-errs", 0, "Skip the first N errors found in SDTS validation of simulated trees")
 {{if .FormatCall -}}
-	flagPreproc         = pflag.Bool("preproc", false, "Print the input file(s) to stdout after reading their format and preprocessing them")
+	flagPreproc         = pflag.BoolP("preproc", "P", false, "Print the input file(s) to stdout after reading their format and preprocessing them")
 {{- end}}
 )
 
