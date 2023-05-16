@@ -26,7 +26,19 @@ function.
 
 ## Requirements
 
-WIP n on needing go for diagnostic and sim but not strictly required.
+Ictiobus does not have any additional requirements to generate Go source on any
+system it is built for. But for some features, it requires a local Go build
+environment to be available for use, and in particular the `go` command. Both
+the language simulation feature and diagnostics binary creation feature require
+this.
+
+This is needed due to Go's lack of support for dynamically loaded libraries; at
+this time, because Go cannot be instructed to load an external library wihtout
+it being available at the time it is built, the only way to run code that
+depends on dynamic external code (such as would be specified with the --hooks
+flag) is to copy all of the external code into a new project, and compiles that,
+which ictcc does automatically when simulating language input or generating a
+diagnostics binary.
 
 ## Reading Input
 All input to ictcc is provided as files formatted as "FISHI markdown files"; the
