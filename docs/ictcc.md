@@ -415,6 +415,22 @@ to be resolved by hand.
 
 ## Debugging Specs
 
+When creating a new programming language, a variety of issues can be
+encountered, such as inadvertantly creating ambiguous grammars, strange DFAs,
+and unepxected parsing actions, to name a few. To aid with the debugging of
+language specifications, ictiobus provides several tools.
+
+As part of the process of creating an LR parser, a deterministic finitie
+automaton is constructed. This DFA 
+
+LR parsers will sometimes report errors that have to do with DFA states and/or
+deciding which is the next state to move to. The DFA generated from a spec can
+be output by using the -D/--dfa flag for further examining. Output will include
+the name of the state, the LR items within the DFA, and a list of transitions to
+other states. While somewhat complicated to look over, sometimes it can be
+helpful to trace a parser's path through a DFA to see where things have gone
+wrong.
+
 -T/--parse-table
 -D/--dfa
 -p/-preproc
