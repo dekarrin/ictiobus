@@ -7,7 +7,7 @@ frontend that can accept input written in that language.
 In the general case, one or more files written in the [FISHI](fishi-usage.md)
 language are read into ictcc, their contents are concatenated together, and they
 are together interpreted as a single language specification. Once a
-specification is successfully read, further actions as specifed by CLI flags
+specification is successfully read, further actions as specified by CLI flags
 will be done; by default a lexer, parser, and translation scheme is generated
 for it, and output as part of a Go package which unifies them all and provides
 access to their functionality via a single `Frontend()` function. This function
@@ -19,10 +19,10 @@ Depending on the complexity of the language and how it is specified, the IR may
 itself be a final value with no further calculation needed; for example, a
 language that defines mathematical expressions could evaluate them on the fly
 during the translation phase and make the IR be the value of the entire
-expression. Some languages may instead prefer to make their IR be an abstract
-syntax tree or some other representation that maintains the structure of the
-original source code. Whatever is decided on to be the IR as determined from the
-FISHI spec will be used as the return value of a `Frontend`'s `Analyze`
+expression. Some languages may instead work better by making their IR an
+abstract syntax tree or some other representation that maintains the structure
+of the original source code. Whatever is decided on to be the IR as determined
+from the FISHI spec will be used as the return value of a `Frontend`'s `Analyze`
 function.
 
 ## Requirements
@@ -34,10 +34,10 @@ the language simulation feature and diagnostics binary creation feature require
 this.
 
 This is needed due to Go's lack of support for dynamically loaded libraries; at
-this time, because Go cannot be instructed to load an external library wihtout
+this time, because Go cannot be instructed to load an external library without
 it being available at the time it is built, the only way to run code that
 depends on dynamic external code (such as would be specified with the --hooks
-flag) is to copy all of the external code into a new project, and compiles that,
+flag) is to copy all of the external code into a new project and compile it,
 which ictcc does automatically when simulating language input or generating a
 diagnostics binary.
 
@@ -74,7 +74,7 @@ for the exit code of ictcc; it will reflect the success of the last file
 processed. That is, in the above example, if reading spec2.md were to fail due
 to there being a syntax error in spec2.md, and if reading spec3.md were to
 succeed, then ictcc would exit with code 0 after printing an error message for
-spec2.md. This is not desireable behavior and will likely be patched in the
+spec2.md. This is not desirable behavior and will likely be patched in the
 future; for now, if the exit code is relied on for reading multiple files, it is
 recommended to manually cat them into a single file just before processing.
 
@@ -86,7 +86,7 @@ cat spec.md | ictcc -
 
 If stdin and files are specified to be read from, reading stdin follows the same
 ordering rules as any other file; that is, any files given before it are read
-first, then stdin is read, then any file given after it are read.
+first, then stdin is read, then any files given after it are read.
 
 For example, in the following invocation, first spec1.md is read, then spec2.md,
 then stdin-spec.md via stdin, then spec4.md:
@@ -104,8 +104,8 @@ FISHI markdown in the -C will be executed:
 ./ictcc -C "$(printf '```fishi\n%%%%tokens\n\d+  %%token int\n%%%%grammar\n{S} = {S} int | int\n```\n')"
 ```
 
-The -C flag can be useful for reading in a file using subshell redirection, if
-supported by the shell:
+The -C flag can be useful for reading in a file using subshell redirection (if
+supported by the shell):
 
 ```
 ./ictcc -C "$(<some-spec.md)"
@@ -113,8 +113,8 @@ supported by the shell:
 
 ### Spec Restrictions
 
-There are some restrictions that may not be immediately apparent when using
-FISHI to define specs. These are listed in full here.
+Some restrictions may not be immediately apparent when using FISHI to define
+specs. These are listed in full here.
 
 #### S-Attributed SDTS Required
 
@@ -122,15 +122,15 @@ For syntax-directed translation schemes, at this time Ictiobus supports only
 S-attributed attribute grammars: only synthetic attributes are supported, not
 inherited attributes. That means that, in the `%%actions` section of a FISHI
 spec, attempting to assign the results of a hook to an attribute of any node
-besides the head symbol's node (`{^}.something`) is not supported. The inclusion
+beside the head symbol's node (`{^}.something`) is not supported. The inclusion
 of such an attribute will result in an error such as "ATTRIBUTE-BEING-ASSIGNED
 is an inherited attribute (not an attribute of {^})".
 
 To make this slightly confusing, there appears to be source code within Ictiobus
-which would support inherited attributes. This was originally planned for, and
-may eventually be re-added, but at this time it is not well-tested and may lead
-to extremely bizarre edge cases. To force ictcc to enable this as an
-experimental feature, pass --exp inherited-attributes to ictcc.
+that supports inherited attributes. This was originally planned for, and may
+eventually be re-added, but at this time it is not well-tested and may lead to
+extremely bizarre edge cases. To force ictcc to enable this as an experimental
+feature, pass --exp inherited-attributes to ictcc.
 
 ## Output Control
 
@@ -165,13 +165,13 @@ suppressed/fatalized:
                     priority 0, the default priority, therefore having no
                     effect.
 * `unused`        - issued when a token defined in a spec is never used in any
-                    rule of the context free grammar as a terminal symbol.
+                    rule of the context-free grammar as a terminal symbol.
 * `ambig`         - issued when a grammar results in a parser with an ambiguous
                     parsing decision (LR conflict) for some rule of the grammar.
 * `validation`    - issued when a warnable condition occurs during frontend
                     validation.
 * `import`        - issued when the correct import for generated code cannot be
-                    inferred due to outputing the Go package into a directory
+                    inferred due to outputting the Go package into a directory
                     not within a Go module, GOPATH, or GOROOT.
 * `val-args`      - issued when validation cannot be performed due to a missing
                     --hook or --ir flag.
@@ -182,19 +182,18 @@ with care. In general, unless doing work on ictcc itself, it makes more sense to
 directly control the output destination with the --dest flag.
 
 To disable source code generation entirely, use the -n/--no-gen flag. Note that
-this only applies to the source code generated for the purposes of outputting Go
-source code; it will not stop generation used for the diagnostics binary if
---diag is enabled, nor will it stop generation of the simulation binary if valid
-flags for it are provided (--ir, --hooks, --hooks-table) and --sim-off is not
-passed.
+this only applies to the Go source code generated as output from ictcc; it will
+not stop generation used for the diagnostics binary if --diag is enabled, nor
+will it stop generation of the simulation binary if valid flags for it are
+provided (--ir, --hooks, --hooks-table) and --sim-off is not passed to ictcc.
 
 ## Generated Code
 
 Unless the -n/--no-gen flag is specified, invoking ictcc will produce a compiler
 frontend as its main artifact. This consists of several Go source code files
 that are placed in one or more Go packages rooted in a single directory. This
-package provides several functions to give access to the entire frontend, or to
-the components of it. Most users of ictiobus will simply call the `Frontend()`
+package provides several functions to give access to the entire frontend and the
+components of it. Most users of ictiobus will simply call the `Frontend()`
 function, which combines all the components into a single frontend type.
 
 The directory that the generated files are placed in can
@@ -223,10 +222,10 @@ following:
 
 All generated Go source file names end in .ict.go, and should be relatively
 human-readable. Files that end in .cff are binary data files in "compiled FISHI
-format" - these hold ia component of the frontend that is pre-compiled and
+format" - these hold a component of the frontend that is pre-compiled and
 encoded in an internal binary format called 'REZI' and are not human-readable.
 
-The output Go pacakge contains several functions that return components of the
+The output Go package contains several functions that return components of the
 generated frontend:
 
 * `fe.Lexer(bool)` returns the generated lexer. If true is given, the lexer will
@@ -247,10 +246,10 @@ requested, and returns the ready-to-use Frontend object.
 Inside of the frontend package, there will be the tokens package. This contains
 all of the token classes for the language as well as a single `ByID()` function
 which will return the token class that was created for the given text token
-class ID. The ID will match the name of token class given in the FISHI spec the
-frontend was generated from. The tokens package is separate from the main one
-for historical reasons and may eventually be remerged back into the
-frontend package.
+class ID. The ID will match the name of the token class given in the FISHI spec
+the frontend was generated from. The tokens package is separate from the main
+one for historical reasons and may eventually be remerged back into the frontend
+package.
 
 The frontend package's `Frontend()` function has a signature that varies
 depending on how ictcc was invoked. By default, since the returned type of
@@ -305,9 +304,9 @@ for instance the parse succeeded but the syntax-directed translation had an
 error. The parse tree will be non-nil whenever it is valid.
 
 The returned `Frontend` has a few properties that refer to the language it was
-built for. `Frontend.Language` is set from the value of -l/--lang-name passed in
-to ictcc at generation time. `Frontend.Version` is similarly set from the value
-of -v/--lang-ver.
+built for. `Frontend.Language` is set from the value of -l/--lang-name passed to
+ictcc at generation time. `Frontend.Version` is similarly set from the value of
+-v/--lang-ver.
 
 Both `Frontend.Analyze` and `Frontend.AnalyzeString` will return in-depth syntax
 errors with detailed information if it encounters an issue while lexing,
@@ -315,7 +314,7 @@ parsing, or translating the input source text. The returned error in that case
 will be of type `*github.com/dekarrin/ictiobus/syntaxerr.Error`, and it can be
 used with a checked cast.
 
-The following is a complete example of a main function which obtains a frontend
+The following is a complete example of a main function that obtains a frontend
 from the generated package and then uses it to try and parse input:
 
 ```go
@@ -394,7 +393,7 @@ than them.
 * LALR(k), selected with --lalr. The *L*ook-*A*head *L*eft-to-right, *R*ightmost
 derivation (in reverse) parser also builds a DFA from sets of LR items of a
 grammar, but it uses a more complex construction than SLR parsers. It accepts
-almost as many langauges as a CLR parser, and often has significantly less of a
+almost as many languages as a CLR parser, and often has significantly less of a
 memory footprint due to a merging algorithm it applies during DFA construction.
 * CLR(k), selected with --clr. Also known as the canonical LR(k) parser. The
 *C*anonical *L*eft-to-right, *R*ightmost derivation (in reverse) parser uses the
@@ -405,20 +404,20 @@ languages of all algorithms listed here, but takes up the most space in memory.
 Many parsing algorithms have a 'k' in their names; this stands for the number of
 lookahead tokens from input that it uses to decide how to parse it. At the time
 of this writing, ictcc can only produce parsers whose k = 1. For futureproofing
-purposes, it is gauranteed that if ictcc ever becomes capable of higher values
+purposes, it is guaranteed that if ictcc ever becomes capable of higher values
 of k, it will always select the lowest one required to build a parser for that
 algorithm.
 
 Automatic selection of the parsing algorithm may be slow; because of theoretical
-restrictions, the problem of whether a paraticular type of parser that accepts
-a particular grammar can be constructed can often only be answered by fully
+restrictions, the problem of whether a particular type of parser that accepts a
+particular grammar can be constructed can often only be answered by fully
 constructing the parser and then testing it for validity. This means that, for
 instance, if a grammar is parsable by a CLR parser, but not by an LL, SLR, or
 LALR parser, ictcc would first try to construct every other type of parser as it
 goes down the list before finally arriving at the CLR parser. Because of this,
 it may be desirable to allow automatic algorithm selection to run only when
-making changes to the grammar, and once ictcc finds the one that works, manually
-setting it for future executions.
+making changes to the grammar, and once ictcc finds the one that works, it can
+be manually selected for future executions.
 
 ## Ambiguity Resolution
 
@@ -448,24 +447,25 @@ to be resolved by hand.
 ## Debugging Specs
 
 When creating a new programming language, a variety of issues can be
-encountered, such as inadvertantly creating ambiguous grammars, strange DFAs,
-and unepxected parsing actions, to name a few. To aid with the debugging of
+encountered, such as inadvertently creating ambiguous grammars, strange DFAs,
+and unexpected parsing actions, to name a few. To aid with the debugging of
 language specifications, ictiobus provides several tools.
 
 As part of the process of creating an LR parser, a deterministic finite
 automaton is constructed from the input language's grammar. Some of the errors
 LR parsers report will refer to the states of this DFA. The -D/--dfa flag to
-ictcc will make it output the DFA for examination. Output will include the name
-of its, the LR items that state is associated with, and a list of transitions to
-other states. While somewhat complicated to look over, it can be helpful to
-trace a parser's path through a DFA to see where things have gone wrong.
+ictcc will make it output the DFA for examination. Output will include each
+state of the DFA, with its name, the LR items that the state is associated with,
+and a list of transitions from that state to other states. While somewhat
+complicated to look over, it can be helpful to trace a parser's path through a
+DFA to see where things have gone wrong.
 
 Not every type of parser ictiobus supports uses a DFA, but all of them use a
 parsing table. This table informs the parser what action it should take based on
 the next token of input it sees; for LL(k) parsers, this is which grammar rule
 to select, and for LR parsers, this is whether to shift, reduce to some symbol,
-accept the input string, or error. This table can printed by passing ictcc the
--T/--parse-table flag.
+accept the input string, or error. This table can be printed by passing ictcc
+the -T/--parse-table flag.
 
 Both the DFA and the parse table output will have symbols that were not directly
 defined by the language spec (and in fact, are reserved and forbidden from being
@@ -488,8 +488,8 @@ Besides outputting information on parser construction, ictcc can output the spec
 itself as it sees it, at various stages. The -P/--preproc flag will cause it to
 output the spec source code for input files after it has completed preprocessing
 steps, such as removing comments and normalizing lines of input. To see the spec
-as a listing of definitions after ictcc has completely finished reading it, use
-the -s/--spec flag.
+as a listing of definitions after ictcc has finished reading it but before it is
+used for code generation, use the -s/--spec flag.
 
 If you are attempting to read a spec, and you receive and error such as
 "<SOME-ATTRIBUTE-REF> is an inherited attribute (not an attribute of {^})", you
@@ -510,11 +510,11 @@ on input completely independently of other Go code.
 When a new frontend is generated from a spec, Ictiobus can attempt to
 automatically validate that it works properly for possible inputs. It does this
 by taking the grammar and using it to derive a series of possible valid inputs
-and then feeding this into different stages of the frontend. Ictiobus is able to
+and then feeding this into different stages of the frontend. Ictiobus will
 generate at least one input for every possible derivation in the grammar.
 
 This "language simulation" primarily validates that the translation scheme given
-in the spec will be able to handle all types of input. Of course it cannot
+in the spec will be able to handle all types of input. Of course, it cannot
 necessarily predict all incorrect behavior of the translation hooks, but it will
 be able to at minimum detect whether a hook results in a value that is never
 used, or whether a translation scheme results in an impossible evaluation loop.
@@ -551,13 +551,13 @@ changed by setting --hooks-table.
 names its hooks table variable something besides `HooksTable`. If so, the
 --hooks-table flag is how ictcc is informed of the name.
 
-In addition to the above flags, other flags are available which control the
+In addition to the above flags, other flags are available that control the
 behavior of language simulation. As mentioned previously, --sim-off disables
 language simulation entirely even when --ir and --hooks are set.
 
 Additional diagnostic output for simulations can be selected with the
 --sim-trees and --sim-graphs flags. If simulation finds an error in the SDTS
-caused by one of the derived simulated parse trees that was fed to it, setting
+caused by one of the derived simulated parse trees that were fed to it, setting
 --sim-trees will make ictcc print out the tree in full. The --sim-graphs flag
 will cause any problematic dependency graphs generated by applying the SDTS to
 the simulated input to be printed out.
@@ -573,11 +573,11 @@ could set --sim-skip-errs 2 --sim-first-err.
 
 ### Diagnostic Binary
 
-During an execution of ictcc, it can create a binary which includes the
-generated frontend, the implementation of SDTS hooks, and a wrapper main
-function for reading input that contains text in the language the frontend was
-generated for. This is known as a "diagnostic binary", and it is enabled by
-specifying a path to output the binary to with the -d/--diag flag.
+During execution of ictcc, it can create a binary that includes the generated
+frontend, the implementation of SDTS hooks, and a wrapper main function for
+reading input that contains text in the language the frontend was generated for.
+This is known as a "diagnostic binary", and it is enabled by specifying a path
+to output the binary to with the -d/--diag flag.
 
 This binary is generated in an almost identical fashion as a language simulation
 binary, and as a result requires the same flags:
@@ -645,7 +645,7 @@ mode, although it tends to be a bit more verbose than the lexer's; this is
 enabled with the -p/--debug-parser flag.
 
 By default, a diagnostics binary expects to receive UTF-8 encoded text that is
-accepted by the gramamr. If certain preprocessing steps generally are done to
+accepted by the grammar. If certain preprocessing steps generally are done to
 input text to convert it from a typical format to text acceptable by the
 grammar, (such as comment stripping, decoding source from wrapper formats,
 etc.), the diagnostics binary can be configured to handle this. To do this,
@@ -710,7 +710,7 @@ templates are brought into the ictcc binary by embedding their contents entirely
 within variables; this means that compiled versions of ictcc have their
 templates built in to the ictcc binary. To use a different template instead
 (such as a current version of a template file, checked out in source), the path
-to the new template file can be passed in to ictcc using one of the following
+to the new template file can be passed to ictcc using one of the following
 flags: --tmpl-main to give a template for the main file used in generated
 binaries, --tmpl-frontend to give a template for frontend.ict.go, --tmpl-lexer
 to give a template for lexer.ict.go, --tmpl-parser to give a template for
@@ -723,11 +723,11 @@ the --debug-templates flag.
 
 For many of the generated binaries that need to refer to ictiobus code, ictcc
 will pull from the current published latest release version of ictiobus. This is
-absolutely correct for general use, but when developing ictcc one often needs it
-to pull code from the current cloned repo on disk. Use the --dev to mark the
-current working directory as the location to pull ictiobus code from for these
-purposes. This will have the effect of making ictcc cease to function if it is
-called from any directory besides one containing the ictiobus module.
+correct for general use, but when developing ictcc one often needs it to pull
+code from the current cloned repo on disk. Use the --dev to mark the current
+working directory as the location to pull ictiobus code from for these purposes.
+This will have the effect of making ictcc cease to function if it is called from
+any directory besides one containing the ictiobus module.
 
 ## Command Reference
 ictcc produces compiler frontends written in Go for languages specified with the
