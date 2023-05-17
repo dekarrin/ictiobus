@@ -678,15 +678,52 @@ same warning types and CLI options as ictcc. See the Output Control section of
 this manual for more information.
 ## Development on Ictcc
 
-Note flags: --debug-lexer, --debug-parser.
--a/--ast output spec ast
--t/--tree output spec parse tree
---preserve-bin-source.
---debug-templates
---tmpl-* (main, parser, lexer, sdts, tokens, frontend)
---prefix
+The ictcc binary contains several flags that can assist with development on
+ictcc itself and the FISHI language, which is self-hosted. In the first place,
+as a general rule, always enable simulation. If any build of the FISHI frontend
+is not simulated, it could mask major issues.
 
-WIP
+The ictcc command supports the same --debug-lexer and --debug-parser flags as
+diagnostics binaries; while these aren't particularly useful for end-user usage
+of ictcc, they can be helpful in debugging changes to FISHI. The ictcc command
+also supports the -t/--tree flag to output the parse trees of the input files.
+
+The AST of FISHI files read can be output by using the -a/--ast flags. This is
+the intermediate value used for the FISHI self-hosted frontend, and it may be
+helpful when trying to debug issues where the FISHI parses just fine, but the
+post-frontend conversion to a `fishi.Spec` does not properly function.
+
+The --prefix flag specifies the path prefix of any output files; this includes
+binaries, source generation dirs (for creating binaries), and the output
+generated Go code. Combining this with --preserve-bin-source, which will cause
+ictcc to keep Go source files generated only to create a simulation or
+diagnostics binary, can help to check binary code when it fails to build due to
+issues with the generated code.
+
+Templates for generating Go source files are located in fishi/templates. These
+templates are brought into the ictcc binary by embedding their contents entirely
+within variables; this means that compiled versions of ictcc have their
+templates built in to the ictcc binary. To use a different template instead
+(such as a current version of a template file, checked out in source), the path
+to the new template file can be passed in to ictcc using one of the following
+flags: --tmpl-main to give a template for the main file used in generated
+binaries, --tmpl-frontend to give a template for frontend.ict.go, --tmpl-lexer
+to give a template for lexer.ict.go, --tmpl-parser to give a template for
+parser.ict.go, --tmpl-sdts to give a template for sdts.ict.go, and --tmpl-tokens
+to give a template for tokens.ict.go.
+
+To see filled templates during codegen but before they are sent to gofmt for
+formatting (where Go syntax errors will be detected if they are present), use
+the --debug-templates flag.
+
+For many of the generated binaries that need to refer to ictiobus code, ictcc
+will pull from the current published latest release version of ictiobus. This is
+absolutely correct for general use, but when developing ictcc one often needs it
+to pull code from the current cloned repo on disk. Use the --dev to mark the
+current working directory as the location to pull ictiobus code from for these
+purposes. This will have the effect of making ictcc cease to function if it is
+called from any directory besides one containing the ictiobus module.
+
 ## Command Reference
 ictcc produces compiler frontends written in Go for languages specified with the
 FISHI specification langauge.
