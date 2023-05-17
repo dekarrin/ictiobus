@@ -1,4 +1,5 @@
 # ictcc Manual
+
 `ictcc` is the "Ictiobus Compiler-Compiler"; it is a command line tool that
 reads a specification for a language and produces Go code for a compiler
 frontend that can accept input written in that language.
@@ -41,6 +42,7 @@ which ictcc does automatically when simulating language input or generating a
 diagnostics binary.
 
 ## Reading Input
+
 All input to ictcc is provided as files formatted as "FISHI markdown files"; the
 specifics of this format are laid out in the [FISHI manual](fishi-usage.md), but
 in general a FISHI markdown file is simply a markdown file that contains
@@ -364,6 +366,7 @@ func main() {
 ```
 
 ## Parser Algorithm Selection
+
 Ictiobus is capable of producing several different types of parsers, each with a
 different algorithm for construction, parsing itself, or both. Each algorithm
 has its own restrictions for what types of grammars it can be used with as well
@@ -418,6 +421,7 @@ making changes to the grammar, and once ictcc finds the one that works, manually
 setting it for future executions.
 
 ## Ambiguity Resolution
+
 Some of the parsers available from Ictiobus are able to apply certain rules to
 resolve ambiguities in the grammar. Any that are LR (CLR(k), SLR(k), LALR(k))
 can handle certain ambiguous cases.
@@ -676,6 +680,7 @@ can be checked for by examining the diagnostics binary's exit code.
 The diagnostics binary supports warning suppression and fatalization using the
 same warning types and CLI options as ictcc. See the Output Control section of
 this manual for more information.
+
 ## Development on Ictcc
 
 The ictcc binary contains several flags that can assist with development on
