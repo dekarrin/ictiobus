@@ -463,7 +463,7 @@ func analyzeASTActionsContentSlice(
 					if sdd.Attribute.Relation.Type != trans.RelHead {
 						w := Warning{
 							Type:    WarnEFInheritedAttributes,
-							Message: fmt.Sprintf("SDTS rule for %s: %s is an inherited attribute", sdd.Rule.String(), sdd.Attribute),
+							Message: fmt.Sprintf("SDTS rule for %s: %s is an inherited attribute (not an attribute of {^})", sdd.Rule.String(), sdd.Attribute),
 						}
 						warnings = append(warnings, w)
 					}
