@@ -19,11 +19,12 @@ const (
 	WarnValidation
 	WarnValidationArgs
 	WarnImportInference
+	WarnEFInheritedAttributes
 )
 
-// WarnTypeAll() returns a slice of all the WarnType constants. Must be added
-// manually.
+// WarnTypeAll() returns a slice of all the WarnType constants.
 func WarnTypeAll() []WarnType {
+	// When a new WarnType is added, it must be added to this slice manually.
 	wts := []WarnType{
 		WarnNone,
 		WarnDuplicateHumanDefs,
@@ -33,6 +34,7 @@ func WarnTypeAll() []WarnType {
 		WarnValidation,
 		WarnValidationArgs,
 		WarnImportInference,
+		WarnEFInheritedAttributes,
 	}
 
 	return wts
@@ -44,9 +46,9 @@ func (wt WarnType) Short() string {
 	case WarnNone:
 		return "none"
 	case WarnDuplicateHumanDefs:
-		return "dupe_human"
+		return "dupe-human"
 	case WarnMissingHumanDef:
-		return "missing_human"
+		return "missing-human"
 	case WarnPriorityZero:
 		return "priority"
 	case WarnUnusedTerminal:
@@ -58,7 +60,9 @@ func (wt WarnType) Short() string {
 	case WarnImportInference:
 		return "import"
 	case WarnValidationArgs:
-		return "val_args"
+		return "val-args"
+	case WarnEFInheritedAttributes:
+		return "exp-inherited-attributes"
 	default:
 		return fmt.Sprintf("%d", int(wt))
 	}
@@ -85,6 +89,8 @@ func (wt WarnType) String() string {
 		return "WarnImportInference"
 	case WarnValidationArgs:
 		return "WarnValidationArgs"
+	case WarnEFInheritedAttributes:
+		return "WarnEFInheritedAttributes"
 	default:
 		return fmt.Sprintf("WarnType(%d)", int(wt))
 	}

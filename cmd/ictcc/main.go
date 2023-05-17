@@ -85,14 +85,14 @@ Flags:
 	-F/--fatal WARN_TYPE
 		Make warnings of the given type be fatal. If ictcc encounters a warning
 		of that type, it will treat it as an error and immediately fail. The
-		possible values for the type of warning is as follows: "dupe_human",
-		"missing_human", "priority", "unused", "ambig", "validation", "import",
-		"val_args", or "all" to make all errors fatal. This option can be passed
-		more than once to give multiple warning types. See manual for
-		description of when each type of warning could arise. If a warning is
-		specified as both fatalized and suppressed by options, treating it as
-		fatal takes precedence. Specifying both '-F all' and '-S all' is not
-		allowed.
+		possible values for the type of warning is as follows: "dupe-human",
+		"missing-human", "priority", "unused", "ambig", "validation", "import",
+		"val-args", "exp-inherited-attributes", or "all" to make all errors
+		fatal. This option can be passed more than once to give multiple warning
+		types. See manual for description of when each type of warning could
+		arise. If a warning is specified as both fatalized and suppressed by
+		options, treating it as fatal takes precedence. Specifying both '-F all'
+		and '-S all' is not allowed.
 
 	-S/--suppress WARN_TYPE
 		Suppress outout of warnings of the given type. No "WARN" message will be
@@ -264,6 +264,11 @@ Flags:
 		and array/slice notation are allowed; maps are not (but types that have
 		map as an underlying type are allowed).
 
+	--exp FEATURE
+	    Enable experimental feature FEATURE. The output may be incomplete or
+		incorrect. The following features may be turned on at this time:
+		"inherited-attributes", or "all" for all of them.
+
 	--dev
 		Enable development mode. This will cause generated binaries to use the
 		local version of ictiobus instead of the latest release. If this flag is
@@ -328,6 +333,7 @@ var (
 	flagWarnFatal    = pflag.StringArrayP("fatal", "F", nil, "Treat given warning as a fatal error")
 	flagWarnSuppress = pflag.StringArrayP("suppress", "S", nil, "Suppress output of given warning")
 
+	flagExp        = pflag.StringArray("exp", nil, "Experimental feature to enable")
 	flagCommand    = pflag.StringP("command", "C", "", "Code to execute before any source code files are read")
 	flagQuietMode  = pflag.BoolP("quiet", "q", false, "Suppress progress messages and other supplementary output")
 	flagNoGen      = pflag.BoolP("no-gen", "n", false, "Do not output generated frontend output files")
@@ -449,6 +455,11 @@ func main() {
 	if err != nil {
 		errInvalidFlags("--dev: " + err.Error())
 		return
+	}
+
+	expFeatures, err := experimentalFeaturesFromFlags()
+	if err != nil {
+		errInvalidFlags("--exp: " + err.Error())
 	}
 
 	// check args before gathering flags
@@ -649,6 +660,13 @@ func main() {
 	// warnings may be valid even if there is an error
 	if len(warnings) > 0 {
 		for _, warn := range warnings {
+			// is it an experimental feature for inherited attr?
+			if warn.Type == fishi.WarnEFInheritedAttributes {
+				if _, enabled := expFeatures[FeatureInheritedAttributes]; !enabled {
+					errOther(warn.Message)
+					return
+				}
+			}
 			if wErr := warnHandler.Handlef("%s\n\n", warn); wErr != nil {
 				fatalSpecWarn = wErr
 			}
@@ -943,6 +961,34 @@ func printPreprocFile(file string) (rewoundStdin io.Reader, err error) {
 	}
 
 	return rewoundStdin, nil
+}
+
+func experimentalFeaturesFromFlags() (map[ExpFeature]struct{}, error) {
+	if *flagExp == nil {
+		return nil, nil
+	}
+
+	enabled := map[ExpFeature]struct{}{}
+	for i := range *flagExp {
+		expStr := strings.ToLower((*flagExp)[i])
+		if expStr == "all" {
+			all := ExpFeatureAll()
+			for _, f := range all {
+				enabled[f] = struct{}{}
+			}
+			return enabled, nil
+		}
+		exp, err := ParseShortExpFeature(expStr)
+		if err != nil {
+			return nil, err
+		}
+		if exp == FeatureNone {
+			return nil, fmt.Errorf("cannot select feature 'none'")
+		}
+		enabled[exp] = struct{}{}
+	}
+
+	return enabled, nil
 }
 
 func devModeInfoFromFlags() (DevModeInfo, error) {

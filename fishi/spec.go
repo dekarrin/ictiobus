@@ -459,6 +459,15 @@ func analyzeASTActionsContentSlice(
 						synErr := lex.NewSyntaxErrorFromToken("invalid attrRef: "+err.Error(), semAct.LHS.Src)
 						return nil, warnings, synErr
 					}
+					// if the lhs is not the head node, it is by definition an inherited attribute, not supported
+					if sdd.Attribute.Relation.Type != trans.RelHead {
+						w := Warning{
+							Type:    WarnEFInheritedAttributes,
+							Message: fmt.Sprintf("SDTS rule for %s: %s is an inherited attribute", sdd.Rule.String(), sdd.Attribute),
+						}
+						warnings = append(warnings, w)
+					}
+
 					// make shore we aren't trying to set somefin starting with a '$'; those are reserved
 					if strings.HasPrefix(sdd.Attribute.Name, "$") {
 						synErr := lex.NewSyntaxErrorFromToken("cannot create attribute starting with reserved marker '$'", semAct.LHS.Src)

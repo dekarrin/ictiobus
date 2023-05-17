@@ -109,6 +109,24 @@ supported by the shell:
 ./ictcc -C "$(<some-spec.md)"
 ```
 
+### Spec Restrictions
+
+There are some restrictions that may not be immediately apparent when using
+FISHI to define specs. These are listed in full here.
+
+#### S-Attributed SDTS Required
+
+For syntax-directed translation schemes, at this time Ictiobus supports only
+S-attributed attribute grammars: only synthetic attributes are supported, not
+inherited attributes. That means that, in the `%%actions` section of a FISHI
+spec, attempting to assign the results of a hook to an attribute of any node
+besides the head symbol's node (`{^}.something`) is not supported.
+
+To make this slightly confusing, there appears to be source code within Ictiobus
+which would support inherited attributes. This was originally planned for, and
+may eventually be re-added, but at this time it is not well-tested and may lead
+to extremely bizarre edge cases.
+
 ## Output Control
 
 Ictiobus outputs several messages as it processes specs, giving its progress and
@@ -134,9 +152,9 @@ Besides a specific warning type, "all" may be given as the argument to a -F or
 fatal or suppressed. The following warning types are available to be
 suppressed/fatalized:
 
-* `dupe_human`    - issued when there are multiple different human names defined
+* `dupe-human`    - issued when there are multiple different human names defined
                     for the same token in a spec.
-* `missing_human` - issued when there is no human name defined for some token in
+* `missing-human` - issued when there is no human name defined for some token in
                     a spec.
 * `priority`      - issued when a spec marks a lexer action explicitly as having
                     priority 0, the default priority, therefore having no
@@ -150,13 +168,20 @@ suppressed/fatalized:
 * `import`        - issued when the correct import for generated code cannot be
                     inferred due to outputing the Go package into a directory
                     not within a Go module, GOPATH, or GOROOT.
-* `val_args`      - issued when validation cannot be performed due to a missing
+* `val-args`      - issued when validation cannot be performed due to a missing
                     --hook or --ir flag.
 
 The prefix for all generated code can be set using the --prefix flag. Note that
 this may also change where generated binaries are placed, so it should be used
 with care. In general, unless doing work on ictcc itself, it makes more sense to
 directly control the output destination with the --dest flag.
+
+To disable source code generation entirely, use the -n/--no-gen flag. Note that
+this only applies to the source code generated for the purposes of outputting Go
+source code; it will not stop generation used for the diagnostics binary if
+--diag is enabled, nor will it stop generation of the simulation binary if valid
+flags for it are provided (--ir, --hooks, --hooks-table) and --sim-off is not
+passed.
 
 ## Generated Code
 
@@ -420,20 +445,45 @@ encountered, such as inadvertantly creating ambiguous grammars, strange DFAs,
 and unepxected parsing actions, to name a few. To aid with the debugging of
 language specifications, ictiobus provides several tools.
 
-As part of the process of creating an LR parser, a deterministic finitie
-automaton is constructed. This DFA 
+As part of the process of creating an LR parser, a deterministic finite
+automaton is constructed from the input language's grammar. Some of the errors
+LR parsers report will refer to the states of this DFA. The -D/--dfa flag to
+ictcc will make it output the DFA for examination. Output will include the name
+of its, the LR items that state is associated with, and a list of transitions to
+other states. While somewhat complicated to look over, it can be helpful to
+trace a parser's path through a DFA to see where things have gone wrong.
 
-LR parsers will sometimes report errors that have to do with DFA states and/or
-deciding which is the next state to move to. The DFA generated from a spec can
-be output by using the -D/--dfa flag for further examining. Output will include
-the name of the state, the LR items within the DFA, and a list of transitions to
-other states. While somewhat complicated to look over, sometimes it can be
-helpful to trace a parser's path through a DFA to see where things have gone
-wrong.
+Not every type of parser ictiobus supports uses a DFA, but all of them use a
+parsing table. This table informs the parser what action it should take based on
+the next token of input it sees; for LL(k) parsers, this is which grammar rule
+to select, and for LR parsers, this is whether to shift, reduce to some symbol,
+accept the input string, or error. This table can printed by passing ictcc the
+-T/--parse-table flag.
 
--T/--parse-table
--D/--dfa
--p/-preproc
+Both the DFA and the parse table output will have symbols that were not directly
+defined by the language spec (and in fact, are reserved and forbidden from being
+used as grammar symbols):
+
+* `$`   - The end-of-input token/terminal symbol. Lexers in ictiobus return this
+          token when at the end of an input string. This as a symbol in debug
+          output should be considered as "the end of input has been reached".
+* `ε`   - The empty string epsilon symbol. This indicates either the empty string
+          in the general case, or more specifically in debug output, an epsilon
+          production of a grammar rule.
+* `*-P` - The augmented start symbol (`*` will be replaced by the actual name of
+          the starting rule of the grammar the parser is for). LR parsers detect
+          the end of input by building DFAs from an augmented version of the
+          original input grammar; this is done by defining a new start symbol
+          which derives the original start symbol, whose rule remains in the
+          grammar.
+
+Besides outputting information on parser construction, ictcc can output the spec
+itself as it sees it, at various stages. The -P/--preproc flag will cause it to
+output the spec source code for input files after it has completed preprocessing
+steps, such as removing comments and normalizing lines of input. To see the spec
+as a listing of definitions after ictcc has completely finished reading it, use
+the -s/--spec flag.
+
 -s/--spec output the spec
 
 WIP
@@ -470,6 +520,7 @@ Note flags: --debug-lexer, --debug-parser.
 --preserve-bin-source.
 --debug-templates
 --tmpl-* (main, parser, lexer, sdts, tokens, frontend)
+--prefix
 
 WIP
 ## Command Reference
