@@ -474,9 +474,9 @@ used as grammar symbols):
 * `$`   - The end-of-input token/terminal symbol. Lexers in ictiobus return this
           token when at the end of an input string. This as a symbol in debug
           output should be considered as "the end of input has been reached".
-* `ε`   - The empty string epsilon symbol. This indicates either the empty string
-          in the general case, or more specifically in debug output, an epsilon
-          production of a grammar rule.
+* `ε`   - The empty string epsilon symbol. This indicates either the empty
+          string in the general case, or more specifically in debug output, an
+          epsilon production of a grammar rule.
 * `*-P` - The augmented start symbol (`*` will be replaced by the actual name of
           the starting rule of the grammar the parser is for). LR parsers detect
           the end of input by building DFAs from an augmented version of the
