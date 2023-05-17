@@ -746,7 +746,7 @@ to generate a compiler frontend that is output as Go code.
 
 All input must be UTF-8 encoded markdown-formatted text that contains code
 blocks marked with the label `fishi`; only those codeblocks are read for FISHI
-input source. The contents of all such codeblocks for an input are concatenated
+source code. The contents of all such codeblocks for an input are concatenated
 together to form the "FISHI part" of an input. This concatenated series of FISHI
 statements then has comment stripping and line normalization applied to it
 before it is parsed into an AST.
@@ -755,26 +755,26 @@ When all inputs have been successfully parsed, their ASTs are joined into a
 single one by concatenation in the order the inputs they were parsed from were
 given, and that AST is then interpreted into a language spec.
 
-This langauge spec is then used to create a lexer, parser, and then translation
-scheme for the langauge described in the spec. The parser algorithm will be the
+This language spec is then used to create a lexer, parser, and then translation
+scheme for the language described in the spec. The parser algorithm will be the
 one specified by CLI flags; otherwise, the most restrictive one supported that
 can handle the grammar is used.
 
 If the --ir and --hooks options are provided, the generated frontend is then
 validated by building it into a simulation binary which then simulates language
 input against the frontend, covering every possible production in the grammar.
-Any issues found at this stage are output, otherwise the binary and its sources
+Any issues found at this stage are output; otherwise, the binary and its sources
 are deleted.
 
 The Go code for the generated frontend is then placed in a local directory;
 "./fe" by default, which can be changed with --dest. The name of the package it
-is placed in, "fe" by default, can be changed with the --pkg flag. The langauge
-metadata, retreivable from the generated frontend, can be set by using the -l
+is placed in, "fe" by default, can be changed with the --pkg flag. The language
+metadata, retrievable from the generated frontend, can be set by using the -l
 and -v flags.
 
-If an error ocurrs while parsing any of the FISHI, ictcc will still try to parse
-any remaining inputs for error reporting purposes, but will ultimately fail to
-produce generated code. All inputs must be parsable FISHI.
+If an error occurs while parsing any of the FISHI, ictcc will still try to parse
+any remaining input files for error reporting purposes, but will ultimately fail
+to produce generated code. All files must contain parsable FISHI.
 
 Flags:
 
@@ -817,14 +817,24 @@ Flags:
         Place the generated Go files in a package rooted at PATH. The default
         value is "./fe".
 
+    --dev
+        Enable the use of and reference to ictiobus code located in the current
+        working directory as it is currently written as opposed to using the
+        latest release version of ictiobus.
+
     -D, --dfa
         Print a detailed representation of the DFA that is constructed for the
         generated parser to stdout.
 
+    --exp FEATURE
+        Enable experimental or untested feature FEATURE. The allowed values for
+        FEATURE are as follows for this version of ictcc: "inherited-attributes"
+        and "all".
+
     -f, --diag-format-pkg PATH
         Enable format reading in generated diagnostic binary specified with
         --diag by using the io.Reader provided by the Go package located at
-        PATH. This package must provide a function that matches signature
+        PATH. This package must provide a function that matches the signature
         "NewCodeReader(io.Reader) (io.Reader, error)", though the returned type
         can be any type that implements io.Reader. The name of that function can
         be selected with --diag-format-call. --diag-format-pkg has no effect
@@ -858,7 +868,11 @@ Flags:
         package, followed by a dot, followed by the name of the type (such as
         "github.com/dekarrin/ictiobus/fishi/syntax.AST", or
         "*crypto/x509/pkix.Name"). Packages with a different name than the last
-        component of their import path are not supported at this time.
+        component of their import path are not supported at this time. Pointer
+        types and slice types are both supported; map types are not. If --ir is
+        provided, the Frontend() function in the generated Go package will be
+        prefilled with this type, making it so callers of Frontend() do not need
+        to supply it at runtime.
 
     -l, --lang NAME
         Set the language name in the metadata of the generated frontend to NAME.
@@ -893,8 +907,8 @@ Flags:
         diagnostics binary specified with --diag.
 
     --preserve-bin-source
-        Do not delete source files that are generated for the purpose of
-        producing a binary (simulation or diagnostics) even if the binary is
+        Do not delete source files that are generated in the process of
+        producing a binary (simulation or diagnostics), even if the binary is
         successfully built.
 
     -P, --preproc
@@ -912,11 +926,11 @@ Flags:
         FISHI input files.
 
     --sim-first-err
-        Print only the first error returned from langauge input simulation,
+        Print only the first error returned from language input simulation,
         after any that are skipped by --sim-skip-errs.
 
     --sim-graphs
-        Print the full dependency graph info for any issue found during langauge
+        Print the full dependency graph info for any issue found during language
         input simulation that involves translation scheme dependency graphs.
 
     --sim-off
@@ -925,7 +939,7 @@ Flags:
 
     --sim-skip-errs N
         Skip outputting the first N errors encountered during language input
-        simulation. Note that simluation errors will still cause ictcc to halt
+        simulation. Note that simulation errors will still cause ictcc to halt
         generation even if their output is suppressed.
 
     --sim-trees
