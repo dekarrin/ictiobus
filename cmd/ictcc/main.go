@@ -130,28 +130,28 @@ Flags:
 		If problems are detected with the SDTS of the resulting fishi during
 		SDTS validation, show the parse tree(s) that caused the problem.
 
-		Has no effect if -val-sdts-off is set.
+		Has no effect if --sim-off is set.
 
 	--sim-graphs
 		If problems are detected with the SDTS of the resulting fishi during
 		SDTS validation, show the full resulting dependency graph(s) that caused
 		the issue (if any).
 
-		Has no effect if -val-sdts-off is set.
+		Has no effect if --sim-off is set.
 
 	--sim-first-err
 		If problems are detected with the SDTS of the resulting fishi during
 		SDTS validation, show only the problem(s) found in the first simulated
 		parse tree (after any skipped by -val-sdts-skip) and then stop.
 
-		Has no effect if -val-sdts-off is set.
+		Has no effect if --sim-off is set.
 
 	--sim-skip-errs N
 		If problems are detected with the SDTS of the resulting fishi during
 		SDTS validation, skip the first N simulated parse trees in the output.
 		Combine with -val-sdts-first to view a specific parse tree.
 
-		Has no effect if -val-sdts-off is set.
+		Has no effect if --sim-off is set.
 
 	--debug-lexer
 		Enable debug mode for the lexer and print each token to standard out as

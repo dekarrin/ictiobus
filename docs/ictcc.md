@@ -120,12 +120,15 @@ For syntax-directed translation schemes, at this time Ictiobus supports only
 S-attributed attribute grammars: only synthetic attributes are supported, not
 inherited attributes. That means that, in the `%%actions` section of a FISHI
 spec, attempting to assign the results of a hook to an attribute of any node
-besides the head symbol's node (`{^}.something`) is not supported.
+besides the head symbol's node (`{^}.something`) is not supported. The inclusion
+of such an attribute will result in an error such as "ATTRIBUTE-BEING-ASSIGNED
+is an inherited attribute (not an attribute of {^})".
 
 To make this slightly confusing, there appears to be source code within Ictiobus
 which would support inherited attributes. This was originally planned for, and
 may eventually be re-added, but at this time it is not well-tested and may lead
-to extremely bizarre edge cases.
+to extremely bizarre edge cases. To force ictcc to enable this as an
+experimental feature, pass --exp inherited-attributes to ictcc.
 
 ## Output Control
 
@@ -484,22 +487,85 @@ steps, such as removing comments and normalizing lines of input. To see the spec
 as a listing of definitions after ictcc has completely finished reading it, use
 the -s/--spec flag.
 
--s/--spec output the spec
+If you are attempting to read a spec, and you receive and error such as
+"<SOME-ATTRIBUTE-REF> is an inherited attribute (not an attribute of {^})", you
+may be attempting to load a spec with a non S-attributed SDTS. This is not
+supported at this time; to fix this, adjust your spec's `%%action` section to
+only assign results of hooks to the head symbol, "{^}". If translation steps
+in the SDTS require the use of inherited attributes, you may need to move such
+processing outside of the SDTS and use the SDTS to build up a different IR that
+retains the information necessary to do this (such as an abstract syntax tree).
 
-WIP
+Beyond the above output options and tips, Ictiobus provides two methods for
+validating specs that can be useful: language simulation and diagnostic binary
+generation. These both allow the built frontend to be quickly and easily tested
+on input completely independently of other Go code.
 
 ### Language Simulation
 
-Ictcc uses sim to verify generated. note go is invoked, and requires use of IR
-value and hooks value. Also mention --hooks-table
-Description of process of derivation. Include limitation wrt to the tree
-over-generation
-Description of using derived tree on grammar.
-Description of using flags to control behavior, and in-depth... debug section
-will refer to here.
+When a new frontend is generated from a spec, Ictiobus can attempt to
+automatically validate that it works properly for possible inputs. It does this
+by taking the grammar and using it to derive a series of possible valid inputs
+and then feeding this into different stages of the frontend. Ictiobus is able to
+generate at least one input for every possible derivation in the grammar.
 
-WIP
+This "language simulation" primarily validates that the translation scheme given
+in the spec will be able to handle all types of input. Of course it cannot
+necessarily predict all incorrect behavior of the translation hooks, but it will
+be able to at minimum detect whether a hook results in a value that is never
+used, or whether a translation scheme results in an impossible evaluation loop.
 
+This validation works by taking a generated frontend and using it to generate a
+new binary that includes both the frontend and the implementation of all hooks
+as specified by the user, then using that binary to run the simulated input.
+This binary is known as the "simulation binary". Full binary generation is
+needed because using the frontend requires hook implementations, which are in
+code external to ictiobus and known only at ictcc runtime. Due to Go having no
+cross-platform mechanism for dynamically loading external libraries, ictcc opts
+to simply copy the hooks implementation wholesale and build it into a single
+binary. This same method is also used for generating a diagnostics binary; they
+are closely related. When language simulation completes, the simulation binary
+is discarded.
+
+Language simulation is enabled by default, but requires some CLI flags to be set
+before it can proceed. Failure to set these flags will return a warning message
+unless simulation is explicitly disabled with the --sim-off flag:
+
+* The --ir flag sets the type of the intermediate representation that the
+frontend will return, which is required so that the simulation binary can invoke
+the generated `Frontend()` function correctly. To specify a type available
+without importing, it can be set to that type directly, such as "int". For a
+type that requires an import, its package must be included and it must be fully
+qualified with the package import path, such as "*crypto/x509/pkix.Name", or
+"github.com/dekarrin/ictiobus/fishi/syntax.AST" for example. The IR type may be
+a pointer or slice type; simply include the relevant symbols before the name.
+* The --hooks flag gives the path to a directory on disk of a Go package
+containing a hooks table (of type `trans.HookMap`). This hooks table is obtained
+by searching for an exported var at package scope named `HooksTable`, but this
+name can be changed by setting --hooks-table.
+* The --hooks-table flag is optional and only needed if the package in --hooks
+names its hooks table variable something besides `HooksTable`. If so, the
+--hooks-table flag is how ictcc is informed of the name.
+
+In addition to the above flags, other flags are available which control the
+behavior of language simulation. As mentioned previously, --sim-off disables
+language simulation entirely even when --ir and --hooks are set.
+
+Additional diagnostic output for simulations can be selected with the
+--sim-trees and --sim-graphs flags. If simulation finds an error in the SDTS
+caused by one of the derived simulated parse trees that was fed to it, setting
+--sim-trees will make ictcc print out the tree in full. The --sim-graphs flag
+will cause any problematic dependency graphs generated by applying the SDTS to
+the simulated input to be printed out.
+
+Because error output from language simulation can often include multiple errors
+with the same root cause, and because diagnostic output can be quite long,
+options are provided to control which of the simulation errors are displayed.
+The --sim-first-err flag makes it so only the first error from simulation is
+printed, should there be multiple. This combines nicely with --sim-skip-errs,
+which can be set to the number of errors to skip in output before the first
+error is printed. So to for example see only the 3rd error in the output, one
+could set --sim-skip-errs 2 --sim-first-err.
 
 ### Diagnostic Binary
 
