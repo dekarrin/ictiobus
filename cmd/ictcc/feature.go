@@ -6,32 +6,32 @@ import (
 	"strings"
 )
 
-// ExpFeature is an experimental feature flag for enabling features not normally
+// expFeature is an experimental feature flag for enabling features not normally
 // enabled.
-type ExpFeature int
+type expFeature int
 
 const (
-	FeatureNone ExpFeature = iota
-	FeatureInheritedAttributes
+	featureNone expFeature = iota
+	featureInheritedAttributes
 )
 
-// ExpFeatureAll() returns a slice of all the ExpFeature constants.
-func ExpFeatureAll() []ExpFeature {
+// expFeatureAll() returns a slice of all the ExpFeature constants.
+func expFeatureAll() []expFeature {
 	// When a new ExpFeature is added, it must be added to this slice manually.
-	fs := []ExpFeature{
-		FeatureNone,
-		FeatureInheritedAttributes,
+	fs := []expFeature{
+		featureNone,
+		featureInheritedAttributes,
 	}
 
 	return fs
 }
 
 // Short returns the short-code of an ExpFeature.
-func (f ExpFeature) Short() string {
+func (f expFeature) Short() string {
 	switch f {
-	case FeatureNone:
+	case featureNone:
 		return "none"
-	case FeatureInheritedAttributes:
+	case featureInheritedAttributes:
 		return "inherited-attributes"
 	default:
 		return fmt.Sprintf("%d", int(f))
@@ -39,26 +39,26 @@ func (f ExpFeature) Short() string {
 }
 
 // String returns the string representation of an ExpFeature.
-func (f ExpFeature) String() string {
+func (f expFeature) String() string {
 	switch f {
-	case FeatureNone:
+	case featureNone:
 		return "FeatureNone"
-	case FeatureInheritedAttributes:
+	case featureInheritedAttributes:
 		return "FeatureInheritedAttributes"
 	default:
 		return fmt.Sprintf("ExpFeature(%d)", int(f))
 	}
 }
 
-// ParseShortExpFeature parses an ExpFeature from the given short string. The
+// parseShortExpFeature parses an ExpFeature from the given short string. The
 // short string may be a string consisting of the same string as the Short()
 // method returns, or be an integer represented as a string that corresponds to
 // the desired feature.
-func ParseShortExpFeature(s string) (ExpFeature, error) {
+func parseShortExpFeature(s string) (expFeature, error) {
 	sLower := strings.ToLower(s)
 
 	// if it is one of the short strings, use that
-	for _, f := range ExpFeatureAll() {
+	for _, f := range expFeatureAll() {
 		if sLower == f.Short() {
 			return f, nil
 		}
@@ -67,14 +67,14 @@ func ParseShortExpFeature(s string) (ExpFeature, error) {
 	// else, try to parse an int from it
 	intVal, err := strconv.Atoi(s)
 	if err != nil {
-		return FeatureNone, fmt.Errorf("not a feature short name and not an int: %q", s)
+		return featureNone, fmt.Errorf("not a feature short name and not an int: %q", s)
 	}
 
-	for _, f := range ExpFeatureAll() {
+	for _, f := range expFeatureAll() {
 		if intVal == int(f) {
 			return f, nil
 		}
 	}
 
-	return FeatureNone, fmt.Errorf("not a valid feature type code: %d", intVal)
+	return featureNone, fmt.Errorf("not a valid feature type code: %d", intVal)
 }
