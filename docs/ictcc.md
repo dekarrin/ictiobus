@@ -539,10 +539,10 @@ type that requires an import, its package must be included and it must be fully
 qualified with the package import path, such as "*crypto/x509/pkix.Name", or
 "github.com/dekarrin/ictiobus/fishi/syntax.AST" for example. The IR type may be
 a pointer or slice type; simply include the relevant symbols before the name.
-* The --hooks flag gives the path to a directory on disk of a Go package
-containing a hooks table (of type `trans.HookMap`). This hooks table is obtained
-by searching for an exported var at package scope named `HooksTable`, but this
-name can be changed by setting --hooks-table.
+* The --hooks flag gives the path to a directory of a Go package containing a
+hooks table (of type `trans.HookMap`). This hooks table is obtained by searching
+for an exported var at package scope named `HooksTable`, but this name can be
+changed by setting --hooks-table.
 * The --hooks-table flag is optional and only needed if the package in --hooks
 names its hooks table variable something besides `HooksTable`. If so, the
 --hooks-table flag is how ictcc is informed of the name.
@@ -569,15 +569,113 @@ could set --sim-skip-errs 2 --sim-first-err.
 
 ### Diagnostic Binary
 
-Note go is invoked, and requires ir and hooks. Also mention --hooks-table.
-Basic use, for input reading. -C more useful here.
-Debugging options for showing the lexer and parser as they go.
-Debugging options for seeing parse tree.
-Enabling pre-format of input code.
-Turning on simulation mode, and using it. Refer to lang sim section for more in
-depth info.
+During an execution of ictcc, it can create a binary which includes the
+generated frontend, the implementation of SDTS hooks, and a wrapper main
+function for reading input that contains text in the language the frontend was
+generated for. This is known as a "diagnostic binary", and it is enabled by
+specifying a path to output the binary to with the -d/--diag flag.
 
-WIP
+This binary is generated in an almost identical fashion as a language simulation
+binary, and as a result requires the same flags:
+
+* --ir to set the type of the intermediate representation that the frontend will
+return when given an input language. If it's a basic type, such as "int", then
+it can be set to that directly. If it's a type that has to be imported, it must
+include the package the type is in, fully qualified by its import path, such as
+"github.com/dekarrin/neatlang/syntax.AST" for a type called 'AST' in a package
+called "syntax" imported with "github.com/dekarrin/neatlang/syntax".
+* --hooks to set the path to a directory containing a Go package containing the
+hooks table to use to implement SDTS hooks (of type `trans.HookMap`). The hooks
+table is located in the package by looking for an exported var named
+`HooksTable`, but the name of the var to be used can be changed by specifying
+the actual name with --hooks-table.
+
+Once a diagnostic binary is produced, it can be executed on input written in the
+source language in the same ways FISHI specs can be passed to ictcc. The
+following examples assume a diagnostic bin named "diagbin" was produced during a
+prior run of ictcc; in reality it will be named whatever was given as the
+filename in the path used for --diag.
+
+The diagnostic binary can read input files:
+
+```shell
+./diagbin input-file.txt
+
+=== Analysis of input-file.txt ===
+28
+```
+
+It can read from multiple input files:
+
+```shell
+./diagbin input-file1.txt input-file2.txt
+
+=== Analysis of input-file1.txt ===
+28
+=== Analysis of input-file2.txt ===
+413
+```
+
+Code can be directly interpreted with -C:
+
+```shell
+./diagbin -C "2+3"
+
+5
+```
+
+Code can be read from stdin by specifying filename "-":
+
+```shell
+echo "2+3" | ./diagbin -
+
+5
+```
+
+More fine-grained examination of the parsing process is also possible. The
+-t/--tree flag will cause the parse tree(s) created from the input(s) to be
+printed to stdout before they are sent to the SDTS phase for translation. A
+detailed log of the tokens found by the lexer can be printed by enabling lexer
+debug mode with the -l/--debug-lexer flag. The parser supports a similar output
+mode, although it tends to be a bit more verbose than the lexer's; this is
+enabled with the -p/--debug-parser flag.
+
+By default, a diagnostics binary expects to receive UTF-8 encoded text that is
+accepted by the gramamr. If certain preprocessing steps generally are done to
+input text to convert it from a typical format to text acceptable by the
+grammar, (such as comment stripping, decoding source from wrapper formats,
+etc.), the diagnostics binary can be configured to handle this. To do this,
+ictcc needs to be given a path to a package that provides an io.Reader which can
+handle decoding, formatting, and any other pre-processing that must be done.
+This is done by specifying a path to a Go package with the -f/--diag-format-pkg
+flag. This package must contain a function that accepts an io.Reader and returns
+an io.Reader that returns only source code. By default, this function must have
+a signature of "NewCodeReader(io.Reader) (io.Reader, error)", but the name of
+the function used can be changed with the --c/--diag-format-call flag. The first
+returned value of the function does not necessarily need to directly be
+"io.Reader", but it must be a type that implements it.
+
+If preprocessing is enabled using the above process, the diagnostics binary will
+have an additional flag, the -P/--preproc flag, which will cause input sent to
+it to be printed out after preprocessing has been applied to it but before it is
+sent to the lexer.
+
+The diagnostics binary supports an alternative execution mode where instead of
+reading input, it runs language input simulation. This is the same simulation
+that is normally automatically executed by ictcc. It is enabled by passing the
+--sim flag to the diagnostics binary, and besides that supports all of the same
+flags starting with --sim- that ictcc does, and they affect input simulation the
+same way that they do when passed to ictcc; refer to the Language Simulation
+section of this manual for more information.
+
+If the diagnostics binary is to be used only for validating whether input can be
+parsed, its -q/--quiet flag can be used to enable quiet mode. This will suppress
+all non-error output, including outputting the IR value, and a successful parse
+can be checked for by examining the diagnostics binary's exit code.
+
+The diagnostics binary supports warning suppression and fatalization using the
+same warning types and CLI options as ictcc. See the Output Control section of
+this manual for more information.
 ## Development on Ictcc
 
 Note flags: --debug-lexer, --debug-parser.
