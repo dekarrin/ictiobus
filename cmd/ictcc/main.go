@@ -71,7 +71,7 @@ Flags:
 
 	-v/--lang-ver VERSION
 		Set the version of the language to generate a frontend for. Defaults to
-		"v0.0.0".
+		"v0.0".
 
 	-P/--preproc
 		Show the output of running preprocessing on input files. This will show
@@ -97,14 +97,12 @@ Flags:
 	-S/--suppress WARN_TYPE
 		Suppress outout of warnings of the given type. No "WARN" message will be
 		printed for that type even if ictcc encounters it. The possible values
-		for the type of warning to suppress is as as follows: "dupe_human",
-		"missing_human", "priority", "unused", "ambig", "validation", "import",
-		"val_args", or "all" to make all errors fatal. This option can be passed
-		more than once to give multiple warning types. See manual for
-		description of when each type of warning could arise. If a warning is
-		specified as both fatalized and suppressed by options, treating it as
-		fatal takes precedence. Specifying both '-F all' and '-S all' is not
-		allowed.
+		for the type of warning to suppress are the same as those for -F. This
+		option can be passed more than once to give multiple warning types. See
+		manual for description of when each type of warning could arise. If a
+		warning is specified as both fatalized and suppressed by options,
+		treating it as fatal takes precedence. Specifying both '-F all' and
+		'-S all' is not allowed.
 
 	-T/--parse-table
 		Write a string representation of the generated parser's parse table to
@@ -341,7 +339,7 @@ var (
 	flagGenTree    = pflag.BoolP("tree", "t", false, "Print the parse trees of each analyzed fishi file")
 	flagShowSpec   = pflag.BoolP("spec", "s", false, "Print the FISHI spec interpreted from the analyzed fishi")
 	flagLang       = pflag.StringP("lang", "l", "Unspecified", "The name of the languae being generated")
-	flagLangVer    = pflag.StringP("lang-ver", "v", "v0.0.0", "The version of the language to generate")
+	flagLangVer    = pflag.StringP("lang-ver", "v", "v0.0", "The version of the language to generate")
 	flagPreproc    = pflag.BoolP("preproc", "P", false, "Print the preprocessed FISHI code before compiling it")
 	flagParseTable = pflag.BoolP("parse-table", "T", false, "Print the parse table used by the generated parser")
 	flagDFA        = pflag.BoolP("dfa", "D", false, "Print the complete DFA of the parser")

@@ -177,9 +177,9 @@ suppressed/fatalized:
                     --hook or --ir flag.
 
 The prefix for all generated code can be set using the --prefix flag. Note that
-this may also change where generated binaries are placed, so it should be used
-with care. In general, unless doing work on ictcc itself, it makes more sense to
-directly control the output destination with the --dest flag.
+this does not also change where generated diagnostics binaries are placed. In
+general, unless doing work on ictcc itself, it makes more sense to directly
+control the output destination with the --dest flag.
 
 To disable source code generation entirely, use the -n/--no-gen flag. Note that
 this only applies to the Go source code generated as output from ictcc; it will
@@ -730,12 +730,253 @@ This will have the effect of making ictcc cease to function if it is called from
 any directory besides one containing the ictiobus module.
 
 ## Command Reference
-ictcc produces compiler frontends written in Go for languages specified with the
-FISHI specification langauge.
 
-WIP
+```
+ictcc produces compiler frontends written in Go from frontend specifications
+written in FISHI.
 
 Usage:
 
-	ictcc [flags] file1.md file2.md ...
+	ictcc [flags] FILE ...
 
+Ictcc reads in the provided FISHI code, either from a file specified as its
+args, from CLI flag -C, from stdin by specifying file "-", or some combination
+of the above. All FISHI read is combined into a single spec, which is then used
+to generate a compiler frontend that is output as Go code.
+
+All input must be UTF-8 encoded markdown-formatted text that contains code
+blocks marked with the label `fishi`; only those codeblocks are read for FISHI
+input source. The contents of all such codeblocks for an input are concatenated
+together to form the "FISHI part" of an input. This concatenated series of FISHI
+statements then has comment stripping and line normalization applied to it
+before it is parsed into an AST.
+
+When all inputs have been successfully parsed, their ASTs are joined into a
+single one by concatenation in the order the inputs they were parsed from were
+given, and that AST is then interpreted into a language spec.
+
+This langauge spec is then used to create a lexer, parser, and then translation
+scheme for the langauge described in the spec. The parser algorithm will be the
+one specified by CLI flags; otherwise, the most restrictive one supported that
+can handle the grammar is used.
+
+If the --ir and --hooks options are provided, the generated frontend is then
+validated by building it into a simulation binary which then simulates language
+input against the frontend, covering every possible production in the grammar.
+Any issues found at this stage are output, otherwise the binary and its sources
+are deleted.
+
+The Go code for the generated frontend is then placed in a local directory;
+"./fe" by default, which can be changed with --dest. The name of the package it
+is placed in, "fe" by default, can be changed with the --pkg flag. The langauge
+metadata, retreivable from the generated frontend, can be set by using the -l
+and -v flags.
+
+If an error ocurrs while parsing any of the FISHI, ictcc will still try to parse
+any remaining inputs for error reporting purposes, but will ultimately fail to
+produce generated code. All inputs must be parsable FISHI.
+
+Flags:
+
+    -a, --ast
+        Print the AST of successfully read FISHI files to stdout.
+
+    -c, --diag-format-call NAME
+        Call the function called NAME in the package given by --diag-format-pkg
+        when obtaining a code io.Reader in a generated diagnostics binary. This
+        is "NewCodeReader" by default. --diag-format-call has no effect unless
+        --diag-format-pkg and --diag are also set.
+
+    --clr
+        Generate a Canonical LR(k) parser. Mutually exclusive with --ll, --slr,
+        and --lalr.
+
+    -C, --command CODE
+        Read the FISHI markdown document in CODE before any other input is read.
+
+    -d, --diag FILE
+        Generate a diagnostics binary from the spec and output it to the path
+        FILE. This binary will contain a self-contained version of the generated
+        frontend and can be used to validate it by attempting to use it to parse
+        input files in the language the frontend was generated for. This flag
+        requires the --ir and --hooks flags to also be set. By default the
+        generated binary will not do any preprocessing of input files; to enable
+        it, use the --diag-format-pkg flag.
+
+    --debug-lexer
+        Print each token as it lexed from FISHI input.
+
+    --debug-parser
+        Print each step the parser takes as it parsers FISHI input.
+
+    --debug-templates
+        Dump templates after they are filled for codegen but before they are
+        formatted by gofmt, along with line numbers for easy reference.
+
+    --dest PATH
+        Place the generated Go files in a package rooted at PATH. The default
+        value is "./fe".
+
+    -D, --dfa
+        Print a detailed representation of the DFA that is constructed for the
+        generated parser to stdout.
+
+    -f, --diag-format-pkg PATH
+        Enable format reading in generated diagnostic binary specified with
+        --diag by using the io.Reader provided by the Go package located at
+        PATH. This package must provide a function that matches signature
+        "NewCodeReader(io.Reader) (io.Reader, error)", though the returned type
+        can be any type that implements io.Reader. The name of that function can
+        be selected with --diag-format-call. --diag-format-pkg has no effect
+        unless --diag is also set.
+
+    -F, --fatal WARNTYPE
+        Treat WARNTYPE warnings as fatal. If the specified type of warning is
+        encountered, ictcc will output it as though it were an error and
+        immediately halt. Valid values for WARNTYPE are "dupe-human",
+        "missing-human", "priority", "unused", "ambig", "validation", "import",
+		"val-args", "exp-inherited-attributes", and "all". This flag may be
+        specified multiple times and in conjunction with -S flags; if both -F
+        and -S are specified for a warning, -F takes precedence.
+
+    --hooks PATH
+        Retrieve the hooks table binding translation scheme hooks to their
+        implementations from the Go package located in the directory specified
+        by PATH. The package must contain an exported var named "HooksTable" of
+        type trans.HookMap. The name of the var searched for can be set with
+        --hooks-table if needed.
+
+    --hooks-table NAME
+        Set the name of the exported hooks table variable in the Go package
+        located at the path specified by --hooks. NAME must be the name of an
+        exported var of type trans.HookMap. The default value is "HooksTable".
+
+    --ir TYPE
+        Set the type of the IR returned by the generated frontend to TYPE. TYPE
+        must be either an unqualified basic type (such as "int" or "float32"),
+        or, if using requires importing a package, the import path of the
+        package, followed by a dot, followed by the name of the type (such as
+        "github.com/dekarrin/ictiobus/fishi/syntax.AST", or
+        "*crypto/x509/pkix.Name"). Packages with a different name than the last
+        component of their import path are not supported at this time.
+
+    -l, --lang NAME
+        Set the language name in the metadata of the generated frontend to NAME.
+        The default value is "Unspecified".
+
+    --lalr
+        Generate an LALR(k) parser. Mutually exclusive with --ll, --slr, and
+        --clr.
+
+    --ll
+        Generate an LL(k) parser. Mutually exclusive with --lalr, --slr, and
+        --clr.
+
+    -n, --no-gen
+        Do not output a Go package with source code files that contain the
+        generated frontend. If no other options that would cause spec processing
+        are provided, this will cause ictcc to stop after the spec has been
+        read.
+
+    --no-ambig
+        Disallow generation for specs that define an ambiguous context-free
+        grammar.
+
+    --pkg NAME
+        Set the name of the package the generated Go source files will be placed
+        in. The default value is "fe". 
+
+    --prefix PATH
+        Prefix the path of all generated source files with PATH. This includes
+        source files used as part of creating binaries as well as the output
+        directory specified by --dest. This does not affect the location of the
+        diagnostics binary specified with --diag.
+
+    --preserve-bin-source
+        Do not delete source files that are generated for the purpose of
+        producing a binary (simulation or diagnostics) even if the binary is
+        successfully built.
+
+    -P, --preproc
+        Show input FISHI after preprocessing is executed on it; this will be the
+        FISHI that is directly provided to the lexer after it is gathered from
+        codeblocks in the input markdown document.
+
+    -q, --quiet
+        Enable quiet mode; do not output progress or supplemantary messages.
+        Output specifically requested via other flags or caused by warnings or
+        errors is not affected by this flag.
+
+    -s, --spec
+        Print a formatted listing of the complete spec out once it is read from
+        FISHI input files.
+
+    --sim-first-err
+        Print only the first error returned from langauge input simulation,
+        after any that are skipped by --sim-skip-errs.
+
+    --sim-graphs
+        Print the full dependency graph info for any issue found during langauge
+        input simulation that involves translation scheme dependency graphs.
+
+    --sim-off
+        Disable language input simulation, even if --ir and --hooks flags are
+        provided.
+
+    --sim-skip-errs N
+        Skip outputting the first N errors encountered during language input
+        simulation. Note that simluation errors will still cause ictcc to halt
+        generation even if their output is suppressed.
+
+    --sim-trees
+        Print the parse trees of any inputs found to cause issues during
+        language input simulation.
+
+    --slr
+        Generate a Simple LR(k) parser. Mutually exclusive with --ll, --lalr,
+        and --clr.
+
+    -S, --suppress WARNTYPE
+        Suppress the output of WARNTYPE warnings. If the specified type of
+        warning is encountered, ictcc will ignore it. Valid values for WARNTYPE
+        are the same as for --fatal. This flag may be specified multiple times
+        and in conjunction with -F flags; if both -F and -S are specified for a
+        warning, -F takes precedence.
+
+    -t, --tree
+        Print the parse tree of successfully parsed FISHI files to stdout.
+
+    --tmpl-frontend FILE
+        Use the contents of FILE as the template to generate frontend.ict.go
+        with during codegen.
+
+    --tmpl-lexer FILE
+        Use the contents of FILE as the template to generate lexer.ict.go with
+        during codegen.
+
+    --tmpl-main FILE
+        Use the contents of FILE as the template to generate main.go with during
+        codegen for binaries.
+    
+    --tmpl-parser FILE
+        Use the contents of FILE as the template to generate parser.ict.go with
+        during codegen.
+
+    --tmpl-sdts FILE
+        Use the contents of FILE as the template to generate sdts.ict.go with
+        during codegen.
+
+    --tmpl-tokens FILE
+        Use the contents of FILE as the template to generate tokens.ict.go with
+        during codegen.
+
+    -T, --parse-table
+        Print the parse table of the parser generated from the spec to stdout.
+
+    -v, --lang-ver VERSION
+        Set the language version in the metadata of the generated frontend to
+        VERSION. The default value is "v0.0".
+
+    --version
+        Print the current version of ictcc and then exit.
+```
