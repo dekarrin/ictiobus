@@ -71,9 +71,9 @@ Flags:
 
 	-v/--lang-ver VERSION
 		Set the version of the language to generate a frontend for. Defaults to
-		"v0.0.0".
+		"v0.0".
 
-	-p/--preproc
+	-P/--preproc
 		Show the output of running preprocessing on input files. This will show
 		the exact code that is going to be parsed by ictcc before such parsing
 		occurs.
@@ -85,26 +85,24 @@ Flags:
 	-F/--fatal WARN_TYPE
 		Make warnings of the given type be fatal. If ictcc encounters a warning
 		of that type, it will treat it as an error and immediately fail. The
-		possible values for the type of warning is as follows: "dupe_human",
-		"missing_human", "priority", "unused", "ambig", "validation", "import",
-		"val_args", or "all" to make all errors fatal. This option can be passed
-		more than once to give multiple warning types. See manual for
-		description of when each type of warning could arise. If a warning is
-		specified as both fatalized and suppressed by options, treating it as
-		fatal takes precedence. Specifying both '-F all' and '-S all' is not
-		allowed.
+		possible values for the type of warning is as follows: "dupe-human",
+		"missing-human", "priority", "unused", "ambig", "validation", "import",
+		"val-args", "exp-inherited-attributes", or "all" to make all errors
+		fatal. This option can be passed more than once to give multiple warning
+		types. See manual for description of when each type of warning could
+		arise. If a warning is specified as both fatalized and suppressed by
+		options, treating it as fatal takes precedence. Specifying both '-F all'
+		and '-S all' is not allowed.
 
 	-S/--suppress WARN_TYPE
 		Suppress outout of warnings of the given type. No "WARN" message will be
 		printed for that type even if ictcc encounters it. The possible values
-		for the type of warning to suppress is as as follows: "dupe_human",
-		"missing_human", "priority", "unused", "ambig", "validation", "import",
-		"val_args", or "all" to make all errors fatal. This option can be passed
-		more than once to give multiple warning types. See manual for
-		description of when each type of warning could arise. If a warning is
-		specified as both fatalized and suppressed by options, treating it as
-		fatal takes precedence. Specifying both '-F all' and '-S all' is not
-		allowed.
+		for the type of warning to suppress are the same as those for -F. This
+		option can be passed more than once to give multiple warning types. See
+		manual for description of when each type of warning could arise. If a
+		warning is specified as both fatalized and suppressed by options,
+		treating it as fatal takes precedence. Specifying both '-F all' and
+		'-S all' is not allowed.
 
 	-T/--parse-table
 		Write a string representation of the generated parser's parse table to
@@ -130,28 +128,28 @@ Flags:
 		If problems are detected with the SDTS of the resulting fishi during
 		SDTS validation, show the parse tree(s) that caused the problem.
 
-		Has no effect if -val-sdts-off is set.
+		Has no effect if --sim-off is set.
 
 	--sim-graphs
 		If problems are detected with the SDTS of the resulting fishi during
 		SDTS validation, show the full resulting dependency graph(s) that caused
 		the issue (if any).
 
-		Has no effect if -val-sdts-off is set.
+		Has no effect if --sim-off is set.
 
 	--sim-first-err
 		If problems are detected with the SDTS of the resulting fishi during
 		SDTS validation, show only the problem(s) found in the first simulated
 		parse tree (after any skipped by -val-sdts-skip) and then stop.
 
-		Has no effect if -val-sdts-off is set.
+		Has no effect if --sim-off is set.
 
 	--sim-skip-errs N
 		If problems are detected with the SDTS of the resulting fishi during
 		SDTS validation, skip the first N simulated parse trees in the output.
 		Combine with -val-sdts-first to view a specific parse tree.
 
-		Has no effect if -val-sdts-off is set.
+		Has no effect if --sim-off is set.
 
 	--debug-lexer
 		Enable debug mode for the lexer and print each token to standard out as
@@ -264,6 +262,11 @@ Flags:
 		and array/slice notation are allowed; maps are not (but types that have
 		map as an underlying type are allowed).
 
+	--exp FEATURE
+	    Enable experimental feature FEATURE. The output may be incomplete or
+		incorrect. The following features may be turned on at this time:
+		"inherited-attributes", or "all" for all of them.
+
 	--dev
 		Enable development mode. This will cause generated binaries to use the
 		local version of ictiobus instead of the latest release. If this flag is
@@ -328,6 +331,7 @@ var (
 	flagWarnFatal    = pflag.StringArrayP("fatal", "F", nil, "Treat given warning as a fatal error")
 	flagWarnSuppress = pflag.StringArrayP("suppress", "S", nil, "Suppress output of given warning")
 
+	flagExp        = pflag.StringArray("exp", nil, "Experimental feature to enable")
 	flagCommand    = pflag.StringP("command", "C", "", "Code to execute before any source code files are read")
 	flagQuietMode  = pflag.BoolP("quiet", "q", false, "Suppress progress messages and other supplementary output")
 	flagNoGen      = pflag.BoolP("no-gen", "n", false, "Do not output generated frontend output files")
@@ -335,8 +339,8 @@ var (
 	flagGenTree    = pflag.BoolP("tree", "t", false, "Print the parse trees of each analyzed fishi file")
 	flagShowSpec   = pflag.BoolP("spec", "s", false, "Print the FISHI spec interpreted from the analyzed fishi")
 	flagLang       = pflag.StringP("lang", "l", "Unspecified", "The name of the languae being generated")
-	flagLangVer    = pflag.StringP("lang-ver", "v", "v0.0.0", "The version of the language to generate")
-	flagPreproc    = pflag.BoolP("preproc", "p", false, "Print the preprocessed FISHI code before compiling it")
+	flagLangVer    = pflag.StringP("lang-ver", "v", "v0.0", "The version of the language to generate")
+	flagPreproc    = pflag.BoolP("preproc", "P", false, "Print the preprocessed FISHI code before compiling it")
 	flagParseTable = pflag.BoolP("parse-table", "T", false, "Print the parse table used by the generated parser")
 	flagDFA        = pflag.BoolP("dfa", "D", false, "Print the complete DFA of the parser")
 
@@ -448,6 +452,12 @@ func main() {
 	devInfo, err := devModeInfoFromFlags()
 	if err != nil {
 		errInvalidFlags("--dev: " + err.Error())
+		return
+	}
+
+	expFeatures, err := experimentalFeaturesFromFlags()
+	if err != nil {
+		errInvalidFlags("--exp: " + err.Error())
 		return
 	}
 
@@ -649,6 +659,13 @@ func main() {
 	// warnings may be valid even if there is an error
 	if len(warnings) > 0 {
 		for _, warn := range warnings {
+			// is it an experimental feature for inherited attr?
+			if warn.Type == fishi.WarnEFInheritedAttributes {
+				if _, enabled := expFeatures[FeatureInheritedAttributes]; !enabled {
+					errOther(warn.Message)
+					return
+				}
+			}
 			if wErr := warnHandler.Handlef("%s\n\n", warn); wErr != nil {
 				fatalSpecWarn = wErr
 			}
@@ -943,6 +960,34 @@ func printPreprocFile(file string) (rewoundStdin io.Reader, err error) {
 	}
 
 	return rewoundStdin, nil
+}
+
+func experimentalFeaturesFromFlags() (map[ExpFeature]struct{}, error) {
+	if *flagExp == nil {
+		return nil, nil
+	}
+
+	enabled := map[ExpFeature]struct{}{}
+	for i := range *flagExp {
+		expStr := strings.ToLower((*flagExp)[i])
+		if expStr == "all" {
+			all := ExpFeatureAll()
+			for _, f := range all {
+				enabled[f] = struct{}{}
+			}
+			return enabled, nil
+		}
+		exp, err := ParseShortExpFeature(expStr)
+		if err != nil {
+			return nil, err
+		}
+		if exp == FeatureNone {
+			return nil, fmt.Errorf("cannot select feature 'none'")
+		}
+		enabled[exp] = struct{}{}
+	}
+
+	return enabled, nil
 }
 
 func devModeInfoFromFlags() (DevModeInfo, error) {
