@@ -460,6 +460,7 @@ func main() {
 	expFeatures, err := experimentalFeaturesFromFlags()
 	if err != nil {
 		errInvalidFlags("--exp: " + err.Error())
+		return
 	}
 
 	// check args before gathering flags

@@ -397,8 +397,8 @@ func analyzeASTActionsContentSlice(
 					forProdIdx++
 					if forProdIdx >= len(gRule.Productions) {
 						prodsStr := textfmt.Pluralize(len(gRule.Productions), "production", "-s")
-						errFmt := "'->' by itself specifies production #%d, but grammar for %s only defines %s"
-						errMsg := fmt.Sprintf(errFmt, forProdIdx+1, ruleHead, prodsStr)
+						errFmt := "'->' by itself specifies production #%d, but grammar for %s only defines %d %s"
+						errMsg := fmt.Sprintf(errFmt, forProdIdx+1, ruleHead, len(gRule.Productions), prodsStr)
 						synErr := lex.NewSyntaxErrorFromToken(errMsg, prodAct.SrcVal)
 						return nil, warnings, synErr
 					}
@@ -463,7 +463,7 @@ func analyzeASTActionsContentSlice(
 					if sdd.Attribute.Relation.Type != trans.RelHead {
 						w := Warning{
 							Type:    WarnEFInheritedAttributes,
-							Message: fmt.Sprintf("SDTS rule for %s: %s is an inherited attribute (not an attribute of {^})", sdd.Rule.String(), sdd.Attribute),
+							Message: fmt.Sprintf("SDTS rule for %s: %s is an inherited attribute (not an attribute of {^})", sdd.Rule.String(), semAct.LHS),
 						}
 						warnings = append(warnings, w)
 					}
