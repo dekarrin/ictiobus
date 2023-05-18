@@ -1035,7 +1035,7 @@ func printSpec(spec fishi.Spec) {
 	// print tokens
 	fmt.Printf("Token Classes:\n")
 	if len(spec.Tokens) == 0 {
-		fmt.Printf("(no tokens declared)\n")
+		fmt.Printf("(no tokens defined)\n")
 	} else {
 		// find the longest token class ID
 		maxTCLen := 0
@@ -1050,8 +1050,8 @@ func printSpec(spec fishi.Spec) {
 			idPad := strings.Repeat(" ", maxTCLen-len(tc.ID()))
 			fmt.Printf("* %s%s - %q\n", tc.ID(), idPad, tc.Human())
 		}
-		fmt.Printf("\n")
 	}
+	fmt.Printf("\n")
 
 	// print lexer
 	fmt.Printf("Lexer Patterns:\n")
@@ -1089,8 +1089,8 @@ func printSpec(spec fishi.Spec) {
 				fmt.Printf("\n")
 			}
 		}
-		fmt.Printf("\n")
 	}
+	fmt.Printf("\n")
 
 	// print grammar in custom way
 	fmt.Printf("Grammar:\n")
@@ -1147,8 +1147,8 @@ func printSpec(spec fishi.Spec) {
 			// print the final rule string
 			fmt.Printf("%s", ruleStr)
 		}
-		fmt.Printf("\n")
 	}
+	fmt.Printf("\n")
 
 	// print translation scheme
 	fmt.Printf("Translation Scheme:\n")

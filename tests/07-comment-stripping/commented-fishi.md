@@ -1,4 +1,4 @@
-Simple Markdown file that contains a minimal set of FISHI instructions not
+Simple Markdown file that contains a small set of FISHI instructions not
 intended to be executed. It has a variety of comment and hash character usages
 which is what it was created to test.
 

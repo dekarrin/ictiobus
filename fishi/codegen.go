@@ -158,6 +158,19 @@ func executeTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 // localSource only needed if doing dev in ictiobus; otherwise latest ictiobus
 // published version is used.
 func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, params DiagBinParams) error {
+	if len(spec.Tokens) == 0 {
+		return fmt.Errorf("spec defines no tokens")
+	}
+	if len(spec.Patterns) == 0 {
+		return fmt.Errorf("spec defines no lexer patterns")
+	}
+	if len(spec.Grammar.NonTerminals()) == 0 {
+		return fmt.Errorf("spec defines no grammar rules")
+	}
+	if len(spec.TranslationScheme) == 0 {
+		return fmt.Errorf("spec defines no translation scheme actions")
+	}
+
 	binName := filepath.Base(params.BinPath)
 
 	outDir := DiagGenerationDir
@@ -447,6 +460,19 @@ func clearDirContents(dir string) error {
 //
 // If opts is nil, the default options will be used.
 func GenerateFrontendGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, pkgImport string, opts *CodegenOptions) error {
+	if len(spec.Tokens) == 0 {
+		return fmt.Errorf("spec defines no tokens")
+	}
+	if len(spec.Patterns) == 0 {
+		return fmt.Errorf("spec defines no lexer patterns")
+	}
+	if len(spec.Grammar.NonTerminals()) == 0 {
+		return fmt.Errorf("spec defines no grammar rules")
+	}
+	if len(spec.TranslationScheme) == 0 {
+		return fmt.Errorf("spec defines no translation scheme actions")
+	}
+
 	if opts == nil {
 		opts = &CodegenOptions{}
 	}
