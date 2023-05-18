@@ -226,7 +226,7 @@ For tokens state:
 %state TOKENS
 
 \n\s*%!%!.                                         %token nl-escseq
-%human escape sequence after this line
+%human escape sequence
 
 %!%[Ss][Tt][Aa][Tt][Ee]                            %token dir-state
 %human %!%state directive                          %stateshift STATE-T
@@ -249,7 +249,7 @@ For tokens state:
 [^\S\n]+                                           %discard
 
 \n\s*[^%!%\s]+[^%!%\n]*                            %token nl-freeform-text
-%human freeform text after this line
+%human freeform text
 
 \n                                                 %discard
 

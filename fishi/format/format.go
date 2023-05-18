@@ -16,7 +16,7 @@ var (
 	// should match solitary # on line, but we'd 8etter make sure there's a
 	// newline for the [^#] after the # to match on, otherwise this won't be
 	// gr8.
-	regexCommentStart = regexp.MustCompile(`[^#]*(#)[^#]`)
+	regexCommentStart = regexp.MustCompile(`(?:^|[^#]+)(#)[^#]`)
 )
 
 // CodeReader is an implementation of io.Reader that reads fishi code from input
@@ -94,12 +94,9 @@ func normalizeFishi(source []byte) []byte {
 		indexes := regexCommentStart.FindStringSubmatchIndex(line + "\n")
 
 		if len(indexes) > 1 {
-			if indexes[1] >= 0 {
-				if indexes[1] == 0 {
-					line = ""
-				} else {
-					line = line[:indexes[1]-1]
-				}
+			commentStartIdx := indexes[2]
+			if commentStartIdx >= 0 {
+				line = line[:commentStartIdx]
 			}
 		}
 

@@ -1034,126 +1034,140 @@ func parserSelectionFromFlags() (t *parse.Algorithm, allowAmbig bool, err error)
 func printSpec(spec fishi.Spec) {
 	// print tokens
 	fmt.Printf("Token Classes:\n")
-
-	// find the longest token class ID
-	maxTCLen := 0
-	for _, tc := range spec.Tokens {
-		if len(tc.ID()) > maxTCLen {
-			maxTCLen = len(tc.ID())
+	if len(spec.Tokens) == 0 {
+		fmt.Printf("(no tokens declared)\n")
+	} else {
+		// find the longest token class ID
+		maxTCLen := 0
+		for _, tc := range spec.Tokens {
+			if len(tc.ID()) > maxTCLen {
+				maxTCLen = len(tc.ID())
+			}
 		}
-	}
 
-	for _, tc := range spec.Tokens {
-		// padding
-		idPad := strings.Repeat(" ", maxTCLen-len(tc.ID()))
-		fmt.Printf("* %s%s - %q\n", tc.ID(), idPad, tc.Human())
+		for _, tc := range spec.Tokens {
+			// padding
+			idPad := strings.Repeat(" ", maxTCLen-len(tc.ID()))
+			fmt.Printf("* %s%s - %q\n", tc.ID(), idPad, tc.Human())
+		}
+		fmt.Printf("\n")
 	}
-	fmt.Printf("\n")
 
 	// print lexer
 	fmt.Printf("Lexer Patterns:\n")
 	orderedStates := textfmt.OrderedKeys(spec.Patterns)
+	if len(orderedStates) == 0 {
+		fmt.Printf("(no patterns defined)\n")
+	} else {
+		for _, state := range orderedStates {
+			pats := spec.Patterns[state]
 
-	for _, state := range orderedStates {
-		pats := spec.Patterns[state]
-
-		if state == "" {
-			fmt.Printf("All States:\n")
-		} else {
-			fmt.Printf("State %s:\n", state)
-		}
-
-		for _, pat := range pats {
-			fmt.Printf("* %s => ", pat.Regex.String())
-
-			switch pat.Action.Type {
-			case lex.ActionNone:
-				fmt.Printf("(DISCARDED)")
-			case lex.ActionScan:
-				fmt.Printf("%s", pat.Action.ClassID)
-			case lex.ActionState:
-				fmt.Printf("GO TO STATE %s", pat.Action.State)
-			case lex.ActionScanAndState:
-				fmt.Printf("%s THEN GO TO STATE %s", pat.Action.ClassID, pat.Action.State)
+			if state == "" {
+				fmt.Printf("All States:\n")
+			} else {
+				fmt.Printf("State %s:\n", state)
 			}
 
-			if pat.Priority != 0 {
-				fmt.Printf(", PRIORITY %d", pat.Priority)
-			}
+			for _, pat := range pats {
+				fmt.Printf("* %s => ", pat.Regex.String())
 
-			fmt.Printf("\n")
+				switch pat.Action.Type {
+				case lex.ActionNone:
+					fmt.Printf("(DISCARDED)")
+				case lex.ActionScan:
+					fmt.Printf("%s", pat.Action.ClassID)
+				case lex.ActionState:
+					fmt.Printf("GO TO STATE %s", pat.Action.State)
+				case lex.ActionScanAndState:
+					fmt.Printf("%s THEN GO TO STATE %s", pat.Action.ClassID, pat.Action.State)
+				}
+
+				if pat.Priority != 0 {
+					fmt.Printf(", PRIORITY %d", pat.Priority)
+				}
+
+				fmt.Printf("\n")
+			}
 		}
+		fmt.Printf("\n")
 	}
-	fmt.Printf("\n")
 
 	// print grammar in custom way
 	fmt.Printf("Grammar:\n")
 	nts := spec.Grammar.NonTerminalsByPriority()
-	// ensure that the start symbol is first
-	if nts[0] != spec.Grammar.StartSymbol() {
-		startSymIdx := -1
+	if len(nts) == 0 {
+		fmt.Printf("(no rules defined)\n")
+	} else {
+		// ensure that the start symbol is first
+		if nts[0] != spec.Grammar.StartSymbol() {
+			startSymIdx := -1
 
-		needle := spec.Grammar.StartSymbol()
-		for i, nt := range nts {
-			if nt == needle {
-				startSymIdx = i
-				break
+			needle := spec.Grammar.StartSymbol()
+			for i, nt := range nts {
+				if nt == needle {
+					startSymIdx = i
+					break
+				}
+			}
+
+			if startSymIdx == -1 {
+				panic("start symbol not found in grammar")
+			}
+
+			nts[0], nts[startSymIdx] = nts[startSymIdx], nts[0]
+		}
+
+		// find the longest non-terminal name
+		maxNTLen := 0
+		for _, nt := range nts {
+			if len(nt) > maxNTLen {
+				maxNTLen = len(nt)
 			}
 		}
 
-		if startSymIdx == -1 {
-			panic("start symbol not found in grammar")
-		}
+		nextPad := strings.Repeat(" ", maxNTLen)
 
-		nts[0], nts[startSymIdx] = nts[startSymIdx], nts[0]
+		for _, nt := range nts {
+			// head part is space-padded to align with longest non-terminal name
+			r := spec.Grammar.Rule(nt)
+			if r.NonTerminal == "" {
+				panic("non-terminal not found in grammar")
+			}
+
+			headPad := strings.Repeat(" ", maxNTLen-len(r.NonTerminal))
+
+			// first rule will be simply HEAD -> PROD
+			ruleStr := fmt.Sprintf("%s%s -> %s\n", r.NonTerminal, headPad, r.Productions[0].String())
+
+			// add alternatives
+			for _, prod := range r.Productions[1:] {
+				ruleStr += fmt.Sprintf("%s  | %s\n", nextPad, prod.String())
+			}
+
+			// print the final rule string
+			fmt.Printf("%s", ruleStr)
+		}
+		fmt.Printf("\n")
 	}
-
-	// find the longest non-terminal name
-	maxNTLen := 0
-	for _, nt := range nts {
-		if len(nt) > maxNTLen {
-			maxNTLen = len(nt)
-		}
-	}
-
-	nextPad := strings.Repeat(" ", maxNTLen)
-
-	for _, nt := range nts {
-		// head part is space-padded to align with longest non-terminal name
-		r := spec.Grammar.Rule(nt)
-		if r.NonTerminal == "" {
-			panic("non-terminal not found in grammar")
-		}
-
-		headPad := strings.Repeat(" ", maxNTLen-len(r.NonTerminal))
-
-		// first rule will be simply HEAD -> PROD
-		ruleStr := fmt.Sprintf("%s%s -> %s\n", r.NonTerminal, headPad, r.Productions[0].String())
-
-		// add alternatives
-		for _, prod := range r.Productions[1:] {
-			ruleStr += fmt.Sprintf("%s  | %s\n", nextPad, prod.String())
-		}
-
-		// print the final rule string
-		fmt.Printf("%s", ruleStr)
-	}
-	fmt.Printf("\n")
 
 	// print translation scheme
 	fmt.Printf("Translation Scheme:\n")
-	for _, sdd := range spec.TranslationScheme {
-		fmt.Printf("* %s: ", sdd.Rule.String())
-		lhsStr := sddRefToPrintedString(sdd.Attribute, spec.Grammar, sdd.Rule)
-		fmt.Printf("%s = %s(", lhsStr, sdd.Hook)
-		for i := range sdd.Args {
-			if i != 0 {
-				fmt.Printf(", ")
+	if len(spec.TranslationScheme) == 0 {
+		fmt.Printf("(no actions defined)\n")
+	} else {
+		for _, sdd := range spec.TranslationScheme {
+			fmt.Printf("* %s: ", sdd.Rule.String())
+			lhsStr := sddRefToPrintedString(sdd.Attribute, spec.Grammar, sdd.Rule)
+			fmt.Printf("%s = %s(", lhsStr, sdd.Hook)
+			for i := range sdd.Args {
+				if i != 0 {
+					fmt.Printf(", ")
+				}
+				argStr := sddRefToPrintedString(sdd.Args[i], spec.Grammar, sdd.Rule)
+				fmt.Printf("%s", argStr)
 			}
-			argStr := sddRefToPrintedString(sdd.Args[i], spec.Grammar, sdd.Rule)
-			fmt.Printf("%s", argStr)
+			fmt.Printf(")\n")
 		}
-		fmt.Printf(")\n")
 	}
 }
 
