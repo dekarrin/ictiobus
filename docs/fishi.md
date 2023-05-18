@@ -216,7 +216,7 @@ For all states:
 %!%%!%[Gg][Rr][Aa][Mm][Mm][Aa][Rr]     %token hdr-grammar
 %human %!%%!%grammar header            %stateshift GRAMMAR
 
-%!%%!%[Aa][Cc][Tt][Ii][Oo][Nn][Ss]     %token hdr-actions 
+%!%%!%[Aa][Cc][Tt][Ii][Oo][Nn][Ss]     %token hdr-actions
 %human %!%%!%actions header            %stateshift ACTIONS
 ```
 
