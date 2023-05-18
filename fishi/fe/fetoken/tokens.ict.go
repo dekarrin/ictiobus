@@ -91,8 +91,8 @@ var (
 	// TCNlFreeformText is the token class representing a freeform text in FISHI.
 	TCNlFreeformText = lex.NewTokenClass("nl-freeform-text", "freeform text")
 
-	// TCNlNonterm is the token class representing a non-terminal symbol literal after this line in FISHI.
-	TCNlNonterm = lex.NewTokenClass("nl-nonterm", "non-terminal symbol literal after this line")
+	// TCNlNonterm is the token class representing a non-terminal symbol literal in FISHI.
+	TCNlNonterm = lex.NewTokenClass("nl-nonterm", "non-terminal symbol literal")
 
 	// TCNonterm is the token class representing a non-terminal symbol literal in FISHI.
 	TCNonterm = lex.NewTokenClass("nonterm", "non-terminal symbol literal")

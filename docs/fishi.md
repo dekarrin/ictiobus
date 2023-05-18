@@ -268,7 +268,7 @@ For grammar state:
 [^\S\n]+                 %discard
 
 \n\s*{[A-Za-z][^}]*}     %token nl-nonterm
-%human non-terminal symbol literal after this line
+%human non-terminal symbol literal
 
 \n                       %discard
 \|                       %token alt     %human alternations bar '|'
