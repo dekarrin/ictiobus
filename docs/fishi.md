@@ -5,7 +5,7 @@ to specify languages that ictiobus is to create compilers for. So, this file is
 both the manual for use and the self-description used by Ictiobus to generate
 its own frontend.
 
-FISHI stands for the  Frontend Instruction Specification for (self-)Hosting
+FISHI stands for the  Frontend Instruction Specification for languages Hosted on
 Ictiobus. The name is a little contrived but that was the best way to get it to
 spell out something ocean-related, which was considered of paramount importance
 by the initial creators of this language, and also maintains consistency with

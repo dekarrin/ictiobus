@@ -845,7 +845,7 @@ Flags:
         encountered, ictcc will output it as though it were an error and
         immediately halt. Valid values for WARNTYPE are "dupe-human",
         "missing-human", "priority", "unused", "ambig", "validation", "import",
-		"val-args", "exp-inherited-attributes", and "all". This flag may be
+        "val-args", "exp-inherited-attributes", and "all". This flag may be
         specified multiple times and in conjunction with -S flags; if both -F
         and -S are specified for a warning, -F takes precedence.
 

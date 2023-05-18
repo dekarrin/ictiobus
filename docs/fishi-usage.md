@@ -1,6 +1,275 @@
-Example Language
-################
+Using FISHI
+###########
 
+The Frontend Instruction Specification for Languages Hosted on Ictiobus (or just
+"FISHI language" or "FISHI" for short), is the special language used to define
+specifications for languages that Ictiobus can then generate parsers for! Well,
+compiler frontends, really, which include the lexer, parser, and translation
+scheme.
+
+To use Ictiobus to make your own programming or scripting language, you first
+define a spec for it in the FISHI langauge, then run the command ictcc on the
+spec and poof! You'll have a whole glubbin langauge parser (compiler frontend)
+ready to use in the Go package you tell ictcc to output it to. All your code
+needs to do is call the package's `Frontend()` function.
+
+But building a spec is non-trivial! This document is intended as a somewhat
+user-friendly manual explaining how to build a complete FISHI spec using an
+example language. If you're looking for an example of a FISHI spec, you're in
+luck, because FISHI is self-hosted: there's a
+[FISHI spec for FISHI itself](./fishi.md), and it's used to generate the FISHI
+parser that ictcc uses. Glub.
+
+## The Three Phases Of A Compiler Frontend
+
+So, the term "parser" is often used in two distinct ways. Outside of the context
+of compilers and translators, it's often used to refer to an entire analysis
+system that can on its own take in input and produce a value from it, either the
+result of execution or some representation of the input that can be further
+processed. Here, "parsing" refers to the entire process of reading in input,
+scanning it for recognizable symbols ("tokens"), interpreting the tokens
+according to some format, and then using that interpretation to produce the
+final value.
+
+But often in the context of compilers and translators, and absolutely within the
+context of FISHI and Ictiobus, "parsing" refers to just one of three main phases
+in a complete analysis of input. This complete analysis is known as the
+*frontend* of a compiler or interpreter, and the final result value from it is
+called the intermediate representation of the input, or IR for short. When input
+is analyzed by a frontend, it goes through all three phases in its quest to
+become an IR!
+
+The phases of a frontend:
+```
+              I N P U T
+          (text in language)
+
+             "(3+8) * 2"
+             
+                  |
+                  V
+             [L E X E R]
+                  |
+                  V
+               (tokens)
+
+  (lparen "("), (int "3"), (plus "+"),
+  (int "8"), (rparen ")"), (times "*"),
+              (int "2")
+                 
+                  |
+                  V
+            [P A R S E R]
+                  |
+                  V
+             (parse tree)
+
+                 sum
+                  |
+               product
+               /    |  \ 
+            term   "*"  term
+           /  |  \       |
+        "("  sum  ")"   "2"
+            / |  \
+        sum  "+"  product
+         |           |
+      product      term
+         |           |
+       term         "8"
+         |
+        "3"
+
+                  |
+                  V
+[T R A N S L A T I O N   S C H E M E]
+                  |
+                  V
+    (intermediate representation)
+
+                  22
+
+             O U T P U T
+```
+
+FISHI specs have 3 different types of "sections" in them that correspond to each
+of the three phases: the `%%tokens` sections which give all types of token
+classes and the patterns to lex them, the `%%grammar` sections which define the
+context-free grammar for the language, and the `%%actions` sections which define
+actions to apply in the syntax-directed translation scheme.
+
+## FISHI File Structure
+
+A FISHI file is really easy to write. It's markdown! And for the most part, it's
+totally ignored by ictcc. The only place that it looks for code is in special
+code blocks (the triple ticks) that have the label `fishi`.
+
+    # Example Markdown File
+
+    This is some markdown! The `ictcc` program won't parse this part at all, and
+    it will be rendered as normal markdown.
+
+    You can have code blocks of any kind:
+
+    ```go
+    func Hello(name string) string
+    ```
+
+    ## FISHI Code Blocks
+
+    ...But only code blocks labeled with "fishi" will be interpreted as FISHI:
+
+    ```fishi
+    # FISHI source code goes here, commented with the hash character
+    ```
+
+If there's multiple FISHI code blocks in the same file, they will be read and
+interpreted in sequence. So for instance, the following example:
+
+    ## Our Tokens
+
+    These are the lexed tokens:
+
+    ```fishi
+    %%tokens
+
+    \d+            %token int
+    [A-Za-z_0-9]   %token identifier
+    ```
+
+    ## Discarded Patterns
+
+    These patterns are discarded by the lexer:
+
+    ```fishi
+    \s+            %discard
+    ```
+
+Will be interpreted as exactly equivalent to this:
+
+    ## Lexer
+
+    This is the spec for the lexing phase:
+
+    ```fishi
+    %%tokens
+
+    \d+            %token int
+    [A-Za-z_0-9]   %token identifier
+    \s+            %discard
+    ```
+
+Embedding FISHI within markdown like this means that FISHI code can live right
+next to code that explains it in rich text. Of course, FISHI also supports
+comments within FISHI code blocks; the '#' goes from the initial '#' to the end
+of the line.
+
+Every FISHI file contains three types of "sections", each of which is started
+with a special header. It is completely acceptable to have multiple of the same
+type of section, and it's even okay to interleave them!
+
+So, this:
+
+    ```fishi
+    %%tokens
+
+    \d+            %token int
+    ```
+
+    And some other text
+
+    ```fishi
+    %%grammar
+
+    {S} = {S} {E} | {E}
+    ```
+
+    ```fishi
+    %%tokens
+
+    [A-Za-z_0-9]   %token identifier
+    ```
+
+Is interpreted the same as this:
+
+    ```fishi
+    %%tokens
+
+    \d+            %token int
+    ```
+
+    And some other text
+
+    ```fishi
+    %%tokens
+
+    [A-Za-z_0-9]   %token identifier
+    ```
+
+    ```fishi
+    %%grammar
+
+    {S} = {S} {E} | {E}
+    ```
+
+Which, since any FISHI without a section header will be interpreted as a
+continuation of the section from before, is interpreted the same as this:
+
+    ```fishi
+    %%tokens
+
+    \d+            %token int
+    ```
+
+    And some other text
+
+    ```fishi
+    [A-Za-z_0-9]   %token identifier
+    ```
+
+    ```fishi
+    %%grammar
+
+    {S} = {S} {E} | {E}
+    ```
+
+
+
+## Specifying the Lexer with Tokens
+
+### The Pattern
+
+### Lexing A New Token
+%tok
+%hum
+### Discarding Input
+%discard
+
+### Pattern Priority
+note on how it is calculated, followed by "priority"
+
+## Specifying the Parser with Grammar
+
+### Symbols
+
+### The Epsilon Production
+
+## Specifying the Translation Scheme with Actions
+
+(give typical action)
+
+### Associated Symbol
+
+### AttrRefs
+
+### Shortcuts
+
+### Hooks
+
+### Synthesized vs Inherited Attributes
+
+
+##### (old content below this)
 *NOTE: this document is being kept for historical purproses, and some content
 may be correct, but it was the first attempt to standardize the fishi language
 and is heavily out of date. Refer to fishi.md instead of this file for an
