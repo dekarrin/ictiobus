@@ -10,6 +10,7 @@ import (
 	"io"
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 var (
@@ -74,12 +75,17 @@ func NewCodeReader(r io.Reader) (*CodeReader, error) {
 }
 
 // normalizeFishi does a preprocess step on the source, which as of now includes
-// stripping comments and normalizing end of lines to \n.
+// stripping comments, replacing ## with literal #, and normalizing ends of
+// lines to \n.
+//
+// In addition, all leading space is stripped.
 func normalizeFishi(source []byte) []byte {
 	toBuf := make([]byte, len(source))
 	copy(toBuf, source)
 	scanner := bufio.NewScanner(bytes.NewBuffer(toBuf))
 	var preprocessed strings.Builder
+
+	var strippedLeadingSpace bool
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -102,6 +108,15 @@ func normalizeFishi(source []byte) []byte {
 
 		// now replace any double #'s with normal ones:
 		line = strings.ReplaceAll(line, "##", "#")
+
+		if !strippedLeadingSpace {
+			line = strings.TrimLeftFunc(line, unicode.IsSpace)
+			if line == "" {
+				continue
+			} else {
+				strippedLeadingSpace = true
+			}
+		}
 
 		preprocessed.WriteString(line)
 		preprocessed.WriteRune('\n')
