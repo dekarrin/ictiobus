@@ -22,7 +22,7 @@ Additionally, all other whitespace is discarded.
 ```fishi
 %%tokens
 
-\+			              %token +         %human plus sign '+'
+\+                        %token +         %human plus sign '+'
 \*                        %token *         %human multiplication sign '*'
 \(                        %token lp        %human left parenthesis '('
 \)                        %token rp        %human right parenthesis ')'

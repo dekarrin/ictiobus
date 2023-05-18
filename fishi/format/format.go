@@ -8,7 +8,15 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"regexp"
 	"strings"
+)
+
+var (
+	// should match solitary # on line, but we'd 8etter make sure there's a
+	// newline for the [^#] after the # to match on, otherwise this won't be
+	// gr8.
+	regexCommentStart = regexp.MustCompile(`[^#]*(#)[^#]`)
 )
 
 // CodeReader is an implementation of io.Reader that reads fishi code from input
@@ -80,7 +88,24 @@ func normalizeFishi(source []byte) []byte {
 		} else {
 			line = strings.TrimSuffix(line, "\n")
 		}
-		line, _, _ = strings.Cut(line, "#")
+
+		// do *not* take double #'s.
+		// we add a \n because that makes the regex match on # at line end.
+		indexes := regexCommentStart.FindStringSubmatchIndex(line + "\n")
+
+		if len(indexes) > 1 {
+			if indexes[1] >= 0 {
+				if indexes[1] == 0 {
+					line = ""
+				} else {
+					line = line[:indexes[1]-1]
+				}
+			}
+		}
+
+		// now replace any double #'s with normal ones:
+		line = strings.ReplaceAll(line, "##", "#")
+
 		preprocessed.WriteString(line)
 		preprocessed.WriteRune('\n')
 	}

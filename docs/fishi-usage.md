@@ -1,5 +1,5 @@
 Using FISHI
-###########
+===========
 
 The Frontend Instruction Specification for Languages Hosted on Ictiobus (or just
 "FISHI language" or "FISHI" for short), is the special language used to define
@@ -20,7 +20,7 @@ luck, because FISHI is self-hosted: there's a
 [FISHI spec for FISHI itself](./fishi.md), and it's used to generate the FISHI
 parser that ictcc uses. Glub.
 
-## The Three Phases Of A Compiler Frontend
+## The Three Phases Of An Ictiobus Compiler Frontend
 
 So, the term "parser" is often used in two distinct ways. Outside of the context
 of compilers and translators, it's often used to refer to an entire analysis
@@ -41,55 +41,73 @@ become an IR!
 
 The phases of a frontend:
 ```
-              I N P U T
-          (text in language)
+             | I N P U T |
+             \-----------/
+                   |
+                   V
+           (text in language)
 
-             "(3+8) * 2"
+              "(3+8) * 2"
              
-                  |
-                  V
-             [L E X E R]
-                  |
-                  V
-               (tokens)
+                   |
+                   V
+               /-------\
+              /         \
+             | L E X E R |
+              \         /
+               \-------/
+                   |
+                   V
+                (tokens)
 
-  (lparen "("), (int "3"), (plus "+"),
-  (int "8"), (rparen ")"), (times "*"),
-              (int "2")
+   (lparen "("), (int "3"), (plus "+"),
+   (int "8"), (rparen ")"), (times "*"),
+               (int "2")
                  
-                  |
-                  V
-            [P A R S E R]
-                  |
-                  V
-             (parse tree)
+                   |
+                   V
+              /---------\
+             /           \
+            | P A R S E R |
+             \           /
+              \---------/
+                   |
+                   V
+              (parse tree)
 
-                 sum
-                  |
-               product
-               /    |  \ 
-            term   "*"  term
-           /  |  \       |
-        "("  sum  ")"   "2"
-            / |  \
-        sum  "+"  product
-         |           |
-      product      term
-         |           |
-       term         "8"
-         |
-        "3"
+                  sum
+                   |
+                product
+                /    |  \ 
+             term   "*"  term
+            /  |  \       |
+         "("  sum  ")"   "2"
+             / |  \
+         sum  "+"  product
+          |           |
+       product      term
+          |           |
+        term         "8"
+          |
+         "3"
 
-                  |
-                  V
-[T R A N S L A T I O N   S C H E M E]
-                  |
-                  V
-    (intermediate representation)
-
-                  22
-
-             O U T P U T
+                   |
+                   V
+  /---------------------------------\
+ /                                   \
+| T R A N S L A T I O N   S C H E M E |
+ \                                   /
+  \---------------------------------/
+                   |
+                   V
+     (intermediate representation)
+ 
+                   22
+                   
+                   |
+                   V
+             /-----------\
+            | O U T P U T |
 ```
 
 FISHI specs have 3 different types of "sections" in them that correspond to each
