@@ -251,6 +251,12 @@ continuation of the section from before, is interpreted the same as this:
     {S} = {S} {E} | {E}
     ```
 
+### Comments
+
+FISHI comments start with a '#' and go until the end of the line. If you need to
+put a literal '#' in FISHI, put in "##":
+
+    
 
 
 ## Specifying the Lexer with Tokens
