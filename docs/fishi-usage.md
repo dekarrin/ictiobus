@@ -411,7 +411,7 @@ the "Using Lexer States" section below.
 ### The Pattern
 
     \d+       %token int     %human integer literal
-    ^^^ - this is the pattern
+     ^-- this is the pattern
 
 Each entry begins with a pattern. This is a regular expression given in the same
 [RE2 syntax](https://github.com/google/re2/wiki/Syntax) that is accepted by the
@@ -449,7 +449,7 @@ string), and `$` will *never* match except at the very end of all input text. So
 these cannot be used to distinguish patterns, or at least, not as they would
 typically be used in regular expressions.
 
-### Lexing A New Token
+### Lexing Tokens
 
 New tokens in FISHI are declared by using the `%token` directive after a
 pattern, followed by the name of a token class. The lexer will lex the text
@@ -610,11 +610,142 @@ lex the matched text as the given token class, and then immediately swap to the
 provided state.
 
 ### Pattern Priority
-note on how it is calculated, followed by "priority"
+
+If two patterns match the same input, the Ictiobus lexer will prefer patterns
+that consume more input over those that consume less.
+
+    # for the below patterns, the input "obj->" would be lexed as an obj-ptr
+    # token:
+
+    obj         %token obj-bare
+    obj->       %token obj-ptr
+
+If two patterns would match the same length, the lexer will prefer the one that
+is declared first.
+
+    # for the below patterns, "cat" would be lexed as a mover token:
+    ca[rt]       %token mover
+    c[ao]t       %token sleeper
 
 ### Complete Example For FISHI Math
 
+WIP
+
 ## Specifying the Parser with Grammar
+
+The second stage of an Ictiobus frontend is parsing. In this stage, tokens read
+from the lexer in the first stage are grouped into increasingly larger syntactic
+constructs. This is organized into a *parse tree*, which describes the structure
+of the input code.
+
+There are many different algorithms that can be used to construct a parser. The
+ictcc command allows you to select one with the `--ll`, `--slr`, `--clr`, or
+`--lalr` options. If you're not sure which one would be best, ictcc can select
+one automatically. See the [ictcc Manual](./ictcc.md) for more info on parsing
+algorithms.
+
+All parsing algorithms build a parser by using a *context-free grammar* (CFG),
+which is a special, rigorous definition of a language. A language itself in this
+sense is a strictly defined concept, but the important thing for FISHI is that
+it can be expressed using a CFG, and programming languages are almost always
+this kind of language.
+
+The Context-Free Grammar for the parser is specified in FISHI in `%%grammar`
+sections. It's declared in `a special format that somewhat resembles BNF, but
+with some modifications.
+
+The CFG is made up of several rules; each rule gives a sequence of symbols that
+the head symbol (the symbol on the left of the rules) can be turned into. This
+is called deriving the symbols on the right hand of the rule. Spacing between
+the symbols is ignored in FISHI, this will be ignored.
+
+This rule says that the non-terminal symbol called SUM can derive the string
+made up of the *terminals* (symbols with no rule in the gramamr where it is the
+head symbol) "int", "+", then "int".
+
+    %%grammar
+
+    {SUM}   =   int + int
+
+Terminals in FISHI CFGs must be token classes that are defined in a Tokens
+section somewhere else in the spec.
+
+Non-Terminals (symbols with at least one rule in the gramamr where it is the
+head symbol) in FISHI are surrounded with curly braces `{` and `}` to
+distinguish them from terminals. Their name must begin with an upper-case
+letter, but after that they can be any character (except `}` of course, as that
+would close the non-terminal braces).
+
+Non-terminals can be in a *production* (the string on the right-hand side that
+can be derived from the head symbol):
+
+    {SUM}   =   {TERM} + {TERM}
+
+A non-terminal can have more than one string it can derive to. This is expressed
+in FISHI by putting a vertical bar `|` between the strings, either on the same
+line as both it and the alternative or on a new line. When deriving the head
+symbol, any of them may be selected. These are called the *alternatives* or
+*productions* of the head symbol.
+
+    %%grammar
+
+    # This rule states that non-terminal TERM can derive a string consisting of
+    # a single int, or a single id.
+
+    {TERM}   =   int | id
+
+    {EXPR}   =   {SUM}
+             |   {PRODUCT}
+             |   {VALUE}
+
+The idea for using a grammar is that you start with the first non-terminal
+defined, derive a string of symbols from it. Then take that string, and for each
+symbol that is a non-terminal, derive a string for *that* symbol and replace it
+with the string, and successively continue replacing non-terminals with a string
+they could derive until only terminal symbols remain. Any time there are
+multiple alternatives to select from, you take your pick as to which one to
+derive. Any string of terminals that your able to derive this way is said to be
+"in" the grammar, and thus is a valid string in the language it describes.
+
+For example, given the following CFG:
+
+    %%grammar
+
+    {EXPR}     =  {EXPR} + {PRODUCT} | {PRODUCT}
+    {PRODUCT}  =  {PRODUCT} * {TERM} | {TERM}
+    {TERM}     =  lparen {EXPR} rparen | int | id
+
+You would start with the non-terminal `EXPR`. From there, you might perform the
+following set of derivations:
+
+    STRING      |    GRAMMAR RULE
+    ------------------------------
+
+You might have noticed by now that these so-called derivations look an awful lot
+
+There can be more than one string of symbols that the *head symbol*  can derive. This rule says that the symbol S can
+derive "a" or "b" (but not both):
+
+    S   ->   a | b
+
+A complete grammar has several rules, such as thi
+
+The idea is that you start with the first
+symbol and successively 
+
+--
+
+The first stage of an Ictiobus frontend is lexing (sometimes referred to as
+scanning). This is where code, input as a stream of UTF-8 encoded characters,
+is scanned for for recognizable symbols, which are passed to the parsing stage
+for further processing. These symbols are called *tokens* - the 'words' of the
+input language. Each token has a type, called the *token class*, that is later
+used by the parser.
+
+This stage is specified in FISHI in `%%tokens` sections. Each entry in this
+section begins with a regular expression pattern that tells the lexer how to
+find groups of text, and gives one or more actions the lexer should perform.
+
 
 ### Symbols
 
