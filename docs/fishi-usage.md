@@ -526,14 +526,88 @@ matter how it was lexed.
     [Tt][Ww][Oo]           %token int    %human integer literal
 
 If there are multiple different human-readable names for the same class, then
-only the first one 
+the last one given will be used for the class.
 
+    # don't use different human definitions for the same token! The below
+    # example results in any 'int' being called 'number two' because it was the
+    # last human name given; that's just confusing, glub
 
-note on multiple human
+    \d+                    %token int    %human integers
+    [Oo][Nn][Ee]           %token int    %human number one
+    [Tt][Ww][Oo]           %token int    %human number two
+
 ### Discarding Input
-%discard
+
+Sometimes, you will want the lexer skip over certain kinds of text. The most
+common use of this tends to be for ignoring whitespace, but it can be used to
+ignore anything you can write a regex for.
+
+The `%discard` directive is used after a pattern to inform the lexer to take the
+matching text and do nothing with it. The match is discarded as if it weren't
+there and the lexer continues scanning input after that match.
+
+    # ignore whitespace
+    \s+         %discard
+
+This can't be used with the `%token` directive; it wouldn't make much sense to
+both discard the text *and* lex it as a token.
 
 ### Using Lexer States
+
+The lexer provided by ictiobus is capable of using states to switch between what
+patterns it recognizes. This lets you swap modes for lexical specifications
+which cannot be described succinctly (or at all) using just regular expressions.
+Ideally, the lexer stage does not use states and instead uses carefully-crafted
+patterns, but the world is not always ideal, and while the general advice is to
+avoid using a stateful parser as much as possible, sometimes one must resort to
+having them.
+
+The lexer has a very simple model for states - it is in one at any given time
+and retains no knowledge of any previous states. When the lexer begins, it will
+be in the *default state* which has no name, and will only match patterns
+defined for no state in particular. When it shifts to a new state, it begins
+using the patterns defined for that state **in addition to the default
+patterns**, as opposed to instead of them. The next time it is instructed to
+shift states, it will begin using the patterns for the new state in addition to
+the default ones, and stop using the patterns for the state it just exited.
+
+Unless declared as being for a particular state, all patterns in the lexer
+specification will be for the default state. Patterns for a particular state can
+be defined by first using a `%state` directive, followed by the patterns to use
+in that state. `%state` only needs to be declared once; all following patterns
+(until the end of the Tokens section or until another `%state` directive) will
+be used only for that state.
+
+    # a contrived example that shows the use of states to enable different
+    # patterns:
+
+    %%tokens
+
+    # patterns for the default state, which will be used by ALL states:
+    
+    \s+                     %discard
+    [Mm][Oo][Dd][Ee]1       %stateshift MODE1
+    [Mm][Oo][Dd][Ee]2       %stateshift MODE2
+
+    %state MODE1
+
+    "[^"]*"                 %token dstr      %human double-quoted string literal
+    '[^']*'                 %token sstr      %human single-quoted string literal
+
+    %state MODE2
+
+    \d+                     %token int       %human integer literal
+    [A-Za-z_][A-Za-z0-9_]   %token id        %human identifier
+
+To instruct the lexer to change states when it matches a pattern, use the
+`%stateshift` directive after that pattern, and give the state it should shift
+to after it.
+
+    [Mm][Oo][Dd][Ee]2       %stateshift MODE2
+
+You can use `%stateshift` with `%token` directives; in this case, the lexer will
+lex the matched text as the given token class, and then immediately swap to the
+provided state.
 
 ### Pattern Priority
 note on how it is calculated, followed by "priority"
