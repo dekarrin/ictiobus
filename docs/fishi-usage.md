@@ -39,7 +39,7 @@ called the intermediate representation of the input, or IR for short. When input
 is analyzed by a frontend, it goes through all three phases in its quest to
 become an IR!
 
-The phases of a frontend:
+Diagram of the phases of a frontend:
 ```
              | I N P U T |
              \-----------/
