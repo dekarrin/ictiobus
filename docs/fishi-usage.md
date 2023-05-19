@@ -256,27 +256,297 @@ continuation of the section from before, is interpreted the same as this:
 FISHI comments start with a '#' and go until the end of the line. If you need to
 put a literal '#' in FISHI, put in "##":
 
+    ```fishi
+    %%tokens
     
+    # This entire line is a comment. The below line is a literal single '#':
+    ##    %token hash-sign    %human hash/pound sign
+    
+    \d+   %token int          %human integer   # comments can start anywhere on a line
+    ```
 
+*Note: Converting the doubled '#' back into a single one is handled by the FISHI
+preprocessor, not the frontend. As a result, any syntax errors reported on lines
+that contain a ## will instead show it as a single one, and the position of the
+error on the line will be similarly affected. This may be fixed in a future
+version of FISHI.*
+
+### Sections
+
+FISHI statements are organized into three different types of *sections*. Each
+section has a header that gives the type of the section, followed by statements
+that have different structure based on the section they are in.
+
+Tokens sections have the header `%%tokens` and specify patterns for the lexer to
+use to find tokens in input text, as well as patterns that should be ignored.
+
+    ## Example Tokens section:
+
+    ```fishi
+    %%tokens
+
+    \d+                       %token int         %human integer literal
+    \+                        %token +           %human plus sign
+    [A-Za-z_][A-Za-z0-9_]*    %token id          %human identifier
+
+    \s+                       %discard
+    ```
+
+Grammar sections have the header `%%grammar` and specify the context-free
+grammar for the language, using a syntax similar to BNF. Any token defined in a
+Tokens section can be used as a terminal symbol.
+
+    ## Example Grammar section:
+
+    ```fishi
+    %%grammar
+    
+    {SUM}   =  {SUM} + {TERM}
+            |  {TERM}
+
+    {TERM}  =  id | int
+    ```
+
+Actions sections have the header `%%actions` and specify the actions that the
+frontend should take during the syntax-directed translation to produce an
+intermediate representation. Any grammar rule defined in a Grammar section can
+have a syntax-directed definition (action) specified for it.
+
+    ## Example Actions section:
+
+    ```fishi
+    %%actions
+
+    %symbol {TERM}
+    -> id:             {^}.value = lookup_value({0}.$text)
+    -> int:            {^}.value = int({0}.$text)
+
+    %symbol {SUM}
+    -> {SUM} + {TERM}: {^}.value = add({0}.value, {2}.value)
+    -> {TERM}:         {^}.value = identity({0}.value)
+    ```
+
+Sections in FISHI do not need to be in any particular order, and you can define
+as many of the same type of section as you'd like. For instance, you can have a
+Grammar section, followed by a Tokens section, followed by an Actions section,
+followed by another Tokens section. The order of the types of sections doesn't
+matter; all of the statements in the Tokens section are read in the order they
+appear in a FISHI spec.
+
+## The Preproccessor
+
+WIP - this section probably should be in the ictcc manual and summarized more
+succinctly here or not at all. Preprocessing is outside the domain of FISHI
+itself.
+
+This section describes the FISHI preprocessor built into ictcc. It isn't
+necessarily required to read to understand FISHI itself, and is included mainly
+as a reference.
+
+When FISHI is read by ictcc, before it is interpreted by the FISHI frontend, a
+preprocessing step is run on input. Since error reporting is handled by the
+frontend, which only knows about the preprocessed version of source code, this
+means that syntax errors will refer to that modified version instead of directly
+to the code that was input. As the preprocessor performs relatively benign
+changes, errors are usually easily understandable, but if syntax error output
+is confusing, use the -P flag with ictcc to see the exact source code after it
+has been preprocessed.
+
+Preprocessing performs a few different functions:
+
+* It pulls all FISHI code out `fishi` code blocks and combines them into a
+single FISHI document.
+* It normalizes all lines of FISHI to have the line ending `\n`.
+* It removes all comments that start with a single "#" up until the end of the
+line.
+* It converts all double "##" sequences into literal "#" characters.
 
 ## Specifying the Lexer with Tokens
 
+The first stage of an Ictiobus frontend is lexing (sometimes referred to as
+scanning). This is where code, input as a stream of UTF-8 encoded characters,
+is scanned for for recognizable symbols, which are passed to the parsing stage
+for further processing. These symbols are called *tokens* - the 'words' of the
+input language. Each token has a type, called the *token class*, that is later
+used by the parser.
+
+This stage is specified in FISHI in `%%tokens` sections. Each entry in this
+section begins with a regular expression pattern that tells the lexer how to
+find groups of text, and gives one or more actions the lexer should perform.
+
+    %%tokens
+
+    \d+       %token int     %human integer literal
+    "         %token dquote  %human interpreted string    %stateshift istring
+    '[^']*'   %token string  %human string literal
+    \+        %token +       %human plus sign
+
+    \s+       %discard     # ignore whitespace
+
+The ordering of the options doesn't matter; in the above, we could have put the
+`%human` directives before the `%token` directives and the result would be the
+same.
+
+Additionally, the formatting is fairly freeform. The only major restrictions are
+that each entry must start with a pattern as the first thing on a line, and that
+arguments to directives must be on the same line as the directive. Any
+directives which follow a pattern, regardless of whether they are on the same
+line, are considered part of the same entry.
+
+    %%tokens
+
+    \d+    %token int    %human integer literal
+
+    # the above is exactly equivalent to the following:
+
+    \d+
+    %token int
+    %human integer literal
+
+The lexer provided by ictiobus is *stateful*; it can change which patterns it
+recognizes based on the state it is currently in, and can be configured to
+change states whenever it encounters particular patterns. For more on this, see
+the "Using Lexer States" section below.
+
 ### The Pattern
 
+    \d+       %token int     %human integer literal
+    ^^^ - this is the pattern
+
+Each entry begins with a pattern. This is a regular expression given in the same
+[RE2 syntax](https://github.com/google/re2/wiki/Syntax) that is accepted by the
+`regexp` standard library in Go, and it has the same restrictions.
+
+The pattern needs to be the first thing on a line (though there can be
+whitespace before it) and cannot begin or end with a whitespace character. If a
+literal space is needed to match at the start or end, use a character class
+containing only the space, or escape it with `%!`:
+
+    [ ]+     %token space-seq
+
+    # the above is the same as:
+
+    %! +     %token space-seq
+
+The percent sign '%' is used to mark directives that come after the pattern. If
+a literal percent sign is in the pattern, it must be escaped with `%!`:
+
+    \d{1,3}%!%   %token percentage
+
+The above pattern would be interpreted as `\d{1,3}%`.
+
+As can be seen from above examples, the backslash character `\` does *not* need
+to be escaped. This is relatively uncommon compared to other programming
+languages; because FISHI uses backslashes so frequently in its lexer patterns,
+it was decided to make the backslash be treated as a literal character and to
+instead use an alternative sequence for escaping (`%!`).
+
+The pattern will be applied to input text at the current position of the lexer.
+Note that the lexer is, in general, not aware of the start or end of line with
+respect to the patterns it uses; this means that `^` will *always* match (the
+current position of the lexer at any given time is considered the start of the
+string), and `$` will *never* match except at the very end of all input text. So
+these cannot be used to distinguish patterns, or at least, not as they would
+typically be used in regular expressions.
+
 ### Lexing A New Token
-%tok
-%hum
+
+New tokens in FISHI are declared by using the `%token` directive after a
+pattern, followed by the name of a token class. The lexer will lex the text
+matched by the patten as a token of the given class.
+
+    # declare a token class named 'int' found by matching against a sequence of
+    # one or more digits:
+
+    \d+     %token int
+
+Token classes do not need to be pre-declared; using any name after `%token`
+counts as declaring it. Additionally, the same token class can be used multiple
+times to give multiple possible patterns to match against.
+
+    # define the int token as lexed by matching against a sequence of digits,
+    # but also by matching against the case-insensitve words "one", "two",
+    # "three", "four", and "five":
+
+    \d+                    %token int
+    [Oo][Nn][Ee]           %token int
+    [Tt][Ww][Oo]           %token int
+    [Tt][Hh][Rr][Ee][Ee]   %token int
+    [Ff][Oo][Uu][Rr]       %token int
+    [Ff][Ii][Vv][Ee]       %token int
+
+The token class is used in other sections to refer to a token as a *terminal
+symbol* (more on that later), so it has particular formatting requirements and
+it is *case-insensitive* (convention in FISHI is to use all lower-case letters
+for the declaration, because when referring to them in other sections they must
+be lower-case). Class names must be one single word with no whitespace in it or
+else it would be impossible to use later in grammar sections; however, virtually
+every other character is allowed, including symbols and non-word characters.
+
+    # lex a token with class '+' whenever the lexer matches a literal '+'
+    # character:
+    \+        %token +
+
+There are some soft limitations on the token class names; for instance, using
+"(" as a token class is perfectly acceptable in Tokens and Grammar sections of
+the spec, but it will not be able to be used to identify a production in Actions
+sections because the "(" character has additional meaning there. To get around
+this, you would have to give the token class a different name.
+
+Token classes can be given a human-readable name that is used in syntax errors
+and other diagnostic output. If one isn't given, then the name of the token
+class will be used. To specify a new one, use the `%human` directive followed by
+its human-readable name on the same line. This can have any character in it,
+including spaces.
+
+    # give the parentheses nice name for error output:
+
+    \(    %token lp    %human left parenthesis ('(')
+    \)    %token rp    %human right parenthesis (')')
+
+You can use a percent sign or newline character in human names, but they have to
+be escaped with the "%!" sequence.
+
+    [Hh][Ii][Gg][Hh][%!%]    %token high-percent    %human keyword 'high %!%'
+    [Ll][Oo][Ww][%!%]        %token low-percent     %human keyword 'low %!%'
+
+If there are multiple uses of the same token class, only one of them needs to
+have a %human directive on it. The same one will be used for that class no
+matter how it was lexed.
+
+    \d+                    %token int    %human integer literal
+    [Oo][Nn][Ee]           %token int
+    [Tt][Ww][Oo]           %token int
+
+    # it's also fine to use the same human readable name for multiple of the
+    # same type
+
+    \d+                    %token int    %human integer literal
+    [Oo][Nn][Ee]           %token int    %human integer literal
+    [Tt][Ww][Oo]           %token int    %human integer literal
+
+If there are multiple different human-readable names for the same class, then
+only the first one 
+
+
+note on multiple human
 ### Discarding Input
 %discard
 
+### Using Lexer States
+
 ### Pattern Priority
 note on how it is calculated, followed by "priority"
+
+### Complete Example For FISHI Math
 
 ## Specifying the Parser with Grammar
 
 ### Symbols
 
 ### The Epsilon Production
+
+### Complete Example For FISHI Math
 
 ## Specifying the Translation Scheme with Actions
 
@@ -291,6 +561,8 @@ note on how it is calculated, followed by "priority"
 ### Hooks
 
 ### Synthesized vs Inherited Attributes
+
+### Complete Example For FISHI Math
 
 
 ##### (old content below this)
