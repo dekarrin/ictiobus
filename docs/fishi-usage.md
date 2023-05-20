@@ -333,11 +333,21 @@ followed by another Tokens section. The order of the types of sections doesn't
 matter; all of the statements in the Tokens section are read in the order they
 appear in a FISHI spec.
 
+
+
+
+
+
+WIP - note on directives, headers.
+
 ## The Preproccessor
 
 WIP - this section probably should be in the ictcc manual and summarized more
 succinctly here or not at all. Preprocessing is outside the domain of FISHI
 itself.
+
+
+
 
 This section describes the FISHI preprocessor built into ictcc. It isn't
 necessarily required to read to understand FISHI itself, and is included mainly
@@ -369,6 +379,61 @@ is scanned for for recognizable symbols, which are passed to the parsing stage
 for further processing. These symbols are called *tokens* - the 'words' of the
 input language. Each token has a type, called the *token class*, that is later
 used by the parser.
+
+### FISHI Tokens Quick Reference
+
+This section lays out how FISHI specifies the lexer for those already familiar
+with the terminology of lexical specifications. If it doesn't make any sense to
+you, skip this section for a guide to how the ictiobus lexer works using FISHI
+for its examples.
+
+FISHI specifies a lexer in `%%tokens` sections. Each `%%tokens` section has a
+series of entries. A series of entries may be preceeded by a `%state STATENAME`
+directive in it, which makes those entries be applied only when the lexer is in
+state `STATENAME`; otherwise, they will be defined for the default state and all
+other states as well.
+
+Each entry starts with a regular expression, which must be the first thing on a
+line. The regular expression is given using the RE2 syntax used by Go's `regexp`
+package. Any leading and trailing whitespace is trimmed from the pattern;
+literal whitespace chars that are the first or last characters in the pattern
+need to be represented as a character class but are fine within it.
+
+The pattern is followed by one or more directives that say how to handle matches
+of that regular expression. All matches will advance the lexer by the matched
+text, regardless of what action it takes for it. The following directives can be
+specified for a pattern:
+
+* `%token CLASS` - Lex a token of class `CLASS` whose text is the match. `CLASS`
+must not have whitespace in it and can have any characters, but any letters
+should be lower-case to distinguish from non-terminals in later stages of the
+frontend.
+* `%human HUMAN-NAME` - Used with `%token CLASS`; cannot be used on its own.
+Gives the token class the human-readable name `HUMAN-NAME` in error and
+diagnostic output. `HUMAN-NAME` can have any characters in it at all.
+
+Lexers provided by Ictiobus have a simple state mechanism. By default, they will
+only use the default state and are effectively stateless. State functionality
+is invoked by using the `%stateshift` and/or `%state` directive. A lexer in a
+given state will use all specifications defined for that state as well as all of
+those defined for the default state. A stateful lexer does not use a stack for
+its states and retains no information of the prior states it was in when it
+swaps states.
+
+The `%` character has special meaning within FISHI and in particular in
+`%%tokens` sections it is used to detect the end of patterns and arguments to
+directives. Literal `%` characters used in these contexts in `%%tokens` sections
+must be escaped by putting the escape sequence `%!` in front of them.
+
+The newline character `\n` has special meaning within FISHI and in particular in
+`%%tokens` sections it is used to detect the end of patterns and arguments to
+directives. Literal `\n` characters used in these contexts in `%%tokens`
+sections msut be escaped by putting the escape sequence `%!` in front of them.
+Note that due to line-ending normalization, `\n\r` and `\r\n` will
+both be interpreted as `\n` in a FISHI spec, and they 
+
+
+### Token Specifications
 
 This stage is specified in FISHI in `%%tokens` sections. Each entry in this
 section begins with a regular expression pattern that tells the lexer how to
@@ -644,6 +709,17 @@ ictcc command allows you to select one with the `--ll`, `--slr`, `--clr`, or
 one automatically. See the [ictcc Manual](./ictcc.md) for more info on parsing
 algorithms.
 
+### FISHI Grammar Quick Reference
+
+This section lays out how FISHI specifies the parser for those already familiar
+with the terminology of context-free grammars. If it doesn't make any sense to
+you, skip this section to see how regular grammars work using FISHI syntax for
+its examples.
+
+WIP
+
+### Context-Free Grammar
+
 All parsing algorithms build a parser by using a *context-free grammar* (CFG),
 which is a special, rigorous definition of a language. A language itself in this
 sense is a strictly defined concept, but the important thing for FISHI is that
@@ -668,7 +744,10 @@ head symbol) "int", "+", then "int".
     {SUM}   =   int + int
 
 Terminals in FISHI CFGs must be token classes that are defined in a Tokens
-section somewhere else in the spec.
+section somewhere else in the spec. They do not necessarily need to be
+lower-case in FISHI, but internally within Ictiobus they will always be
+represented as a lower-case string, so by convention any letters in them in
+FISHI CFGs are lower-case.
 
 Non-Terminals (symbols with at least one rule in the gramamr where it is the
 head symbol) in FISHI are surrounded with curly braces `{` and `}` to
@@ -684,8 +763,8 @@ can be derived from the head symbol):
 A non-terminal can have more than one string it can derive to. This is expressed
 in FISHI by putting a vertical bar `|` between the strings, either on the same
 line as both it and the alternative or on a new line. When deriving the head
-symbol, any of them may be selected. These are called the *alternatives* or
-*productions* of the head symbol.
+symbol, any of them may be selected. These are called the productions (or,
+sometimes, the *alternatives*) of the head symbol.
 
     %%grammar
 
@@ -696,7 +775,7 @@ symbol, any of them may be selected. These are called the *alternatives* or
 
     {EXPR}   =   {SUM}
              |   {PRODUCT}
-             |   {VALUE}
+             |   {TERM}
 
 The idea for using a grammar is that you start with the first non-terminal
 defined, derive a string of symbols from it. Then take that string, and for each
@@ -741,7 +820,37 @@ the basic tokens that the lexer can make.
 
 ## The Epsilon Production
 
-It's possible to tell a rule to derive an emt
+It's possible to have a rule that has the head symbol derive an empty string.
+This kind of production is known as the *epsilon production*, because in
+theoretical literature, it is often represented by a lower-case greek letter
+epsilon (`ε`). Epsilon is not an easy-to-type character on most keyboards, so
+while Ictiobus will use it in certain outputs, in FISHI it is represented by a
+production having only an empty set of braces.
+
+    %%grammar
+
+    {FUNC-CALL}   =    identifier ( )
+                  |    identifier ( {ARG} {COMMA-ARGS} )
+
+    {COMMA-ARGS}  =    , {ARG} {COMMA-ARGS} | {}
+
+    {ARG}         =    int | str | float | identifier
+
+The above rules can derive a string representing a function call of any length.
+The first production for {FUNC-CALL} specifies that a function call may be an
+`identifier` followed by a pair of parentheses `(` and `)` with nothing in
+between them for zero arguments. The other production is invoked for one or more
+arguments. It states a function call may be an `identifier` followed by a left
+parenthesis `(`, then an `ARG` (which itself is an `int`, `str`, `float`, or
+`identifier`), a `COMMA-ARGS`, then finally the closing right parnethesis `)`.
+`COMMA-ARGS` is recursive, and can have its first alternative repeatedly invoked
+to build up more and more comma-separated `ARG` symbols until the desired amount
+is reached and it then derives the empty string.
+
+For example, to derive the string of 
+
+    
+
 
 ### Complete Example For FISHI Math
 
