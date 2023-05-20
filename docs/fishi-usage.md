@@ -713,43 +713,35 @@ For example, given the following CFG:
 
     {EXPR}     =  {EXPR} + {PRODUCT} | {PRODUCT}
     {PRODUCT}  =  {PRODUCT} * {TERM} | {TERM}
-    {TERM}     =  lparen {EXPR} rparen | int | id
+    {TERM}     =  ( {EXPR} ) | int | id
 
 You would start with the non-terminal `EXPR`. From there, you might perform the
 following set of derivations:
 
-    STRING      |    GRAMMAR RULE
-    ------------------------------
-
-You might have noticed by now that these so-called derivations look an awful lot
-
-There can be more than one string of symbols that the *head symbol*  can derive. This rule says that the symbol S can
-derive "a" or "b" (but not both):
-
-    S   ->   a | b
-
-A complete grammar has several rules, such as thi
-
-The idea is that you start with the first
-symbol and successively 
-
---
-
-The first stage of an Ictiobus frontend is lexing (sometimes referred to as
-scanning). This is where code, input as a stream of UTF-8 encoded characters,
-is scanned for for recognizable symbols, which are passed to the parsing stage
-for further processing. These symbols are called *tokens* - the 'words' of the
-input language. Each token has a type, called the *token class*, that is later
-used by the parser.
-
-This stage is specified in FISHI in `%%tokens` sections. Each entry in this
-section begins with a regular expression pattern that tells the lexer how to
-find groups of text, and gives one or more actions the lexer should perform.
+    STRING                        | GRAMMAR RULE USED
+    -------------------------------------------------
+    {EXRP}                        | Start Symbol
+    {PRODUCT}                     | {EXPR}     =  {PRODUCT}
+    {PRODUCT} * {TERM}            | {PRODUCT}  =  {PROUDCT} * {TERM}
+    {PRODUCT} * int               | {TERM}     =  int
+    {TERM} * int                  | {PRODUCT}  =  {TERM}
+    ( {EXPR} ) * int              | {TERM}     =  ( {EXPR} )
+    ( {EXPR} + {PRODUCT} ) * int  | {EXPR}     =  {EXPR} + {PRODUCT}
+    ( {EXPR} + {TERM} ) * int     | {EXPR}     =  {TERM}
+    ( {EXPR} + id ) * int         | {TERM}     =  id
+    ( {PRODUCT} + id ) * int      | {EXPR}     =  {PRODUCT}
+    ( {TERM} + id ) * int         | {PRODUCT}  =  {TERM}
+    ( int + id ) * int            | {TERM}     =  int
 
 
-### Symbols
+You might have noticed that these derivations look an awful lot like
+definitions as well; one way to think of the grammar is a series of saying what
+a symbol is made up of, then describing THOSE structures, until you get to only
+the basic tokens that the lexer can make.
 
-### The Epsilon Production
+## The Epsilon Production
+
+It's possible to tell a rule to derive an emt
 
 ### Complete Example For FISHI Math
 
