@@ -763,7 +763,8 @@ It's possible to tell a rule to derive an emt
 
 
 ##### (old content below this)
-*NOTE: this document is being kept for historical purproses, and some content
+*NOTE: the part of this document below this is being kept for reference
+purproses, and some content
 may be correct, but it was the first attempt to standardize the fishi language
 and is heavily out of date. Refer to fishi.md instead of this file for an
 example; the correct parts of this file will eventually be worked into the manual
