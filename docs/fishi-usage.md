@@ -919,6 +919,22 @@ WIP
 
 ## Specifying the Translation Scheme with Actions
 
+The third and final stage of an Ictiobus frontend is translation. This is where
+a *syntax-directed translation scheme* (or "SDTS") is applied to nodes of the
+parse tree created in the parsing phase to produce the final result, the
+*intermediate representation* (or "IR") of the input. This IR is then returned
+to the user of the frontend as the return value of `Frontend.Analyze()`.
+
+### FISHI Actions Quick Reference
+
+FISHI 
+
+### The Action Entry
+
+The intermediate representation is built up using various rules in the 
+
+(intro on IRs)
+
 (give typical action)
 
 ### Associated Symbol
