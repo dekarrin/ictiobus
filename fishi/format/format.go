@@ -89,10 +89,14 @@ func normalizeFishi(source []byte) []byte {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasSuffix(line, "\r\n") || strings.HasPrefix(line, "\n\r") {
+		// this normalization for all ends of lines will not fully come into
+		// play; the scanner by default is only going to return lines ending in
+		// \r\n or \n. Still, probs good to leave it in in case we upd8 it l8er.
+		if strings.HasSuffix(line, "\r\n") || strings.HasSuffix(line, "\n\r") {
 			line = line[0 : len(line)-2]
 		} else {
 			line = strings.TrimSuffix(line, "\n")
+			line = strings.TrimSuffix(line, "\r")
 		}
 
 		// do *not* take double #'s.
