@@ -803,6 +803,15 @@ sometimes, the *alternatives*) of the head symbol.
     {EXPR}   =   {SUM}
              |   {PRODUCT}
              |   {TERM}
+    
+    # this version is not allowed, because every line must start with a head
+    # symbol for a rule or the alternations bar '|' to give an alternation for
+    # the current rule; you can't "continue" the alternation on the next line
+    #
+    # NOT ALLOWED:
+    #
+    # {TERM} = int |
+    #          id
 
 ### Derivation With A CFG
 
@@ -927,84 +936,220 @@ to the user of the frontend as the return value of `Frontend.Analyze()`.
 
 ### FISHI Actions Quick Reference
 
-FISHI 
+WIP 
 
-### The Action Entry
+### Syntax-Directed Translation Schemes
 
-The intermediate representation is built up using various rules in the 
+In a syntax-directed translation scheme, the intermediate representation is
+built up from the parse tree, which will have a node for every grammar construct
+that would be invoked to derive the parsed string. Each node is visited and has
+a named value set on it (called an *attribute*) by taking the value of zero or
+more other attributes already set on the node or its children and applying an
+operation on them to produce a new value.
 
-(intro on IRs)
+Some nodes have attributes automatically set on them before any evaluation is
+performed, such as the `$text` attribute of nodes representing terminal symbols,
+which is the text that was lexed for the token. These are used as the starting
+values for a translation scheme. All such built-in attributes have a name that
+starts with a `$`.
 
-(give typical action)
+The IR translation process is started by first setting attributes that require
+no additional attributes or only built-in attributes in order to calculate their
+value. Next, it goes one level up, calculating the value of attributes on parent
+nodes that rely on the recently calculated ones. This is repeated until all
+defined attributes are set on the root node of the parse tree. One of these
+attributes is designated as the IR attribute and once it is set, its value is
+returned from the frontend.
 
-### Associated Symbol
+The rules used to define new attributes in an SDTS, known as *syntax-directed
+definitions* (or SDDs), are often expressed using an *attribute grammar*. This
+has any SDDs for setting new values on attributes in a parse tree node written
+next to the grammar rule that must be invoked to create that node. The SDDs are
+often written in syntax that can be directly executed by the language the parser
+is being generated in.
+
+```
+An example attribute grammar that you might see in literature, which specifies
+how to build up an IR consisting of the result of evaluating the mathematical
+value of expressions.
+
+SUM   ->  SUM + TERM    { SUM.val = S.val + E.val }
+SUM   ->  TERM          { SUM.val = E.val }
+TERM  ->  int           { TERM.val = int.$lexed }
+```
+
+Although many parser generators have a specification syntax similar to this,
+FISHI does not take this exact approach. Instead, it splits the specification
+for the translation stage into a separate section from the grammar, the
+`%%actions` section. This keeps the grammar clear of hard-to-read SDDs and opens
+the option of performing *no* translation of the parse tree, instead returning
+it as the IR (not directly supported at this time).
+
+The above example could be represented by the following FISHI:
+
+    ```fishi
+    %%grammar
+
+    {SUM}   =  {SUM} + {TERM} | {TERM}
+    {TERM}  =  int
+
+
+
+    %%actions
+
+    %symbol {SUM}
+    -> {SUM} + {TERM}: {^}.val = add({0}.val, {1}.val)
+    -> {TERM}:         {^}.val = identity({0}.val)
+
+    %symbol {TERM}
+    -> int:            {^}.val = int({0}.$text)
+    ```
+
+The syntax for SDDs in FISHI is significantly more complex than the theoretical
+one. This is partially due to decoupling Go from its own syntax so that
+executions of Go needed to produce a value can be handled by separate libraries.
+This part of FISHI is the newest and is the most likely to have its syntax
+updated.
+
+Unlike other sections in FISHI, whitespace in `%%actions` sections has
+absolutely no semantic meaning anywhere and is completely ignored.
+
+WIP NEED TO FIND PLACE TO MENTION S-ATTRIBUTED ONLY
+
+### The Actions Entry
+
+Entries in a FISHI Actions section begin with an associated symbol for the
+entry. This is specified with the `%symbol` directive followed by the
+non-terminal symbol at the head of the grammar rule that attributes are going to
+be defined for.
+
+    %%actions
+
+    %symbol {SUM} -> {SUM} + {TERM} : {^}.val = add({0}.value, {1}.value)
+    ^^^^^^^^^^^^^
+    Associated Symbol
+
+For instance, the above FISHI starts an Actions entry for parse tree nodes
+created by invoking grammar rules for derivations of `SUM`.
+
+It is acceptable to have multiple entries for the same symbol; they will be
+applied in the order that they are defined.
+
+The associated symbol is followed by one or more production action sets, each of
+which contains a "selector" for a production of the head symbol and one or more
+SDDs for setting an attribute on nodes created by deriving that production. Each
+production action set starts with a `->` symbol (or the outdated `%prod`
+keyword) followed by the selector.
+
+    %%actions
+
+    %symbol {SUM} -> {SUM} + {TERM}   : {^}.val = add({0}.value, {1}.value)
+                  ^^^^^^^^^^^^^^^^^   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Production action set start   SDD
+
+There can be multiple production action sets for a single head symbol, each of
+which gives SDDs for the production they specify:
+
+    %%actions
+
+    %symbol {SUM} -> {SUM} + {TERM} : {^}.val = add({0}.val, {1}.val)
+                  -> {TERM}         : {^}.val = identity({0}.val)
+
+Each SDD for the production starts with a `:` sign (or the outdated `%set`
+keyword). SDDs use a somewhat complex syntax that will be covered shortly in the
+"SDDs" section below. There can be multiple SDDs per production. If there are,
+they will be applied in the order they are defined or the order needed to
+satisfy attribute calculations that depend on them.
+
+    %%actions
+
+    %symbol {SUM} -> {SUM} + {TERM} : {^}.val = add({0}.val, {1}.val)
+                                    : {^}.val = set_plus_op()
+                  -> {TERM}         : {^}.val = identity({0}.val)
+
+Because whitespace is ignored in `%%actions` sections, they can be formatted in
+any way that the user finds readable.
+
+    # this:
+    %symbol {SUM} -> {SUM} + {TERM} : {^}.val = add({0}.val, {1}.val)
+                  -> {TERM}         : {^}.val = identity({0}.val)
+
+    # is the same as this:
+    %symbol {SUM}
+    ->{SUM} + {TERM}:   {^}.val = add({0}.val, {1}.val)
+    ->{TERM}:           {^}.val = identity({0}.val)
+
+### Shortcuts For Productions
+
+Though typing out every production for a rule in full results in code that
+clearly gives the production that the SDDs are associated with, it can be
+cumbersome, especially for large grammars. FISHI allows the production to be
+specified by its index within all productions of the head symbol as defined in
+the grammar with the `%index` directive (the first production has index 0, the
+second has index 1, etc).
+
+    %%grammar
+
+    #assuming the rule for SUM has the following order for its productions...
+    {SUM}    =    {SUM} + {TERM} | {TERM}
+
+
+    %actions
+
+    # ...then this:
+    %symbol {SUM} -> {SUM} + {TERM} : {^}.val = add({0}.val, {1}.val)
+                  -> {TERM}         : {^}.val = identity({0}.val)
+
+    # is the same as this:
+    %symbol {SUM} -> %index 0       : {^}.val = add({0}.val, {1}.val)
+                  -> %index 1       : {^}.val = identity({0}.val)
+
+If the indexes are in order, they can be omitted entirely. A production action
+set with no production specified will be for the production whose index is one
+higher than the previous production, or 0 if it is the first action set.
+
+    # so this would be the same as the above examples:
+    %symbol {SUM} -> : {^}.val = add({0}.val, {1}.val)
+                  -> : {^}.val = identity({0}.val)
+
+But do note that the implicit production selector is fragile to re-ordering of
+the grammar, so it might be best to hold off on using until the grammar is in a
+relatively stable state.
+
+### SDDs
+
+Each 
 
 ### AttrRefs
-
-### Shortcuts
-
 ### Hooks
 
 ### Synthesized vs Inherited Attributes
 
-### Complete Example For FISHI Math
+### Abstract Syntax Trees
 
+This IR value can be anything that you wish it to be. For simpler languages,
+such as FISHIMath, it can be immediately calculated by evaluating mathematical
+options to build up a final result. For others, a special representation of the
+input code called an *abstract syntax tree* might be built up. An abstract
+syntax tree difers from a parse tree by abstracting the grammatical details
+of how the constructs within the code were arranged into a more natural
+representation that reflects the logical structures of the language, such as
+control structures. It is usually suitable for further evaluation by an
+interpretion engine.
 
-##### (old content below this)
-*NOTE: the part of this document below this is being kept for reference
-purproses, and some content
-may be correct, but it was the first attempt to standardize the fishi language
-and is heavily out of date. Refer to fishi.md instead of this file for an
-example; the correct parts of this file will eventually be worked into the manual
-for FISHI.*
-
-Specifying Semantic Actions
----------------------------
-Semantic actions in Ictiobus are defined by the `%%actions` directive.
-
-```ictio
-%%actions
-
-%symbol {primitive}
-%prod STR
-%action
-
-prim$0.val = prim_str( STR.$text )
-
-# auto-numbering of productions if not explicit
-%action
-prim$0.val = prim_int( INT.$text )
-
-%prod %index 2  # or can be specified with prod index, 0-indexed
-
-# %action is followed by an attr reference that is to be defined. It must be
-# either the head of the production (to set a synthesized attribute value) or a
-# non-terminal production in the body.
-# 
-%action prim$0.val
-
-# hook must be an identifier [A-Za-z_][A-Za-z_0-9]*. It's the name of the func
-# passed to 'register' of the Frontend.
-%hook prim_id
-
-# %with must be an attr reference. an attr reference starts with the name of the
-# symbol in the production that has the attribute being referenced. If there is
-# both a terminal and non-terminal defined with the same name, the terminal is
-# selected by default. To specify a non-terminal specifically, wrap it in {}.
-# The name may be abbreviated to the shortest disambigauting prefix of the thing
-# it refers to. Within this section, both the `$` and the `.` characters have
-# special meaning which can be avoided by escaping with backslash.
-#
-# Optionally, after either a terminal name or a non-terminal name, the `$` sign
-# can be given, after which is an index. The index is a number that specifies
-# the instance of this symbol in the production, numbered left to right and
-# 0-indexed. The left-most instance of the production symbol is the left-hand
-# of the production itself, so that is index 0.
-#
-# After the prior section comes a period character `.`, after which follows the
-# name of the attribute, which must be identifier pattern [A-Za-z_][A-Za-z_0-9]*
-# and is case-insensitive.
-
-%with ID.$text
-
+```go
+if x >= 8 && y < 2 {
+    fmt.Printf("It's true!\n")
+}
 ```
+
+The above block of Go syntax might be parsed into the following tree:
+
+    IF-BLOCK
+       |
+    
+    if COND
+
+
+
+### Complete Example For FISHI Math
