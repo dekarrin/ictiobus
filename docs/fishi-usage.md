@@ -20,6 +20,45 @@ luck, because FISHI is self-hosted: there's a
 [FISHI spec for FISHI itself](./fishi.md), and it's used to generate the FISHI
 parser that ictcc uses. Glub.
 
+## FISHIMath
+
+FISHIMath is an example language that this manual will use to demonstrate
+complete examples at the ends of important sections. It's a math expressions
+language that has special little symbols for some things, where whitespace does
+not matter.
+
+Statements in FISHIMath are ended with "the statement shark" (`<o^><`), which is
+hungry, but not so hungry it wants to eat more than one statement! Exactly one
+is the perfect amount. Oh, but you don't want to pollute the oceans, so make
+sure that every statement you put into FISHIMath has a statement shark to clean
+it up for you.
+
+```
+8 + 2    <o^><
+8 * 2.2  <o^><
+
+2 + 6    /* invalid! no shark to eat the statement */
+```
+
+FISHIMath has support for variables! They do not need to be declared, they just
+need to be used to exist. Variables with no value assigned will be assumed to
+have the value 0. Assignment to a new variable is done by using the "value
+tentacle" (`=o`) to make the variable on the left "reach out" and grab the value
+on the right.
+
+```
+x =o 2       <o^><
+```
+
+Grouping parentheses are implemented not by the traditional `(` and `)`, but by
+the "fish-tail" `>{` and "fish-head" `'}`.
+
+```
+>{8+2'} * 3    <o^><
+```
+
+Other than that, FISHIMath supports integers and decimal values (as IEEE 754
+floating point values), and the operators `+`, `-`, `/`, and `*`.
 
 ## Note On The Preproccessor
 
@@ -707,9 +746,29 @@ is declared first.
     ca[rt]       %token mover
     c[ao]t       %token sleeper
 
-### Complete Example For FISHI Math
+### Complete Example For FISHIMath
 
-WIP
+Here's a Tokens section used to implement FISHIMath. Some of the patterns need to
+be escaped, due to being special characters in RE2 syntax.
+
+    ```fishi
+    %%tokens
+    
+    \s+                      %discard
+    
+    \*                       %token *            %human multiplication sign "*"
+    /                        %token /            %human division sign "/"
+    -                        %token -            %human minus sign "-"
+    \+                       %token +            %human plus sign "+"
+    >\{                      %token ft           %human fish-tail ">{"
+    '\}                      %token fh           %human fish-head "'}"
+    <o^><                    %token shark        %human statement shark "<o^><"
+    =o                       %token tentacle     %human value tentacle "=o"
+    [A-Za-z_][A-Za-z0-9_]*   %token id           %human identifier
+    [0-9]*.[0-9]+            %token float        %human floating-point literal
+    [0-9]+                   %token int          %human integer literal
+    ```
+
 
 ## Specifying the Parser with Grammar
 
@@ -922,7 +981,7 @@ The good news is that there are well-defined techniques for eliminating epsilon
 productions from a grammar that always work. Describing them is beyond the scope
 of this guide, but they can be easily found looking up the relevant literature.
 
-### Complete Example For FISHI Math
+### Complete Example For FISHIMath
 
 WIP
 
@@ -1573,9 +1632,8 @@ syntax but in a more abstract fashion can be created:
                      \-- stmts[0]: [func-call (pkg="fmt", name="Printf")]
                                      \-- args[0]: [literal (type=string, value="It's true!\n")]
 
-Much better and easier to analyze! For langauges that cannot be immediately
-evaluated via the IR, an AST is a reasonable target value for the STDS to
-produce.
+Much better! And way easier to analyze! For langauges that cannot be immediately
+evaluated via the SDTS, an AST is a reasonable IR.
 
 ### Complete Example For FISHI Math
 
