@@ -709,30 +709,6 @@ is declared first.
 
 ### Complete Example For FISHI Math
 
-The `%%actions` section contains the syntax-directed translation scheme,
-specified with a series of entries. Each entry gives syntax-directed definitions
-for attributes in a conceptual attribute grammar defined for the language.
-
-Each entry begins with `%symbol` followed by the non-terminal symbol that is at
-the head of the grammar rule that SDDs are being given for. This is then
-followed by one or more production action sets.
-
-A production action set begins with the symbol `->` followed by an optional
-selector for a production of the head symbol. The selectors are as follows:
-
-* `-> SYMBOLS-IN-PRODUCTION-EXACTLY-AS-IN-THE-GRAMMAR-RULE` - directly specifies
-the production it corresponds to.
-* `-> %index PRODUCTION-INDEX` - specifies the Nth production, where
-`PRODUCTION-INDEX` is N-1.
-* `->` (no selector given) - specifies the production with index one higher than
-the one selected by the previous production action set (or index 0 if it is the
-first set).
-
-A production action set's selector is followed by one or more semantic actions
-(or SDDs as the term is used used in this manual). The semantic action begins
-with the `:` symbol and 
-
-
 WIP
 
 ## Specifying the Parser with Grammar
@@ -960,7 +936,91 @@ to the user of the frontend as the return value of `Frontend.Analyze()`.
 
 ### FISHI Actions Quick Reference
 
-WIP 
+
+The `%%actions` section contains the syntax-directed translation scheme,
+specified with a series of entries. Each entry gives syntax-directed definitions
+for attributes in a conceptual attribute grammar defined for the language.
+
+An entry takes the following form:
+
+```
+   /-- %symbol directive
+   |
+   |           /-- head symbol
+/-----\ /--------------\
+%symbol {A-NON-TERMINAL}
+
+                                         /-- production action set
+                                         |
+/----------------------------------------------------------------------------------\
+
+-> {PROD-SYM1} prod-sym-2 {PROD-SYM3} ... : {^}.value = hook_func({PROD-SYM3}.value)
+                                          : {^}.value = hook_func()
+
+   \------------------------------------/ \----------------------------------------/
+           \-- production selector                   \-- semantic actions
+```
+
+Each entry begins with `%symbol` followed by the non-terminal symbol that is at
+the head of the grammar rule that SDDs are being given for. This is then
+followed by one or more production action sets.
+
+A production action set begins with the symbol `->` followed by an optional
+selector for a production of the head symbol. The selectors are as follows:
+
+* `-> SYMBOLS-IN-PRODUCTION-EXACTLY-AS-IN-THE-GRAMMAR-RULE` - directly specifies
+the production it corresponds to.
+* `-> %index PRODUCTION-INDEX` - specifies the Nth production, where
+`PRODUCTION-INDEX` is N-1.
+* `->` (no selector given) - specifies the production with index one higher than
+the one selected by the previous production action set (or index 0 if it is the
+first set).
+
+A production action set's selector is followed by one or more semantic actions
+(or SDDs as the term is used in this manual). A semantic action begins with the
+`:` symbol, then an AttrRef giving the attribute to be set, an equals sign
+(`=`), and then the name of a hook function to call to calculate the value. The
+hook function can have one or more arguments specified by AttrRefs which can be
+comma-separated for readability, or it can have zero args.
+
+An AttrRef takes the following form:
+
+```
+ |-- node-reference
+/-\
+
+{^}.value
+
+    \___/
+      |-- name
+```
+
+The `node-reference` part refers to a node relative to the current node the SDD
+is being defined for/will run on, and the the `name` part is the name of an
+attribute on that node.
+
+The `node-reference` part of an AttrRef before the `.` can take one of the
+following forms:
+
+* `{^}`          - The head symbol/current node. Only valid for LHS of a
+                   semantic action due to requirement that STDS be implementable
+                   with an S-attributed grammar.
+* `{.}`          - The child node corresponding to the first terminal symbol in
+                   the production.
+* `{.N}`         - The child node corresponding to the Nth terminal symbol in
+                   the production (0-indexed).
+* `{&}`          - The child node corresponding to the first non-terminal symbol
+                   in the production.
+* `{&N}`         - The child node corresponding to the Nth non-terminal symbol
+                   in the production (0-indexed).
+* `{NON-TERM}`   - The child node corresponding to the first occurance of
+                   non-terminal symbol `NON-TERM` in the production.
+* `{NON-TERM$N}` - The child node corresponding to the Nth occurance of
+                   non-terminal symbol `NON-TERM` in the production (0-indexed).
+* `term`         - The child node corresponding to the first occurance of
+                   terminal symbol `term` in the production.
+* `term$N`       - The child node corresponding to the Nth occurance of terminal
+                   symbol `term` in the production. 
 
 ### Syntax-Directed Translation Schemes
 
