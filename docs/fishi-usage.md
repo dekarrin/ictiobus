@@ -1014,8 +1014,6 @@ updated.
 Unlike other sections in FISHI, whitespace in `%%actions` sections has
 absolutely no semantic meaning anywhere and is completely ignored.
 
-WIP NEED TO FIND PLACE TO MENTION S-ATTRIBUTED ONLY
-
 ### The Actions Entry
 
 Entries in a FISHI Actions section begin with an associated symbol for the
@@ -1120,10 +1118,19 @@ relatively stable state.
 
 Each 
 
+WIP
+
 ### AttrRefs
+
+WIP
+
 ### Hooks
 
+WIP
+
 ### Synthesized vs Inherited Attributes
+
+WIP - mention S-attr only supported
 
 ### Abstract Syntax Trees
 
@@ -1150,6 +1157,10 @@ The above block of Go syntax might be parsed into the following tree:
     
     if COND
 
+WIP finish above
 
 
 ### Complete Example For FISHI Math
+
+WIP - include both AST ver and eval ver
+
