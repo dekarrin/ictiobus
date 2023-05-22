@@ -1,7 +1,7 @@
 Using FISHI
 ===========
 
-The Frontend Instruction Specification for Languages Hosted on Ictiobus (or just
+The Frontend Instruction Specification for Hosted languages on Ictiobus (the
 "FISHI language" or "FISHI" for short), is the special language used to define
 specifications for languages that Ictiobus can then generate parsers for! Well,
 compiler frontends, really, which include the lexer, parser, and translation
@@ -150,7 +150,7 @@ code blocks (the triple ticks) that have the label `fishi`.
     ...But only code blocks labeled with "fishi" will be interpreted as FISHI:
 
     ```fishi
-    # FISHI source code goes here, commented with the hash character
+    # FISHI source code goes here
     ```
 
 If there's multiple FISHI code blocks in the same file, they will be read and
@@ -708,6 +708,30 @@ is declared first.
     c[ao]t       %token sleeper
 
 ### Complete Example For FISHI Math
+
+The `%%actions` section contains the syntax-directed translation scheme,
+specified with a series of entries. Each entry gives syntax-directed definitions
+for attributes in a conceptual attribute grammar defined for the language.
+
+Each entry begins with `%symbol` followed by the non-terminal symbol that is at
+the head of the grammar rule that SDDs are being given for. This is then
+followed by one or more production action sets.
+
+A production action set begins with the symbol `->` followed by an optional
+selector for a production of the head symbol. The selectors are as follows:
+
+* `-> SYMBOLS-IN-PRODUCTION-EXACTLY-AS-IN-THE-GRAMMAR-RULE` - directly specifies
+the production it corresponds to.
+* `-> %index PRODUCTION-INDEX` - specifies the Nth production, where
+`PRODUCTION-INDEX` is N-1.
+* `->` (no selector given) - specifies the production with index one higher than
+the one selected by the previous production action set (or index 0 if it is the
+first set).
+
+A production action set's selector is followed by one or more semantic actions
+(or SDDs as the term is used used in this manual). The semantic action begins
+with the `:` symbol and 
+
 
 WIP
 
