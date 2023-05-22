@@ -748,8 +748,8 @@ is declared first.
 
 ### Complete Example For FISHIMath
 
-Here's a Tokens section used to implement FISHIMath. Some of the patterns need to
-be escaped, due to being special characters in RE2 syntax.
+Here's a Tokens section used to implement FISHIMath. Some of the patterns need
+to be escaped, due to being special characters in RE2 syntax.
 
     ```fishi
     %%tokens
@@ -760,15 +760,14 @@ be escaped, due to being special characters in RE2 syntax.
     /                        %token /            %human division sign "/"
     -                        %token -            %human minus sign "-"
     \+                       %token +            %human plus sign "+"
-    >\{                      %token ft           %human fish-tail ">{"
-    '\}                      %token fh           %human fish-head "'}"
+    >\{                      %token fishtail     %human fish-tail ">{"
+    '\}                      %token fishhead     %human fish-head "'}"
     <o^><                    %token shark        %human statement shark "<o^><"
     =o                       %token tentacle     %human value tentacle "=o"
     [A-Za-z_][A-Za-z0-9_]*   %token id           %human identifier
     [0-9]*.[0-9]+            %token float        %human floating-point literal
     [0-9]+                   %token int          %human integer literal
     ```
-
 
 ## Specifying the Parser with Grammar
 
@@ -792,6 +791,8 @@ its examples.
 
 A FISHI spec specifies the parsing phase with a context-free grammar declared
 using special BNF-ish syntax 
+
+WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIPWIP WIP WIP WIP WIP WIPWIP WIP WIP WIP WIP WIPWIP WIP WIP WIP WIP WIP
 
 ### The Context-Free Grammar
 
@@ -983,7 +984,34 @@ of this guide, but they can be easily found looking up the relevant literature.
 
 ### Complete Example For FISHIMath
 
-WIP
+This example defines the context-free grammar for FISHIMath, using the tokens
+defined in the previous example for FISHIMath in the Tokens section of this
+manual.
+
+
+    ```fishi
+    %%grammar
+
+
+    {FISHIMATH}   =   {STATEMENTS}
+
+    {STATEMENTS}  =   {STMT} {STATEMENTS} | {STMT}
+
+    {STMT}        =   {EXPR} shark
+
+    {EXPR}        =   id tentacle {EXPR} | {SUM}
+
+    {SUM}         =   {PRODUCT} + {EXPR}
+                  |   {PRODUCT} - {EXPR}
+                  |   {PRODUCT}
+
+    {PRODUCT}     =   {TERM} * {PRODUCT}
+                  |   {TERM} / {PRODUCT}
+                  |   {TERM}
+
+    {TERM}        =   fishtail {EXPR} fishhead
+                  |   int | float | id
+    ```
 
 ## Specifying the Translation Scheme with Actions
 
@@ -1635,7 +1663,67 @@ syntax but in a more abstract fashion can be created:
 Much better! And way easier to analyze! For langauges that cannot be immediately
 evaluated via the SDTS, an AST is a reasonable IR.
 
-### Complete Example For FISHI Math
+### Complete Example For FISHIMath
+
+This section builds up a translation scheme from the grammar and tokens defined
+in previous FISHIMath sections. It gives it in two forms: one that performs
+immediate evaluation and returns the result as the IR, and one that creates an
+AST of the input and uses that as the IR.
+
+This example performs immediate evaluation. If you want to try it out, be sure
+and use the Go code defined below it for the HookTable.
+
+    ```fishi
+    %%actions
+
+
+    %symbol {FISHIMATH}
+
+    %symbol {EXPR}
+
+    %symbol {PRODUCT}
+    -> {TERM} * {PRODUCT}:        {^}.value = multiply({&0}.value, {&1}.value)
+    -> {TERM} / {PROUDCT}:        {^}.value = divide({&0}.value, {&1}.value)
+    -> {TERM}:                    {^}.value = identity({TERM}.value)
+
+    %symbol {TERM}
+    -> fishtail {EXPR} fishhead:  {^}.value = identity({EXPR}.value)
+    -> int:                       {^}.value = int({0}.$text)
+    -> float:                     {^}.value = float({0}.$text)
+    -> id:                        {^}.value = read_var(id.$text)
+
+    ```
+
+Fafd
+
+    ```fishi
+    %%actions
+
+
+    %symbol {FISHIMATH} ->: {^}.ast = identity({0}.statement_list)
+
+    %symbol {STATEMENTS}
+    ```
+
+
+    ```fishi
+    %%grammar
+
+
+    {FISHIMATH}   =   {STATEMENTS}
+
+    {STATEMENTS}  =   {STMT} {STATEMENTS} | {STMT}
+    
+    {STMT}        =   {EXPR} shark
+
+    {EXPR}        =   id tentacle {EXPR}
+                  |   {PRODUCT} + {EXPR}
+                  |   {PRODUCT} - {EXPR}
+                  |   {PRODUCT}
+
+    {PRODUCT}     =   {TERM} * {PRODUCT}
+                  |   {TERM}
+    ```
 
 WIP - include both AST ver and eval ver
 
