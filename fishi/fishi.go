@@ -70,6 +70,19 @@ type Options struct {
 // the currently published latest version. This is useful for debugging while
 // developing ictiobus itself.
 func ValidateSimulatedInput(spec Spec, md SpecMetadata, params SimulatedInputParams) error {
+	if len(spec.Tokens) == 0 {
+		return fmt.Errorf("spec defines no tokens")
+	}
+	if len(spec.Patterns) == 0 {
+		return fmt.Errorf("spec defines no lexer patterns")
+	}
+	if len(spec.Grammar.NonTerminals()) == 0 {
+		return fmt.Errorf("spec defines no grammar rules")
+	}
+	if len(spec.TranslationScheme) == 0 {
+		return fmt.Errorf("spec defines no translation scheme actions")
+	}
+
 	pkgName := "sim" + strings.ToLower(md.Language)
 
 	binName := safeTCIdentifierName(md.Language)

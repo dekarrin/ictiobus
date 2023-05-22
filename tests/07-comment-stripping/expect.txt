@@ -1,0 +1,33 @@
+[1/2] Preprocess file with comments
+%%tokens
+
+\# 
+%token #   %human comment start
+
+
+
+
+
+
+\s+  
+%discard 
+
+%%grammar
+{S} = # {S} | #
+(done)
+[2/2] Final spec of file with comments
+Token Classes:
+* # - "comment start"
+
+Lexer Patterns:
+All States:
+* \# => #
+* \s+ => (DISCARDED)
+
+Grammar:
+S -> # S
+   | #
+
+Translation Scheme:
+(no actions defined)
+(done)

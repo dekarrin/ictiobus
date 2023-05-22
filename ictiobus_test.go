@@ -11,6 +11,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// mockTokenStream returns a token stream that is used for testing.
+type mockTokenStream struct{}
+
+func (ets mockTokenStream) Next() lex.Token {
+	return lex.NewToken(lex.MakeDefaultClass("A"), "", 0, 1, "")
+}
+
+func (ets mockTokenStream) HasNext() bool {
+	return true
+}
+
+func (ets mockTokenStream) Peek() lex.Token {
+	return lex.NewToken(lex.MakeDefaultClass("A"), "", 0, 1, "")
+}
+
 func Test_Frontend_AnalyzeString(t *testing.T) {
 	testCases := []struct {
 		name      string
@@ -23,7 +38,7 @@ func Test_Frontend_AnalyzeString(t *testing.T) {
 			name: "SDTS output taken for nonsense input",
 			fe: Frontend[int]{
 				Lexer: mockLexer{fn: func(r io.Reader) (lex.TokenStream, error) {
-					return nil, nil
+					return mockTokenStream{}, nil
 				}},
 				Parser: mockParser{fn: func(ts lex.TokenStream) (parse.Tree, error) {
 					return parse.Tree{}, nil

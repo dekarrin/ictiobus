@@ -85,14 +85,14 @@ var (
 	// TCInt is the token class representing an integer literal in FISHI.
 	TCInt = lex.NewTokenClass("int", "integer literal")
 
-	// TCNlEscseq is the token class representing an escape sequence after this line in FISHI.
-	TCNlEscseq = lex.NewTokenClass("nl-escseq", "escape sequence after this line")
+	// TCNlEscseq is the token class representing an escape sequence in FISHI.
+	TCNlEscseq = lex.NewTokenClass("nl-escseq", "escape sequence")
 
-	// TCNlFreeformText is the token class representing a freeform text after this line in FISHI.
-	TCNlFreeformText = lex.NewTokenClass("nl-freeform-text", "freeform text after this line")
+	// TCNlFreeformText is the token class representing a freeform text in FISHI.
+	TCNlFreeformText = lex.NewTokenClass("nl-freeform-text", "freeform text")
 
-	// TCNlNonterm is the token class representing a non-terminal symbol literal after this line in FISHI.
-	TCNlNonterm = lex.NewTokenClass("nl-nonterm", "non-terminal symbol literal after this line")
+	// TCNlNonterm is the token class representing a non-terminal symbol literal in FISHI.
+	TCNlNonterm = lex.NewTokenClass("nl-nonterm", "non-terminal symbol literal")
 
 	// TCNonterm is the token class representing a non-terminal symbol literal in FISHI.
 	TCNonterm = lex.NewTokenClass("nonterm", "non-terminal symbol literal")

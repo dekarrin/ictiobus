@@ -94,6 +94,10 @@ func (spec Spec) ClassMap() map[string]lex.TokenClass {
 
 // CreateLexer uses the Tokens and Patterns in the spec to create a new Lexer.
 func (spec Spec) CreateLexer(lazy bool) (lex.Lexer, error) {
+	if len(spec.Patterns) == 0 {
+		return nil, fmt.Errorf("no patterns defined")
+	}
+
 	var lx lex.Lexer
 
 	if lazy {
@@ -184,6 +188,11 @@ func (spec Spec) CreateParser(t parse.Algorithm, allowAmbig bool) (parse.Parser,
 	var p parse.Parser
 	var err error
 
+	// if the grammar has nothing in it we cannot proceed
+	if len(spec.Grammar.NonTerminals()) == 0 {
+		return nil, warns, fmt.Errorf("grammar is empty")
+	}
+
 	var ambigWarns []string
 	switch t {
 	case parse.LALR1:
@@ -218,6 +227,10 @@ func (spec Spec) CreateParser(t parse.Algorithm, allowAmbig bool) (parse.Parser,
 
 // CreateSDTS uses the TranslationScheme in the spec to create a new SDTS.
 func (spec Spec) CreateSDTS() (trans.SDTS, error) {
+	if len(spec.TranslationScheme) == 0 {
+		return nil, fmt.Errorf("translation scheme is empty")
+	}
+
 	sdts := ictiobus.NewSDTS()
 
 	for _, sdd := range spec.TranslationScheme {
@@ -572,8 +585,10 @@ func analyzeASTGrammarContentSlice(
 	}
 
 	// validate the grammar
-	if err := g.Validate(); err != nil {
-		return g, warnings, fmt.Errorf("invalid grammar: %w", err)
+	if len(g.NonTerminals()) != 0 {
+		if err := g.Validate(); err != nil {
+			return g, warnings, fmt.Errorf("invalid grammar: %w", err)
+		}
 	}
 
 	return g, warnings, nil

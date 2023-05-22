@@ -213,6 +213,11 @@ func (fe Frontend[E]) Analyze(r io.Reader) (ir E, pt *parse.Tree, err error) {
 		return ir, nil, err
 	}
 
+	// sanity check to see if we just got handed an empty reader
+	if tokStream.Peek().Class().ID() == lex.TokenEndOfText.ID() {
+		return ir, nil, fmt.Errorf("input is empty")
+	}
+
 	// syntactic analysis
 	parseTree, err := fe.Parser.Parse(tokStream)
 	if err != nil {

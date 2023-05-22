@@ -10,7 +10,7 @@ set in order to actually produce a frontend.
 ```fishi
 %%tokens
 
-\+			              %token +         %human plus sign '+'
+\+                        %token +         %human plus sign '+'
 \*                        %token *         %human multiplication sign '*'
 \(                        %token lp        %human left parenthesis '('
 \)                        %token rp        %human right parenthesis ')'

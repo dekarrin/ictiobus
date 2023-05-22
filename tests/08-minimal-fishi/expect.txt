@@ -1,0 +1,51 @@
+[1/5] FISHI with no actions
+Token Classes:
+* int - "integer"
+
+Lexer Patterns:
+All States:
+* \d => int
+* \s+ => (DISCARDED)
+
+Grammar:
+INTSEQ -> int INTSEQ
+        | int
+
+Translation Scheme:
+(no actions defined)
+(done)
+[2/5] FISHI with no grammar
+Token Classes:
+* int - "integer"
+
+Lexer Patterns:
+All States:
+* \d => int
+* \s+ => (DISCARDED)
+
+Grammar:
+(no rules defined)
+
+Translation Scheme:
+(no actions defined)
+(done)
+[3/5] FISHI with no tokens
+Token Classes:
+(no tokens defined)
+
+Lexer Patterns:
+All States:
+* \s+ => (DISCARDED)
+
+Grammar:
+(no rules defined)
+
+Translation Scheme:
+(no actions defined)
+(done)
+[4/5] Invalid FISHI should fail (all code blocks are empty)
+ERROR: (TEST_PATH)/empty-fishi-block.md: input is empty
+(done)
+[5/5] Invalid FISHI should fail (no code blocks are present)
+ERROR: (TEST_PATH)/no-fishi-blocks.md: input is empty
+(done)

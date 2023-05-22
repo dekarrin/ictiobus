@@ -216,7 +216,7 @@ For all states:
 %!%%!%[Gg][Rr][Aa][Mm][Mm][Aa][Rr]     %token hdr-grammar
 %human %!%%!%grammar header            %stateshift GRAMMAR
 
-%!%%!%[Aa][Cc][Tt][Ii][Oo][Nn][Ss]     %token hdr-actions 
+%!%%!%[Aa][Cc][Tt][Ii][Oo][Nn][Ss]     %token hdr-actions
 %human %!%%!%actions header            %stateshift ACTIONS
 ```
 
@@ -226,7 +226,7 @@ For tokens state:
 %state TOKENS
 
 \n\s*%!%!.                                         %token nl-escseq
-%human escape sequence after this line
+%human escape sequence
 
 %!%[Ss][Tt][Aa][Tt][Ee]                            %token dir-state
 %human %!%state directive                          %stateshift STATE-T
@@ -249,7 +249,7 @@ For tokens state:
 [^\S\n]+                                           %discard
 
 \n\s*[^%!%\s]+[^%!%\n]*                            %token nl-freeform-text
-%human freeform text after this line
+%human freeform text
 
 \n                                                 %discard
 
@@ -268,7 +268,7 @@ For grammar state:
 [^\S\n]+                 %discard
 
 \n\s*{[A-Za-z][^}]*}     %token nl-nonterm
-%human non-terminal symbol literal after this line
+%human non-terminal symbol literal
 
 \n                       %discard
 \|                       %token alt     %human alternations bar '|'

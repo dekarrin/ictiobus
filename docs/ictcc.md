@@ -364,6 +364,23 @@ func main() {
 }
 ```
 
+## The Preproccessor
+
+When FISHI is read by ictcc, before it is interpreted by the FISHI frontend, a
+preprocessing step is run on input. Preprocessing performs a few different
+functions:
+
+* It pulls all FISHI code out `fishi` code blocks and combines them into a
+single FISHI document.
+* It normalizes all lines of FISHI to have the line ending `\n`.
+* It removes all comments that start with a single "#" up until the end of the
+line.
+* It converts all double "##" sequences into literal "#" characters.
+
+Note that the last item may error reporting numbers slightly off from what would
+be expected; they will be relative to the preprocessed text, not the literal
+input.
+
 ## Parser Algorithm Selection
 
 Ictiobus is capable of producing several different types of parsers, each with a
