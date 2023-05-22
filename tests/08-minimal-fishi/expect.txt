@@ -44,8 +44,9 @@ Translation Scheme:
 (no actions defined)
 (done)
 [4/5] Invalid FISHI should fail (all code blocks are empty)
-ERROR: /home/dekarrin/projects/ictiobus/tests/08-minimal-fishi/empty-fishi-block.md: input is empty
+ERROR: (TEST_PATH)/empty-fishi-block.md: input is empty
 (done)
+/home/dekarrin/projects/ictiobus/tests/08-minimal-fishi
 [5/5] Invalid FISHI should fail (no code blocks are present)
-ERROR: /home/dekarrin/projects/ictiobus/tests/08-minimal-fishi/no-fishi-blocks.md: input is empty
+ERROR: (TEST_PATH)/no-fishi-blocks.md: input is empty
 (done)

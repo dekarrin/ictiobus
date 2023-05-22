@@ -15,9 +15,10 @@ echo "[3/5] FISHI with no tokens"
 echo "(done)"
 
 echo "[4/5] Invalid FISHI should fail (all code blocks are empty)"
-./ictcc -nsqS all "$script_path/empty-fishi-block.md"
+./ictcc -nsqS all "$script_path/empty-fishi-block.md" 2>&1 | sed 's%'"$script_path"'%(TEST_PATH)%g'
 echo "(done)"
 
+echo "$script_path"
 echo "[5/5] Invalid FISHI should fail (no code blocks are present)"
-./ictcc -nsqS all "$script_path/no-fishi-blocks.md"
+./ictcc -nsqS all "$script_path/no-fishi-blocks.md" 2>&1 | sed 's%'"$script_path"'%(TEST_PATH)%g'
 echo "(done)"
