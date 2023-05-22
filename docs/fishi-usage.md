@@ -998,7 +998,7 @@ The above example could be represented by the following FISHI:
     %%actions
 
     %symbol {SUM}
-    -> {SUM} + {TERM}: {^}.val = add({0}.val, {1}.val)
+    -> {SUM} + {TERM}: {^}.val = add({0}.val, {2}.val)
     -> {TERM}:         {^}.val = identity({0}.val)
 
     %symbol {TERM}
@@ -1012,7 +1012,9 @@ This part of FISHI is the newest and is the most likely to have its syntax
 updated.
 
 Unlike other sections in FISHI, whitespace in `%%actions` sections has
-absolutely no semantic meaning anywhere and is completely ignored.
+absolutely no semantic meaning anywhere and is completely ignored. The only
+place where one might encounter something contrary to this is the `()` symbol in
+certain places, described below.
 
 ### The Actions Entry
 
@@ -1023,7 +1025,7 @@ be defined for.
 
     %%actions
 
-    %symbol {SUM} -> {SUM} + {TERM} : {^}.val = add({0}.value, {1}.value)
+    %symbol {SUM} -> {SUM} + {TERM} : {^}.val = add({0}.value, {2}.value)
     ^^^^^^^^^^^^^
     Associated Symbol
 
@@ -1041,7 +1043,7 @@ keyword) followed by the selector.
 
     %%actions
 
-    %symbol {SUM} -> {SUM} + {TERM}   : {^}.val = add({0}.value, {1}.value)
+    %symbol {SUM} -> {SUM} + {TERM}   : {^}.val = add({0}.value, {2}.value)
                   ^^^^^^^^^^^^^^^^^   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Production action set start   SDD
 
@@ -1050,7 +1052,7 @@ which gives SDDs for the production they specify:
 
     %%actions
 
-    %symbol {SUM} -> {SUM} + {TERM} : {^}.val = add({0}.val, {1}.val)
+    %symbol {SUM} -> {SUM} + {TERM} : {^}.val = add({0}.val, {2}.val)
                   -> {TERM}         : {^}.val = identity({0}.val)
 
 Each SDD for the production starts with a `:` sign (or the outdated `%set`
@@ -1061,7 +1063,7 @@ satisfy attribute calculations that depend on them.
 
     %%actions
 
-    %symbol {SUM} -> {SUM} + {TERM} : {^}.val = add({0}.val, {1}.val)
+    %symbol {SUM} -> {SUM} + {TERM} : {^}.val = add({0}.val, {2}.val)
                                     : {^}.val = set_plus_op()
                   -> {TERM}         : {^}.val = identity({0}.val)
 
@@ -1069,7 +1071,7 @@ Because whitespace is ignored in `%%actions` sections, they can be formatted in
 any way that the user finds readable.
 
     # this:
-    %symbol {SUM} -> {SUM} + {TERM} : {^}.val = add({0}.val, {1}.val)
+    %symbol {SUM} -> {SUM} + {TERM} : {^}.val = add({0}.val, {2}.val)
                   -> {TERM}         : {^}.val = identity({0}.val)
 
     # is the same as this:
@@ -1116,33 +1118,310 @@ relatively stable state.
 
 ### SDDs
 
-Each 
+As mentioned previously, each production action set contains one or more
+syntax-directed definitions (SDDs). Each SDD starts with the symbol `:` (or the
+outdated keyword `%set`) and then specifies the attribute that is to be defined
+with an AttrRef (see below section "AttrRefs"), which at this time
+must always be an attribute on the root node `{^}`. This is followed by an
+equals sign `=` (or the outdated keyword `%hook`), and then the name of a *hook
+function* to execute whose return value is set as the value of the attribute. If
+the hook takes zero arguments, it can have a `()` after its name (but they
+*must* be together with no space between them).
 
-WIP
+    %%actions
+
+    %symbol {SUM} -> {SUM} + {TERM} :  {^}.node_type  =  make_type_sum()
+                                    |  \___________/  |  \_____________/
+                                    |        |        |         \- hook function
+                                    |        |        |
+                                    |        |        \- `=` sign
+                                    |        |
+                                    |        \- attribute to set
+                                    |
+                                    \- SDD start sign `:`
+
+The actual definition of what the hook function does is not defined in a FISHI
+spec; instead, it names the hook functions and leaves their implementations as a
+detail that the creator of the language must provide when retrieving the
+generated frontend. This is passed in as a special
+`github.com/dekarrin/ictiobus/trans.HooksMap` type variable that maps the names
+of the hook function to functions that are executed for them. For instance, the
+above hook `make_type_sum` might be implmented by users of the frontend
+providing the following hook table at runtime:
+
+```go
+
+import (
+    "github.com/dekarrin/ictiobus/trans"
+)
+
+var (
+	HooksTable = trans.HookMap{
+		"make_type_sum":     hookImplMakeTypeSum,
+        // ... could also be more bindings of hook names to implementations
+	}
+)
+
+// an example function to show the signature of hook implementations
+func hookImplMakeTypeSum(info trans.SetterInfo, args []interface{}) (interface{}, error) {
+    typeInfoMap := map[string]string{
+        "type": "sum",
+    }
+
+    return typeInfoMap, nil
+}
+```
+
+For more information on defining hook implementations, see the "Generated Code"
+section of the [ictcc Manual](./ictcc.md), or for a complete working example of
+hook implementations, see the main Readme file at the root of this project.
+
+Hook functions may take on one or more arguments by specifying them after the
+opening parenthesis `(` (or after the outdated keyword `%with`). They can be
+comma-separated, and each one must also be an AttrRef. At this time, arguments
+to hooks may only refer to nodes for production symbols, and not the head symbol
+node (see the AttrRef section below).
+
+    %%actions
+
+    %symbol {SUM} -> {SUM} + {TERM} :  {^}.value = add({0}.value, {2}.value)
+
+The values of the referenced attributes will be passed to the hook implemenation
+at runtime in its second parameter as a slice of `interface{}` objects. When
+there are no arguments, the hook implementation is passed an empty slice.
+
+The closing parenthesis at the end of a list of arguments to the hooks is pure
+syntactic sugar and is ignored by the parser, as are the commas between
+arguments, but it is recommended they be used for readability purposes. The
+empty parentheses pair `()` for a hook function with no arguments is also
+syntactic sugar and may be omitted without changing the meaning. It is
+considered a single symbol, and splitting the parentheses apart will result in
+their being interpreted as a `(` (start of arguments list) followed by a `)`
+(discarded and ignored), which will likely result in errors regarding an AttrRef
+being expected as opposed to whatever comes next.
+
+    # These two are equivalent:
+
+    %symbol {SUM} -> {SUM} + {TERM} :  {^}.node_type  =  make_type_sum()
+    %symbol {SUM} -> {SUM} + {TERM} :  {^}.node_type  =  make_type_sum
+
+    # but this is actually *not* the same, and will break:
+    %symbol {SUM} -> {SUM} + {TERM} :  {^}.node_type  =  make_type_sum( )
+
+While it is a peculiarity of FISHI that `()` is treated separately from `(` and
+`)` (and in the future, this might not be the case!), this is done to
+distinguish the syntactic sugar of indicating `empty arguments` from the
+syntatic sugar of starting the arg list with a single `(`. It is the way it is
+for historical reasons and future versions of Ictiobus may change this.
 
 ### AttrRefs
 
-WIP
+The Actions sections of FISHI represent references to attributes using a
+syntactic construct called the *AttrRef* (short for attribute reference). This
+consists first of a reference to a particular node in the parse tree relative to
+the node for the head symbol of the action it is being defined for. This
+reference can specify nodes by the name of their symbol, what type of symbol it
+is, and other criteria. The exact syntax for the node-reference portion of an
+AttrRef is different based on the type of criteria it uses, but most are wrapped
+in curly braces `{` and `}`.
 
-### Hooks
+The node-reference portion is followed by a `.`, and then the name of an
+attribute on the referred-to node. This attribute name is made up of the
+characters `A-Z`, `a-z`, `_`, and `$`, and must start with either a letter or
+`$`. Attribute names that start with `$` are reserved for internal use. When
+defining a new attribute, starting with `$` is not allowed.
 
-WIP
+    %%actions
+
+    %symbol {SUM}
+    -> {SUM} + {TERM}:  {^}.value   =   add({0}.value, {2}.value)
+
+In the above SDD, `{^}.value` refers to the attribute named `value` on the node
+in the parse tree whose symbol is the head node (aka the node that the SDD is
+defined for). If `value` didn't exist on a node before this action is invoked on
+it, this will create it; otherwise, it will be updated. `{0}.value` refers to an
+attribute named `value` on the child node corresponding to the 0th (i.e. first)
+symbol in the production (so the node for the `SUM` non-terminal), and
+`{2}.value` likewise refers to an attribute named `value` on the third symbol in
+the production, `TERM`.
+
+#### Types Of Node References
+
+The node-reference part of an AttrRef can vary in appearance based on how it
+specifies the node. As mentioned before, `{^}` refers to the head symbol of the
+associated grammar rule:
+
+    %%actions
+
+    %symbol {SUM}
+    -> {SUM} + {TERM}:  {^}.value   =   add({0}.value, {2}.value)
+                        \_______/
+                            |- attribute named 'value' on the node for the head symbol
+
+The node-reference can refer to the child node of the current one that
+corresponds to the Nth symbol in the associated production by putting its
+0-based index in between curly braces. This is by-far the shortest form of node
+reference for a production symbol (although it can be difficult to read if the
+production specifier does not explicitly give the production):
+
+    %%actions
+
+    %symbol {SUM}
+    -> {SUM} + {TERM}:  {^}.value   =   add({0}.value, {2}.value)
+
+In the above example, the `{0}` refers to the `{SUM}` in the production, because
+it is the first symbol (index 0). The `{2}` refers to the `{TERM}`, because it
+is the third symbol (index 2).
+
+The node-reference can refer to an instance of a particular non-terminal symbol
+in the production by instead giving the name of the symbol in braces, similar to
+how non-terminal symbols are defined:
+
+    # the above could have been:
+    -> {SUM} + {TERM}:  {^}.value   =   add({SUM}.value, {TERM}.value)
+
+If there's more than one occurance of that non-terminal in the production, the
+index of the occurance (starting at 0) can be given by putting a dollar sign
+followed by the index inside of the braces. If it's not given, it's assumed to
+be 0 (the first occurance):
+
+    %%grammar
+
+    {SUM}  =  {EXPR} + {EXPR}
+
+
+    %%actions
+
+    %symbol {SUM}
+    -> {EXPR} + {EXPR} : {^}.value = add({EXPR$0}.value, {EXPR$1}.value)
+
+    # the above uses the first instance of EXPR in the production (`$0`) as the
+    # first arg to add(), and the second instance of EXPR in the production
+    # (`$1`) as the second arg.
+
+The occurance must be explicitly given if the name of the non-terminal itself
+contains a dollar so that the non-terminal name is correctly parsed:
+
+    -> {BIG$SYMBOL} + {TERM} : {^}.value = add({BIG$SYMBOL$0}.value, {TERM}.value)
+
+An instance of a particular terminal symbol can be specified in a very similar
+way as non-terminals, just without the braces:
+
+    %%actions
+
+    %symbol {TERM}
+    ->  int :       {^}.value = int_value(int.$text)
+
+Just like with non-terminals, the above `int.$text` specifies the attribute
+named `$text` (a built-in one, due to the leading `$`) defined on the child node
+corresponding to the terminal `int`.
+
+This follows the same rules for specifying a particular index as non-terminals;
+to refer to occurances of a non-terminal symbol that are not the first, the
+index of the occurance must be specified with a dollar sign after the name of
+the terminal:
+
+    %%actions
+
+    %symbol {INT-SUM}
+    -> int + int:      {^}.value = add(int$0.$text, int$1.$text)
+
+The occurance must be explicitly given if the name of the terminal itself
+contains a dollar so that the non-terminal name is correctly parsed:
+
+    -> $int$  : {^}.value = add({$int$$0}.$text)
+
+Besides occurances of specific terminals and non-terminals, an AttrRef may refer
+to *any* terminal or non-terminal by using `{.}` or `{&}` respectively. `{.}`
+and `{&}` alone specify the first non-terminal or terminal:
+
+    -> {SUM} int:  {^}.value   =   add({.}.$text, {&}.value)
+
+They can also specify the Nth terminal or non-terminal by giving the index of
+the terminal after the `.`/`&`, still within braces:
+
+    -> int + string:   {^}.value = concat({.2}.$text, {.0}.$text)
+
+    -> {TERM} + {SUM}: {^}.value = add({&1}.value, {&0}.value)
+
+### Built-In Attributes
+
+Usually, if an attribute is being used as an argument to a hook, it must be
+defined by another SDD elsewhere on the grammar rule for that symbol. But some
+attributes are automatically added to a parse tree during initial creation of
+the annotated parse tree. All of these attributes will have a name that starts
+with a dollar sign `$`.
+
+* `$text` - Defined for terminal symbol nodes only. This is the text that was
+lexed for the token and it will always be of type `string`.
+* `$id`   - Defined for all nodes. This is a unique ID of type `uint64`. Every
+node will have an `$id` attribute defined.
+* `$ft`   - Defined for all nodes except terminal nodes representing the epsilon
+production. This is the "First Token" of the node; for terminal nodes, this is
+the token that was lexed for it, for non-terminal nodes, this is the first token
+that is part of the grammar construct. Note that the token info for the node a
+hook is producing a value for is always passed to the implementation as its
+first argument; `$ft` can be used to get the first-tokens of symbols from a
+production.
 
 ### Synthesized vs Inherited Attributes
 
-WIP - mention S-attr only supported
+Within Ictiobus (and sometimes in FISHI) you may come across the concept of
+*synthesized* attributes. A synthesized attribute is one that is set on the same
+node as its SDD is called on. Every attribute described in this document so far
+has been synthesized; in FISHI this is done by assigning to an attribute of the
+head symbol with `{^}.someAttributeName = ...`. For synthesized attributes,
+arguments to the hook can only be from nodes that are children of the node that
+the SDD is called on (i.e. symbols from the production). Again, this is the only
+example shown in this document.
 
-### Abstract Syntax Trees
+There is also the idea of *inherited* attributes. Inherited attributes would be
+created by setting the value of an attribute in a child node of the one the SDD
+is running on. They can use the values of attributes on sibling nodes and the
+head note as arguments to the hook.
+
+A translation scheme defined by a series of SDDs on grammar rules (known
+formally as an *attribute grammar*) that only define synthesized attributes is
+known as S-attributed. Despite having some code for handling inherited
+attributes, Ictiobus does not officially support this and it is poorly tested.
+They should in general not be used.
+
+### The IR Attribute
+
+When building up the translation scheme, the first attribute defined for the
+starting symbol of the gramamr is set as the attribute that the IR is taken from
+once SDTS evaluation completes.
+
+    %%grammar
+
+    {COMPLETE-PROGRAM}  =   {STMT-LIST}
+    {STMT-LIST}         =   {STMT-LIST} {STMT} | {STMT}
+    {STMT}              =   {FUNC-CALL} | {EXPR}
+
+    # ... a lot more grammar rules
+
+
+    %%actions
+
+    %symbol {COMPLETE-PROGRAM}
+    -> {STMT-LIST} :  {^}.ast = make_list_node({0}.ast)
+
+In the above example, the attribute `ast` on the root `COMPLETE-PROGRAM` node of
+parse trees would be used to retrieve the IR, because it is the first one
+defined for the grammar start symbol (`COMPLETE-PROGRAM`).
+
+
+### Creation Of Abstract Syntax Trees
 
 This IR value can be anything that you wish it to be. For simpler languages,
 such as FISHIMath, it can be immediately calculated by evaluating mathematical
 options to build up a final result. For others, a special representation of the
-input code called an *abstract syntax tree* might be built up. An abstract
+input code called an *abstract syntax tree* (AST) might be built up. An abstract
 syntax tree difers from a parse tree by abstracting the grammatical details
 of how the constructs within the code were arranged into a more natural
 representation that reflects the logical structures of the language, such as
-control structures. It is usually suitable for further evaluation by an
-interpretion engine.
+control structures. It is suitable for further evaluation by the caller of the
+frontend.
 
 ```go
 if x >= 8 && y < 2 {
@@ -1150,15 +1429,69 @@ if x >= 8 && y < 2 {
 }
 ```
 
-The above block of Go syntax might be parsed into the following tree:
+The above block of Go syntax might be parsed into something that resembles the
+following tree:
 
-    IF-BLOCK
-       |
-    
-    if COND
+    [IF-BLOCK]
+     |-- (kw-if "if")
+     |-- [COND]
+     |    \-- [EXPR]
+     |         |-- [EXPR]
+     |         |    |-- [EXPR]
+     |         |    |    \-- (identifier "x")
+     |         |    |
+     |         |    |-- (binary-op ">=")
+     |         |    |
+     |         |    \-- [EXPR]
+     |         |         \-- (int "8")
+     |         |
+     |         |-- (binary-op "&&")
+     |         |              
+     |         \-- [EXPR]
+     |              |-- [EXPR]
+     |              |    \-- (identifier "y")
+     |              |
+     |              |-- (binary-op "<")
+     |              |
+     |              \-- [EXPR]
+     |                   \-- (int "2")
+     |
+     \-- [BODY]
+          |-- (block-open "{")
+          |-- [STATEMENTS]
+          |    \-- [STATEMENT]
+          |         \-- [FUNC-CALL]
+          |               |-- (identifier "fmt")
+          |               |-- (period ".")
+          |               |-- (identifier "Printf")
+          |               |-- (lparen "("))
+          |               |-- [ARGS]
+          |               |    \-- [ARG]
+          |               |         \-- (dquote-string ""It's true!\n"")
+          |               |
+          |               \-- (rparen ")")
+          \-- (block-close "}")
 
-WIP finish above
+That's ludicrously messy, and would be difficult to directly analyze. By
+defining a series of actions in the SDTS which convert each item to some sort of
+AST node, passing the values along as neede, a tree that representes the same
+syntax but in a more abstract fashion can be created:
 
+    [if-statement]
+     |-- condition: [binary expression (op="&&")]
+     |               |-- left:  [binary-expression (op=">=")]
+     |               |           |-- left:  [variable (name="x")]
+     |               |           \-- right: [literal (type=int, value=8)]
+     |               \-- right: [binary-expression (op="<")]
+     |                           |-- left:  [variable (name="y")]
+     |                           \-- right: [literal (type=int, value=2)]
+     \-- body: [statement-list]
+                     \-- stmts[0]: [func-call (pkg="fmt", name="Printf")]
+                                     \-- args[0]: [literal (type=string, value="It's true!\n")]
+
+Much better and easier to analyze! For langauges that cannot be immediately
+evaluated via the IR, an AST is a reasonable target value for the STDS to
+produce.
 
 ### Complete Example For FISHI Math
 
