@@ -11,7 +11,6 @@ cd "$script_path/.immediate"
 	-l FISHIMath -v 1.0 \
 	-d "$script_path/fmc-eval" \
 	--hooks "fmhooks" \
-	--dev \
 	-S all \
 	-nq \
 	"$script_path/fm-eval.md" > /dev/null || { echo "FAIL" >&2 ; exit 1 ; }

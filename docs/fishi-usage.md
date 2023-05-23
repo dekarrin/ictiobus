@@ -1139,9 +1139,12 @@ following forms:
 * `{NON-TERM$N}` - The child node corresponding to the Nth occurance of
                    non-terminal symbol `NON-TERM` in the production (0-indexed).
 * `term`         - The child node corresponding to the first occurance of
-                   terminal symbol `term` in the production.
+                   terminal symbol `term` in the production. If used as an arg
+                   to a hook function, must be separated from prior symbol by
+                   whitespace.
 * `term$N`       - The child node corresponding to the Nth occurance of terminal
-                   symbol `term` in the production. 
+                   symbol `term` in the production. If used as an arg to a hook
+                   function, must be separated from prior symbol by whitespace.
 
 ### Syntax-Directed Translation Schemes
 
@@ -1515,7 +1518,12 @@ way as non-terminals, just without the braces:
     %%actions
 
     %symbol {TERM}
-    ->  int :       {^}.value = int_value(int.$text)
+    ->  int :       {^}.value = int_value( int.$text)
+
+Note that due to limitations of the FISHI parser, if you're using an attr ref
+that specifies a terminal by name, you need to separate it by space from
+whatever came before it, otherwise the entire prior thing could be detected as
+an "unexpected attribute reference literal".
 
 Just like with non-terminals, the above `int.$text` specifies the attribute
 named `$text` (a built-in one, due to the leading `$`) defined on the child node
@@ -1529,12 +1537,12 @@ the terminal:
     %%actions
 
     %symbol {INT-SUM}
-    -> int + int:      {^}.value = add(int$0.$text, int$1.$text)
+    -> int + int:      {^}.value = add( int$0.$text, int$1.$text)
 
 The occurance must be explicitly given if the name of the terminal itself
 contains a dollar so that the non-terminal name is correctly parsed:
 
-    -> $int$  : {^}.value = add({$int$$0}.$text)
+    -> $int$  : {^}.value = add( $int$$0.$text)
 
 Besides occurances of specific terminals and non-terminals, an AttrRef may refer
 to *any* terminal or non-terminal by using `{.}` or `{&}` respectively. `{.}`
@@ -1735,7 +1743,7 @@ HooksTable.
     -> {EXPR} shark:              {^}.value = identity({EXPR}.value)
 
     %symbol {EXPR}
-    -> id tentacle {EXPR}:        {^}.value = write_var(id.$text, {EXPR}.value)
+    -> id tentacle {EXPR}:        {^}.value = write_var( id.$text, {EXPR}.value)
     -> {SUM}:                     {^}.value = identity({SUM}.value)
 
     %symbol {SUM}
@@ -1752,7 +1760,7 @@ HooksTable.
     -> fishtail {EXPR} fishhead:  {^}.value = identity({EXPR}.value)
     -> int:                       {^}.value = int({0}.$text)
     -> float:                     {^}.value = float({0}.$text)
-    -> id:                        {^}.value = read_var(id.$text)
+    -> id:                        {^}.value = read_var( id.$text)
     ```
 
 #### AST Creation Version
@@ -1779,13 +1787,13 @@ use the Go code in Appendix B to provide the HooksTable.
 
     %symbol {STATEMENTS}
     -> {STMT} {STATEMENTS}:       {^}.stmt_nodes = node_slice_prepend({1}.stmt_nodes, {0}.node)
-    -> {STMT}:                    {^}.smtm_nodes = node_slice_start({0}.node)
+    -> {STMT}:                    {^}.stmt_nodes = node_slice_start({0}.node)
 
     %symbol {STMT}
     -> {EXPR} shark:              {^}.node = identity({EXPR}.node)
 
     %symbol {EXPR}
-    -> id tentacle {EXPR}:        {^}.node = assignment_node(id.$text, {EXPR}.node)
+    -> id tentacle {EXPR}:        {^}.node = assignment_node( id.$text, {EXPR}.node)
     -> {SUM}:                     {^}.node = identity({SUM}.node)
 
     %symbol {SUM}
@@ -1802,7 +1810,7 @@ use the Go code in Appendix B to provide the HooksTable.
     -> fishtail {EXPR} fishhead:  {^}.node = group_node({EXPR}.node)
     -> int:                       {^}.node = lit_node_int({0}.$text)
     -> float:                     {^}.node = lit_node_float({0}.$text)
-    -> id:                        {^}.node = var_node(id.$text)
+    -> id:                        {^}.node = var_node( id.$text)
     ```
 
 ## Appendix A: FISHIMath Immediate Eval HooksMap

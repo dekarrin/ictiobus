@@ -78,7 +78,7 @@ evaluates end values as they are created. Use with the hooks package in
 -> {EXPR} shark:              {^}.value = identity({EXPR}.value)
 
 %symbol {EXPR}
--> id tentacle {EXPR}:        {^}.value = write_var(id.$text, {EXPR}.value)
+-> id tentacle {EXPR}:        {^}.value = write_var( id.$text, {EXPR}.value)
 -> {SUM}:                     {^}.value = identity({SUM}.value)
 
 %symbol {SUM}
@@ -95,5 +95,5 @@ evaluates end values as they are created. Use with the hooks package in
 -> fishtail {EXPR} fishhead:  {^}.value = identity({EXPR}.value)
 -> int:                       {^}.value = int({0}.$text)
 -> float:                     {^}.value = float({0}.$text)
--> id:                        {^}.value = read_var(id.$text)
+-> id:                        {^}.value = read_var( id.$text)
 ```
