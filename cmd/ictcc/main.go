@@ -1232,18 +1232,18 @@ func sddRefToPrintedString(ref trans.AttrRef, g grammar.CFG, r grammar.Rule) str
 
 		if symIdx == -1 {
 			// should never happen
-			panic("non-terminal not found in rule")
+			panic("symbol not found in rule")
 		}
 
 		sym := r.Productions[0][symIdx]
 		// now find all indexes of that particular symbol in the rule
 
 		inst := -1
-		for i, s := range r.Productions[0] {
+		for _, s := range r.Productions[0] {
 			if s == sym {
 				inst++
 			}
-			if i == ref.Relation.Index {
+			if inst == ref.Relation.Index {
 				break
 			}
 		}
