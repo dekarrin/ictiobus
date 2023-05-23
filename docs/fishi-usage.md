@@ -1889,9 +1889,9 @@ func hookMultiply(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
     }
 
     if v1.IsFloat {
-        return FMFloat(v1.Float() * v2.Float())
+        return FMFloat(v1.Float() * v2.Float()), nil
     }
-    return FMInt(v1.Int() * v2.Int())
+    return FMInt(v1.Int() * v2.Int()), nil
 }
 
 func hookDivide(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
@@ -2025,7 +2025,7 @@ func FMInt(v int) FMValue {
 // Int returns the value of v as an int, converting if necessary from a float.
 func (v FMValue) Int() int {
     if v.IsFloat {
-        return int(math.Round(v.f))
+        return int(math.Round(float64(v.f)))
     }
     return v.i
 }
@@ -2542,7 +2542,7 @@ type FMValue struct {
 // Int returns the value of v as an int, converting if Type() is not Int.
 func (v FMValue) Int() int {
     if v.vType == Float {
-        return int(math.Round(v.f))
+        return int(math.Round(float64(v.f)))
     }
     return v.i
 }
