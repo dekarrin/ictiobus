@@ -763,7 +763,7 @@ to be escaped, due to being special characters in RE2 syntax.
     \+                       %token +            %human plus sign "+"
     >\{                      %token fishtail     %human fish-tail ">{"
     '\}                      %token fishhead     %human fish-head "'}"
-    <o^><                    %token shark        %human statement shark "<o^><"
+    <o\^><                   %token shark        %human statement shark "<o^><"
     =o                       %token tentacle     %human value tentacle "=o"
     [A-Za-z_][A-Za-z0-9_]*   %token id           %human identifier
     [0-9]*.[0-9]+            %token float        %human floating-point literal

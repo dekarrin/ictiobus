@@ -16,7 +16,7 @@ cd "$script_path/.immediate"
 	-S all \
     --dev \
 	-nq \
-	"$script_path/fm-eval.md" > /dev/null || { echo "FAIL" >&2 ; exit 1 ; }
+	"$script_path/fm-eval.md" --sim-graphs --sim-trees > /dev/null || { echo "FAIL" >&2 ; exit 1 ; }
 
 
 #echo "[5/5] Invalid FISHI should fail (no code blocks are present)"
