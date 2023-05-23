@@ -791,9 +791,42 @@ you, skip this section to see how regular grammars work using FISHI syntax for
 its examples.
 
 A FISHI spec specifies the parsing phase with a context-free grammar declared
-using special BNF-ish syntax 
+using special BNF-ish syntax in `%%grammar` sections. By convention there are
+spaces between symbols, but this is not required unless it would otherwise make
+a terminal ambiguous with another terminal or with the symbol `=` or `|`.
 
-WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIPWIP WIP WIP WIP WIP WIPWIP WIP WIP WIP WIP WIPWIP WIP WIP WIP WIP WIP
+    ```
+    %%grammar
+
+    {S}   =   {E} + {S} | {E}
+    {E}   =   {F} * {E} | {F}
+    
+    {F}   =   ( {S} )
+           |  id
+           |  int
+    ```
+
+The head symbol of the first rule defined in a Grammar section of a spec is the
+start symbol of the grammar.
+
+Non-terminals are specified by wrapping their name in curly braces `{` and `}`.
+Their name must start with an upper-case letter A-Z but beyond that they may
+contain any characters besides `}`.
+
+Terminals are specified by giving their name. All arguments to `%token`
+directives in Tokens section in the same spec are valid terminal symbols. Their
+names should be lower-case if they contain letters. A terminal symbol name
+cannot start with `{` and end with `}` due to ambiguity with non-terminals that
+would cause.
+
+FISHI uses the equals sign `=` to indicate the head symbol derives the
+production(s) on the right. Alternative productions for the same rule are
+separated by `|`. The alternative may be listed on the next line, but if this is
+the case then the `|` must be on the next line as well; lines cannot be ended
+with a `|`.
+
+The epsilon production is specified with an empty pair of curly braces, `{}`.
+These braces must be together as a pair; they cannot be separated by whitespace.
 
 ### The Context-Free Grammar
 
@@ -2013,6 +2046,7 @@ use the Go code defined below it for the HooksTable.
     -> id:                        {^}.node = var_node(id.$text)
     ```
 
+WIP: move to appendix (also the other huge go package)
 The above can be paired with a package containing the following file (we'll call
 it `fmhooks` for this example but do change the package name to something more
 correct) for a fully-featured interpretation engine. It contains implementations
@@ -2452,9 +2486,6 @@ func (n GroupNode) String() string {
     return fmt.Sprintf("[GROUP\n%s%s\n]", n.Name, exprStart, exprStr)
 }
 
-
-
-
 func spaceIndentNewlines(str string, amount int) string {
     if strings.Contains(str, "\n") {
         // need to pad every newline
@@ -2466,8 +2497,6 @@ func spaceIndentNewlines(str string, amount int) string {
     }
     return str
 }
-
-
 
 // ValueType is the type of a value in FISHIMath. Only Float and Int are
 // supported.
@@ -2536,46 +2565,3 @@ func (v FMValue) String() string {
     return fmt.Sprintf("%d", v.i)
 }
 ```
-
-AST node types:
-
-* statement (body:node=)
-* node is one of:
-* literal (type=, value=)
-* variable (varname=)
-* binary-op (op=, left:node=, right:node=)
-* assignment (name=, value:node=)
-* group (body=)
-
-
-    ```fishi
-    %%actions
-
-
-    %symbol {FISHIMATH} ->: {^}.ast = identity({0}.statement_list)
-
-    %symbol {STATEMENTS}
-    ```
-
-
-    ```fishi
-    %%grammar
-
-
-    {FISHIMATH}   =   {STATEMENTS}
-
-    {STATEMENTS}  =   {STMT} {STATEMENTS} | {STMT}
-    
-    {STMT}        =   {EXPR} shark
-
-    {EXPR}        =   id tentacle {EXPR}
-                  |   {PRODUCT} + {EXPR}
-                  |   {PRODUCT} - {EXPR}
-                  |   {PRODUCT}
-
-    {PRODUCT}     =   {TERM} * {PRODUCT}
-                  |   {TERM}
-    ```
-
-WIP - include both AST ver and eval ver
-
