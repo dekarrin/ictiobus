@@ -747,7 +747,7 @@ is declared first.
     ca[rt]       %token mover
     c[ao]t       %token sleeper
 
-### Complete Example For FISHIMath
+### Complete Tokens Example For FISHIMath
 
 Here's a Tokens section used to implement FISHIMath. Some of the patterns need
 to be escaped, due to being special characters in RE2 syntax.
@@ -1016,7 +1016,7 @@ The good news is that there are well-defined techniques for eliminating epsilon
 productions from a grammar that always work. Describing them is beyond the scope
 of this guide, but they can be easily found looking up the relevant literature.
 
-### Complete Example For FISHIMath
+### Complete Grammar Example For FISHIMath
 
 This example defines the context-free grammar for FISHIMath, using the tokens
 defined in the previous example for FISHIMath in the Tokens section of this
@@ -1697,7 +1697,7 @@ syntax but in a more abstract fashion can be created:
 Much better! And way easier to analyze! For langauges that cannot be immediately
 evaluated via the SDTS, an AST is a reasonable IR.
 
-### Complete Example For FISHIMath
+### Complete Actions Example For FISHIMath
 
 This section builds up a translation scheme from the grammar and tokens defined
 in previous FISHIMath sections. It gives it in two forms: one that performs
