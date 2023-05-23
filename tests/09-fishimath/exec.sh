@@ -7,14 +7,14 @@ old_dir="$(pwd)"
 cd "$script_path/.immediate"
 
 "$old_dir/ictcc" --clr \
-	--ir 'int' \
-	-l SimpleMath -v 1.0.0 \
-	-d "$script_path/testdiag" \
-	--hooks "$script_path/.hooks" \
+	--ir '[]github.com/dekarrin/fishimath/fmhooks.FMValue' \
+	-l FISHIMath -v 1.0 \
+	-d "$script_path/fmc-eval" \
+	--hooks "fmhooks" \
 	--dev \
 	-S all \
 	-nq \
-	"$script_path/simplemath.md" > /dev/null || { echo "FAIL" >&2 ; exit 1 ; }
+	"$script_path/fm-eval.md" > /dev/null || { echo "FAIL" >&2 ; exit 1 ; }
 
 
 #echo "[5/5] Invalid FISHI should fail (no code blocks are present)"
