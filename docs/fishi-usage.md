@@ -1708,7 +1708,8 @@ AST of the input and uses that as the IR.
 
 This example performs immediate evaluation. Its IR is a slice of numbers, where
 the item with index N is the value of evaluating the Nth statment. If you want
-to try it out, be sure and use the Go code defined below it for the HooksTable.
+to try it out, be sure and use the Go code in Appendix A to provide the
+HooksTable.
 
     ```fishi
     %%actions
@@ -1754,10 +1755,69 @@ to try it out, be sure and use the Go code defined below it for the HooksTable.
     -> id:                        {^}.value = read_var(id.$text)
     ```
 
-The above can be paired with a package containing the following file (we'll call
-it `fmhooks` for this example but do change the package name to something more
-correct) for a fully-featured interpretation engine. It contains implementations
-for the HooksTable
+#### AST Creation Version
+
+This example performs creation of an abstract syntax tree, deferring actual
+evaluation to the caller of the frontend. Its IR is an AST successively built up
+out of each of the grammar constructs. If you want to try it out, be sure and
+use the Go code in Appendix B to provide the HooksTable.
+
+    ```fishi
+    %%actions
+
+    # This actions section creates an abstract syntax tree and returns it as the
+    # IR.
+
+
+    # {FISHIMATH}.ir is called that for readability purposes; there's nothing
+    # special about the attribute name "ir". What makes this the final IR value
+    # returned from the frontend is that it is the first attribute in an SDD
+    # defined for the grammar start symbol {FISHIMATH}.
+
+    %symbol {FISHIMATH}
+    -> {STATEMENTS}:              {^}.ir = ast({&0}.stmt_nodes)
+
+    %symbol {STATEMENTS}
+    -> {STMT} {STATEMENTS}:       {^}.stmt_nodes = node_slice_prepend({1}.stmt_nodes, {0}.node)
+    -> {STMT}:                    {^}.smtm_nodes = node_slice_start({0}.node)
+
+    %symbol {STMT}
+    -> {EXPR} shark:              {^}.node = identity({EXPR}.node)
+
+    %symbol {EXPR}
+    -> id tentacle {EXPR}:        {^}.node = assignment_node(id.$text, {EXPR}.node)
+    -> {SUM}:                     {^}.node = identity({SUM}.node)
+
+    %symbol {SUM}
+    -> {PRODUCT} + {EXPR}:        {^}.node = binary_node_add({&0}.node, {&1}.node)
+    -> {PRODUCT} - {EXPR}:        {^}.node = binary_node_sub({&0}.node, {&1}.node)
+    -> {PRODUCT}:                 {^}.node = identity({PRODUCT}.node)
+
+    %symbol {PRODUCT}
+    -> {TERM} * {PRODUCT}:        {^}.node = binary_node_mult({&0}.node, {&1}.node)
+    -> {TERM} / {PROUDCT}:        {^}.node = binary_node_div({&0}.node, {&1}.node)
+    -> {TERM}:                    {^}.node = identity({TERM}.node)
+
+    %symbol {TERM}
+    -> fishtail {EXPR} fishhead:  {^}.node = group_node({EXPR}.node)
+    -> int:                       {^}.node = lit_node_int({0}.$text)
+    -> float:                     {^}.node = lit_node_float({0}.$text)
+    -> id:                        {^}.node = var_node(id.$text)
+    ```
+
+## Appendix A: FISHIMath Immediate Eval HooksMap
+
+This section contains a Go package that provides a HooksTable suitable for use
+with the Actions section given as an example in the "Immediate Evaluation
+Version" section of the FISHIMath example for Actions.
+
+To use it, place the below code into a Go package called "fmhooks". Then,
+prepare the FISHI spec using the examples in this document. Next, use ictcc to
+build the FISHIMath frontend, and give the arguments `--ir
+[]import/path/to/fmhooks.FMValue` and `--hooks filesystem/path/to/fmhooks`. This
+will allow you to do full validation testing and create a diagnostics binary
+with `-d` that has a fully-featured interpretation engine.
+
 
 ```go
 package fmhooks
@@ -1995,62 +2055,20 @@ func (v FMValue) String() string {
 }
 ```
 
+## Appendix B: FISHIMath AST HooksMap
 
-#### AST Creation Version
+This section contains a Go package that provides a HooksTable suitable for use
+with the Actions section given as an example in the "AST Creation Version"
+section of the FISHIMath example for Actions.
 
-This example performs creation of an abstract syntax tree, deferring actual
-evaluation to the caller of the frontend. Its IR is an AST successively built up
-out of each of the grammar constructs. If you want to try it out, be sure and
-use the Go code defined below it for the HooksTable.
-
-    ```fishi
-    %%actions
-
-    # This actions section creates an abstract syntax tree and returns it as the
-    # IR.
+To use it, place the below code into a Go package called "fmhooks". Then,
+prepare the FISHI spec using the examples in this document. Next, use ictcc to
+build the FISHIMath frontend, and give the arguments `--ir
+import/path/to/fmhooks.AST` and `--hooks filesystem/path/to/fmhooks`. This
+will allow you to do full validation testing and create a diagnostics binary
+with `-d` that will produce ASTs of input FISHIMath code.
 
 
-    # {FISHIMATH}.ir is called that for readability purposes; there's nothing
-    # special about the attribute name "ir". What makes this the final IR value
-    # returned from the frontend is that it is the first attribute in an SDD
-    # defined for the grammar start symbol {FISHIMATH}.
-
-    %symbol {FISHIMATH}
-    -> {STATEMENTS}:              {^}.ir = ast({&0}.stmt_nodes)
-
-    %symbol {STATEMENTS}
-    -> {STMT} {STATEMENTS}:       {^}.stmt_nodes = node_slice_prepend({1}.stmt_nodes, {0}.node)
-    -> {STMT}:                    {^}.smtm_nodes = node_slice_start({0}.node)
-
-    %symbol {STMT}
-    -> {EXPR} shark:              {^}.node = identity({EXPR}.node)
-
-    %symbol {EXPR}
-    -> id tentacle {EXPR}:        {^}.node = assignment_node(id.$text, {EXPR}.node)
-    -> {SUM}:                     {^}.node = identity({SUM}.node)
-
-    %symbol {SUM}
-    -> {PRODUCT} + {EXPR}:        {^}.node = binary_node_add({&0}.node, {&1}.node)
-    -> {PRODUCT} - {EXPR}:        {^}.node = binary_node_sub({&0}.node, {&1}.node)
-    -> {PRODUCT}:                 {^}.node = identity({PRODUCT}.node)
-
-    %symbol {PRODUCT}
-    -> {TERM} * {PRODUCT}:        {^}.node = binary_node_mult({&0}.node, {&1}.node)
-    -> {TERM} / {PROUDCT}:        {^}.node = binary_node_div({&0}.node, {&1}.node)
-    -> {TERM}:                    {^}.node = identity({TERM}.node)
-
-    %symbol {TERM}
-    -> fishtail {EXPR} fishhead:  {^}.node = group_node({EXPR}.node)
-    -> int:                       {^}.node = lit_node_int({0}.$text)
-    -> float:                     {^}.node = lit_node_float({0}.$text)
-    -> id:                        {^}.node = var_node(id.$text)
-    ```
-
-WIP: move to appendix (also the other huge go package)
-The above can be paired with a package containing the following file (we'll call
-it `fmhooks` for this example but do change the package name to something more
-correct) for a fully-featured interpretation engine. It contains implementations
-for the HooksTable.
 
 ```go
 package fmhooks
