@@ -88,7 +88,7 @@ evaluates end values as they are created. Use with the hooks package in
 
 %symbol {PRODUCT}
 -> {TERM} * {PRODUCT}:        {^}.value = multiply({&0}.value, {&1}.value)
--> {TERM} / {PROUDCT}:        {^}.value = divide({&0}.value, {&1}.value)
+-> {TERM} / {PRODUCT}:        {^}.value = divide({&0}.value, {&1}.value)
 -> {TERM}:                    {^}.value = identity({TERM}.value)
 
 %symbol {TERM}

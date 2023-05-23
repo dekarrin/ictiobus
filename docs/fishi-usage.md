@@ -933,7 +933,7 @@ following set of derivations:
     ----------------------------------------------------------------
     {EXRP}                        | Start Symbol
     {PRODUCT}                     | {EXPR}     =  {PRODUCT}
-    {PRODUCT} * {TERM}            | {PRODUCT}  =  {PROUDCT} * {TERM}
+    {PRODUCT} * {TERM}            | {PRODUCT}  =  {PRODUCT} * {TERM}
     {PRODUCT} * int               | {TERM}     =  int
     {TERM} * int                  | {PRODUCT}  =  {TERM}
     ( {EXPR} ) * int              | {TERM}     =  ( {EXPR} )
@@ -1753,7 +1753,7 @@ HooksTable.
 
     %symbol {PRODUCT}
     -> {TERM} * {PRODUCT}:        {^}.value = multiply({&0}.value, {&1}.value)
-    -> {TERM} / {PROUDCT}:        {^}.value = divide({&0}.value, {&1}.value)
+    -> {TERM} / {PRODUCT}:        {^}.value = divide({&0}.value, {&1}.value)
     -> {TERM}:                    {^}.value = identity({TERM}.value)
 
     %symbol {TERM}
@@ -1803,7 +1803,7 @@ use the Go code in Appendix B to provide the HooksTable.
 
     %symbol {PRODUCT}
     -> {TERM} * {PRODUCT}:        {^}.node = binary_node_mult({&0}.node, {&1}.node)
-    -> {TERM} / {PROUDCT}:        {^}.node = binary_node_div({&0}.node, {&1}.node)
+    -> {TERM} / {PRODUCT}:        {^}.node = binary_node_div({&0}.node, {&1}.node)
     -> {TERM}:                    {^}.node = identity({TERM}.node)
 
     %symbol {TERM}

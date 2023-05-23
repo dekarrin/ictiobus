@@ -448,7 +448,7 @@ func analyzeASTActionsContentSlice(
 					// if there's no match, we have an error
 					if !found {
 						errFmt := "no grammar rule specifies %s -> '%s'"
-						errMsg := fmt.Sprintf(errFmt, convertedProd.String(), ruleHead)
+						errMsg := fmt.Sprintf(errFmt, ruleHead, convertedProd.String())
 						synErr := lex.NewSyntaxErrorFromToken(errMsg, prodAct.SrcVal)
 						return nil, warnings, synErr
 					}
