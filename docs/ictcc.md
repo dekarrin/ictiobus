@@ -837,7 +837,9 @@ Flags:
     --dev
         Enable the use of and reference to ictiobus code located in the current
         working directory as it is currently written as opposed to using the
-        latest release version of ictiobus.
+        latest release version of ictiobus. If environment variable
+        ICTIOBUS_SOURCE is set, that will be used instead of the current working
+        directory.
 
     -D, --dfa
         Print a detailed representation of the DFA that is constructed for the
