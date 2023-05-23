@@ -742,9 +742,11 @@ For many of the generated binaries that need to refer to ictiobus code, ictcc
 will pull from the current published latest release version of ictiobus. This is
 correct for general use, but when developing ictcc one often needs it to pull
 code from the current cloned repo on disk. Use the --dev to mark the current
-working directory as the location to pull ictiobus code from for these purposes.
-This will have the effect of making ictcc cease to function if it is called from
-any directory besides one containing the ictiobus module.
+working directory as the location to pull ictiobus code from for these purposes;
+or, if ICTIOBUS_SOURCE is set, to specify ictiobus's source as being in that
+directory. This will have the effect of making ictcc cease to function if it is
+called from any directory besides one containing the ictiobus module when
+ICTIOBUS_SOURCE is not set.
 
 ## Command Reference
 
