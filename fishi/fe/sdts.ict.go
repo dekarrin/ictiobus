@@ -76,7 +76,7 @@ func sdtsBindTCFishispec(sdts trans.SDTS) {
 		"ast",
 		"make_fishispec",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -87,8 +87,8 @@ func sdtsBindTCBlocks(sdts trans.SDTS) {
 		"value",
 		"block_list_append",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "ast"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "ast"},
 		},
 	)
 
@@ -97,7 +97,7 @@ func sdtsBindTCBlocks(sdts trans.SDTS) {
 		"value",
 		"block_list_start",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "ast"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "ast"},
 		},
 	)
 }
@@ -108,7 +108,7 @@ func sdtsBindTCBlock(sdts trans.SDTS) {
 		"ast",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "ast"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "ast"},
 		},
 	)
 
@@ -117,7 +117,7 @@ func sdtsBindTCBlock(sdts trans.SDTS) {
 		"ast",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "ast"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "ast"},
 		},
 	)
 
@@ -126,7 +126,7 @@ func sdtsBindTCBlock(sdts trans.SDTS) {
 		"ast",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "ast"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "ast"},
 		},
 	)
 }
@@ -137,7 +137,7 @@ func sdtsBindTCAblock(sdts trans.SDTS) {
 		"ast",
 		"make_ablock",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "ast"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "ast"},
 		},
 	)
 }
@@ -148,7 +148,7 @@ func sdtsBindTCTblock(sdts trans.SDTS) {
 		"ast",
 		"make_tblock",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "ast"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "ast"},
 		},
 	)
 }
@@ -159,7 +159,7 @@ func sdtsBindTCGblock(sdts trans.SDTS) {
 		"ast",
 		"make_gblock",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "ast"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "ast"},
 		},
 	)
 }
@@ -170,8 +170,8 @@ func sdtsBindTCTcontent(sdts trans.SDTS) {
 		"ast",
 		"tokens_content_blocks_prepend",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 
@@ -180,7 +180,7 @@ func sdtsBindTCTcontent(sdts trans.SDTS) {
 		"ast",
 		"tokens_content_blocks_start_entry_list",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 
@@ -189,7 +189,7 @@ func sdtsBindTCTcontent(sdts trans.SDTS) {
 		"ast",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -200,8 +200,8 @@ func sdtsBindTCAcontent(sdts trans.SDTS) {
 		"ast",
 		"actions_content_blocks_prepend",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 
@@ -210,7 +210,7 @@ func sdtsBindTCAcontent(sdts trans.SDTS) {
 		"ast",
 		"actions_content_blocks_start_sym_actions",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 
@@ -219,7 +219,7 @@ func sdtsBindTCAcontent(sdts trans.SDTS) {
 		"ast",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -230,8 +230,8 @@ func sdtsBindTCGcontent(sdts trans.SDTS) {
 		"ast",
 		"grammar_content_blocks_prepend",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 
@@ -240,7 +240,7 @@ func sdtsBindTCGcontent(sdts trans.SDTS) {
 		"ast",
 		"grammar_content_blocks_start_rule_list",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 
@@ -249,7 +249,7 @@ func sdtsBindTCGcontent(sdts trans.SDTS) {
 		"ast",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -260,8 +260,8 @@ func sdtsBindTCGstateSet(sdts trans.SDTS) {
 		"value",
 		"make_grammar_content_node",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "state"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "state"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 }
@@ -272,8 +272,8 @@ func sdtsBindTCAstateSet(sdts trans.SDTS) {
 		"value",
 		"make_actions_content_node",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "state"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "state"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 }
@@ -284,8 +284,8 @@ func sdtsBindTCTstateSet(sdts trans.SDTS) {
 		"value",
 		"make_tokens_content_node",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "state"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "state"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 }
@@ -296,8 +296,8 @@ func sdtsBindTCProdActionList(sdts trans.SDTS) {
 		"value",
 		"prod_action_list_append",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 
@@ -306,7 +306,7 @@ func sdtsBindTCProdActionList(sdts trans.SDTS) {
 		"value",
 		"prod_action_list_start",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -317,9 +317,9 @@ func sdtsBindTCAttrRefList(sdts trans.SDTS) {
 		"value",
 		"attr_ref_list_append",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$text"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$ft"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$ft"},
 		},
 	)
 
@@ -328,8 +328,8 @@ func sdtsBindTCAttrRefList(sdts trans.SDTS) {
 		"value",
 		"attr_ref_list_start",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$ft"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$ft"},
 		},
 	)
 }
@@ -340,7 +340,7 @@ func sdtsBindTCWith(sdts trans.SDTS) {
 		"value",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 }
@@ -351,10 +351,10 @@ func sdtsBindTCSemAction(sdts trans.SDTS) {
 		"value",
 		"make_semantic_action",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$text"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$ft"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 3}, Name: "$text"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 3}, Name: "$ft"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$ft"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 3}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 3}, Name: "$ft"},
 		},
 	)
 
@@ -363,11 +363,11 @@ func sdtsBindTCSemAction(sdts trans.SDTS) {
 		"value",
 		"make_semantic_action",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$text"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$ft"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 3}, Name: "$text"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 3}, Name: "$ft"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 4}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$ft"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 3}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 3}, Name: "$ft"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 4}, Name: "value"},
 		},
 	)
 }
@@ -378,8 +378,8 @@ func sdtsBindTCSemActionList(sdts trans.SDTS) {
 		"value",
 		"semantic_action_list_append",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 
@@ -388,7 +388,7 @@ func sdtsBindTCSemActionList(sdts trans.SDTS) {
 		"value",
 		"semantic_action_list_start",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -399,7 +399,7 @@ func sdtsBindTCAsym(sdts trans.SDTS) {
 		"value",
 		"get_nonterminal",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
 
@@ -408,7 +408,7 @@ func sdtsBindTCAsym(sdts trans.SDTS) {
 		"value",
 		"get_terminal",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
 
@@ -417,7 +417,7 @@ func sdtsBindTCAsym(sdts trans.SDTS) {
 		"value",
 		"get_int",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
 
@@ -426,7 +426,7 @@ func sdtsBindTCAsym(sdts trans.SDTS) {
 		"value",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
 }
@@ -437,8 +437,8 @@ func sdtsBindTCAsymList(sdts trans.SDTS) {
 		"value",
 		"string_list_append",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 
@@ -447,7 +447,7 @@ func sdtsBindTCAsymList(sdts trans.SDTS) {
 		"value",
 		"string_list_start",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -458,7 +458,7 @@ func sdtsBindTCAproduction(sdts trans.SDTS) {
 		"value",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 
@@ -476,7 +476,7 @@ func sdtsBindTCProdAddr(sdts trans.SDTS) {
 		"value",
 		"make_prod_specifier_index",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$text"},
 		},
 	)
 
@@ -485,7 +485,7 @@ func sdtsBindTCProdAddr(sdts trans.SDTS) {
 		"value",
 		"make_prod_specifier_literal",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -496,7 +496,7 @@ func sdtsBindTCProdSpec(sdts trans.SDTS) {
 		"value",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 
@@ -514,8 +514,8 @@ func sdtsBindTCProdAction(sdts trans.SDTS) {
 		"value",
 		"make_prod_action",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 }
@@ -526,9 +526,9 @@ func sdtsBindTCSymActions(sdts trans.SDTS) {
 		"value",
 		"make_symbol_actions",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$text"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$ft"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 2}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$ft"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 2}, Name: "value"},
 		},
 	)
 }
@@ -539,8 +539,8 @@ func sdtsBindTCSymActionsList(sdts trans.SDTS) {
 		"value",
 		"symbol_actions_list_append",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 
@@ -549,7 +549,7 @@ func sdtsBindTCSymActionsList(sdts trans.SDTS) {
 		"value",
 		"symbol_actions_list_start",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -560,8 +560,8 @@ func sdtsBindTCAstateSetList(sdts trans.SDTS) {
 		"value",
 		"actions_state_block_list_append",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 
@@ -570,7 +570,7 @@ func sdtsBindTCAstateSetList(sdts trans.SDTS) {
 		"value",
 		"actions_state_block_list_start",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -581,8 +581,8 @@ func sdtsBindTCTstateSetList(sdts trans.SDTS) {
 		"value",
 		"tokens_state_block_list_append",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 
@@ -591,7 +591,7 @@ func sdtsBindTCTstateSetList(sdts trans.SDTS) {
 		"value",
 		"tokens_state_block_list_start",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -602,8 +602,8 @@ func sdtsBindTCGstateSetList(sdts trans.SDTS) {
 		"value",
 		"grammar_state_block_list_append",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 
@@ -612,7 +612,7 @@ func sdtsBindTCGstateSetList(sdts trans.SDTS) {
 		"value",
 		"grammar_state_block_list_start",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -623,8 +623,8 @@ func sdtsBindTCGruleList(sdts trans.SDTS) {
 		"value",
 		"rule_list_append",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 
@@ -633,7 +633,7 @@ func sdtsBindTCGruleList(sdts trans.SDTS) {
 		"value",
 		"rule_list_start",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -644,8 +644,8 @@ func sdtsBindTCTentryList(sdts trans.SDTS) {
 		"value",
 		"entry_list_append",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 
@@ -654,7 +654,7 @@ func sdtsBindTCTentryList(sdts trans.SDTS) {
 		"value",
 		"entry_list_start",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -665,8 +665,8 @@ func sdtsBindTCTentry(sdts trans.SDTS) {
 		"value",
 		"make_token_entry",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 }
@@ -677,8 +677,8 @@ func sdtsBindTCGrule(sdts trans.SDTS) {
 		"value",
 		"make_rule",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 2}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 2}, Name: "value"},
 		},
 	)
 }
@@ -689,7 +689,7 @@ func sdtsBindTCAlternations(sdts trans.SDTS) {
 		"value",
 		"string_list_list_start",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 
@@ -698,8 +698,8 @@ func sdtsBindTCAlternations(sdts trans.SDTS) {
 		"value",
 		"string_list_list_append",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 2}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 2}, Name: "value"},
 		},
 	)
 }
@@ -710,7 +710,7 @@ func sdtsBindTCGproduction(sdts trans.SDTS) {
 		"value",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 
@@ -728,8 +728,8 @@ func sdtsBindTCGsymList(sdts trans.SDTS) {
 		"value",
 		"string_list_append",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 
@@ -738,7 +738,7 @@ func sdtsBindTCGsymList(sdts trans.SDTS) {
 		"value",
 		"string_list_start",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -749,7 +749,7 @@ func sdtsBindTCPriority(sdts trans.SDTS) {
 		"value",
 		"trim_string",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 }
@@ -760,7 +760,7 @@ func sdtsBindTCHuman(sdts trans.SDTS) {
 		"value",
 		"trim_string",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 }
@@ -771,7 +771,7 @@ func sdtsBindTCToken(sdts trans.SDTS) {
 		"value",
 		"trim_string",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 }
@@ -782,7 +782,7 @@ func sdtsBindTCStateshift(sdts trans.SDTS) {
 		"value",
 		"trim_string",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 }
@@ -800,7 +800,7 @@ func sdtsBindTCToption(sdts trans.SDTS) {
 		"value",
 		"make_stateshift_option",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 
@@ -809,7 +809,7 @@ func sdtsBindTCToption(sdts trans.SDTS) {
 		"value",
 		"make_token_option",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 
@@ -818,7 +818,7 @@ func sdtsBindTCToption(sdts trans.SDTS) {
 		"value",
 		"make_human_option",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 
@@ -827,7 +827,7 @@ func sdtsBindTCToption(sdts trans.SDTS) {
 		"value",
 		"make_priority_option",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -838,8 +838,8 @@ func sdtsBindTCToptionList(sdts trans.SDTS) {
 		"value",
 		"token_opt_list_append",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 
@@ -848,7 +848,7 @@ func sdtsBindTCToptionList(sdts trans.SDTS) {
 		"value",
 		"token_opt_list_start",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -859,7 +859,7 @@ func sdtsBindTCPattern(sdts trans.SDTS) {
 		"value",
 		"trim_string",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -870,7 +870,7 @@ func sdtsBindTCGsym(sdts trans.SDTS) {
 		"value",
 		"get_nonterminal",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
 
@@ -879,7 +879,7 @@ func sdtsBindTCGsym(sdts trans.SDTS) {
 		"value",
 		"get_terminal",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
 }
@@ -890,8 +890,8 @@ func sdtsBindTCStateIns(sdts trans.SDTS) {
 		"state",
 		"make_state_ins",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$ft"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$ft"},
 		},
 	)
 }
@@ -902,7 +902,7 @@ func sdtsBindTCIdExpr(sdts trans.SDTS) {
 		"value",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
 
@@ -911,7 +911,7 @@ func sdtsBindTCIdExpr(sdts trans.SDTS) {
 		"value",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
 }
@@ -922,8 +922,8 @@ func sdtsBindTCText(sdts trans.SDTS) {
 		"value",
 		"append_strings_trimmed",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 
@@ -932,7 +932,7 @@ func sdtsBindTCText(sdts trans.SDTS) {
 		"value",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 
@@ -941,7 +941,7 @@ func sdtsBindTCText(sdts trans.SDTS) {
 		"value",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -952,8 +952,8 @@ func sdtsBindTCTextElemList(sdts trans.SDTS) {
 		"value",
 		"append_strings",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
 
@@ -962,7 +962,7 @@ func sdtsBindTCTextElemList(sdts trans.SDTS) {
 		"value",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
 }
@@ -973,7 +973,7 @@ func sdtsBindTCNlTextElem(sdts trans.SDTS) {
 		"value",
 		"interpret_escape",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
 
@@ -982,7 +982,7 @@ func sdtsBindTCNlTextElem(sdts trans.SDTS) {
 		"value",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
 }
@@ -993,7 +993,7 @@ func sdtsBindTCTextElem(sdts trans.SDTS) {
 		"value",
 		"interpret_escape",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
 
@@ -1002,7 +1002,7 @@ func sdtsBindTCTextElem(sdts trans.SDTS) {
 		"value",
 		"ident",
 		[]trans.AttrRef{
-			{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
 }

@@ -64,9 +64,9 @@ func (bind sddBinding) Invoke(apt *AnnotatedTree, hooksTable HookMap) (val inter
 		return nil, hookError{name: bind.Setter, missingHook: true, msg: fmt.Sprintf("no implementation for hook function '%s' was provided", bind.Setter)}
 	}
 
-	if bind.Dest.Relation.Type == RelHead && !bind.Synthesized {
+	if bind.Dest.Rel.Type == RelHead && !bind.Synthesized {
 		panic("cannot invoke inherited attribute SDD binding on head of rule")
-	} else if bind.Dest.Relation.Type != RelHead && bind.Synthesized {
+	} else if bind.Dest.Rel.Type != RelHead && bind.Synthesized {
 		panic("cannot invoke synthesized attribute SDD binding on production of rule")
 	}
 
@@ -79,10 +79,10 @@ func (bind sddBinding) Invoke(apt *AnnotatedTree, hooksTable HookMap) (val inter
 
 	// symbol of who it is for
 	var ok bool
-	info.GrammarSymbol, ok = apt.SymbolOf(bind.Dest.Relation)
+	info.GrammarSymbol, ok = apt.SymbolOf(bind.Dest.Rel)
 	if !ok {
 		// invalid dest
-		panic(fmt.Sprintf("bound-to rule does not contain a %s", bind.Dest.Relation.String()))
+		panic(fmt.Sprintf("bound-to rule does not contain a %s", bind.Dest.Rel.String()))
 	}
 
 	// gather args
@@ -92,13 +92,13 @@ func (bind sddBinding) Invoke(apt *AnnotatedTree, hooksTable HookMap) (val inter
 		reqVal, ok := apt.AttributeValueOf(req)
 		if !ok {
 			// should never happen, creation of Binding should ensure this.
-			_, refNodeExists := apt.AttributesOf(req.Relation)
+			_, refNodeExists := apt.AttributesOf(req.Rel)
 			if !refNodeExists {
 				// reference itself was invalid
-				panic(fmt.Sprintf("bound-to rule does not contain a %s", req.Relation.String()))
+				panic(fmt.Sprintf("bound-to rule does not contain a %s", req.Rel.String()))
 			} else {
 				errFmt := "attribute %s not defined for %s in bound-to-rule"
-				errMsg := fmt.Sprintf(errFmt, req.Name, req.Relation.String())
+				errMsg := fmt.Sprintf(errFmt, req.Name, req.Rel.String())
 				return nil, hookError{name: bind.Setter, msg: errMsg}
 			}
 		}

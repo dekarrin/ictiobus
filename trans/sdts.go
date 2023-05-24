@@ -292,8 +292,8 @@ func (sdts *sdtsImpl) Bind(head string, prod []string, attrName string, hook str
 	argErrs := ""
 	for i := range withArgs {
 		req := withArgs[i]
-		if !req.Relation.ValidFor(head, prod) {
-			argErrs += fmt.Sprintf("\n* bound-to-rule does not have a %s", req.Relation.String())
+		if !req.Rel.ValidFor(head, prod) {
+			argErrs += fmt.Sprintf("\n* bound-to-rule does not have a %s", req.Rel.String())
 		}
 	}
 	if len(argErrs) > 0 {
@@ -321,7 +321,7 @@ func (sdts *sdtsImpl) Bind(head string, prod []string, attrName string, hook str
 		BoundRuleProduction: make([]string, len(prod)),
 		Requirements:        make([]AttrRef, len(withArgs)),
 		Setter:              hook,
-		Dest:                AttrRef{Relation: NodeRelation{Type: RelHead}, Name: attrName},
+		Dest:                AttrRef{Rel: NodeRelation{Type: RelHead}, Name: attrName},
 	}
 
 	copy(bind.BoundRuleProduction, prod)
@@ -353,8 +353,8 @@ func (sdts *sdtsImpl) BindI(head string, prod []string, attrName string, hook st
 	argErrs := ""
 	for i := range withArgs {
 		req := withArgs[i]
-		if !req.Relation.ValidFor(head, prod) {
-			argErrs += fmt.Sprintf("\n* bound-to-rule does not have a %s", req.Relation.String())
+		if !req.Rel.ValidFor(head, prod) {
+			argErrs += fmt.Sprintf("\n* bound-to-rule does not have a %s", req.Rel.String())
 		}
 	}
 	if len(argErrs) > 0 {
@@ -382,7 +382,7 @@ func (sdts *sdtsImpl) BindI(head string, prod []string, attrName string, hook st
 		BoundRuleProduction: make([]string, len(prod)),
 		Requirements:        make([]AttrRef, len(withArgs)),
 		Setter:              hook,
-		Dest:                AttrRef{Relation: forProd, Name: attrName},
+		Dest:                AttrRef{Rel: forProd, Name: attrName},
 	}
 
 	copy(bind.BoundRuleProduction, prod)
@@ -450,7 +450,7 @@ func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName
 	// filter the candidates by forProd, if applicable
 	if !synth {
 		candidateBindings = slices.Filter(candidateBindings, func(item box.Pair[sddBinding, int]) bool {
-			return item.First.Dest.Relation == forProd
+			return item.First.Dest.Rel == forProd
 		})
 	}
 	if len(candidateBindings) == 0 {

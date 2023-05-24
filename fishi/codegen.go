@@ -749,9 +749,9 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 		sdtsData := cgSDTSProd{
 			Attribute:   sdd.Attribute.Name,
 			Hook:        sdd.Hook,
-			Synthetic:   sdd.Attribute.Relation.Type == trans.RelHead,
-			ForRelType:  sdd.Attribute.Relation.Type.GoString(),
-			ForRelIndex: sdd.Attribute.Relation.Index,
+			Synthetic:   sdd.Attribute.Rel.Type == trans.RelHead,
+			ForRelType:  sdd.Attribute.Rel.Type.GoString(),
+			ForRelIndex: sdd.Attribute.Rel.Index,
 		}
 
 		// fill symbols from the only production
@@ -762,8 +762,8 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 		// fill args
 		for _, arg := range sdd.Args {
 			argData := cgArg{
-				RelType:   arg.Relation.Type.GoString(),
-				RelIndex:  arg.Relation.Index,
+				RelType:   arg.Rel.Type.GoString(),
+				RelIndex:  arg.Rel.Index,
 				Attribute: arg.Name,
 			}
 			sdtsData.Args = append(sdtsData.Args, argData)

@@ -366,9 +366,9 @@ func depGraph(aptRoot AnnotatedTree, sdts *sdtsImpl) []*directedGraph[depNode] {
 				// we still need to add the binding as a target node so it can
 				// be found by other dep nodes
 
-				targetNode, ok := curTree.RelativeNode(binding.Dest.Relation)
+				targetNode, ok := curTree.RelativeNode(binding.Dest.Rel)
 				if !ok {
-					panic(fmt.Sprintf("relative address cannot be followed: %v", binding.Dest.Relation.String()))
+					panic(fmt.Sprintf("relative address cannot be followed: %v", binding.Dest.Rel.String()))
 				}
 				targetNodeID := targetNode.ID()
 				targetNodeDepNodes, ok := depNodes[targetNodeID]
@@ -407,9 +407,9 @@ func depGraph(aptRoot AnnotatedTree, sdts *sdtsImpl) []*directedGraph[depNode] {
 				req := binding.Requirements[j]
 
 				// get the related node:
-				relNode, ok := curTree.RelativeNode(req.Relation)
+				relNode, ok := curTree.RelativeNode(req.Rel)
 				if !ok {
-					panic(fmt.Sprintf("relative address cannot be followed: %v", req.Relation.String()))
+					panic(fmt.Sprintf("relative address cannot be followed: %v", req.Rel.String()))
 				}
 				relNodeID := relNode.ID()
 				relNodeDepNodes, ok := depNodes[relNodeID]
@@ -432,9 +432,9 @@ func depGraph(aptRoot AnnotatedTree, sdts *sdtsImpl) []*directedGraph[depNode] {
 				}
 
 				// get the TARGET node
-				targetNode, ok := curTree.RelativeNode(binding.Dest.Relation)
+				targetNode, ok := curTree.RelativeNode(binding.Dest.Rel)
 				if !ok {
-					panic(fmt.Sprintf("relative address cannot be followed: %v", binding.Dest.Relation.String()))
+					panic(fmt.Sprintf("relative address cannot be followed: %v", binding.Dest.Rel.String()))
 				}
 				targetNodeID := targetNode.ID()
 				targetNodeDepNodes, ok := depNodes[targetNodeID]

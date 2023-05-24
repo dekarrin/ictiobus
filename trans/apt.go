@@ -303,7 +303,7 @@ func (apt AnnotatedTree) SymbolOf(rel NodeRelation) (symbol string, ok bool) {
 // false, val should be considered a nil value and unsafe to use.
 func (apt AnnotatedTree) AttributeValueOf(ref AttrRef) (val interface{}, ok bool) {
 	// first get the attributes
-	attributes, ok := apt.AttributesOf(ref.Relation)
+	attributes, ok := apt.AttributesOf(ref.Rel)
 	if !ok {
 		return nil, false
 	}

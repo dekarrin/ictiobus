@@ -1192,10 +1192,10 @@ func printSpec(spec fishi.Spec) {
 func sddRefToPrintedString(ref trans.AttrRef, g grammar.CFG, r grammar.Rule) string {
 	// which symbol does it refer to?
 	var symName string
-	if ref.Relation.Type == trans.RelHead {
+	if ref.Rel.Type == trans.RelHead {
 		symName = "{" + r.NonTerminal + "$^}"
-	} else if ref.Relation.Type == trans.RelSymbol {
-		sym := r.Productions[0][ref.Relation.Index]
+	} else if ref.Rel.Type == trans.RelSymbol {
+		sym := r.Productions[0][ref.Rel.Index]
 		// now find all indexes of that particular symbol in the rule
 
 		inst := -1
@@ -1203,7 +1203,7 @@ func sddRefToPrintedString(ref trans.AttrRef, g grammar.CFG, r grammar.Rule) str
 			if s == sym {
 				inst++
 			}
-			if i == ref.Relation.Index {
+			if i == ref.Rel.Index {
 				break
 			}
 		}
@@ -1221,10 +1221,10 @@ func sddRefToPrintedString(ref trans.AttrRef, g grammar.CFG, r grammar.Rule) str
 		curOfType := -1
 		symIdx := -1
 		for i, sym := range r.Productions[0] {
-			if (ref.Relation.Type == trans.RelNonTerminal && g.IsNonTerminal(sym)) || (ref.Relation.Type == trans.RelTerminal && g.IsTerminal(sym)) {
+			if (ref.Rel.Type == trans.RelNonTerminal && g.IsNonTerminal(sym)) || (ref.Rel.Type == trans.RelTerminal && g.IsTerminal(sym)) {
 				curOfType++
 			}
-			if curOfType == ref.Relation.Index {
+			if curOfType == ref.Rel.Index {
 				symIdx = i
 				break
 			}
@@ -1243,7 +1243,7 @@ func sddRefToPrintedString(ref trans.AttrRef, g grammar.CFG, r grammar.Rule) str
 			if s == sym {
 				inst++
 			}
-			if inst == ref.Relation.Index {
+			if inst == ref.Rel.Index {
 				break
 			}
 		}

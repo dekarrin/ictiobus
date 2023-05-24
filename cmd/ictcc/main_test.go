@@ -18,7 +18,7 @@ func Test_sddRefToPrintedString(t *testing.T) {
 	}{
 		{
 			name: "head symbol of rule",
-			ref:  trans.AttrRef{Relation: trans.NodeRelation{Type: trans.RelHead}, Name: "Test"},
+			ref:  trans.AttrRef{Rel: trans.NodeRelation{Type: trans.RelHead}, Name: "Test"},
 			g: grammar.MustParse(`
 				S -> A | B ;
 				A -> a ;
