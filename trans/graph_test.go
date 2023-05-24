@@ -30,16 +30,15 @@ func Test_depGraph(t *testing.T) {
 					BoundRuleProduction: []string{"B", "B", "int", "C", "int"},
 					Requirements:        nil,
 					Dest:                AttrRef{Rel: NRHead(), Name: "test"},
-					Setter:              "constant_builder",
 				},
 			},
-			expect: []string{`((1: "A" [B B int C int] <head symbol["test"]>))`},
+			expect: []string{`((1: "A" [B B int C int] <[head symbol].test>))`},
 		},
 		{
-			name: "dep on built-in via rel-symbol",
+			name: "2-step dep terminating on built-in via rel-symbol",
 			apt: ATNode(1, "A",
 				ATNode(2, "B"),
-				ATNode(3, "B"),
+				ATNode(3, "B", ATLeaf(7, "int")),
 				ATLeaf(4, "int"),
 				ATNode(5, "C"),
 				ATLeaf(6, "int"),
@@ -47,10 +46,18 @@ func Test_depGraph(t *testing.T) {
 			bindings: []sddBinding{
 				{
 					Synthesized:         true,
+					BoundRuleSymbol:     "B",
+					BoundRuleProduction: []string{"int"},
+					Requirements:        []AttrRef{{Rel: NRSymbol(0), Name: "$text"}},
+					Dest:                AttrRef{Rel: NRHead(), Name: "feature"},
+					Setter:              "constant_builder",
+				},
+				{
+					Synthesized:         true,
 					BoundRuleSymbol:     "A",
 					BoundRuleProduction: []string{"B", "B", "int", "C", "int"},
-					Requirements:        []AttrRef{{Rel: NRSymbol(2), Name: "$text"}},
-					Dest:                AttrRef{Rel: NodeRelation{Type: RelHead}, Name: "test"},
+					Requirements:        []AttrRef{{Rel: NRSymbol(1), Name: "feature"}},
+					Dest:                AttrRef{Rel: NRHead(), Name: "test"},
 					Setter:              "constant_builder",
 				},
 			},
@@ -102,7 +109,7 @@ func Test_depGraph(t *testing.T) {
 			}
 
 			for i := 0; i < minLen; i++ {
-				assert.Equal(actualStrs[i], tc.expect[i], "dep graph index %d does not match expected", i)
+				assert.Equal(tc.expect[i], actualStrs[i], "dep graph index %d does not match expected", i)
 			}
 		})
 	}
