@@ -29,7 +29,7 @@ func Test_depGraph(t *testing.T) {
 					BoundRuleSymbol:     "A",
 					BoundRuleProduction: []string{"B", "B", "int", "C", "int"},
 					Requirements:        nil,
-					Dest:                AttrRef{Rel: NodeRelation{Type: RelHead}, Name: "test"},
+					Dest:                AttrRef{Rel: NRHead(), Name: "test"},
 					Setter:              "constant_builder",
 				},
 			},
@@ -49,7 +49,7 @@ func Test_depGraph(t *testing.T) {
 					Synthesized:         true,
 					BoundRuleSymbol:     "A",
 					BoundRuleProduction: []string{"B", "B", "int", "C", "int"},
-					Requirements:        []AttrRef{{Rel: NodeRelation{}}},
+					Requirements:        []AttrRef{{Rel: NRSymbol(2), Name: "$text"}},
 					Dest:                AttrRef{Rel: NodeRelation{Type: RelHead}, Name: "test"},
 					Setter:              "constant_builder",
 				},
@@ -95,7 +95,15 @@ func Test_depGraph(t *testing.T) {
 			}
 
 			// assert-by-string
-			assert.Equal(tc.expect, actualStrs)
+			assert.Len(actualStrs, len(tc.expect))
+			minLen := len(actualStrs)
+			if len(tc.expect) < minLen {
+				minLen = len(tc.expect)
+			}
+
+			for i := 0; i < minLen; i++ {
+				assert.Equal(actualStrs[i], tc.expect[i], "dep graph index %d does not match expected", i)
+			}
 		})
 	}
 }

@@ -125,6 +125,30 @@ func (nr NodeRelation) String() string {
 	return fmt.Sprintf("%d%s %s", humanIndex, textfmt.OrdinalSuf(humanIndex), nr.Type.String())
 }
 
+// NRHead is a convenience function for creating a NodeRelation whose type is
+// RelHead and whose index is 0.
+func NRHead() NodeRelation {
+	return NodeRelation{Type: RelHead}
+}
+
+// NRSymbol is a convenience function for creating a NodeRelation whose type is
+// RelSymbol and whose index is the one provided.
+func NRSymbol(n int) NodeRelation {
+	return NodeRelation{Type: RelSymbol, Index: n}
+}
+
+// NRTerminal is a convenience function for creating a NodeRelation whose type
+// is RelTerminal and whose index is the one provided.
+func NRTerminal(n int) NodeRelation {
+	return NodeRelation{Type: RelTerminal, Index: n}
+}
+
+// NRNonTerminal is a convenience function for creating a NodeRelation whose
+// type is RelNonTerminal and whose index is the one provided.
+func NRNonTerminal(n int) NodeRelation {
+	return NodeRelation{Type: RelNonTerminal, Index: n}
+}
+
 // ValidFor returns whether the given node relation refers to a valid and
 // existing node when applied to a node in parse tree that is the result of
 // parsing production head -> production.
