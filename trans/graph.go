@@ -2,6 +2,7 @@ package trans
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/dekarrin/ictiobus/internal/box"
@@ -304,6 +305,7 @@ func depGraphString(dg *directedGraph[depNode]) string {
 		if len(nodes) > 1 {
 			nodeStart = "\n\t"
 		}
+		log.Printf("%v\n", dep.Parent)
 		sb.WriteString(fmt.Sprintf("%s(%v: %s%s <%s>", nodeStart, nodeID, sym, prd, dep.Dest))
 
 		if len(nextIDs) > 0 {
