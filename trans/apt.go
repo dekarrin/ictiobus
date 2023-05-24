@@ -122,6 +122,40 @@ func Annotate(root parse.Tree) AnnotatedParseTree {
 	return annoRoot
 }
 
+// APTLeaf is a convenience function for creating a new AnnotatedParseTree that
+// represents a terminal symbol. The Source token is set to t if one is
+// provided. Note that t's type being ...Token is simply to make it optional;
+// only the first such provided t is examined. The given id must be unique for
+// the entire tree.
+func APTLeaf(id uint64, term string, t ...lex.Token) *AnnotatedParseTree {
+	pt := &AnnotatedParseTree{Terminal: true, Symbol: term, Attributes: nodeAttrs{"$id": id, "$text": ""}}
+	if len(t) > 0 {
+		pt.Source = t[0]
+		pt.Attributes["$text"] = t[0].Lexeme()
+		pt.Attributes["$ft"] = t[0]
+	} else {
+		pt.Attributes["$text"] = "dummy2"
+		pt.Attributes["$ft"] = lex.NewToken(lex.MakeDefaultClass("dummy"), "dummy2", 7, 1, "dummy1 dummy2 dummy3")
+	}
+	return pt
+}
+
+// APTNode is a convenience function for creating a new AnnotatedParseTree that
+// represents a non-terminal symbol with minimal properties. The given id must
+// be unique for the entire tree.
+func APTNode(id uint64, nt string, children ...*AnnotatedParseTree) *AnnotatedParseTree {
+	pt := &AnnotatedParseTree{
+		Terminal:   false,
+		Symbol:     nt,
+		Children:   children,
+		Attributes: nodeAttrs{"$id": id},
+	}
+	// and also calculate $ft
+	pt.First()
+
+	return pt
+}
+
 // String returns a string representation of the APT.
 func (apt AnnotatedParseTree) String() string {
 	return apt.leveledStr("", "")
