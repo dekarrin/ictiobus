@@ -12,7 +12,7 @@ func Test_depGraph(t *testing.T) {
 		name     string
 		apt      *AnnotatedParseTree
 		bindings []sddBinding
-		expect   []*directedGraph[depNode]
+		expect   []string
 	}{
 		{
 			name: "no dependencies",
@@ -33,6 +33,28 @@ func Test_depGraph(t *testing.T) {
 					Setter:              "constant_builder",
 				},
 			},
+			expect: []string{`((1: "A" [B B int C int] <head symbol["test"]>))`},
+		},
+		{
+			name: "dep on built-in via rel-symbol",
+			apt: APTNode(1, "A",
+				APTNode(2, "B"),
+				APTNode(3, "B"),
+				APTLeaf(4, "int"),
+				APTNode(5, "C"),
+				APTLeaf(6, "int"),
+			),
+			bindings: []sddBinding{
+				{
+					Synthesized:         true,
+					BoundRuleSymbol:     "A",
+					BoundRuleProduction: []string{"B", "B", "int", "C", "int"},
+					Requirements:        []AttrRef{{Relation: NodeRelation{}}},
+					Dest:                AttrRef{Relation: NodeRelation{Type: RelHead}, Name: "test"},
+					Setter:              "constant_builder",
+				},
+			},
+			expect: []string{`((1: "A" [B B int C int] <head symbol["test"]>))`},
 		},
 	}
 
@@ -65,10 +87,15 @@ func Test_depGraph(t *testing.T) {
 			}
 
 			// exec
-			actual := depGraph(*tc.apt, sdts)
+			actuals := depGraph(*tc.apt, sdts)
 
-			// assert
-			assert.Equal(tc.expect, actual)
+			actualStrs := make([]string, len(actuals))
+			for i, dg := range actuals {
+				actualStrs[i] = depGraphString(dg)
+			}
+
+			// assert-by-string
+			assert.Equal(tc.expect, actualStrs)
 		})
 	}
 }
