@@ -128,7 +128,7 @@ func Annotate(root parse.Tree) AnnotatedParseTree {
 // only the first such provided t is examined. The given id must be unique for
 // the entire tree.
 func APTLeaf(id uint64, term string, t ...lex.Token) *AnnotatedParseTree {
-	pt := &AnnotatedParseTree{Terminal: true, Symbol: term, Attributes: nodeAttrs{"$id": id, "$text": ""}}
+	pt := &AnnotatedParseTree{Terminal: true, Symbol: term, Attributes: nodeAttrs{"$id": aptNodeID(id), "$text": ""}}
 	if len(t) > 0 {
 		pt.Source = t[0]
 		pt.Attributes["$text"] = t[0].Lexeme()
@@ -148,7 +148,7 @@ func APTNode(id uint64, nt string, children ...*AnnotatedParseTree) *AnnotatedPa
 		Terminal:   false,
 		Symbol:     nt,
 		Children:   children,
-		Attributes: nodeAttrs{"$id": id},
+		Attributes: nodeAttrs{"$id": aptNodeID(id)},
 	}
 	// and also calculate $ft
 	pt.First()
