@@ -66,36 +66,36 @@ func Test_Spec_ValidateSDTS_disconnectedGraph(t *testing.T) {
 				`),
 				TranslationScheme: []SDD{
 					{
-						Attribute: trans.AttrRef{Relation: trans.NodeRelation{Type: trans.RelHead}, Name: "val"},
+						Attribute: trans.AttrRef{Rel: trans.NodeRelation{Type: trans.RelHead}, Name: "val"},
 						Rule:      grammar.MustParseRule("E -> E + F"),
 						Hook:      "add",
 						Args: []trans.AttrRef{
-							{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "val"},
-							{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 2}, Name: "val"},
+							{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "val"},
+							{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 2}, Name: "val"},
 						},
 					},
 					{
-						Attribute: trans.AttrRef{Relation: trans.NodeRelation{Type: trans.RelHead}, Name: "val"},
+						Attribute: trans.AttrRef{Rel: trans.NodeRelation{Type: trans.RelHead}, Name: "val"},
 						Rule:      grammar.MustParseRule("E -> F"),
 						Hook:      "ident",
 						Args: []trans.AttrRef{
-							{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "val"},
+							{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "val"},
 						},
 					},
 					{
-						Attribute: trans.AttrRef{Relation: trans.NodeRelation{Type: trans.RelHead}, Name: "val"},
+						Attribute: trans.AttrRef{Rel: trans.NodeRelation{Type: trans.RelHead}, Name: "val"},
 						Rule:      grammar.MustParseRule("F -> var"),
 						Hook:      "var_value",
 						Args: []trans.AttrRef{
-							{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+							{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 						},
 					},
 					{
-						Attribute: trans.AttrRef{Relation: trans.NodeRelation{Type: trans.RelHead}, Name: "val"},
+						Attribute: trans.AttrRef{Rel: trans.NodeRelation{Type: trans.RelHead}, Name: "val"},
 						Rule:      grammar.MustParseRule("F -> int"),
 						Hook:      "int",
 						Args: []trans.AttrRef{
-							{Relation: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
+							{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 						},
 					},
 				},
@@ -125,12 +125,12 @@ func Test_Spec_ValidateSDTS_disconnectedGraph(t *testing.T) {
 				`),
 				TranslationScheme: []SDD{
 					{
-						Attribute: trans.AttrRef{Relation: trans.NodeRelation{Type: trans.RelHead}, Name: "val"},
+						Attribute: trans.AttrRef{Rel: trans.NodeRelation{Type: trans.RelHead}, Name: "val"},
 						Rule:      grammar.MustParseRule("E -> E + F"),
 						Hook:      "constant-1",
 					},
 					{
-						Attribute: trans.AttrRef{Relation: trans.NodeRelation{Type: trans.RelHead}, Name: "val"},
+						Attribute: trans.AttrRef{Rel: trans.NodeRelation{Type: trans.RelHead}, Name: "val"},
 						Rule:      grammar.MustParseRule("E -> F"),
 						Hook:      "constant-1",
 					},
