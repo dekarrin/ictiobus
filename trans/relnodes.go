@@ -17,7 +17,7 @@ type AttrRef struct {
 
 // String returns the string representation of an AttrRef.
 func (ar AttrRef) String() string {
-	return fmt.Sprintf("%s[%q]", ar.Rel.String(), ar.Name)
+	return fmt.Sprintf("[%s].%q", ar.Rel.String(), ar.Name)
 }
 
 // ResolveSymbol finds the name of the symbol being referred to in a grammar
