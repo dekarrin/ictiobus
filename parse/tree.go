@@ -61,8 +61,8 @@ func MustParseTreeFromDiagram(s string) *Tree {
 	return pt
 }
 
-// ParseTreeFromDiagram reads a diagram of a parse tree and returns a ParseTree
-// that represents it. In the diagram string s, terminal nodes are enclosed in
+// ParseTreeFromDiagram reads a diagram of a parse tree and returns a Tree that
+// represents it. In the diagram string s, terminal nodes are enclosed in
 // parenthesis brackets, while non-terminal nodes are enclosed in square
 // brackets. The diagram is read from left to right, and all whitespace is
 // ignored. If a literal parenthesis or square bracket is desired, it must be
@@ -255,8 +255,8 @@ func Node(nt string, children ...*Tree) *Tree {
 }
 
 // Follow takes a path, denoted as a slice of indexes of children to follow,
-// starting from the ParseTree it is called on, and returns the descendant tree
-// it leads to.
+// starting from the Tree it is called on, and returns the descendant tree it
+// leads to.
 func (pt Tree) Follow(path []int) *Tree {
 	cur := &pt
 	for i := range path {
@@ -407,9 +407,8 @@ func (pt Tree) PathToDiff(t Tree, ignoreShortCircuit bool) (path []int, diverges
 	return allPoints[0], true
 }
 
-// IsSubTreeOf checks if this ParseTree is a sub-tree of the given parse tree t.
-// Does not consider Source for its comparisons, ergo only the structure is
-// examined.
+// IsSubTreeOf checks if this Tree is a sub-tree of the given parse tree t. Does
+// not consider Source for its comparisons, ergo only the structure is examined.
 //
 // This performs a depth-first traversal of t, checking if there is any sub-tree
 // in t s.t. pt is exactly equal to that node. Runs in O(n^2) time with respect

@@ -40,8 +40,8 @@ func (sdts *sdtsImpl) SetHooks(hooks HookMap) {
 
 // Evaluate executes the entire syntax-directed translation scheme on the given
 // parse tree, and returns the requested attributes from the root of the
-// generated AnnotatedParseTree. The parse tree is first annotated to produce an
-// AnnotatedParseTree, then nodes are visited in an order determined by
+// generated AnnotatedTree. The parse tree is first annotated to produce an
+// AnnotatedTree, then nodes are visited in an order determined by
 // dependency graphs created on all attributes defined for the SDTS that have
 // qualifying nodes in the APT. When each node is visited, any associated SDD
 // bindings are called on it.
@@ -89,7 +89,7 @@ func (sdts *sdtsImpl) Evaluate(tree parse.Tree, attributes ...string) (vals []in
 						continue
 					}
 
-					parentProdStr := slices.Reduce(node.Data.Parent.Children, "", func(idx int, item *AnnotatedParseTree, accum string) string {
+					parentProdStr := slices.Reduce(node.Data.Parent.Children, "", func(idx int, item *AnnotatedTree, accum string) string {
 						return accum + " " + item.Symbol
 					})
 					parentProdStr = strings.TrimSpace(parentProdStr)
@@ -205,7 +205,7 @@ func (sdts *sdtsImpl) Evaluate(tree parse.Tree, attributes ...string) (vals []in
 		synthetic := depNode.Synthetic
 		treeParent := depNode.Parent
 
-		var invokeOn *AnnotatedParseTree
+		var invokeOn *AnnotatedTree
 		if synthetic {
 			invokeOn = nodeTree
 		} else {

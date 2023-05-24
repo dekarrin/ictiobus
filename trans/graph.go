@@ -259,8 +259,8 @@ func (dg *directedGraph[V]) any(predicate func(*directedGraph[V]) bool, visited 
 }
 
 type depNode struct {
-	Parent    *AnnotatedParseTree
-	Tree      *AnnotatedParseTree
+	Parent    *AnnotatedTree
+	Tree      *AnnotatedTree
 	Synthetic bool
 	Dest      AttrRef
 	NoFlows   []string
@@ -336,10 +336,10 @@ func depGraphString(dg *directedGraph[depNode]) string {
 // Returns one node from each of the connected sub-graphs of the dependency
 // tree. If the entire dependency graph is connected, there will be only 1 item
 // in the returned slice.
-func depGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*directedGraph[depNode] {
+func depGraph(aptRoot AnnotatedTree, sdts *sdtsImpl) []*directedGraph[depNode] {
 	type treeAndParent struct {
-		Tree   *AnnotatedParseTree
-		Parent *AnnotatedParseTree
+		Tree   *AnnotatedTree
+		Parent *AnnotatedTree
 	}
 	// no parent set on first node; it's the root
 	treeStack := box.NewStack([]treeAndParent{{Tree: &aptRoot}})

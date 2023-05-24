@@ -10,18 +10,18 @@ import (
 func Test_depGraph(t *testing.T) {
 	testCases := []struct {
 		name     string
-		apt      *AnnotatedParseTree
+		apt      *AnnotatedTree
 		bindings []sddBinding
 		expect   []string
 	}{
 		{
 			name: "no dependencies",
-			apt: APTNode(1, "A",
-				APTNode(2, "B"),
-				APTNode(3, "B"),
-				APTLeaf(4, "int"),
-				APTNode(5, "C"),
-				APTLeaf(6, "int"),
+			apt: ATNode(1, "A",
+				ATNode(2, "B"),
+				ATNode(3, "B"),
+				ATLeaf(4, "int"),
+				ATNode(5, "C"),
+				ATLeaf(6, "int"),
 			),
 			bindings: []sddBinding{
 				{
@@ -37,12 +37,12 @@ func Test_depGraph(t *testing.T) {
 		},
 		{
 			name: "dep on built-in via rel-symbol",
-			apt: APTNode(1, "A",
-				APTNode(2, "B"),
-				APTNode(3, "B"),
-				APTLeaf(4, "int"),
-				APTNode(5, "C"),
-				APTLeaf(6, "int"),
+			apt: ATNode(1, "A",
+				ATNode(2, "B"),
+				ATNode(3, "B"),
+				ATLeaf(4, "int"),
+				ATNode(5, "C"),
+				ATLeaf(6, "int"),
 			),
 			bindings: []sddBinding{
 				{
