@@ -391,7 +391,11 @@ func depGraph(aptRoot AnnotatedTree, sdts *sdtsImpl) []*directedGraph[depNode] {
 				toDepNode, ok := targetNodeDepNodes[binding.Dest.Name]
 				if !ok {
 					toDepNode = &directedGraph[depNode]{Data: depNode{
-						Parent: targetParent, Tree: targetNode, Dest: binding.Dest, Synthetic: synthTarget, NoFlows: make([]string, len(binding.NoFlows)),
+						Parent:    targetParent,
+						Tree:      targetNode,
+						Dest:      binding.Dest,
+						Synthetic: synthTarget,
+						NoFlows:   make([]string, len(binding.NoFlows)),
 					}}
 					copy(toDepNode.Data.NoFlows, binding.NoFlows)
 				}
@@ -428,7 +432,8 @@ func depGraph(aptRoot AnnotatedTree, sdts *sdtsImpl) []*directedGraph[depNode] {
 					fromDepNode = &directedGraph[depNode]{Data: depNode{
 						// we simply have no idea whether this is a synthetic
 						// attribute or not at this time
-						Parent: relParent, Tree: relNode,
+						Parent: relParent,
+						Tree:   relNode,
 					}}
 				}
 
@@ -456,7 +461,11 @@ func depGraph(aptRoot AnnotatedTree, sdts *sdtsImpl) []*directedGraph[depNode] {
 				toDepNode, ok := targetNodeDepNodes[binding.Dest.Name]
 				if !ok {
 					toDepNode = &directedGraph[depNode]{Data: depNode{
-						Parent: targetParent, Tree: targetNode, Dest: binding.Dest, Synthetic: synthTarget, NoFlows: make([]string, len(binding.NoFlows)),
+						Parent:    targetParent,
+						Tree:      targetNode,
+						Dest:      binding.Dest,
+						Synthetic: synthTarget,
+						NoFlows:   make([]string, len(binding.NoFlows)),
 					}}
 					copy(toDepNode.Data.NoFlows, binding.NoFlows)
 				}
