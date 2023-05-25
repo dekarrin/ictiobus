@@ -14,7 +14,7 @@ func Test_depGraph(t *testing.T) {
 		bindings []sddBinding
 		expect   []string
 	}{
-		/*{
+		{
 			name: "no dependencies",
 			apt: ATNode(1, "A",
 				ATNode(2, "B"),
@@ -33,25 +33,19 @@ func Test_depGraph(t *testing.T) {
 				},
 			},
 			expect: []string{`((1: A -> [B B int C int] <[head symbol].test>))`},
-		},*/
+		},
 		{
 			name: "1-step dep terminating on built-in via rel-symbol",
 			apt: ATNode(1, "A",
 				ATNode(2, "B"),
-				ATNode(3, "B", ATLeaf(7, "int")),
+				ATNode(3, "B",
+					ATLeaf(7, "int"),
+				),
 				ATLeaf(4, "int"),
 				ATNode(5, "C"),
 				ATLeaf(6, "int"),
 			),
 			bindings: []sddBinding{
-				/*{
-					Synthesized:         true,
-					BoundRuleSymbol:     "B",
-					BoundRuleProduction: []string{"int"},
-					Requirements:        []AttrRef{{Rel: NRSymbol(0), Name: "$text"}},
-					Dest:                AttrRef{Rel: NRHead(), Name: "feature"},
-					Setter:              "constant_builder",
-				},*/
 				{
 					Synthesized:         true,
 					BoundRuleSymbol:     "A",
@@ -61,7 +55,44 @@ func Test_depGraph(t *testing.T) {
 					Setter:              "constant_builder",
 				},
 			},
-			expect: []string{`((1: "A" [B B int C int] <[head symbol].test>))`},
+			expect: []string{`(
+	(1: A -> [B B int C int] <[head symbol].test>),
+	(4: int <[head symbol].$text> -> {1})
+)`},
+		},
+		{
+			name: "2-step dep terminating on built-in via rel-symbol",
+			apt: ATNode(1, "A",
+				ATNode(2, "B"),
+				ATNode(3, "B",
+					ATLeaf(7, "int"),
+				),
+				ATLeaf(4, "int"),
+				ATNode(5, "C"),
+				ATLeaf(6, "int"),
+			),
+			bindings: []sddBinding{
+				{
+					Synthesized:         true,
+					BoundRuleSymbol:     "B",
+					BoundRuleProduction: []string{"int"},
+					Requirements:        []AttrRef{{Rel: NRSymbol(0), Name: "$text"}},
+					Dest:                AttrRef{Rel: NRHead(), Name: "feature"},
+					Setter:              "constant_builder",
+				},
+				{
+					Synthesized:         true,
+					BoundRuleSymbol:     "A",
+					BoundRuleProduction: []string{"B", "B", "int", "C", "int"},
+					Requirements:        []AttrRef{{Rel: NRSymbol(1), Name: "feature"}},
+					Dest:                AttrRef{Rel: NRHead(), Name: "test"},
+					Setter:              "constant_builder",
+				},
+			},
+			expect: []string{`(
+	(1: A -> [B B int C int] <[head symbol].test>),
+	(3: B -> [int], <[head symbol>.feature> -> {})
+)`},
 		},
 	}
 
