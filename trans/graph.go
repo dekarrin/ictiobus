@@ -411,33 +411,7 @@ func depGraph(aptRoot AnnotatedTree, sdts *sdtsImpl) []*directedGraph[depNode] {
 			for j := range binding.Requirements {
 				req := binding.Requirements[j]
 
-				// get the related node:
-				relNode, ok := curTree.RelativeNode(req.Rel)
-				if !ok {
-					panic(fmt.Sprintf("relative address cannot be followed: %v", req.Rel.String()))
-				}
-				relNodeID := relNode.ID()
-				relNodeDepNodes, ok := depNodes[relNodeID]
-				if !ok {
-					relNodeDepNodes = map[string]*directedGraph[depNode]{}
-				}
-				// specifically, need to address the one for the desired attribute
-				fromDepNode, ok := relNodeDepNodes[req.Name]
-				if !ok {
-					relParent := curParent
-					if relNode != curTree {
-						// then relNode MUST be a child of curTreeNode
-						relParent = curTree
-					}
-					fromDepNode = &directedGraph[depNode]{Data: depNode{
-						// we simply have no idea whether this is a synthetic
-						// attribute or not at this time
-						Parent: relParent,
-						Tree:   relNode,
-					}}
-				}
-
-				// get the TARGET node
+				// get the TARGET node (the one whose attr is being set)
 				targetNode, ok := curTree.RelativeNode(binding.Dest.Rel)
 				if !ok {
 					panic(fmt.Sprintf("relative address cannot be followed: %v", binding.Dest.Rel.String()))
@@ -474,6 +448,42 @@ func depGraph(aptRoot AnnotatedTree, sdts *sdtsImpl) []*directedGraph[depNode] {
 				// check it now
 				toDepNode.Data.Synthetic = synthTarget
 				toDepNode.Data.Dest = binding.Dest
+
+				// get the RELATED node (the one whose attr is used as an argument):
+				relNode, ok := curTree.RelativeNode(req.Rel)
+				if !ok {
+					panic(fmt.Sprintf("relative address cannot be followed: %v", req.Rel.String()))
+				}
+				relNodeID := relNode.ID()
+				relNodeDepNodes, ok := depNodes[relNodeID]
+				if !ok {
+					relNodeDepNodes = map[string]*directedGraph[depNode]{}
+				}
+				// specifically, need to address the one for the desired attribute
+				fromDepNode, ok := relNodeDepNodes[req.Name]
+				if !ok {
+					relParent := curParent
+					if relNode != curTree {
+						// then relNode MUST be a child of curTreeNode
+						relParent = curTree
+					}
+					fromDepNode = &directedGraph[depNode]{Data: depNode{
+						// we simply have no idea whether this is a synthetic
+						// attribute or not at this time
+						Parent: relParent,
+						Tree:   relNode,
+					}}
+
+					// If the target node is requesting a built-in attribute,
+					// nothing will ever come by later to set syntheticness and
+					// dest, so set it now. Built-in attribute nodes are always
+					// considered synthetic, even when/if inherited attributes
+					// are enabled for reel.
+					if strings.HasPrefix(req.Name, "$") {
+						fromDepNode.Data.Synthetic = true
+						fromDepNode.Data.Dest = AttrRef{Rel: NRHead(), Name: req.Name}
+					}
+				}
 
 				// create the edge; this will modify BOTH dep nodes
 				fromDepNode.LinkTo(toDepNode)
