@@ -32,7 +32,7 @@ func Test_depGraph(t *testing.T) {
 					Dest:                AttrRef{Rel: NRHead(), Name: "test"},
 				},
 			},
-			expect: []string{`((1: A -> [B B int C int], <[head symbol].test>))`},
+			expect: []string{`((1: A -> [B B int C int], {head symbol}.test))`},
 		},
 		{
 			name: "1-step dep terminating on built-in via rel-symbol",
@@ -56,8 +56,8 @@ func Test_depGraph(t *testing.T) {
 				},
 			},
 			expect: []string{`(
-	(1: A -> [B B int C int], [<head symbol>.test]),
-	(4: int, [{head symbol}.$text] -> 1)
+	(1: A -> [B B int C int], {head symbol}.test),
+	(4: int, {head symbol}.$text => [1])
 )`},
 		},
 		{
@@ -90,8 +90,9 @@ func Test_depGraph(t *testing.T) {
 				},
 			},
 			expect: []string{`(
-	(1: A -> [B B int C int], <[head symbol].test>),
-	(3: B -> [int], <[head symbol>.feature> -> {})
+	(1: A -> [B B int C int], {head symbol}.test),
+	(3: B -> [int], {head symbol}.feature => [1]),
+	(7: int, {head symbol}.$text => [3])
 )`},
 		},
 	}
