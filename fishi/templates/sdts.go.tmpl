@@ -38,7 +38,7 @@ func sdtsBind{{ .Head | upperCamel }}(sdts trans.SDTS) {
 {{- if .Args }}
         []trans.AttrRef{
 {{ range .Args -}}
-{{ "            " }}{Relation: trans.NodeRelation{Type: trans.{{ .RelType }}, Index: {{ .RelIndex -}} }, Name: "{{ .Attribute }}"},
+{{ "            " }}{Rel: trans.NodeRelation{Type: trans.{{ .RelType }}, Index: {{ .RelIndex -}} }, Name: "{{ .Attribute }}"},
 {{ end -}}
 {{ "        " -}} },
 {{- else }}
