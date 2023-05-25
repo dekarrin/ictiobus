@@ -138,8 +138,10 @@ func ATLeaf(id uint64, term string, t ...lex.Token) *AnnotatedTree {
 			pt.Attributes["$ft"] = t[0]
 		}
 	} else {
+		tok := lex.NewToken(lex.MakeDefaultClass("dummy"), "dummy2", 7, 1, "dummy1 dummy2 dummy3")
 		pt.Attributes["$text"] = "dummy2"
-		pt.Attributes["$ft"] = lex.NewToken(lex.MakeDefaultClass("dummy"), "dummy2", 7, 1, "dummy1 dummy2 dummy3")
+		pt.Attributes["$ft"] = tok
+		pt.Source = tok
 	}
 	return pt
 }
