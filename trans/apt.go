@@ -163,7 +163,7 @@ func ATNode(id uint64, nt string, children ...*AnnotatedTree) *AnnotatedTree {
 }
 
 // String returns a string representation of the APT.
-func (apt *AnnotatedTree) String() string {
+func (apt AnnotatedTree) String() string {
 	return apt.leveledStr("", "")
 }
 

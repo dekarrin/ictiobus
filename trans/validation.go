@@ -74,8 +74,7 @@ func Validate(sdts SDTS, g grammar.CFG, attribute string, debug ValidationOption
 		for _, ew := range evalWarns {
 			ewAsTreeErr := evalErrToTreeError(ew)
 			if debug.ParseTrees {
-				apt := Annotate(localPT)
-				treeStr := apt.String()
+				treeStr := Annotate(localPT).String()
 				warns = append(warns, fmt.Sprintf("Failed Tree %d:\n%s\nParse Tree:\n%s", i+1, ewAsTreeErr.Error(), treeStr))
 			} else {
 				warns = append(warns, fmt.Sprintf("Failed Tree %d: %s", i+1, ewAsTreeErr.Error()))
@@ -110,8 +109,7 @@ func Validate(sdts SDTS, g grammar.CFG, attribute string, debug ValidationOption
 				continue
 			}
 			if debug.ParseTrees {
-				apt := Annotate(*treeErrs[i].Second)
-				treeStr := apt.String()
+				treeStr := Annotate(*treeErrs[i].Second).String()
 				fullErrStr += fmt.Sprintf("\n\nFailed Tree %d:\n%s\nParse Tree:\n%s", i+1, treeErrs[i].First.Error(), treeStr)
 			} else {
 				fullErrStr += fmt.Sprintf("\n\nFailed Tree %d: %s", i+1, treeErrs[i].First.Error())
