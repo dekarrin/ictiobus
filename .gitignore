@@ -12,6 +12,9 @@ testdiag.exe
 /fishic
 /.testruns
 *.fishispec
+/tests/**/.sim
+/tests/**/.gen
+
 
 # in-prog dist files
 /*-darwin-amd64
