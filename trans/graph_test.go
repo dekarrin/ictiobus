@@ -57,7 +57,7 @@ func Test_depGraph(t *testing.T) {
 			},
 			expect: []string{`(
 	(1: A -> [B B int C int], [<head symbol>.test]),
-	(4: int, <[head symbol].$text> -> {1})
+	(4: int, [{head symbol}.$text] -> 1)
 )`},
 		},
 		{

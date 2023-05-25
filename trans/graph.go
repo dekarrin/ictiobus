@@ -307,17 +307,17 @@ func depGraphString(dg *directedGraph[depNode]) string {
 			nodeStart = "\n\t"
 		}
 
-		sb.WriteString(fmt.Sprintf("%s(%v: %s%s, [<%s>.<%s>]", nodeStart, nodeID, sym, prd, dep.Dest.Rel, dep.Dest.Name))
+		sb.WriteString(fmt.Sprintf("%s(%v: %s%s, %s", nodeStart, nodeID, sym, prd, dep.Dest))
 
 		if len(nextIDs) > 0 {
-			sb.WriteString(" -> {")
+			sb.WriteString(" => [")
 			for j := range nextIDs {
 				sb.WriteString(fmt.Sprintf("%v", nextIDs[j]))
 				if j+1 < len(nextIDs) {
 					sb.WriteString(", ")
 				}
 			}
-			sb.WriteRune('}')
+			sb.WriteRune(']')
 		}
 
 		sb.WriteRune(')')
