@@ -35,7 +35,7 @@ func Test_depGraph(t *testing.T) {
 			expect: []string{`((1: A -> [B B int C int], {head symbol}.test))`},
 		},
 		{
-			name: "1-step dep terminating on built-in via rel-symbol",
+			name: "1-step dep terminating on built-in via rel-symbol to terminal",
 			apt: ATNode(1, "A",
 				ATNode(2, "B"),
 				ATNode(3, "B",
@@ -61,7 +61,7 @@ func Test_depGraph(t *testing.T) {
 )`},
 		},
 		{
-			name: "2-step dep terminating on built-in via rel-symbol",
+			name: "2-step dep terminating on built-in via rel-symbol to terminal",
 			apt: ATNode(1, "A",
 				ATNode(2, "B"),
 				ATNode(3, "B",
@@ -93,6 +93,66 @@ func Test_depGraph(t *testing.T) {
 	(1: A -> [B B int C int], {head symbol}.test),
 	(3: B -> [int], {head symbol}.feature => [1]),
 	(7: int, {head symbol}.$text => [3])
+)`},
+		},
+		{
+			name: "1-step dep terminating on built-in via rel-terminal to terminal",
+			apt: ATNode(1, "A",
+				ATNode(2, "B"),
+				ATNode(3, "B",
+					ATLeaf(7, "int"),
+				),
+				ATLeaf(4, "int"),
+				ATNode(5, "C"),
+				ATLeaf(6, "int"),
+			),
+			bindings: []sddBinding{
+				{
+					Synthesized:         true,
+					BoundRuleSymbol:     "A",
+					BoundRuleProduction: []string{"B", "B", "int", "C", "int"},
+					Requirements:        []AttrRef{{Rel: NRTerminal(0), Name: "$text"}},
+					Dest:                AttrRef{Rel: NRHead(), Name: "test"},
+					Setter:              "constant_builder",
+				},
+			},
+			expect: []string{`(
+	(1: A -> [B B int C int], {head symbol}.test),
+	(4: int, {head symbol}.$text => [1])
+)`},
+		},
+		{
+			name: "1-step dep terminating on non-built-in via rel-nonterminal to nonterminal",
+			apt: ATNode(1, "A",
+				ATNode(2, "B"),
+				ATNode(3, "B",
+					ATLeaf(7, "int"),
+				),
+				ATLeaf(4, "int"),
+				ATNode(5, "C"),
+				ATLeaf(6, "int"),
+			),
+			bindings: []sddBinding{
+				{
+					Synthesized:         true,
+					BoundRuleSymbol:     "B",
+					BoundRuleProduction: []string{"int"},
+					Requirements:        nil,
+					Dest:                AttrRef{Rel: NRHead(), Name: "someVal"},
+					Setter:              "constant_builder",
+				},
+				{
+					Synthesized:         true,
+					BoundRuleSymbol:     "A",
+					BoundRuleProduction: []string{"B", "B", "int", "C", "int"},
+					Requirements:        []AttrRef{{Rel: NRNonTerminal(1), Name: "someVal"}},
+					Dest:                AttrRef{Rel: NRHead(), Name: "test"},
+					Setter:              "constant_builder",
+				},
+			},
+			expect: []string{`(
+	(1: A -> [B B int C int], {head symbol}.test),
+	(3: B -> [int], {head symbol}.someVal => [1])
 )`},
 		},
 	}

@@ -766,7 +766,7 @@ to be escaped, due to being special characters in RE2 syntax.
     <o\^><                   %token shark        %human statement shark "<o^><"
     =o                       %token tentacle     %human value tentacle "=o"
     [A-Za-z_][A-Za-z0-9_]*   %token id           %human identifier
-    [0-9]*.[0-9]+            %token float        %human floating-point literal
+    [0-9]*\.[0-9]+           %token float        %human floating-point literal
     [0-9]+                   %token int          %human integer literal
     ```
 
