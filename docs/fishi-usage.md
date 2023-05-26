@@ -1136,17 +1136,18 @@ following forms:
                    in the production.
 * `{&N}`         - The child node corresponding to the Nth non-terminal symbol
                    in the production (0-indexed).
-* `{NON-TERM}`   - The child node corresponding to the first occurence of
+* `{NON-TERM}`   - The child node corresponding to the first occurrence of
                    non-terminal symbol `NON-TERM` in the production.
-* `{NON-TERM$N}` - The child node corresponding to the Nth occurence of
+* `{NON-TERM$N}` - The child node corresponding to the Nth occurrence of
                    non-terminal symbol `NON-TERM` in the production (0-indexed).
-* `term`         - The child node corresponding to the first occurence of
+* `term`         - The child node corresponding to the first occurrence of
                    terminal symbol `term` in the production. If used as an arg
                    to a hook function, must be separated from prior symbol by
                    whitespace.
-* `term$N`       - The child node corresponding to the Nth occurence of terminal
-                   symbol `term` in the production. If used as an arg to a hook
-                   function, must be separated from prior symbol by whitespace.
+* `term$N`       - The child node corresponding to the Nth occurrence of
+                   terminal symbol `term` in the production. If used as an arg
+                   to a hook function, must be separated from prior symbol by
+                   whitespace.
 
 ### Syntax-Directed Translation Schemes
 
@@ -1490,10 +1491,10 @@ how non-terminal symbols are defined:
     # the above could have been:
     -> {SUM} + {TERM}:  {^}.value   =   add({SUM}.value, {TERM}.value)
 
-If there's more than one occurence of that non-terminal in the production, the
-index of the occurence (starting at 0) can be given by putting a dollar sign
+If there's more than one occurrence of that non-terminal in the production, the
+index of the occurrence (starting at 0) can be given by putting a dollar sign
 followed by the index inside of the braces. If it's not given, it's assumed to
-be 0 (the first occurence):
+be 0 (the first occurrence):
 
     %%grammar
 
@@ -1509,7 +1510,7 @@ be 0 (the first occurence):
     # first arg to add(), and the second instance of EXPR in the production
     # (`$1`) as the second arg.
 
-The occurence must be explicitly given if the name of the non-terminal itself
+The occurrence must be explicitly given if the name of the non-terminal itself
 contains a dollar so that the non-terminal name is correctly parsed:
 
     -> {BIG$SYMBOL} + {TERM} : {^}.value = add({BIG$SYMBOL$0}.value, {TERM}.value)
@@ -1532,8 +1533,8 @@ named `$text` (a built-in one, due to the leading `$`) defined on the child node
 corresponding to the terminal `int`.
 
 This follows the same rules for specifying a particular index as non-terminals;
-to refer to occurences of a non-terminal symbol that are not the first, the
-index of the occurence must be specified with a dollar sign after the name of
+to refer to occurrences of a non-terminal symbol that are not the first, the
+index of the occurrence must be specified with a dollar sign after the name of
 the terminal:
 
     %%actions
@@ -1541,14 +1542,14 @@ the terminal:
     %symbol {INT-SUM}
     -> int + int:      {^}.value = add( int$0.$text, int$1.$text)
 
-The occurence must be explicitly given if the name of the terminal itself
+The occurrence must be explicitly given if the name of the terminal itself
 contains a dollar so that the non-terminal name is correctly parsed:
 
     -> $int$  : {^}.value = add( $int$$0.$text)
 
-Besides occurences of specific terminals and non-terminals, an AttrRef may refer
-to *any* terminal or non-terminal by using `{.}` or `{&}` respectively. `{.}`
-and `{&}` alone specify the first non-terminal or terminal:
+Besides occurrences of specific terminals and non-terminals, an AttrRef may
+refer to *any* terminal or non-terminal by using `{.}` or `{&}` respectively.
+`{.}` and `{&}` alone specify the first non-terminal or terminal:
 
     -> {SUM} int:  {^}.value   =   add({.}.$text, {&}.value)
 
