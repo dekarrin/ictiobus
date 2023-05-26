@@ -117,8 +117,8 @@ func Test_depGraph(t *testing.T) {
 	(3: B -> [int], {head symbol}.someVal => [1])
 )`},
 		},
-		/*{
-			name: "FISHIMATH breaking test case for GHI-128",
+		{
+			name: "FISHIMATH (eval version) breaking test case for GHI-128",
 			apt: ATNode(1, "FISHIMATH",
 				ATNode(2, "STATEMENTS",
 					ATNode(3, "STMT",
@@ -176,9 +176,68 @@ func Test_depGraph(t *testing.T) {
 				),
 			),
 			bindings: []sddBinding{
-				{Synthesized: true, BoundRuleSymbol: ""},
+				mockSBind("FISHIMATH", []string{"STATEMENTS"}, AttrRef{Rel: NRHead(), Name: "ir"},
+					AttrRef{Rel: NRNonTerminal(0), Name: "result"},
+				),
+
+				mockSBind("STATEMENTS", []string{"STMT", "STATEMENTS"}, AttrRef{Rel: NRHead(), Name: "result"},
+					AttrRef{Rel: NRSymbol(1), Name: "result"},
+					AttrRef{Rel: NRSymbol(0), Name: "value"},
+				),
+				mockSBind("STATEMENTS", []string{"STMT"}, AttrRef{Rel: NRHead(), Name: "result"},
+					AttrRef{Rel: NRSymbol(0), Name: "value"},
+				),
+
+				mockSBind("STMT", []string{"EXPR"}, AttrRef{Rel: NRHead(), Name: "value"},
+					AttrRef{Rel: NRSymbol(0), Name: "value"},
+				),
+
+				mockSBind("EXPR", []string{"id", "tentacle", "EXPR"}, AttrRef{Rel: NRHead(), Name: "value"},
+					AttrRef{Rel: NRSymbol(0), Name: "$text"},
+					AttrRef{Rel: NRSymbol(2), Name: "value"},
+				),
+				mockSBind("EXPR", []string{"SUM"}, AttrRef{Rel: NRHead(), Name: "value"},
+					AttrRef{Rel: NRSymbol(0), Name: "value"},
+				),
+
+				mockSBind("SUM", []string{"PRODUCT", "+", "EXPR"}, AttrRef{Rel: NRHead(), Name: "value"},
+					AttrRef{Rel: NRNonTerminal(0), Name: "value"},
+					AttrRef{Rel: NRNonTerminal(1), Name: "value"},
+				),
+				mockSBind("SUM", []string{"PRODUCT", "-", "EXPR"}, AttrRef{Rel: NRHead(), Name: "value"},
+					AttrRef{Rel: NRNonTerminal(0), Name: "value"},
+					AttrRef{Rel: NRNonTerminal(1), Name: "value"},
+				),
+				mockSBind("SUM", []string{"PRODUCT"}, AttrRef{Rel: NRHead(), Name: "value"},
+					AttrRef{Rel: NRSymbol(0), Name: "value"},
+				),
+
+				mockSBind("PRODUCT", []string{"TERM", "*", "PRODUCT"}, AttrRef{Rel: NRHead(), Name: "value"},
+					AttrRef{Rel: NRNonTerminal(0), Name: "value"},
+					AttrRef{Rel: NRNonTerminal(1), Name: "value"},
+				),
+				mockSBind("PRODUCT", []string{"TERM", "/", "PRODUCT"}, AttrRef{Rel: NRHead(), Name: "value"},
+					AttrRef{Rel: NRNonTerminal(0), Name: "value"},
+					AttrRef{Rel: NRNonTerminal(1), Name: "value"},
+				),
+				mockSBind("PRODUCT", []string{"TERM"}, AttrRef{Rel: NRHead(), Name: "value"},
+					AttrRef{Rel: NRSymbol(0), Name: "value"},
+				),
+
+				mockSBind("TERM", []string{"fishtail", "EXPR", "fishhead"}, AttrRef{Rel: NRHead(), Name: "value"},
+					AttrRef{Rel: NRSymbol(1), Name: "value"},
+				),
+				mockSBind("TERM", []string{"int"}, AttrRef{Rel: NRHead(), Name: "value"},
+					AttrRef{Rel: NRSymbol(0), Name: "$text"},
+				),
+				mockSBind("TERM", []string{"float"}, AttrRef{Rel: NRHead(), Name: "value"},
+					AttrRef{Rel: NRSymbol(0), Name: "$text"},
+				),
+				mockSBind("TERM", []string{"id"}, AttrRef{Rel: NRHead(), Name: "value"},
+					AttrRef{Rel: NRSymbol(0), Name: "$text"},
+				),
 			},
-		},*/
+		},
 	}
 
 	for _, tc := range testCases {
