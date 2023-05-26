@@ -118,6 +118,19 @@ func Test_depGraph(t *testing.T) {
 )`},
 		},
 		{
+			/*
+				Some notes on this test case: it produces inconsistently ordered
+				results in the live version as well as this one, so that should
+				be fixed.
+
+				Oh yeah! Also, this isn't even exactly the same graphs as the
+				live version - that one never even ends up *using* the FISHIMATH
+				rule. The result of this test-case is 8ad and needs to 8e fixed,
+				8ut also either there's something weird about the conversion
+				from spec to actual SDTS that's making the spec'd one not come
+				out to this exact version, or else something is making it
+				inconsistent!
+			*/
 			name: "FISHIMATH (eval version) breaking test case for GHI-128",
 			apt: ATNode(1, "FISHIMATH",
 				ATNode(2, "STATEMENTS",
