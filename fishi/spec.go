@@ -772,14 +772,14 @@ func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.CFG, r grammar.Rule)
 		}
 	} else if astRef.SymInProd {
 		// make sure the rule has the right number of symbols
-		if astRef.Occurance >= len(r.Productions[0]) {
+		if astRef.Occurrence >= len(r.Productions[0]) {
 			symCount := textfmt.Pluralize(len(r.Productions[0]), "symbol", "-s")
 			return trans.AttrRef{}, fmt.Errorf("symbol index out of range; production only has %s (%s)", symCount, r.Productions[0])
 		}
 		ar = trans.AttrRef{
 			Rel: trans.NodeRelation{
 				Type:  trans.RelSymbol,
-				Index: astRef.Occurance,
+				Index: astRef.Occurrence,
 			},
 			Name: astRef.Attribute,
 		}
@@ -791,13 +791,13 @@ func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.CFG, r grammar.Rule)
 				nontermCount++
 			}
 		}
-		if astRef.Occurance >= nontermCount {
+		if astRef.Occurrence >= nontermCount {
 			return trans.AttrRef{}, fmt.Errorf("non-terminal index out of range; production only has %d non-terminals", nontermCount)
 		}
 		ar = trans.AttrRef{
 			Rel: trans.NodeRelation{
 				Type:  trans.RelNonTerminal,
-				Index: astRef.Occurance,
+				Index: astRef.Occurrence,
 			},
 			Name: astRef.Attribute,
 		}
@@ -809,13 +809,13 @@ func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.CFG, r grammar.Rule)
 				termCount++
 			}
 		}
-		if astRef.Occurance >= termCount {
+		if astRef.Occurrence >= termCount {
 			return trans.AttrRef{}, fmt.Errorf("terminal index out of range; production only has %d terminals", termCount)
 		}
 		ar = trans.AttrRef{
 			Rel: trans.NodeRelation{
 				Type:  trans.RelTerminal,
-				Index: astRef.Occurance,
+				Index: astRef.Occurrence,
 			},
 			Name: astRef.Attribute,
 		}
@@ -830,13 +830,13 @@ func attrRefFromASTAttrRef(astRef syntax.AttrRef, g grammar.CFG, r grammar.Rule)
 		if len(symIndexes) == 0 {
 			return trans.AttrRef{}, fmt.Errorf("no symbol %s in production", astRef.Symbol)
 		}
-		if astRef.Occurance >= len(symIndexes) {
+		if astRef.Occurrence >= len(symIndexes) {
 			return trans.AttrRef{}, fmt.Errorf("symbol index out of range; production only has %d instances of %s", len(symIndexes), astRef.Symbol)
 		}
 		ar = trans.AttrRef{
 			Rel: trans.NodeRelation{
 				Type:  trans.RelSymbol,
-				Index: symIndexes[astRef.Occurance],
+				Index: symIndexes[astRef.Occurrence],
 			},
 			Name: astRef.Attribute,
 		}

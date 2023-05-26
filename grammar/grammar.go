@@ -1063,27 +1063,27 @@ func removeEpsilons(from []Production) []Production {
 
 func getEpsilonRewrites(epsilonableNonterm string, prod Production) []Production {
 	// how many times does it occur?
-	var numOccurances int
+	var numOccurrences int
 	for i := range prod {
 		if prod[i] == epsilonableNonterm {
-			numOccurances++
+			numOccurrences++
 		}
 	}
 
-	if numOccurances == 0 {
+	if numOccurrences == 0 {
 		return []Production{prod}
 	}
 
 	// generate all numbers of that binary bitsize
 
-	perms := int(math.Pow(2, float64(numOccurances)))
+	perms := int(math.Pow(2, float64(numOccurrences)))
 
 	// we're using the bitfield of above perms to denote which A should be "on"
 	// and which should be "off" in the resulting string.
 
 	newProds := []Production{}
 
-	epsilonablePositions := make([]string, numOccurances)
+	epsilonablePositions := make([]string, numOccurrences)
 	for i := perms - 1; i >= 0; i-- {
 		// fill positions from the bitfield making up the cur permutation num
 		for j := range epsilonablePositions {
