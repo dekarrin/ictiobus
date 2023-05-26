@@ -129,7 +129,10 @@ func Test_depGraph(t *testing.T) {
 				8ut also either there's something weird about the conversion
 				from spec to actual SDTS that's making the spec'd one not come
 				out to this exact version, or else something is making it
-				inconsistent!
+				inconsistent! - eta: looks like we just missed writing a rule
+				correctly, glub. still, results are not the same tho. But, it
+				*appears* that we are correctly using the SDTS exactly as laid
+				out by spec for simulation... so kinda wtf?
 			*/
 			name: "FISHIMATH (eval version) breaking test case for GHI-128",
 			apt: ATNode(1, "FISHIMATH",
@@ -201,7 +204,7 @@ func Test_depGraph(t *testing.T) {
 					AttrRef{Rel: NRSymbol(0), Name: "value"},
 				),
 
-				mockSBind("STMT", []string{"EXPR"}, AttrRef{Rel: NRHead(), Name: "value"},
+				mockSBind("STMT", []string{"EXPR", "shark"}, AttrRef{Rel: NRHead(), Name: "value"},
 					AttrRef{Rel: NRSymbol(0), Name: "value"},
 				),
 
