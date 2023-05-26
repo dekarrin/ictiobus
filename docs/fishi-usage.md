@@ -8,8 +8,8 @@ compiler frontends, really, which include the lexer, parser, and translation
 scheme.
 
 To use Ictiobus to make your own programming or scripting language, you first
-define a spec for it in the FISHI langauge, then run the command ictcc on the
-spec and poof! You'll have a whole glubbin langauge parser (compiler frontend)
+define a spec for it in the FISHI language, then run the command ictcc on the
+spec, and poof! You'll have a whole glubbin language parser (compiler frontend)
 ready to use in the Go package you tell ictcc to output it to. All your code
 needs to do is call the package's `Frontend()` function.
 
@@ -61,7 +61,7 @@ Other than that, FISHIMath supports integers and decimal values (as IEEE-754
 single-precision floating point values), and the operators `+`, `-`, `/`, and
 `*`.
 
-## Note On The Preproccessor
+## Note On The Preprocessor
 
 When FISHI is read by ictcc, before it is interpreted by the FISHI frontend, a
 preprocessing step is run on input. Since error reporting is handled by the
@@ -76,18 +76,17 @@ has been preprocessed.
 
 So, the term "parser" is often used in two distinct ways. Outside of the context
 of compilers and translators, it's often used to refer to an entire analysis
-system that can on its own take in input and produce a value from it, either the
-result of execution or some representation of the input that can be further
-processed. Here, "parsing" refers to the entire process of reading in input,
-scanning it for recognizable symbols ("tokens"), interpreting the tokens
-according to some format, and then using that interpretation to produce the
-final value.
+system that takes in text and produces a value from it, either the result of
+execution or some representation of the input that can be further processed.
+Here, "parsing" refers to the entire process of reading in input, scanning it
+for recognizable symbols ("tokens"), interpreting the tokens according to some
+format, and then using that interpretation to produce the final value.
 
 But often in the context of compilers and translators, and absolutely within the
 context of FISHI and Ictiobus, "parsing" refers to just one of three main phases
 in a complete analysis of input. This complete analysis is known as the
 *frontend* of a compiler or interpreter, and the final result value from it is
-called the intermediate representation of the input, or IR for short. When input
+called the intermediate representation of the input, or IR for short. When text
 is analyzed by a frontend, it goes through all three phases in its quest to
 become an IR!
 
@@ -193,7 +192,7 @@ code blocks (the triple ticks) that have the label `fishi`.
     # FISHI source code goes here
     ```
 
-If there's multiple FISHI code blocks in the same file, they will be read and
+If there are multiple FISHI code blocks in the same file, they will be read and
 interpreted in sequence. So for instance, the following example:
 
     ## Our Tokens
@@ -283,7 +282,8 @@ Is interpreted the same as this:
     ```
 
 Which, since any FISHI without a section header will be interpreted as a
-continuation of the section from before, is interpreted the same as this:
+continuation of the last section that was defined, is interpreted the same as
+this:
 
     ```fishi
     %%tokens
@@ -339,8 +339,8 @@ in FISHI are `%token`, `%stateshift`, `%human`, `%priority`, `%state`,
 ### Sections
 
 FISHI statements are organized into three different types of *sections*. Each
-section has a header that gives the type of the section, followed by statements
-that have different structure based on the section they are in.
+section has a header that gives the type of the section, followed by some number
+of statements that have different structure based on the section they are in.
 
 Tokens sections have the header `%%tokens` and specify patterns for the lexer to
 use to find tokens in input text, as well as patterns that should be ignored.
@@ -392,7 +392,7 @@ have a syntax-directed definition (action) specified for it.
     ```
 
 Sections in FISHI do not need to be in any particular order, and you can define
-as many of the same type of section as you'd like. For instance, you can have a
+as many sections with the same type as you'd like. For instance, you can have a
 Grammar section, followed by a Tokens section, followed by an Actions section,
 followed by another Tokens section. The order of the types of sections doesn't
 matter; all of the statements in the Tokens section are read in the order they
@@ -402,10 +402,10 @@ appear in a FISHI spec.
 
 The first stage of an Ictiobus frontend is lexing (sometimes referred to as
 scanning). This is where code, input as a stream of UTF-8 encoded characters,
-is scanned for for recognizable symbols, which are passed to the parsing stage
-for further processing. These symbols are called *tokens* - the 'words' of the
-input language. Each token has a type, called the *token class*, that is later
-used by the parser.
+is scanned for recognizable symbols, which are passed to the parsing stage for
+further processing. These symbols are called *tokens* - the 'words' of the input
+language. Each token has a type, called the *token class*, which is later used
+by the parser.
 
 ### FISHI Tokens Quick Reference
 
@@ -415,10 +415,10 @@ you, skip this section for a guide to how the ictiobus lexer works using FISHI
 for its examples.
 
 FISHI specifies a lexer in `%%tokens` sections. Each `%%tokens` section has a
-series of entries. A series of entries may be preceeded by a `%state STATENAME`
-directive in it, which makes those entries be applied only when the lexer is in
-state `STATENAME`; otherwise, they will be defined for the default state and all
-other states as well.
+series of entries. A series of entries may be preceded by a `%state STATENAME`
+directive, which makes those entries be applied only when the lexer is in state
+`STATENAME`; otherwise, they will be defined for the default state and all other
+states as well.
 
 Each entry starts with a regular expression, which must be the first thing on a
 line. The regular expression is given using the RE2 syntax used by Go's `regexp`
@@ -437,8 +437,8 @@ specified for a pattern:
                        distinguish from non-terminals in later stages of the
                        frontend.
 
-* `%human HUMAN-NAME`  - Use the the human-readable name `HUMAN-NAME` to refer
-                       to the associated token class in error and diagnostic
+* `%human HUMAN-NAME`  - Use the human-readable name `HUMAN-NAME` to refer to
+                       the associated token class in error and diagnostic
                        output. Must be used in an entry that also has a
                        `%token CLASS`; cannot be used on its own. `HUMAN-NAME`
                        can have any characters in it at all. Applies to all
@@ -455,7 +455,7 @@ specified for a pattern:
                        are priority `0` by default. Can be used with any other
                        directive in this list. If two patterns are of the same
                        priority and both match, if one results in matching more
-                       source text, the lexer will use that pattern, otherwise
+                       source text, the lexer will use that pattern; otherwise,
                        the one defined first in the spec is used.
 
 * `%stateshift STATE`  - Exit the current state and enter state `STATE`. All
@@ -469,10 +469,10 @@ specified for a pattern:
 
 Lexers provided by Ictiobus have a simple state mechanism. By default, they will
 only use the default state and are effectively stateless. State functionality
-is invoked by using the `%stateshift` and/or `%state` directive. A lexer in a
+is invoked by using the `%stateshift` and/or `%state` directives. A lexer in a
 given state will use all specifications defined for that state as well as all of
 those defined for the default state. A stateful lexer does not use a stack for
-its states and retains no information of the prior states it was in when it
+its states and retains no information about the prior states it was in when it
 swaps states.
 
 The `%` character has special meaning within FISHI and in particular in
@@ -480,13 +480,13 @@ The `%` character has special meaning within FISHI and in particular in
 directives. Literal `%` characters used in these contexts in `%%tokens` sections
 must be escaped by putting the escape sequence `%!` in front of them.
 
-The newline character `\n` has special meaning within FISHI and in particular in
-`%%tokens` sections it is used to detect the end of patterns and arguments to
-directives. Literal `\n` characters used in these contexts in `%%tokens`
-sections msut be escaped by putting the escape sequence `%!` in front of them.
-Note that due to line-ending normalization, the line ending sequence `\r\n` will
-be interpreted as `\n` in a FISHI spec, and only needs to have the `%!` in front
-of the `\r` in the original source.
+The newline character `\n` has special meaning within FISHI `%%tokens` sections.
+It is used to detect the end of patterns and arguments to directives. Literal
+`\n` characters used in these contexts in `%%tokens` sections must be escaped by
+putting the escape sequence `%!` in front of them. Note that due to line-ending
+normalization, the line ending sequence `\r\n` will be interpreted as `\n` in a
+FISHI spec, and therefore only needs to have the `%!` in front of the `\r` to
+escape it.
 
 ### Token Specifications
 
@@ -510,7 +510,7 @@ same.
 Additionally, the formatting is fairly freeform. The only major restrictions are
 that each entry must start with a pattern as the first thing on a line, and that
 arguments to directives must be on the same line as the directive. Any
-directives which follow a pattern, regardless of whether they are on the same
+directives that follow a pattern, regardless of whether they are on the same
 line, are considered part of the same entry.
 
     %%tokens
@@ -555,25 +555,25 @@ a literal percent sign is in the pattern, it must be escaped with `%!`:
 
 The above pattern would be interpreted as `\d{1,3}%`.
 
-As can be seen from above examples, the backslash character `\` does *not* need
-to be escaped. This is relatively uncommon compared to other programming
-languages; because FISHI uses backslashes so frequently in its lexer patterns,
-it was decided to make the backslash be treated as a literal character and to
-instead use an alternative sequence for escaping (`%!`).
+As seen in the above examples, the backslash character `\` does *not* need to be
+escaped. This is relatively uncommon compared to other programming languages;
+because FISHI uses backslashes so frequently in its lexer patterns that instead
+of making it need to be escaped every time, it uses a different sequence for
+escaping, `%!`.
 
 The pattern will be applied to input text at the current position of the lexer.
-Note that the lexer is, in general, not aware of the start or end of line with
-respect to the patterns it uses; this means that `^` will *always* match (the
-current position of the lexer at any given time is considered the start of the
-string), and `$` will *never* match except at the very end of all input text. So
-these cannot be used to distinguish patterns, or at least, not as they would
-typically be used in regular expressions.
+Note that the lexer is, in general, not aware of the start or end of a line.
+This means that `^` will *always* match (the current position of the lexer at
+any given time is considered the start of the string), and `$` will *never*
+match except at the very end of all input text. So these cannot be used to
+distinguish patterns, or at least, not as they would typically be used in
+regular expressions.
 
 ### Lexing Tokens
 
 New tokens in FISHI are declared by using the `%token` directive after a
 pattern, followed by the name of a token class. The lexer will lex the text
-matched by the patten as a token of the given class.
+matched by the pattern as a token of the given class.
 
     # declare a token class named 'int' found by matching against a sequence of
     # one or more digits:
@@ -585,7 +585,7 @@ counts as declaring it. Additionally, the same token class can be used multiple
 times to give multiple possible patterns to match against.
 
     # define the int token as lexed by matching against a sequence of digits,
-    # but also by matching against the case-insensitve words "one", "two",
+    # but also by matching against the case-insensitive words "one", "two",
     # "three", "four", and "five":
 
     \d+                    %token int
@@ -597,11 +597,12 @@ times to give multiple possible patterns to match against.
 
 The token class is used in other sections to refer to a token as a *terminal
 symbol* (more on that later), so it has particular formatting requirements and
-it is *case-insensitive* (convention in FISHI is to use all lower-case letters
-for the declaration, because when referring to them in other sections they must
-be lower-case). Class names must be one single word with no whitespace in it or
-else it would be impossible to use later in grammar sections; however, virtually
-every other character is allowed, including symbols and non-word characters.
+it is *case-insensitive* (the convention in FISHI is to use all lower-case
+letters for the declaration, because when referring to them in other sections
+they must be lower-case). Class names must be one single word with no whitespace
+in it or else it would be impossible to use later in grammar sections; however,
+virtually every other character is allowed, including symbols and non-word
+characters.
 
     # lex a token with class '+' whenever the lexer matches a literal '+'
     # character:
@@ -619,7 +620,7 @@ class will be used. To specify a new one, use the `%human` directive followed by
 its human-readable name on the same line. This can have any character in it,
 including spaces.
 
-    # give the parentheses nice name for error output:
+    # give the parentheses nice names for error output:
 
     \(    %token lp    %human left parenthesis ('(')
     \)    %token rp    %human right parenthesis (')')
@@ -638,7 +639,7 @@ matter how it was lexed.
     [Oo][Nn][Ee]           %token int
     [Tt][Ww][Oo]           %token int
 
-    # it's also fine to use the same human readable name for multiple of the
+    # it's also fine to use the same human-readable name for multiple of the
     # same type
 
     \d+                    %token int    %human integer literal
@@ -658,7 +659,7 @@ the last one given will be used for the class.
 
 ### Discarding Input
 
-Sometimes, you will want the lexer skip over certain kinds of text. The most
+Sometimes, you will want the lexer to skip over certain kinds of text. The most
 common use of this tends to be for ignoring whitespace, but it can be used to
 ignore anything you can write a regex for.
 
@@ -674,7 +675,7 @@ both discard the text *and* lex it as a token.
 
 ### Using Lexer States
 
-The lexer provided by ictiobus is capable of using states to switch between what
+The lexer provided by Ictiobus is capable of using states to switch between what
 patterns it recognizes. This lets you swap modes for lexical specifications
 which cannot be described succinctly (or at all) using just regular expressions.
 Ideally, the lexer stage does not use states and instead uses carefully-crafted
@@ -684,12 +685,12 @@ having them.
 
 The lexer has a very simple model for states - it is in one at any given time
 and retains no knowledge of any previous states. When the lexer begins, it will
-be in the *default state* which has no name, and will only match patterns
-defined for no state in particular. When it shifts to a new state, it begins
-using the patterns defined for that state **in addition to the default
-patterns**, as opposed to instead of them. The next time it is instructed to
-shift states, it will begin using the patterns for the new state in addition to
-the default ones, and stop using the patterns for the state it just exited.
+be in the *default state* which has no name and will only match patterns defined
+for no state in particular. When it shifts to a new state, it begins using the
+patterns defined for that state **in addition to the default patterns**, as
+opposed to instead of them. The next time it is instructed to shift states, it
+will begin using the patterns for the new state in addition to the default ones,
+and stop using the patterns for the state it just exited.
 
 Unless declared as being for a particular state, all patterns in the lexer
 specification will be for the default state. Patterns for a particular state can
@@ -777,11 +778,10 @@ from the lexer in the first stage are grouped into increasingly larger syntactic
 constructs. This is organized into a *parse tree*, which describes the structure
 of the input code.
 
-There are many different algorithms that can be used to construct a parser. The
-ictcc command allows you to select one with the `--ll`, `--slr`, `--clr`, or
-`--lalr` options. If you're not sure which one would be best, ictcc can select
-one automatically. See the [ictcc Manual](./ictcc.md) for more info on parsing
-algorithms.
+Many different algorithms can be used to construct a parser. The ictcc command
+allows you to select one with the `--ll`, `--slr`, `--clr`, or `--lalr` options.
+If you're not sure which one would be best, ictcc can select one automatically.
+See the [ictcc Manual](./ictcc.md) for more info on parsing algorithms.
 
 ### FISHI Grammar Quick Reference
 
@@ -791,9 +791,9 @@ you, skip this section to see how regular grammars work using FISHI syntax for
 its examples.
 
 A FISHI spec specifies the parsing phase with a context-free grammar declared
-using special BNF-ish syntax in `%%grammar` sections. By convention there are
+using special BNF-ish syntax in `%%grammar` sections. By convention, there are
 spaces between symbols, but this is not required unless it would otherwise make
-a terminal ambiguous with another terminal or with the symbol `=` or `|`.
+a terminal ambiguous with another terminal or with the symbols `=` or `|`.
 
     ```
     %%grammar
@@ -810,7 +810,7 @@ The head symbol of the first rule defined in a Grammar section of a spec is the
 start symbol of the grammar.
 
 Non-terminals are specified by wrapping their name in curly braces `{` and `}`.
-Their name must start with an upper-case letter A-Z but beyond that they may
+Their name must start with an upper-case letter A-Z, but beyond that, they may
 contain any characters besides `}`.
 
 Terminals are specified by giving their name. All arguments to `%token`
@@ -831,14 +831,14 @@ These braces must be together as a pair; they cannot be separated by whitespace.
 ### The Context-Free Grammar
 
 All parsing algorithms build a parser by using a *context-free grammar* (CFG),
-which is a special, rigorous definition of a language. A language itself in this
-sense is a strictly defined concept, but the important thing for FISHI is that
-it can be expressed using a CFG, and programming languages are almost always
-this kind of language.
+which is a special, rigorous definition of a language. A language in this sense
+is also a strictly defined concept, but the important thing for FISHI is that it
+can be expressed using a CFG, and programming languages are almost always this
+kind of language.
 
 The Context-Free Grammar for the parser is specified in FISHI in `%%grammar`
-sections. It's declared in `a special format that somewhat resembles BNF, but
-with some modifications.
+sections. It's declared in a special format that somewhat resembles BNF but with
+some modifications.
 
 The CFG is made up of several rules; each rule gives a sequence of symbols that
 the head symbol (the symbol on the left of the rules) can be turned into. This
@@ -846,7 +846,7 @@ is called *deriving* the symbols on the right hand of the rule. Spacing between
 the symbols is ignored in FISHI, this will be ignored.
 
 This rule says that the non-terminal symbol called SUM can derive the string
-made up of the *terminals* (symbols with no rule in the gramamr where it is the
+made up of the *terminals* (symbols with no rule in the grammar where it is the
 head symbol) "int", "+", then "int".
 
     %%grammar
@@ -868,7 +868,7 @@ lower-case in FISHI, but internally within Ictiobus they will always be
 represented as a lower-case string, so by convention any letters in them in
 FISHI CFGs are lower-case.
 
-Non-Terminals (symbols with at least one rule in the gramamr where it is the
+Non-Terminals (symbols with at least one rule in the grammar where it is the
 head symbol) in FISHI are surrounded with curly braces `{` and `}` to
 distinguish them from terminals. Their name must begin with an upper-case
 letter, but after that they can be any character (except `}` of course, as that
@@ -881,11 +881,11 @@ can be derived from the head symbol):
 
 ### Multiple Productions
 
-A non-terminal can have more than one string it can derive to. This is expressed
-in FISHI by putting a vertical bar `|` between the strings, either on the same
-line as both it and the alternative or on a new line. When deriving the head
-symbol, any of them may be selected. These are called the productions (or,
-sometimes, the *alternatives*) of the head symbol.
+A non-terminal can have more than one string it can derive. This is expressed in
+FISHI by putting a vertical bar `|` between the strings, either on the same line
+as both it and the alternative or on a new line. When deriving the head symbol,
+any of them may be selected. These are called the productions (or, sometimes,
+the *alternatives*) of the head symbol.
 
     %%grammar
 
@@ -915,8 +915,8 @@ symbol that is a non-terminal, derive a string for *that* symbol and replace it
 with the string, and successively continue replacing non-terminals with a string
 they could derive until only terminal symbols remain. Any time there are
 multiple alternatives to select from, you take your pick as to which one to
-derive. Any string of terminals that your able to derive this way is said to be
-"in" the grammar, and thus is a valid string in the language it describes.
+derive. Any string of terminals that you're able to derive this way is said to
+be "in" the grammar, and thus is a valid string in the language it describes.
 
 For example, given the following CFG:
 
@@ -944,17 +944,18 @@ following set of derivations:
     ( {TERM} + id ) * int         | {PRODUCT}  =  {TERM}
     ( int + id ) * int            | {TERM}     =  int
 
-
 You might have noticed that these derivations look an awful lot like
-definitions as well; one way to think of the grammar is a series of saying what
-a symbol is made up of, then describing THOSE structures, until you get to only
-the basic tokens that the lexer can make.
+definitions as well; one way to think of grammar construction is as a series of
+definitions. You'd start with a definition that says what structures the
+top-level symbol is made up of, then you'd give more definitions that describe
+THOSE structures, and so on until you get to only the basic tokens that are
+already defined by the lexer.
 
 ### The Epsilon Production
 
 It's possible to have a rule that has the head symbol derive an empty string.
 This kind of production is known as the *epsilon production*, because in
-theoretical literature, it is often represented by a lower-case greek letter
+theoretical literature, it is often represented by a lower-case Greek letter
 epsilon (`ε`). Epsilon is not an easy-to-type character on most keyboards, so
 while Ictiobus will use it in certain outputs, in FISHI it is represented by a
 production having only an empty set of braces. When performing a derivation with
@@ -976,7 +977,7 @@ The first production for `FUNC-CALL` specifies that a function call may be an
 between them for zero arguments. The other production is invoked for one or more
 arguments. It states a function call may be an `identifier` followed by a left
 parenthesis `(`, then an `ARG` (which itself is an `int`, `string`, `float`, or
-`identifier`), a `NEXT-ARGS`, then finally the closing right parnethesis `)`.
+`identifier`), a `NEXT-ARGS`, then finally the closing right parenthesis `)`.
 `NEXT-ARGS` has a *recursive* production (one that derives at least one copy of
 the head symbol), and this production can be repeatedly invoked to build up more
 and more comma-separated `ARG` symbols until the desired amount is reached. The
@@ -1014,7 +1015,8 @@ could be rewritten without epsilon productions as follows:
 
 The good news is that there are well-defined techniques for eliminating epsilon
 productions from a grammar that always work. Describing them is beyond the scope
-of this guide, but they can be easily found looking up the relevant literature.
+of this guide, but they can be easily found by looking up the relevant
+literature.
 
 ### Complete Grammar Example For FISHIMath
 
@@ -1093,9 +1095,9 @@ selector for a production of the head symbol. The selectors are as follows:
 the production it corresponds to.
 * `-> %index PRODUCTION-INDEX` - specifies the Nth production, where
 `PRODUCTION-INDEX` is N-1.
-* `->` (no selector given) - specifies the production with index one higher than
-the one selected by the previous production action set (or index 0 if it is the
-first set).
+* `->` (no selector given) - specifies the production with an index incremented
+by one from the index of the production that the previous set's selector implies
+(or index 0 if it is the first set for the head symbol).
 
 A production action set's selector is followed by one or more semantic actions
 (or SDDs as the term is used in this manual). A semantic action begins with the
@@ -1117,15 +1119,15 @@ An AttrRef takes the following form:
 ```
 
 The `node-reference` part refers to a node relative to the current node the SDD
-is being defined for/will run on, and the the `name` part is the name of an
+is being defined for/will run on, and the `name` part is the name of an
 attribute on that node.
 
 The `node-reference` part of an AttrRef before the `.` can take one of the
 following forms:
 
 * `{^}`          - The head symbol/current node. Only valid for LHS of a
-                   semantic action due to requirement that STDS be implementable
-                   with an S-attributed grammar.
+                   semantic action due to the requirement that STDS be
+                   implementable with an S-attributed grammar.
 * `{.}`          - The child node corresponding to the first terminal symbol in
                    the production.
 * `{.N}`         - The child node corresponding to the Nth terminal symbol in
@@ -1134,15 +1136,15 @@ following forms:
                    in the production.
 * `{&N}`         - The child node corresponding to the Nth non-terminal symbol
                    in the production (0-indexed).
-* `{NON-TERM}`   - The child node corresponding to the first occurance of
+* `{NON-TERM}`   - The child node corresponding to the first occurence of
                    non-terminal symbol `NON-TERM` in the production.
-* `{NON-TERM$N}` - The child node corresponding to the Nth occurance of
+* `{NON-TERM$N}` - The child node corresponding to the Nth occurence of
                    non-terminal symbol `NON-TERM` in the production (0-indexed).
-* `term`         - The child node corresponding to the first occurance of
+* `term`         - The child node corresponding to the first occurence of
                    terminal symbol `term` in the production. If used as an arg
                    to a hook function, must be separated from prior symbol by
                    whitespace.
-* `term$N`       - The child node corresponding to the Nth occurance of terminal
+* `term$N`       - The child node corresponding to the Nth occurence of terminal
                    symbol `term` in the production. If used as an arg to a hook
                    function, must be separated from prior symbol by whitespace.
 
@@ -1488,10 +1490,10 @@ how non-terminal symbols are defined:
     # the above could have been:
     -> {SUM} + {TERM}:  {^}.value   =   add({SUM}.value, {TERM}.value)
 
-If there's more than one occurance of that non-terminal in the production, the
-index of the occurance (starting at 0) can be given by putting a dollar sign
+If there's more than one occurence of that non-terminal in the production, the
+index of the occurence (starting at 0) can be given by putting a dollar sign
 followed by the index inside of the braces. If it's not given, it's assumed to
-be 0 (the first occurance):
+be 0 (the first occurence):
 
     %%grammar
 
@@ -1507,7 +1509,7 @@ be 0 (the first occurance):
     # first arg to add(), and the second instance of EXPR in the production
     # (`$1`) as the second arg.
 
-The occurance must be explicitly given if the name of the non-terminal itself
+The occurence must be explicitly given if the name of the non-terminal itself
 contains a dollar so that the non-terminal name is correctly parsed:
 
     -> {BIG$SYMBOL} + {TERM} : {^}.value = add({BIG$SYMBOL$0}.value, {TERM}.value)
@@ -1530,8 +1532,8 @@ named `$text` (a built-in one, due to the leading `$`) defined on the child node
 corresponding to the terminal `int`.
 
 This follows the same rules for specifying a particular index as non-terminals;
-to refer to occurances of a non-terminal symbol that are not the first, the
-index of the occurance must be specified with a dollar sign after the name of
+to refer to occurences of a non-terminal symbol that are not the first, the
+index of the occurence must be specified with a dollar sign after the name of
 the terminal:
 
     %%actions
@@ -1539,12 +1541,12 @@ the terminal:
     %symbol {INT-SUM}
     -> int + int:      {^}.value = add( int$0.$text, int$1.$text)
 
-The occurance must be explicitly given if the name of the terminal itself
+The occurence must be explicitly given if the name of the terminal itself
 contains a dollar so that the non-terminal name is correctly parsed:
 
     -> $int$  : {^}.value = add( $int$$0.$text)
 
-Besides occurances of specific terminals and non-terminals, an AttrRef may refer
+Besides occurences of specific terminals and non-terminals, an AttrRef may refer
 to *any* terminal or non-terminal by using `{.}` or `{&}` respectively. `{.}`
 and `{&}` alone specify the first non-terminal or terminal:
 
@@ -1602,7 +1604,7 @@ They should in general not be used.
 ### The IR Attribute
 
 When building up the translation scheme, the first attribute defined for the
-starting symbol of the gramamr is set as the attribute that the IR is taken from
+starting symbol of the grammar is set as the attribute that the IR is taken from
 once SDTS evaluation completes.
 
     %%grammar
@@ -1702,7 +1704,7 @@ syntax but in a more abstract fashion can be created:
                      \-- stmts[0]: [func-call (pkg="fmt", name="Printf")]
                                      \-- args[0]: [literal (type=string, value="It's true!\n")]
 
-Much better! And way easier to analyze! For langauges that cannot be immediately
+Much better! And way easier to analyze! For languages that cannot be immediately
 evaluated via the SDTS, an AST is a reasonable IR.
 
 ### Complete Actions Example For FISHIMath

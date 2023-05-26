@@ -364,7 +364,7 @@ func main() {
 }
 ```
 
-## The Preproccessor
+## The Preprocessor
 
 When FISHI is read by ictcc, before it is interpreted by the FISHI frontend, a
 preprocessing step is run on input. Preprocessing performs a few different
