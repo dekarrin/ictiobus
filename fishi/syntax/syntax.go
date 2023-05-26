@@ -558,7 +558,7 @@ type AttrRef struct {
 	SymInProd bool
 
 	// Occurrence is the index of the reference, and represents n when the
-	// AttrRef refers to the nth occurance of some criteria. It is not valid if
+	// AttrRef refers to the nth occurrence of some criteria. It is not valid if
 	// Head is true.
 	Occurrence int
 

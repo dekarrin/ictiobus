@@ -245,7 +245,7 @@ func recursiveFOLLOWSet(g grammar.CFG, X string, prevFollowChecks box.Set[string
 
 		for _, prod := range AiRule.Productions {
 			if prod.HasSymbol(X) {
-				// how many occurances of X are there? that says how many times
+				// how many occurrences of X are there? that says how many times
 				// we need to do this, so find them
 				var Xcount int
 				for k := range prod {
@@ -254,8 +254,8 @@ func recursiveFOLLOWSet(g grammar.CFG, X string, prevFollowChecks box.Set[string
 					}
 				}
 
-				// do this for each occurance of X
-				for Xoccurance := 0; Xoccurance < Xcount; Xoccurance++ {
+				// do this for each occurence of X
+				for Xoccurrence := 0; Xoccurrence < Xcount; Xoccurrence++ {
 					//alpha := []string{}
 					beta := []string{}
 					var doneWithAlpha bool
@@ -263,9 +263,9 @@ func recursiveFOLLOWSet(g grammar.CFG, X string, prevFollowChecks box.Set[string
 					for k := range prod {
 						if prod[k] == X {
 							Xencounter++
-							if Xencounter > Xoccurance && !doneWithAlpha {
+							if Xencounter > Xoccurrence && !doneWithAlpha {
 								// only count this as end of alpha if we are at the
-								// occurance of X we are looking for
+								// occurrence of X we are looking for
 								doneWithAlpha = true
 								continue
 							}
