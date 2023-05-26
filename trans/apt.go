@@ -174,7 +174,7 @@ func (apt AnnotatedTree) leveledStr(firstPrefix, contPrefix string) string {
 	if apt.Terminal {
 		sb.WriteString(fmt.Sprintf("(%s: %s = %q)", apt.ID().String(), apt.Symbol, apt.Source.Lexeme()))
 	} else {
-		sb.WriteString(fmt.Sprintf("(%s: %s )", apt.ID().String(), apt.Symbol))
+		sb.WriteString(fmt.Sprintf("(%s: %s)", apt.ID().String(), apt.Symbol))
 	}
 
 	for i := range apt.Children {

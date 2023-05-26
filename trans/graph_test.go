@@ -155,6 +155,15 @@ func Test_depGraph(t *testing.T) {
 	(3: B -> [int], {head symbol}.someVal => [1])
 )`},
 		},
+		/*{
+			name: "FISHIMATH breaking test case for GHI-128",
+			apt: ATNode(1, "FM",
+				ATNode(2, "STATEMENTS",
+					ATNode(3, "STMT"),
+					ATNode(27, "STATEMENTS"),
+				),
+			),
+		},*/
 	}
 
 	for _, tc := range testCases {
