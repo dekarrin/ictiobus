@@ -4,6 +4,9 @@
 testdiag
 testdiag.exe
 
+testdiag-*
+testdiag-*.exe
+
 /.testout
 /ictcc
 /.sim
@@ -14,7 +17,6 @@ testdiag.exe
 *.fishispec
 /tests/**/.sim
 /tests/**/.gen
-
 
 # in-prog dist files
 /*-darwin-amd64

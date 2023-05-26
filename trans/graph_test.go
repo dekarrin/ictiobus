@@ -24,13 +24,7 @@ func Test_depGraph(t *testing.T) {
 				ATLeaf(6, "int"),
 			),
 			bindings: []sddBinding{
-				{
-					Synthesized:         true,
-					BoundRuleSymbol:     "A",
-					BoundRuleProduction: []string{"B", "B", "int", "C", "int"},
-					Requirements:        nil,
-					Dest:                AttrRef{Rel: NRHead(), Name: "test"},
-				},
+				mockSBind("A", []string{"B", "B", "int", "C", "int"}, AttrRef{Rel: NRHead(), Name: "test"}),
 			},
 			expect: []string{`((1: A -> [B B int C int], {head symbol}.test))`},
 		},
@@ -46,14 +40,9 @@ func Test_depGraph(t *testing.T) {
 				ATLeaf(6, "int"),
 			),
 			bindings: []sddBinding{
-				{
-					Synthesized:         true,
-					BoundRuleSymbol:     "A",
-					BoundRuleProduction: []string{"B", "B", "int", "C", "int"},
-					Requirements:        []AttrRef{{Rel: NRSymbol(2), Name: "$text"}},
-					Dest:                AttrRef{Rel: NRHead(), Name: "test"},
-					Setter:              "constant_builder",
-				},
+				mockSBind("A", []string{"B", "B", "int", "C", "int"}, AttrRef{Rel: NRHead(), Name: "test"},
+					AttrRef{Rel: NRSymbol(2), Name: "$text"},
+				),
 			},
 			expect: []string{`(
 	(1: A -> [B B int C int], {head symbol}.test),
@@ -72,22 +61,12 @@ func Test_depGraph(t *testing.T) {
 				ATLeaf(6, "int"),
 			),
 			bindings: []sddBinding{
-				{
-					Synthesized:         true,
-					BoundRuleSymbol:     "B",
-					BoundRuleProduction: []string{"int"},
-					Requirements:        []AttrRef{{Rel: NRSymbol(0), Name: "$text"}},
-					Dest:                AttrRef{Rel: NRHead(), Name: "feature"},
-					Setter:              "constant_builder",
-				},
-				{
-					Synthesized:         true,
-					BoundRuleSymbol:     "A",
-					BoundRuleProduction: []string{"B", "B", "int", "C", "int"},
-					Requirements:        []AttrRef{{Rel: NRSymbol(1), Name: "feature"}},
-					Dest:                AttrRef{Rel: NRHead(), Name: "test"},
-					Setter:              "constant_builder",
-				},
+				mockSBind("B", []string{"int"}, AttrRef{Rel: NRHead(), Name: "feature"},
+					AttrRef{Rel: NRSymbol(0), Name: "$text"},
+				),
+				mockSBind("A", []string{"B", "B", "int", "C", "int"}, AttrRef{Rel: NRHead(), Name: "test"},
+					AttrRef{Rel: NRSymbol(1), Name: "feature"},
+				),
 			},
 			expect: []string{`(
 	(1: A -> [B B int C int], {head symbol}.test),
@@ -107,14 +86,9 @@ func Test_depGraph(t *testing.T) {
 				ATLeaf(6, "int"),
 			),
 			bindings: []sddBinding{
-				{
-					Synthesized:         true,
-					BoundRuleSymbol:     "A",
-					BoundRuleProduction: []string{"B", "B", "int", "C", "int"},
-					Requirements:        []AttrRef{{Rel: NRTerminal(0), Name: "$text"}},
-					Dest:                AttrRef{Rel: NRHead(), Name: "test"},
-					Setter:              "constant_builder",
-				},
+				mockSBind("A", []string{"B", "B", "int", "C", "int"}, AttrRef{Rel: NRHead(), Name: "test"},
+					AttrRef{Rel: NRTerminal(0), Name: "$text"},
+				),
 			},
 			expect: []string{`(
 	(1: A -> [B B int C int], {head symbol}.test),
@@ -133,22 +107,10 @@ func Test_depGraph(t *testing.T) {
 				ATLeaf(6, "int"),
 			),
 			bindings: []sddBinding{
-				{
-					Synthesized:         true,
-					BoundRuleSymbol:     "B",
-					BoundRuleProduction: []string{"int"},
-					Requirements:        nil,
-					Dest:                AttrRef{Rel: NRHead(), Name: "someVal"},
-					Setter:              "constant_builder",
-				},
-				{
-					Synthesized:         true,
-					BoundRuleSymbol:     "A",
-					BoundRuleProduction: []string{"B", "B", "int", "C", "int"},
-					Requirements:        []AttrRef{{Rel: NRNonTerminal(1), Name: "someVal"}},
-					Dest:                AttrRef{Rel: NRHead(), Name: "test"},
-					Setter:              "constant_builder",
-				},
+				mockSBind("B", []string{"int"}, AttrRef{Rel: NRHead(), Name: "someVal"}),
+				mockSBind("A", []string{"B", "B", "int", "C", "int"}, AttrRef{Rel: NRHead(), Name: "test"},
+					AttrRef{Rel: NRNonTerminal(1), Name: "someVal"},
+				),
 			},
 			expect: []string{`(
 	(1: A -> [B B int C int], {head symbol}.test),
@@ -157,12 +119,65 @@ func Test_depGraph(t *testing.T) {
 		},
 		/*{
 			name: "FISHIMATH breaking test case for GHI-128",
-			apt: ATNode(1, "FM",
+			apt: ATNode(1, "FISHIMATH",
 				ATNode(2, "STATEMENTS",
-					ATNode(3, "STMT"),
-					ATNode(27, "STATEMENTS"),
+					ATNode(3, "STMT",
+						ATNode(4, "EXPR",
+							ATLeaf(5, "id"),
+							ATLeaf(6, "tentacle"),
+							ATNode(7, "EXPR",
+								ATNode(8, "SUM",
+									ATNode(9, "PRODUCT",
+										ATNode(10, "TERM",
+											ATLeaf(11, "fishtail"),
+											ATNode(12, "EXPR",
+												ATNode(13, "TERM",
+													ATNode(14, "PRODUCT",
+														ATNode(15, "TERM",
+															ATLeaf(16, "id"),
+														),
+													),
+												),
+											),
+											ATLeaf(17, "fishhead"),
+										),
+										ATLeaf(18, "*"),
+										ATNode(19, "PRODUCT",
+											ATNode(20, "TERM",
+												ATLeaf(21, "int"),
+											),
+											ATLeaf(22, "/"),
+											ATNode(23, "PRODUCT",
+												ATNode(24, "TERM",
+													ATLeaf(25, "float"),
+												),
+											),
+										),
+									),
+								),
+							),
+						),
+						ATLeaf(26, "shark"),
+					),
+					ATNode(27, "STATEMENTS",
+						ATNode(28, "STMT",
+							ATNode(29, "EXPR",
+								ATNode(30, "SUM",
+									ATNode(31, "PRODUCT",
+										ATNode(32, "TERM",
+											ATLeaf(33, "id"),
+										),
+									),
+								),
+							),
+							ATNode(34, "shark"),
+						),
+					),
 				),
 			),
+			bindings: []sddBinding{
+				{Synthesized: true, BoundRuleSymbol: ""},
+			},
 		},*/
 	}
 
@@ -214,4 +229,19 @@ func Test_depGraph(t *testing.T) {
 			}
 		})
 	}
+}
+
+// mockSBind creates a synthesized sddBinding with the given args with Setter
+// set to a mock value.
+func mockSBind(sym string, prod []string, dest AttrRef, reqs ...AttrRef) sddBinding {
+	b := sddBinding{
+		Synthesized:         true,
+		BoundRuleSymbol:     sym,
+		BoundRuleProduction: prod,
+		Dest:                dest,
+		Requirements:        reqs,
+		Setter:              "mock_setter",
+	}
+
+	return b
 }
