@@ -6,7 +6,7 @@ old_dir="$(pwd)"
 
 export ICTIOBUS_SOURCE="$old_dir"
 
-cd "$script_path/.immediate"
+cd "$script_path"
 
 "$old_dir/ictcc" --clr \
 	--ir '[]github.com/dekarrin/fishimath/fmhooks.FMValue' \

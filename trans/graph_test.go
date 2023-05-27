@@ -117,7 +117,7 @@ func Test_depGraph(t *testing.T) {
 	(3: B -> [int], {head symbol}.someVal => [1])
 )`},
 		},
-		/*{
+		{
 			name: "FISHIMATH (eval version) breaking test case for GHI-128",
 			apt: ATNode(1, "FISHIMATH",
 				ATNode(2, "STATEMENTS",
@@ -237,7 +237,7 @@ func Test_depGraph(t *testing.T) {
 					AttrRef{Rel: NRSymbol(0), Name: "$text"},
 				),
 			},
-		},*/
+		},
 	}
 
 	for _, tc := range testCases {
