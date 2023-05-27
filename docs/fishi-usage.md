@@ -23,15 +23,16 @@ parser that ictcc uses. Glub.
 ## FISHIMath
 
 FISHIMath is an example language that this manual will use to demonstrate
-complete examples at the ends of important sections. It's a math expressions
-language that has special little symbols for some things, where whitespace does
-not matter.
+complete examples. These examples are given at the end of the certain section of
+this manual and show a functioning implementation of the section before it.
 
-Statements in FISHIMath are ended with "the statement shark" (`<o^><`), which is
-hungry, but not so hungry it wants to eat more than one statement! Exactly one
-is the perfect amount. Oh, but you don't want to pollute the oceans, so make
-sure that every statement you put into FISHIMath has a statement shark to clean
-it up for you.
+FISHIMath is s a math expressions language that has ocean-related symbols for
+some operations. Whitespace is completely ignored in FISHMath. Statements are
+ended with "the statement shark" (`<o^><`), which is hungry. Hungry for
+statements! Exactly one full FISHIMath statement satisfies it. Which is
+convenient, because you don't want to pollute the oceans with statements just
+floating about. The statement shark cleans them up for you. Make sure that every
+statement you put into FISHIMath has a statement shark to eat it.
 
 ```
 8 + 2    <o^><
@@ -61,16 +62,21 @@ Other than that, FISHIMath supports integers and decimal values (as IEEE-754
 single-precision floating point values), and the operators `+`, `-`, `/`, and
 `*`.
 
-## Note On The Preprocessor
+## The ictcc Preprocessor
 
-When FISHI is read by ictcc, before it is interpreted by the FISHI frontend, a
-preprocessing step is run on input. Since error reporting is handled by the
-frontend, which only knows about the preprocessed version of source code, this
-means that syntax errors will refer to that modified version instead of directly
-to the code that was input. As the preprocessor performs relatively benign
-changes, errors are usually easily understandable, but if syntax error output
-is confusing, use the -P flag with ictcc to see the exact source code after it
-has been preprocessed.
+When FISHI is read by ictcc, it performs a preprocessing step on it first before
+it is interpreted by the FISHI frontend,  Since error reporting is handled by
+the frontend, which only knows about the preprocessed version of source code,
+this means that syntax errors will refer to that modified version instead of
+directly to the code that was input. As the preprocessor performs relatively
+benign changes, errors are usually easily understandable, but if syntax error
+output is confusing, use the -P flag with ictcc to see the exact source code
+after it has been preprocessed.
+
+Output that appears different from the literal text should only occur when using
+a double "##" to put in a literal `"#"` sign in FISHI. Errors reported for that
+line would show it with only a single `#`, because that is what the FISHI
+interpreter sees.
 
 ## The Three Phases Of An Ictiobus Compiler Frontend
 
