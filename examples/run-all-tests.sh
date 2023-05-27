@@ -48,6 +48,6 @@ do
 done
 
 echo "----------------------------------"
-[ -z "$any_test_failed" ] || { echo "One or more tests failed:" >&2 ; echo "$failed_tests" >&2 ; exit 2 ; }
+[ -z "$any_test_failed" ] || { echo "One or more example tests failed:" >&2 ; echo "$failed_tests" >&2 ; exit 2 ; }
 
 echo "ALL EXAMPLE TESTS PASSED"
