@@ -546,21 +546,21 @@ type AttrRef struct {
 	Head bool
 
 	// TermInProd is whether the AttrRef refers to the nth terminal symbol in
-	// the production. If true, Occurance is n.
+	// the production. If true, Occurrence is n.
 	TermInProd bool
 
 	// TermInProd is whether the AttrRef refers to the nth non-terminal symbol
-	// in the production. If true, Occurance is n.
+	// in the production. If true, Occurrence is n.
 	NontermInProd bool
 
 	// TermInProd is whether the AttrRef refers to the nth symbol in the
-	// production. If true, Occurance is n.
+	// production. If true, Occurrence is n.
 	SymInProd bool
 
-	// Occurance is the index of the reference, and represents n when the
-	// AttrRef refers to the nth occurance of some criteria. It is not valid if
+	// Occurrence is the index of the reference, and represents n when the
+	// AttrRef refers to the nth occurrence of some criteria. It is not valid if
 	// Head is true.
-	Occurance int
+	Occurrence int
 
 	// Attribute is the name of the attribute being referred to.
 	Attribute string
@@ -596,10 +596,10 @@ func ParseAttrRef(s string) (AttrRef, error) {
 				firstSplits := strings.Join(allSplits[:len(allSplits)-1], "$")
 
 				var err error
-				ar.Occurance, err = strconv.Atoi(lastSplit)
+				ar.Occurrence, err = strconv.Atoi(lastSplit)
 				if err != nil {
 					// not an error, it's optional
-					ar.Occurance = 0
+					ar.Occurrence = 0
 				} else {
 					ar.Symbol = firstSplits
 				}
@@ -616,7 +616,7 @@ func ParseAttrRef(s string) (AttrRef, error) {
 				if err != nil {
 					return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
 				}
-				ar.Occurance = num
+				ar.Occurrence = num
 			}
 			return ar, nil
 		} else if strings.HasPrefix(str, "&") {
@@ -627,7 +627,7 @@ func ParseAttrRef(s string) (AttrRef, error) {
 				if err != nil {
 					return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
 				}
-				ar.Occurance = num
+				ar.Occurrence = num
 			}
 			return ar, nil
 		} else {
@@ -636,7 +636,7 @@ func ParseAttrRef(s string) (AttrRef, error) {
 			if err != nil {
 				return AttrRef{}, fmt.Errorf("invalid attribute reference: %q", s)
 			}
-			ar.Occurance = num
+			ar.Occurrence = num
 			ar.SymInProd = true
 			return ar, nil
 		}
@@ -652,10 +652,10 @@ func ParseAttrRef(s string) (AttrRef, error) {
 			firstSplits := strings.Join(allSplits[:len(allSplits)-1], "$")
 
 			var err error
-			ar.Occurance, err = strconv.Atoi(lastSplit)
+			ar.Occurrence, err = strconv.Atoi(lastSplit)
 			if err != nil {
 				// not an error, it's optional
-				ar.Occurance = 0
+				ar.Occurrence = 0
 			} else {
 				ar.Symbol = firstSplits
 			}
@@ -673,30 +673,30 @@ func (ar AttrRef) String() string {
 		sb.WriteString("{^}")
 	} else if ar.TermInProd {
 		sb.WriteString("{.")
-		if ar.Occurance > 0 {
-			sb.WriteString(fmt.Sprintf("%d", ar.Occurance))
+		if ar.Occurrence > 0 {
+			sb.WriteString(fmt.Sprintf("%d", ar.Occurrence))
 		}
 		sb.WriteString("}")
 	} else if ar.NontermInProd {
 		sb.WriteString("{&")
-		if ar.Occurance > 0 {
-			sb.WriteString(fmt.Sprintf("%d", ar.Occurance))
+		if ar.Occurrence > 0 {
+			sb.WriteString(fmt.Sprintf("%d", ar.Occurrence))
 		}
 		sb.WriteString("}")
 	} else if ar.SymInProd {
 		sb.WriteString("{")
-		sb.WriteString(fmt.Sprintf("%d", ar.Occurance))
+		sb.WriteString(fmt.Sprintf("%d", ar.Occurrence))
 		sb.WriteString("}")
 	} else if ar.Terminal {
 		sb.WriteString(ar.Symbol)
-		if ar.Occurance > 0 {
-			sb.WriteString(fmt.Sprintf("$%d", ar.Occurance))
+		if ar.Occurrence > 0 {
+			sb.WriteString(fmt.Sprintf("$%d", ar.Occurrence))
 		}
 	} else {
 		sb.WriteString("{")
 		sb.WriteString(ar.Symbol)
-		if ar.Occurance > 0 {
-			sb.WriteString(fmt.Sprintf("$%d", ar.Occurance))
+		if ar.Occurrence > 0 {
+			sb.WriteString(fmt.Sprintf("$%d", ar.Occurrence))
 		}
 		sb.WriteString("}")
 	}

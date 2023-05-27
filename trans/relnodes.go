@@ -11,13 +11,13 @@ import (
 // AttrRef contains no uncomparable attributes and can be assigned/copied
 // directly.
 type AttrRef struct {
-	Relation NodeRelation
-	Name     string
+	Rel  NodeRelation
+	Name string
 }
 
 // String returns the string representation of an AttrRef.
 func (ar AttrRef) String() string {
-	return fmt.Sprintf("%s[%q]", ar.Relation.String(), ar.Name)
+	return fmt.Sprintf("{%s}.%s", ar.Rel.String(), ar.Name)
 }
 
 // ResolveSymbol finds the name of the symbol being referred to in a grammar
@@ -27,7 +27,7 @@ func (ar AttrRef) String() string {
 // If the AttrRef does not refer to any symbol in the rule, a blank string and a
 // non-nil error is returned.
 func (ar AttrRef) ResolveSymbol(g grammar.CFG, head string, prod grammar.Production) (string, error) {
-	switch ar.Relation.Type {
+	switch ar.Rel.Type {
 	case RelHead:
 		return head, nil
 	case RelNonTerminal:
@@ -35,31 +35,31 @@ func (ar AttrRef) ResolveSymbol(g grammar.CFG, head string, prod grammar.Product
 		for i := range prod {
 			if g.IsNonTerminal(prod[i]) {
 				ntIndex++
-				if ntIndex == ar.Relation.Index {
+				if ntIndex == ar.Rel.Index {
 					return prod[i], nil
 				}
 			}
 		}
-		return "", fmt.Errorf("no %d%s nonterminal in rule production", ar.Relation.Index, textfmt.OrdinalSuf(ar.Relation.Index))
+		return "", fmt.Errorf("no %d%s nonterminal in rule production", ar.Rel.Index, textfmt.OrdinalSuf(ar.Rel.Index))
 	case RelTerminal:
 		termIndex := -1
 		for i := range prod {
 			if g.IsTerminal(prod[i]) {
 				termIndex++
-				if termIndex == ar.Relation.Index {
+				if termIndex == ar.Rel.Index {
 					return prod[i], nil
 				}
 			}
 		}
-		return "", fmt.Errorf("no %d%s terminal in rule production", ar.Relation.Index, textfmt.OrdinalSuf(ar.Relation.Index))
+		return "", fmt.Errorf("no %d%s terminal in rule production", ar.Rel.Index, textfmt.OrdinalSuf(ar.Rel.Index))
 	case RelSymbol:
-		if ar.Relation.Index >= len(prod) {
-			return "", fmt.Errorf("no %d%s symbol in rule production", ar.Relation.Index, textfmt.OrdinalSuf(ar.Relation.Index))
+		if ar.Rel.Index >= len(prod) {
+			return "", fmt.Errorf("no %d%s symbol in rule production", ar.Rel.Index, textfmt.OrdinalSuf(ar.Rel.Index))
 		}
-		return prod[ar.Relation.Index], nil
+		return prod[ar.Rel.Index], nil
 	}
 
-	return "", fmt.Errorf("invalid Relation.Type in AttrRef: %v", ar.Relation.Type)
+	return "", fmt.Errorf("invalid Relation.Type in AttrRef: %v", ar.Rel.Type)
 }
 
 // NodeRelationType is the type of a NodeRelation.
@@ -123,6 +123,30 @@ func (nr NodeRelation) String() string {
 
 	humanIndex := nr.Index + 1
 	return fmt.Sprintf("%d%s %s", humanIndex, textfmt.OrdinalSuf(humanIndex), nr.Type.String())
+}
+
+// NRHead is a convenience function for creating a NodeRelation whose type is
+// RelHead and whose index is 0.
+func NRHead() NodeRelation {
+	return NodeRelation{Type: RelHead}
+}
+
+// NRSymbol is a convenience function for creating a NodeRelation whose type is
+// RelSymbol and whose index is the one provided.
+func NRSymbol(n int) NodeRelation {
+	return NodeRelation{Type: RelSymbol, Index: n}
+}
+
+// NRTerminal is a convenience function for creating a NodeRelation whose type
+// is RelTerminal and whose index is the one provided.
+func NRTerminal(n int) NodeRelation {
+	return NodeRelation{Type: RelTerminal, Index: n}
+}
+
+// NRNonTerminal is a convenience function for creating a NodeRelation whose
+// type is RelNonTerminal and whose index is the one provided.
+func NRNonTerminal(n int) NodeRelation {
+	return NodeRelation{Type: RelNonTerminal, Index: n}
 }
 
 // ValidFor returns whether the given node relation refers to a valid and

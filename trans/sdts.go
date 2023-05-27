@@ -40,8 +40,8 @@ func (sdts *sdtsImpl) SetHooks(hooks HookMap) {
 
 // Evaluate executes the entire syntax-directed translation scheme on the given
 // parse tree, and returns the requested attributes from the root of the
-// generated AnnotatedParseTree. The parse tree is first annotated to produce an
-// AnnotatedParseTree, then nodes are visited in an order determined by
+// generated AnnotatedTree. The parse tree is first annotated to produce an
+// AnnotatedTree, then nodes are visited in an order determined by
 // dependency graphs created on all attributes defined for the SDTS that have
 // qualifying nodes in the APT. When each node is visited, any associated SDD
 // bindings are called on it.
@@ -89,7 +89,7 @@ func (sdts *sdtsImpl) Evaluate(tree parse.Tree, attributes ...string) (vals []in
 						continue
 					}
 
-					parentProdStr := slices.Reduce(node.Data.Parent.Children, "", func(idx int, item *AnnotatedParseTree, accum string) string {
+					parentProdStr := slices.Reduce(node.Data.Parent.Children, "", func(idx int, item *AnnotatedTree, accum string) string {
 						return accum + " " + item.Symbol
 					})
 					parentProdStr = strings.TrimSpace(parentProdStr)
@@ -205,7 +205,7 @@ func (sdts *sdtsImpl) Evaluate(tree parse.Tree, attributes ...string) (vals []in
 		synthetic := depNode.Synthetic
 		treeParent := depNode.Parent
 
-		var invokeOn *AnnotatedParseTree
+		var invokeOn *AnnotatedTree
 		if synthetic {
 			invokeOn = nodeTree
 		} else {
@@ -292,8 +292,8 @@ func (sdts *sdtsImpl) Bind(head string, prod []string, attrName string, hook str
 	argErrs := ""
 	for i := range withArgs {
 		req := withArgs[i]
-		if !req.Relation.ValidFor(head, prod) {
-			argErrs += fmt.Sprintf("\n* bound-to-rule does not have a %s", req.Relation.String())
+		if !req.Rel.ValidFor(head, prod) {
+			argErrs += fmt.Sprintf("\n* bound-to-rule does not have a %s", req.Rel.String())
 		}
 	}
 	if len(argErrs) > 0 {
@@ -321,7 +321,7 @@ func (sdts *sdtsImpl) Bind(head string, prod []string, attrName string, hook str
 		BoundRuleProduction: make([]string, len(prod)),
 		Requirements:        make([]AttrRef, len(withArgs)),
 		Setter:              hook,
-		Dest:                AttrRef{Relation: NodeRelation{Type: RelHead}, Name: attrName},
+		Dest:                AttrRef{Rel: NodeRelation{Type: RelHead}, Name: attrName},
 	}
 
 	copy(bind.BoundRuleProduction, prod)
@@ -353,8 +353,8 @@ func (sdts *sdtsImpl) BindI(head string, prod []string, attrName string, hook st
 	argErrs := ""
 	for i := range withArgs {
 		req := withArgs[i]
-		if !req.Relation.ValidFor(head, prod) {
-			argErrs += fmt.Sprintf("\n* bound-to-rule does not have a %s", req.Relation.String())
+		if !req.Rel.ValidFor(head, prod) {
+			argErrs += fmt.Sprintf("\n* bound-to-rule does not have a %s", req.Rel.String())
 		}
 	}
 	if len(argErrs) > 0 {
@@ -382,7 +382,7 @@ func (sdts *sdtsImpl) BindI(head string, prod []string, attrName string, hook st
 		BoundRuleProduction: make([]string, len(prod)),
 		Requirements:        make([]AttrRef, len(withArgs)),
 		Setter:              hook,
-		Dest:                AttrRef{Relation: forProd, Name: attrName},
+		Dest:                AttrRef{Rel: forProd, Name: attrName},
 	}
 
 	copy(bind.BoundRuleProduction, prod)
@@ -450,7 +450,7 @@ func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName
 	// filter the candidates by forProd, if applicable
 	if !synth {
 		candidateBindings = slices.Filter(candidateBindings, func(item box.Pair[sddBinding, int]) bool {
-			return item.First.Dest.Relation == forProd
+			return item.First.Dest.Rel == forProd
 		})
 	}
 	if len(candidateBindings) == 0 {

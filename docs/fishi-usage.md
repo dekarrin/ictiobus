@@ -1,15 +1,15 @@
 Using FISHI
 ===========
 
-The Frontend Instruction Specification for Languages Hosted on Ictiobus (or just
+The Frontend Instruction Specification for languages Hosted on Ictiobus (the
 "FISHI language" or "FISHI" for short), is the special language used to define
 specifications for languages that Ictiobus can then generate parsers for! Well,
 compiler frontends, really, which include the lexer, parser, and translation
 scheme.
 
 To use Ictiobus to make your own programming or scripting language, you first
-define a spec for it in the FISHI langauge, then run the command ictcc on the
-spec and poof! You'll have a whole glubbin langauge parser (compiler frontend)
+define a spec for it in the FISHI language, then run the command ictcc on the
+spec, and poof! You'll have a whole glubbin language parser (compiler frontend)
 ready to use in the Go package you tell ictcc to output it to. All your code
 needs to do is call the package's `Frontend()` function.
 
@@ -20,34 +20,79 @@ luck, because FISHI is self-hosted: there's a
 [FISHI spec for FISHI itself](./fishi.md), and it's used to generate the FISHI
 parser that ictcc uses. Glub.
 
+## FISHIMath
 
-## Note On The Preproccessor
+FISHIMath is an example language that this manual will use to demonstrate
+complete examples. These examples are given at the end of the certain section of
+this manual and show a functioning implementation of the section before it.
 
-When FISHI is read by ictcc, before it is interpreted by the FISHI frontend, a
-preprocessing step is run on input. Since error reporting is handled by the
-frontend, which only knows about the preprocessed version of source code, this
-means that syntax errors will refer to that modified version instead of directly
-to the code that was input. As the preprocessor performs relatively benign
-changes, errors are usually easily understandable, but if syntax error output
-is confusing, use the -P flag with ictcc to see the exact source code after it
-has been preprocessed.
+FISHIMath is s a math expressions language that has ocean-related symbols for
+some operations. Whitespace is completely ignored in FISHMath. Statements are
+ended with "the statement shark" (`<o^><`), which is hungry. Hungry for
+statements! Exactly one full FISHIMath statement satisfies it. Which is
+convenient, because you don't want to pollute the oceans with statements just
+floating about. The statement shark cleans them up for you. Make sure that every
+statement you put into FISHIMath has a statement shark to eat it.
+
+```
+8 + 2    <o^><
+8 * 2.2  <o^><
+
+2 + 6    /* invalid! no shark to eat the statement */
+```
+
+FISHIMath has support for variables! They do not need to be declared, they just
+need to be used to exist. Variables with no value assigned will be assumed to
+have the value 0. Assignment to a new variable is done by using the "value
+tentacle" (`=o`) to make the variable on the left "reach out" and grab the value
+on the right.
+
+```
+x =o 2       <o^><
+```
+
+Grouping parentheses are implemented not by the traditional `(` and `)`, but by
+the "fish-tail" `>{` and "fish-head" `'}`.
+
+```
+>{8+2'} * 3    <o^><
+```
+
+Other than that, FISHIMath supports integers and decimal values (as IEEE-754
+single-precision floating point values), and the operators `+`, `-`, `/`, and
+`*`.
+
+## The ictcc Preprocessor
+
+When FISHI is read by ictcc, it performs a preprocessing step on it first before
+it is interpreted by the FISHI frontend,  Since error reporting is handled by
+the frontend, which only knows about the preprocessed version of source code,
+this means that syntax errors will refer to that modified version instead of
+directly to the code that was input. As the preprocessor performs relatively
+benign changes, errors are usually easily understandable, but if syntax error
+output is confusing, use the -P flag with ictcc to see the exact source code
+after it has been preprocessed.
+
+Output that appears different from the literal text should only occur when using
+a double "##" to put in a literal `"#"` sign in FISHI. Errors reported for that
+line would show it with only a single `#`, because that is what the FISHI
+interpreter sees.
 
 ## The Three Phases Of An Ictiobus Compiler Frontend
 
 So, the term "parser" is often used in two distinct ways. Outside of the context
 of compilers and translators, it's often used to refer to an entire analysis
-system that can on its own take in input and produce a value from it, either the
-result of execution or some representation of the input that can be further
-processed. Here, "parsing" refers to the entire process of reading in input,
-scanning it for recognizable symbols ("tokens"), interpreting the tokens
-according to some format, and then using that interpretation to produce the
-final value.
+system that takes in text and produces a value from it, either the result of
+execution or some representation of the input that can be further processed.
+Here, "parsing" refers to the entire process of reading in input, scanning it
+for recognizable symbols ("tokens"), interpreting the tokens according to some
+format, and then using that interpretation to produce the final value.
 
 But often in the context of compilers and translators, and absolutely within the
 context of FISHI and Ictiobus, "parsing" refers to just one of three main phases
 in a complete analysis of input. This complete analysis is known as the
 *frontend* of a compiler or interpreter, and the final result value from it is
-called the intermediate representation of the input, or IR for short. When input
+called the intermediate representation of the input, or IR for short. When text
 is analyzed by a frontend, it goes through all three phases in its quest to
 become an IR!
 
@@ -150,10 +195,10 @@ code blocks (the triple ticks) that have the label `fishi`.
     ...But only code blocks labeled with "fishi" will be interpreted as FISHI:
 
     ```fishi
-    # FISHI source code goes here, commented with the hash character
+    # FISHI source code goes here
     ```
 
-If there's multiple FISHI code blocks in the same file, they will be read and
+If there are multiple FISHI code blocks in the same file, they will be read and
 interpreted in sequence. So for instance, the following example:
 
     ## Our Tokens
@@ -243,7 +288,8 @@ Is interpreted the same as this:
     ```
 
 Which, since any FISHI without a section header will be interpreted as a
-continuation of the section from before, is interpreted the same as this:
+continuation of the last section that was defined, is interpreted the same as
+this:
 
     ```fishi
     %%tokens
@@ -299,8 +345,8 @@ in FISHI are `%token`, `%stateshift`, `%human`, `%priority`, `%state`,
 ### Sections
 
 FISHI statements are organized into three different types of *sections*. Each
-section has a header that gives the type of the section, followed by statements
-that have different structure based on the section they are in.
+section has a header that gives the type of the section, followed by some number
+of statements that have different structure based on the section they are in.
 
 Tokens sections have the header `%%tokens` and specify patterns for the lexer to
 use to find tokens in input text, as well as patterns that should be ignored.
@@ -352,7 +398,7 @@ have a syntax-directed definition (action) specified for it.
     ```
 
 Sections in FISHI do not need to be in any particular order, and you can define
-as many of the same type of section as you'd like. For instance, you can have a
+as many sections with the same type as you'd like. For instance, you can have a
 Grammar section, followed by a Tokens section, followed by an Actions section,
 followed by another Tokens section. The order of the types of sections doesn't
 matter; all of the statements in the Tokens section are read in the order they
@@ -362,10 +408,10 @@ appear in a FISHI spec.
 
 The first stage of an Ictiobus frontend is lexing (sometimes referred to as
 scanning). This is where code, input as a stream of UTF-8 encoded characters,
-is scanned for for recognizable symbols, which are passed to the parsing stage
-for further processing. These symbols are called *tokens* - the 'words' of the
-input language. Each token has a type, called the *token class*, that is later
-used by the parser.
+is scanned for recognizable symbols, which are passed to the parsing stage for
+further processing. These symbols are called *tokens* - the 'words' of the input
+language. Each token has a type, called the *token class*, which is later used
+by the parser.
 
 ### FISHI Tokens Quick Reference
 
@@ -375,10 +421,10 @@ you, skip this section for a guide to how the ictiobus lexer works using FISHI
 for its examples.
 
 FISHI specifies a lexer in `%%tokens` sections. Each `%%tokens` section has a
-series of entries. A series of entries may be preceeded by a `%state STATENAME`
-directive in it, which makes those entries be applied only when the lexer is in
-state `STATENAME`; otherwise, they will be defined for the default state and all
-other states as well.
+series of entries. A series of entries may be preceded by a `%state STATENAME`
+directive, which makes those entries be applied only when the lexer is in state
+`STATENAME`; otherwise, they will be defined for the default state and all other
+states as well.
 
 Each entry starts with a regular expression, which must be the first thing on a
 line. The regular expression is given using the RE2 syntax used by Go's `regexp`
@@ -397,8 +443,8 @@ specified for a pattern:
                        distinguish from non-terminals in later stages of the
                        frontend.
 
-* `%human HUMAN-NAME`  - Use the the human-readable name `HUMAN-NAME` to refer
-                       to the associated token class in error and diagnostic
+* `%human HUMAN-NAME`  - Use the human-readable name `HUMAN-NAME` to refer to
+                       the associated token class in error and diagnostic
                        output. Must be used in an entry that also has a
                        `%token CLASS`; cannot be used on its own. `HUMAN-NAME`
                        can have any characters in it at all. Applies to all
@@ -415,7 +461,7 @@ specified for a pattern:
                        are priority `0` by default. Can be used with any other
                        directive in this list. If two patterns are of the same
                        priority and both match, if one results in matching more
-                       source text, the lexer will use that pattern, otherwise
+                       source text, the lexer will use that pattern; otherwise,
                        the one defined first in the spec is used.
 
 * `%stateshift STATE`  - Exit the current state and enter state `STATE`. All
@@ -429,10 +475,10 @@ specified for a pattern:
 
 Lexers provided by Ictiobus have a simple state mechanism. By default, they will
 only use the default state and are effectively stateless. State functionality
-is invoked by using the `%stateshift` and/or `%state` directive. A lexer in a
+is invoked by using the `%stateshift` and/or `%state` directives. A lexer in a
 given state will use all specifications defined for that state as well as all of
 those defined for the default state. A stateful lexer does not use a stack for
-its states and retains no information of the prior states it was in when it
+its states and retains no information about the prior states it was in when it
 swaps states.
 
 The `%` character has special meaning within FISHI and in particular in
@@ -440,13 +486,13 @@ The `%` character has special meaning within FISHI and in particular in
 directives. Literal `%` characters used in these contexts in `%%tokens` sections
 must be escaped by putting the escape sequence `%!` in front of them.
 
-The newline character `\n` has special meaning within FISHI and in particular in
-`%%tokens` sections it is used to detect the end of patterns and arguments to
-directives. Literal `\n` characters used in these contexts in `%%tokens`
-sections msut be escaped by putting the escape sequence `%!` in front of them.
-Note that due to line-ending normalization, the line ending sequence `\r\n` will
-be interpreted as `\n` in a FISHI spec, and only needs to have the `%!` in front
-of the `\r` in the original source.
+The newline character `\n` has special meaning within FISHI `%%tokens` sections.
+It is used to detect the end of patterns and arguments to directives. Literal
+`\n` characters used in these contexts in `%%tokens` sections must be escaped by
+putting the escape sequence `%!` in front of them. Note that due to line-ending
+normalization, the line ending sequence `\r\n` will be interpreted as `\n` in a
+FISHI spec, and therefore only needs to have the `%!` in front of the `\r` to
+escape it.
 
 ### Token Specifications
 
@@ -470,7 +516,7 @@ same.
 Additionally, the formatting is fairly freeform. The only major restrictions are
 that each entry must start with a pattern as the first thing on a line, and that
 arguments to directives must be on the same line as the directive. Any
-directives which follow a pattern, regardless of whether they are on the same
+directives that follow a pattern, regardless of whether they are on the same
 line, are considered part of the same entry.
 
     %%tokens
@@ -515,25 +561,25 @@ a literal percent sign is in the pattern, it must be escaped with `%!`:
 
 The above pattern would be interpreted as `\d{1,3}%`.
 
-As can be seen from above examples, the backslash character `\` does *not* need
-to be escaped. This is relatively uncommon compared to other programming
-languages; because FISHI uses backslashes so frequently in its lexer patterns,
-it was decided to make the backslash be treated as a literal character and to
-instead use an alternative sequence for escaping (`%!`).
+As seen in the above examples, the backslash character `\` does *not* need to be
+escaped. This is relatively uncommon compared to other programming languages;
+because FISHI uses backslashes so frequently in its lexer patterns that instead
+of making it need to be escaped every time, it uses a different sequence for
+escaping, `%!`.
 
 The pattern will be applied to input text at the current position of the lexer.
-Note that the lexer is, in general, not aware of the start or end of line with
-respect to the patterns it uses; this means that `^` will *always* match (the
-current position of the lexer at any given time is considered the start of the
-string), and `$` will *never* match except at the very end of all input text. So
-these cannot be used to distinguish patterns, or at least, not as they would
-typically be used in regular expressions.
+Note that the lexer is, in general, not aware of the start or end of a line.
+This means that `^` will *always* match (the current position of the lexer at
+any given time is considered the start of the string), and `$` will *never*
+match except at the very end of all input text. So these cannot be used to
+distinguish patterns, or at least, not as they would typically be used in
+regular expressions.
 
 ### Lexing Tokens
 
 New tokens in FISHI are declared by using the `%token` directive after a
 pattern, followed by the name of a token class. The lexer will lex the text
-matched by the patten as a token of the given class.
+matched by the pattern as a token of the given class.
 
     # declare a token class named 'int' found by matching against a sequence of
     # one or more digits:
@@ -545,7 +591,7 @@ counts as declaring it. Additionally, the same token class can be used multiple
 times to give multiple possible patterns to match against.
 
     # define the int token as lexed by matching against a sequence of digits,
-    # but also by matching against the case-insensitve words "one", "two",
+    # but also by matching against the case-insensitive words "one", "two",
     # "three", "four", and "five":
 
     \d+                    %token int
@@ -557,11 +603,12 @@ times to give multiple possible patterns to match against.
 
 The token class is used in other sections to refer to a token as a *terminal
 symbol* (more on that later), so it has particular formatting requirements and
-it is *case-insensitive* (convention in FISHI is to use all lower-case letters
-for the declaration, because when referring to them in other sections they must
-be lower-case). Class names must be one single word with no whitespace in it or
-else it would be impossible to use later in grammar sections; however, virtually
-every other character is allowed, including symbols and non-word characters.
+it is *case-insensitive* (the convention in FISHI is to use all lower-case
+letters for the declaration, because when referring to them in other sections
+they must be lower-case). Class names must be one single word with no whitespace
+in it or else it would be impossible to use later in grammar sections; however,
+virtually every other character is allowed, including symbols and non-word
+characters.
 
     # lex a token with class '+' whenever the lexer matches a literal '+'
     # character:
@@ -579,7 +626,7 @@ class will be used. To specify a new one, use the `%human` directive followed by
 its human-readable name on the same line. This can have any character in it,
 including spaces.
 
-    # give the parentheses nice name for error output:
+    # give the parentheses nice names for error output:
 
     \(    %token lp    %human left parenthesis ('(')
     \)    %token rp    %human right parenthesis (')')
@@ -598,7 +645,7 @@ matter how it was lexed.
     [Oo][Nn][Ee]           %token int
     [Tt][Ww][Oo]           %token int
 
-    # it's also fine to use the same human readable name for multiple of the
+    # it's also fine to use the same human-readable name for multiple of the
     # same type
 
     \d+                    %token int    %human integer literal
@@ -618,7 +665,7 @@ the last one given will be used for the class.
 
 ### Discarding Input
 
-Sometimes, you will want the lexer skip over certain kinds of text. The most
+Sometimes, you will want the lexer to skip over certain kinds of text. The most
 common use of this tends to be for ignoring whitespace, but it can be used to
 ignore anything you can write a regex for.
 
@@ -634,7 +681,7 @@ both discard the text *and* lex it as a token.
 
 ### Using Lexer States
 
-The lexer provided by ictiobus is capable of using states to switch between what
+The lexer provided by Ictiobus is capable of using states to switch between what
 patterns it recognizes. This lets you swap modes for lexical specifications
 which cannot be described succinctly (or at all) using just regular expressions.
 Ideally, the lexer stage does not use states and instead uses carefully-crafted
@@ -644,12 +691,12 @@ having them.
 
 The lexer has a very simple model for states - it is in one at any given time
 and retains no knowledge of any previous states. When the lexer begins, it will
-be in the *default state* which has no name, and will only match patterns
-defined for no state in particular. When it shifts to a new state, it begins
-using the patterns defined for that state **in addition to the default
-patterns**, as opposed to instead of them. The next time it is instructed to
-shift states, it will begin using the patterns for the new state in addition to
-the default ones, and stop using the patterns for the state it just exited.
+be in the *default state* which has no name and will only match patterns defined
+for no state in particular. When it shifts to a new state, it begins using the
+patterns defined for that state **in addition to the default patterns**, as
+opposed to instead of them. The next time it is instructed to shift states, it
+will begin using the patterns for the new state in addition to the default ones,
+and stop using the patterns for the state it just exited.
 
 Unless declared as being for a particular state, all patterns in the lexer
 specification will be for the default state. Patterns for a particular state can
@@ -707,9 +754,28 @@ is declared first.
     ca[rt]       %token mover
     c[ao]t       %token sleeper
 
-### Complete Example For FISHI Math
+### Complete Tokens Example For FISHIMath
 
-WIP
+Here's a Tokens section used to implement FISHIMath. Some of the patterns need
+to be escaped, due to being special characters in RE2 syntax.
+
+    ```fishi
+    %%tokens
+    
+    \s+                      %discard
+    
+    \*                       %token *            %human multiplication sign "*"
+    /                        %token /            %human division sign "/"
+    -                        %token -            %human minus sign "-"
+    \+                       %token +            %human plus sign "+"
+    >\{                      %token fishtail     %human fish-tail ">{"
+    '\}                      %token fishhead     %human fish-head "'}"
+    <o\^><                   %token shark        %human statement shark "<o^><"
+    =o                       %token tentacle     %human value tentacle "=o"
+    [A-Za-z_][A-Za-z0-9_]*   %token id           %human identifier
+    [0-9]*\.[0-9]+           %token float        %human floating-point literal
+    [0-9]+                   %token int          %human integer literal
+    ```
 
 ## Specifying the Parser with Grammar
 
@@ -718,11 +784,10 @@ from the lexer in the first stage are grouped into increasingly larger syntactic
 constructs. This is organized into a *parse tree*, which describes the structure
 of the input code.
 
-There are many different algorithms that can be used to construct a parser. The
-ictcc command allows you to select one with the `--ll`, `--slr`, `--clr`, or
-`--lalr` options. If you're not sure which one would be best, ictcc can select
-one automatically. See the [ictcc Manual](./ictcc.md) for more info on parsing
-algorithms.
+Many different algorithms can be used to construct a parser. The ictcc command
+allows you to select one with the `--ll`, `--slr`, `--clr`, or `--lalr` options.
+If you're not sure which one would be best, ictcc can select one automatically.
+See the [ictcc Manual](./ictcc.md) for more info on parsing algorithms.
 
 ### FISHI Grammar Quick Reference
 
@@ -732,19 +797,54 @@ you, skip this section to see how regular grammars work using FISHI syntax for
 its examples.
 
 A FISHI spec specifies the parsing phase with a context-free grammar declared
-using special BNF-ish syntax 
+using special BNF-ish syntax in `%%grammar` sections. By convention, there are
+spaces between symbols, but this is not required unless it would otherwise make
+a terminal ambiguous with another terminal or with the symbols `=` or `|`.
+
+    ```
+    %%grammar
+
+    {S}   =   {E} + {S} | {E}
+    {E}   =   {F} * {E} | {F}
+    
+    {F}   =   ( {S} )
+           |  id
+           |  int
+    ```
+
+The head symbol of the first rule defined in a Grammar section of a spec is the
+start symbol of the grammar.
+
+Non-terminals are specified by wrapping their name in curly braces `{` and `}`.
+Their name must start with an upper-case letter A-Z, but beyond that, they may
+contain any characters besides `}`.
+
+Terminals are specified by giving their name. All arguments to `%token`
+directives in Tokens section in the same spec are valid terminal symbols. Their
+names should be lower-case if they contain letters. A terminal symbol name
+cannot start with `{` and end with `}` due to ambiguity with non-terminals that
+would cause.
+
+FISHI uses the equals sign `=` to indicate the head symbol derives the
+production(s) on the right. Alternative productions for the same rule are
+separated by `|`. The alternative may be listed on the next line, but if this is
+the case then the `|` must be on the next line as well; lines cannot be ended
+with a `|`.
+
+The epsilon production is specified with an empty pair of curly braces, `{}`.
+These braces must be together as a pair; they cannot be separated by whitespace.
 
 ### The Context-Free Grammar
 
 All parsing algorithms build a parser by using a *context-free grammar* (CFG),
-which is a special, rigorous definition of a language. A language itself in this
-sense is a strictly defined concept, but the important thing for FISHI is that
-it can be expressed using a CFG, and programming languages are almost always
-this kind of language.
+which is a special, rigorous definition of a language. A language in this sense
+is also a strictly defined concept, but the important thing for FISHI is that it
+can be expressed using a CFG, and programming languages are almost always this
+kind of language.
 
 The Context-Free Grammar for the parser is specified in FISHI in `%%grammar`
-sections. It's declared in `a special format that somewhat resembles BNF, but
-with some modifications.
+sections. It's declared in a special format that somewhat resembles BNF but with
+some modifications.
 
 The CFG is made up of several rules; each rule gives a sequence of symbols that
 the head symbol (the symbol on the left of the rules) can be turned into. This
@@ -752,7 +852,7 @@ is called *deriving* the symbols on the right hand of the rule. Spacing between
 the symbols is ignored in FISHI, this will be ignored.
 
 This rule says that the non-terminal symbol called SUM can derive the string
-made up of the *terminals* (symbols with no rule in the gramamr where it is the
+made up of the *terminals* (symbols with no rule in the grammar where it is the
 head symbol) "int", "+", then "int".
 
     %%grammar
@@ -774,7 +874,7 @@ lower-case in FISHI, but internally within Ictiobus they will always be
 represented as a lower-case string, so by convention any letters in them in
 FISHI CFGs are lower-case.
 
-Non-Terminals (symbols with at least one rule in the gramamr where it is the
+Non-Terminals (symbols with at least one rule in the grammar where it is the
 head symbol) in FISHI are surrounded with curly braces `{` and `}` to
 distinguish them from terminals. Their name must begin with an upper-case
 letter, but after that they can be any character (except `}` of course, as that
@@ -787,11 +887,11 @@ can be derived from the head symbol):
 
 ### Multiple Productions
 
-A non-terminal can have more than one string it can derive to. This is expressed
-in FISHI by putting a vertical bar `|` between the strings, either on the same
-line as both it and the alternative or on a new line. When deriving the head
-symbol, any of them may be selected. These are called the productions (or,
-sometimes, the *alternatives*) of the head symbol.
+A non-terminal can have more than one string it can derive. This is expressed in
+FISHI by putting a vertical bar `|` between the strings, either on the same line
+as both it and the alternative or on a new line. When deriving the head symbol,
+any of them may be selected. These are called the productions (or, sometimes,
+the *alternatives*) of the head symbol.
 
     %%grammar
 
@@ -821,8 +921,8 @@ symbol that is a non-terminal, derive a string for *that* symbol and replace it
 with the string, and successively continue replacing non-terminals with a string
 they could derive until only terminal symbols remain. Any time there are
 multiple alternatives to select from, you take your pick as to which one to
-derive. Any string of terminals that your able to derive this way is said to be
-"in" the grammar, and thus is a valid string in the language it describes.
+derive. Any string of terminals that you're able to derive this way is said to
+be "in" the grammar, and thus is a valid string in the language it describes.
 
 For example, given the following CFG:
 
@@ -839,7 +939,7 @@ following set of derivations:
     ----------------------------------------------------------------
     {EXRP}                        | Start Symbol
     {PRODUCT}                     | {EXPR}     =  {PRODUCT}
-    {PRODUCT} * {TERM}            | {PRODUCT}  =  {PROUDCT} * {TERM}
+    {PRODUCT} * {TERM}            | {PRODUCT}  =  {PRODUCT} * {TERM}
     {PRODUCT} * int               | {TERM}     =  int
     {TERM} * int                  | {PRODUCT}  =  {TERM}
     ( {EXPR} ) * int              | {TERM}     =  ( {EXPR} )
@@ -850,17 +950,18 @@ following set of derivations:
     ( {TERM} + id ) * int         | {PRODUCT}  =  {TERM}
     ( int + id ) * int            | {TERM}     =  int
 
-
 You might have noticed that these derivations look an awful lot like
-definitions as well; one way to think of the grammar is a series of saying what
-a symbol is made up of, then describing THOSE structures, until you get to only
-the basic tokens that the lexer can make.
+definitions as well; one way to think of grammar construction is as a series of
+definitions. You'd start with a definition that says what structures the
+top-level symbol is made up of, then you'd give more definitions that describe
+THOSE structures, and so on until you get to only the basic tokens that are
+already defined by the lexer.
 
 ### The Epsilon Production
 
 It's possible to have a rule that has the head symbol derive an empty string.
 This kind of production is known as the *epsilon production*, because in
-theoretical literature, it is often represented by a lower-case greek letter
+theoretical literature, it is often represented by a lower-case Greek letter
 epsilon (`ε`). Epsilon is not an easy-to-type character on most keyboards, so
 while Ictiobus will use it in certain outputs, in FISHI it is represented by a
 production having only an empty set of braces. When performing a derivation with
@@ -882,7 +983,7 @@ The first production for `FUNC-CALL` specifies that a function call may be an
 between them for zero arguments. The other production is invoked for one or more
 arguments. It states a function call may be an `identifier` followed by a left
 parenthesis `(`, then an `ARG` (which itself is an `int`, `string`, `float`, or
-`identifier`), a `NEXT-ARGS`, then finally the closing right parnethesis `)`.
+`identifier`), a `NEXT-ARGS`, then finally the closing right parenthesis `)`.
 `NEXT-ARGS` has a *recursive* production (one that derives at least one copy of
 the head symbol), and this production can be repeatedly invoked to build up more
 and more comma-separated `ARG` symbols until the desired amount is reached. The
@@ -920,11 +1021,39 @@ could be rewritten without epsilon productions as follows:
 
 The good news is that there are well-defined techniques for eliminating epsilon
 productions from a grammar that always work. Describing them is beyond the scope
-of this guide, but they can be easily found looking up the relevant literature.
+of this guide, but they can be easily found by looking up the relevant
+literature.
 
-### Complete Example For FISHI Math
+### Complete Grammar Example For FISHIMath
 
-WIP
+This example defines the context-free grammar for FISHIMath, using the tokens
+defined in the previous example for FISHIMath in the Tokens section of this
+manual.
+
+
+    ```fishi
+    %%grammar
+
+
+    {FISHIMATH}   =   {STATEMENTS}
+
+    {STATEMENTS}  =   {STMT} {STATEMENTS} | {STMT}
+
+    {STMT}        =   {EXPR} shark
+
+    {EXPR}        =   id tentacle {EXPR} | {SUM}
+
+    {SUM}         =   {PRODUCT} + {EXPR}
+                  |   {PRODUCT} - {EXPR}
+                  |   {PRODUCT}
+
+    {PRODUCT}     =   {TERM} * {PRODUCT}
+                  |   {TERM} / {PRODUCT}
+                  |   {TERM}
+
+    {TERM}        =   fishtail {EXPR} fishhead
+                  |   int | float | id
+    ```
 
 ## Specifying the Translation Scheme with Actions
 
@@ -936,7 +1065,95 @@ to the user of the frontend as the return value of `Frontend.Analyze()`.
 
 ### FISHI Actions Quick Reference
 
-WIP 
+
+The `%%actions` section contains the syntax-directed translation scheme,
+specified with a series of entries. Each entry gives syntax-directed definitions
+for attributes in a conceptual attribute grammar defined for the language.
+
+An entry takes the following form:
+
+```
+   /-- %symbol directive
+   |
+   |           /-- head symbol
+/-----\ /--------------\
+%symbol {A-NON-TERMINAL}
+
+                                         /-- production action set
+                                         |
+/----------------------------------------------------------------------------------\
+
+-> {PROD-SYM1} prod-sym-2 {PROD-SYM3} ... : {^}.value = hook_func({PROD-SYM3}.value)
+                                          : {^}.value = hook_func()
+
+   \------------------------------------/ \----------------------------------------/
+           \-- production selector                   \-- semantic actions
+```
+
+Each entry begins with `%symbol` followed by the non-terminal symbol that is at
+the head of the grammar rule that SDDs are being given for. This is then
+followed by one or more production action sets.
+
+A production action set begins with the symbol `->` followed by an optional
+selector for a production of the head symbol. The selectors are as follows:
+
+* `-> SYMBOLS-IN-PRODUCTION-EXACTLY-AS-IN-THE-GRAMMAR-RULE` - directly specifies
+the production it corresponds to.
+* `-> %index PRODUCTION-INDEX` - specifies the Nth production, where
+`PRODUCTION-INDEX` is N-1.
+* `->` (no selector given) - specifies the production with an index incremented
+by one from the index of the production that the previous set's selector implies
+(or index 0 if it is the first set for the head symbol).
+
+A production action set's selector is followed by one or more semantic actions
+(or SDDs as the term is used in this manual). A semantic action begins with the
+`:` symbol, then an AttrRef giving the attribute to be set, an equals sign
+(`=`), and then the name of a hook function to call to calculate the value. The
+hook function can have one or more arguments specified by AttrRefs which can be
+comma-separated for readability, or it can have zero args.
+
+An AttrRef takes the following form:
+
+```
+ |-- node-reference
+/-\
+
+{^}.value
+
+    \___/
+      |-- name
+```
+
+The `node-reference` part refers to a node relative to the current node the SDD
+is being defined for/will run on, and the `name` part is the name of an
+attribute on that node.
+
+The `node-reference` part of an AttrRef before the `.` can take one of the
+following forms:
+
+* `{^}`          - The head symbol/current node. Only valid for LHS of a
+                   semantic action due to the requirement that STDS be
+                   implementable with an S-attributed grammar.
+* `{.}`          - The child node corresponding to the first terminal symbol in
+                   the production.
+* `{.N}`         - The child node corresponding to the Nth terminal symbol in
+                   the production (0-indexed).
+* `{&}`          - The child node corresponding to the first non-terminal symbol
+                   in the production.
+* `{&N}`         - The child node corresponding to the Nth non-terminal symbol
+                   in the production (0-indexed).
+* `{NON-TERM}`   - The child node corresponding to the first occurrence of
+                   non-terminal symbol `NON-TERM` in the production.
+* `{NON-TERM$N}` - The child node corresponding to the Nth occurrence of
+                   non-terminal symbol `NON-TERM` in the production (0-indexed).
+* `term`         - The child node corresponding to the first occurrence of
+                   terminal symbol `term` in the production. If used as an arg
+                   to a hook function, must be separated from prior symbol by
+                   whitespace.
+* `term$N`       - The child node corresponding to the Nth occurrence of
+                   terminal symbol `term` in the production. If used as an arg
+                   to a hook function, must be separated from prior symbol by
+                   whitespace.
 
 ### Syntax-Directed Translation Schemes
 
@@ -1006,10 +1223,9 @@ The above example could be represented by the following FISHI:
     ```
 
 The syntax for SDDs in FISHI is significantly more complex than the theoretical
-one. This is partially due to decoupling Go from its own syntax so that
-executions of Go needed to produce a value can be handled by separate libraries.
-This part of FISHI is the newest and is the most likely to have its syntax
-updated.
+one. This is partially due to decoupling Go code from itself so that executions
+of Go needed to produce a value can be handled by separate libraries. This part
+of FISHI is the newest and is the most likely to have its syntax updated.
 
 Unlike other sections in FISHI, whitespace in `%%actions` sections has
 absolutely no semantic meaning anywhere and is completely ignored. The only
@@ -1113,8 +1329,8 @@ higher than the previous production, or 0 if it is the first action set.
                   -> : {^}.val = identity({0}.val)
 
 But do note that the implicit production selector is fragile to re-ordering of
-the grammar, so it might be best to hold off on using until the grammar is in a
-relatively stable state.
+the grammar, so it might be best to hold off on using it until the grammar is in
+a relatively stable state.
 
 ### SDDs
 
@@ -1144,9 +1360,9 @@ The actual definition of what the hook function does is not defined in a FISHI
 spec; instead, it names the hook functions and leaves their implementations as a
 detail that the creator of the language must provide when retrieving the
 generated frontend. This is passed in as a special
-`github.com/dekarrin/ictiobus/trans.HooksMap` type variable that maps the names
+`github.com/dekarrin/ictiobus/trans.HookMap` type variable that maps the names
 of the hook function to functions that are executed for them. For instance, the
-above hook `make_type_sum` might be implmented by users of the frontend
+above hook `make_type_sum` might be implemented by users of the frontend
 providing the following hook table at runtime:
 
 ```go
@@ -1186,9 +1402,10 @@ node (see the AttrRef section below).
 
     %symbol {SUM} -> {SUM} + {TERM} :  {^}.value = add({0}.value, {2}.value)
 
-The values of the referenced attributes will be passed to the hook implemenation
-at runtime in its second parameter as a slice of `interface{}` objects. When
-there are no arguments, the hook implementation is passed an empty slice.
+The values of the referenced attributes will be passed to the hook
+implementation at runtime in its second parameter as a slice of `interface{}`
+objects. When there are no arguments, the hook implementation is passed an empty
+slice.
 
 The closing parenthesis at the end of a list of arguments to the hooks is pure
 syntactic sugar and is ignored by the parser, as are the commas between
@@ -1211,7 +1428,7 @@ being expected as opposed to whatever comes next.
 While it is a peculiarity of FISHI that `()` is treated separately from `(` and
 `)` (and in the future, this might not be the case!), this is done to
 distinguish the syntactic sugar of indicating `empty arguments` from the
-syntatic sugar of starting the arg list with a single `(`. It is the way it is
+syntactic sugar of starting the arg list with a single `(`. It is the way it is
 for historical reasons and future versions of Ictiobus may change this.
 
 ### AttrRefs
@@ -1260,7 +1477,7 @@ associated grammar rule:
 
 The node-reference can refer to the child node of the current one that
 corresponds to the Nth symbol in the associated production by putting its
-0-based index in between curly braces. This is by-far the shortest form of node
+0-based index in between curly braces. This is by far the shortest form of node
 reference for a production symbol (although it can be difficult to read if the
 production specifier does not explicitly give the production):
 
@@ -1280,10 +1497,10 @@ how non-terminal symbols are defined:
     # the above could have been:
     -> {SUM} + {TERM}:  {^}.value   =   add({SUM}.value, {TERM}.value)
 
-If there's more than one occurance of that non-terminal in the production, the
-index of the occurance (starting at 0) can be given by putting a dollar sign
+If there's more than one occurrence of that non-terminal in the production, the
+index of the occurrence (starting at 0) can be given by putting a dollar sign
 followed by the index inside of the braces. If it's not given, it's assumed to
-be 0 (the first occurance):
+be 0 (the first occurrence):
 
     %%grammar
 
@@ -1299,7 +1516,7 @@ be 0 (the first occurance):
     # first arg to add(), and the second instance of EXPR in the production
     # (`$1`) as the second arg.
 
-The occurance must be explicitly given if the name of the non-terminal itself
+The occurrence must be explicitly given if the name of the non-terminal itself
 contains a dollar so that the non-terminal name is correctly parsed:
 
     -> {BIG$SYMBOL} + {TERM} : {^}.value = add({BIG$SYMBOL$0}.value, {TERM}.value)
@@ -1310,30 +1527,35 @@ way as non-terminals, just without the braces:
     %%actions
 
     %symbol {TERM}
-    ->  int :       {^}.value = int_value(int.$text)
+    ->  int :       {^}.value = int_value( int.$text)
+
+Note that due to limitations of the FISHI parser, if you're using an attr ref
+that specifies a terminal by name, you need to separate it by space from
+whatever came before it, otherwise the entire prior thing could be detected as
+an "unexpected attribute reference literal".
 
 Just like with non-terminals, the above `int.$text` specifies the attribute
 named `$text` (a built-in one, due to the leading `$`) defined on the child node
 corresponding to the terminal `int`.
 
 This follows the same rules for specifying a particular index as non-terminals;
-to refer to occurances of a non-terminal symbol that are not the first, the
-index of the occurance must be specified with a dollar sign after the name of
+to refer to occurrences of a non-terminal symbol that are not the first, the
+index of the occurrence must be specified with a dollar sign after the name of
 the terminal:
 
     %%actions
 
     %symbol {INT-SUM}
-    -> int + int:      {^}.value = add(int$0.$text, int$1.$text)
+    -> int + int:      {^}.value = add( int$0.$text, int$1.$text)
 
-The occurance must be explicitly given if the name of the terminal itself
+The occurrence must be explicitly given if the name of the terminal itself
 contains a dollar so that the non-terminal name is correctly parsed:
 
-    -> $int$  : {^}.value = add({$int$$0}.$text)
+    -> $int$  : {^}.value = add( $int$$0.$text)
 
-Besides occurances of specific terminals and non-terminals, an AttrRef may refer
-to *any* terminal or non-terminal by using `{.}` or `{&}` respectively. `{.}`
-and `{&}` alone specify the first non-terminal or terminal:
+Besides occurrences of specific terminals and non-terminals, an AttrRef may
+refer to *any* terminal or non-terminal by using `{.}` or `{&}` respectively.
+`{.}` and `{&}` alone specify the first non-terminal or terminal:
 
     -> {SUM} int:  {^}.value   =   add({.}.$text, {&}.value)
 
@@ -1347,9 +1569,10 @@ the terminal after the `.`/`&`, still within braces:
 ### Built-In Attributes
 
 Usually, if an attribute is being used as an argument to a hook, it must be
-defined by another SDD elsewhere on the grammar rule for that symbol. But some
-attributes are automatically added to a parse tree during initial creation of
-the annotated parse tree. All of these attributes will have a name that starts
+defined by another SDD elsewhere on the grammar rule for that symbol. This is
+true for user-defined attributes, but some attributes are *built-in*. They are
+automatically added to a parse tree during initial annotation of it and are
+immediately available for use. All built-in attributes have a name that starts
 with a dollar sign `$`.
 
 * `$text` - Defined for terminal symbol nodes only. This is the text that was
@@ -1361,35 +1584,36 @@ production. This is the "First Token" of the node; for terminal nodes, this is
 the token that was lexed for it, for non-terminal nodes, this is the first token
 that is part of the grammar construct. Note that the token info for the node a
 hook is producing a value for is always passed to the implementation as its
-first argument; `$ft` can be used to get the first-tokens of symbols from a
+first argument; `$ft` can be used to get the first tokens of symbols from the
 production.
 
 ### Synthesized vs Inherited Attributes
 
 Within Ictiobus (and sometimes in FISHI) you may come across the concept of
-*synthesized* attributes. A synthesized attribute is one that is set on the same
-node as its SDD is called on. Every attribute described in this document so far
-has been synthesized; in FISHI this is done by assigning to an attribute of the
-head symbol with `{^}.someAttributeName = ...`. For synthesized attributes,
-arguments to the hook can only be from nodes that are children of the node that
-the SDD is called on (i.e. symbols from the production). Again, this is the only
-example shown in this document.
+*synthesized* attributes. A synthesized attribute is set on the same node as its
+SDD is called on. Every attribute described in this document so far has been
+synthesized; in FISHI this is done by assigning to an attribute of the head
+symbol with `{^}.someAttributeName = ...`. For synthesized attributes, arguments
+to the hook can only be from nodes that are children of the node that the SDD is
+called on (i.e. symbols from the production). Again, this is the only example
+shown in this document.
 
-There is also the idea of *inherited* attributes. Inherited attributes would be
+There is also the idea of *inherited* attributes. Inherited attributes are
 created by setting the value of an attribute in a child node of the one the SDD
 is running on. They can use the values of attributes on sibling nodes and the
 head note as arguments to the hook.
 
 A translation scheme defined by a series of SDDs on grammar rules (known
-formally as an *attribute grammar*) that only define synthesized attributes is
-known as S-attributed. Despite having some code for handling inherited
-attributes, Ictiobus does not officially support this and it is poorly tested.
-They should in general not be used.
+formally as an *attribute grammar*) is referred to as *S-attributed* when all
+SDDs define attributes that are synthesized. Icitobus only officially supports
+S-attributed translation schemes. Despite having some code for handling
+inherited attributes, Ictiobus does not officially support this and it is poorly
+tested. They should in general not be used.
 
 ### The IR Attribute
 
 When building up the translation scheme, the first attribute defined for the
-starting symbol of the gramamr is set as the attribute that the IR is taken from
+starting symbol of the grammar is set as the attribute that the IR is taken from
 once SDTS evaluation completes.
 
     %%grammar
@@ -1407,8 +1631,8 @@ once SDTS evaluation completes.
     -> {STMT-LIST} :  {^}.ast = make_list_node({0}.ast)
 
 In the above example, the attribute `ast` on the root `COMPLETE-PROGRAM` node of
-parse trees would be used to retrieve the IR, because it is the first one
-defined for the grammar start symbol (`COMPLETE-PROGRAM`).
+parse trees would be used to retrieve the IR because it is the first one defined
+for the grammar start symbol (`COMPLETE-PROGRAM`).
 
 
 ### Creation Of Abstract Syntax Trees
@@ -1417,7 +1641,7 @@ This IR value can be anything that you wish it to be. For simpler languages,
 such as FISHIMath, it can be immediately calculated by evaluating mathematical
 options to build up a final result. For others, a special representation of the
 input code called an *abstract syntax tree* (AST) might be built up. An abstract
-syntax tree difers from a parse tree by abstracting the grammatical details
+syntax tree differs from a parse tree by abstracting the grammatical details
 of how the constructs within the code were arranged into a more natural
 representation that reflects the logical structures of the language, such as
 control structures. It is suitable for further evaluation by the caller of the
@@ -1472,10 +1696,10 @@ following tree:
           |               \-- (rparen ")")
           \-- (block-close "}")
 
-That's ludicrously messy, and would be difficult to directly analyze. By
-defining a series of actions in the SDTS which convert each item to some sort of
-AST node, passing the values along as neede, a tree that representes the same
-syntax but in a more abstract fashion can be created:
+That's ludicrously messy and would be difficult to directly analyze. By defining
+a series of SDDs that gather related nodes together to produce abstract
+representations of their structure, a much smaller tree that represents the same
+syntax be created:
 
     [if-statement]
      |-- condition: [binary expression (op="&&")]
@@ -1489,11 +1713,893 @@ syntax but in a more abstract fashion can be created:
                      \-- stmts[0]: [func-call (pkg="fmt", name="Printf")]
                                      \-- args[0]: [literal (type=string, value="It's true!\n")]
 
-Much better and easier to analyze! For langauges that cannot be immediately
-evaluated via the IR, an AST is a reasonable target value for the STDS to
-produce.
+Much better! And way easier to analyze! For languages that cannot be immediately
+evaluated via the SDTS, an AST is a reasonable IR.
 
-### Complete Example For FISHI Math
+### Complete Actions Example For FISHIMath
 
-WIP - include both AST ver and eval ver
+This section builds up a translation scheme from the grammar and tokens defined
+in previous FISHIMath sections. It gives it in two forms: one that performs
+immediate evaluation and returns the result as the IR, and one that creates an
+AST of the input and uses that as the IR.
 
+#### Immediate Evaluation Version
+
+This example performs immediate evaluation. Its IR is a slice of numbers, where
+the item with index N is the value of evaluating the Nth statement. If you want
+to try it out, be sure and use the Go code in Appendix A to provide the
+HooksTable.
+
+    ```fishi
+    %%actions
+
+    # This actions section creates an IR that is the result of evaluating the
+    # expressions. It will return a slice of FMValue, one FMValue for each
+    # statement in the input.
+
+
+    # {FISHIMATH}.ir is called that for readability purposes; there's nothing
+    # special about the attribute name "ir". What makes this the final IR value
+    # returned from the frontend is that it is the first attribute in an SDD
+    # defined for the grammar start symbol {FISHIMATH}.
+
+    %symbol {FISHIMATH}
+    -> {STATEMENTS}:              {^}.ir = identity({&0}.result)
+
+    %symbol {STATEMENTS}
+    -> {STMT} {STATEMENTS}:       {^}.result = num_slice_prepend({1}.result, {0}.value)
+    -> {STMT}:                    {^}.result = num_slice_start({0}.value)
+
+    %symbol {STMT}
+    -> {EXPR} shark:              {^}.value = identity({EXPR}.value)
+
+    %symbol {EXPR}
+    -> id tentacle {EXPR}:        {^}.value = write_var( id.$text, {EXPR}.value)
+    -> {SUM}:                     {^}.value = identity({SUM}.value)
+
+    %symbol {SUM}
+    -> {PRODUCT} + {EXPR}:        {^}.value = add({&0}.value, {&1}.value)
+    -> {PRODUCT} - {EXPR}:        {^}.value = subtract({&0}.value, {&1}.value)
+    -> {PRODUCT}:                 {^}.value = identity({PRODUCT}.value)
+
+    %symbol {PRODUCT}
+    -> {TERM} * {PRODUCT}:        {^}.value = multiply({&0}.value, {&1}.value)
+    -> {TERM} / {PRODUCT}:        {^}.value = divide({&0}.value, {&1}.value)
+    -> {TERM}:                    {^}.value = identity({TERM}.value)
+
+    %symbol {TERM}
+    -> fishtail {EXPR} fishhead:  {^}.value = identity({EXPR}.value)
+    -> int:                       {^}.value = int({0}.$text)
+    -> float:                     {^}.value = float({0}.$text)
+    -> id:                        {^}.value = read_var( id.$text)
+    ```
+
+#### AST Creation Version
+
+This example creates an abstract syntax tree, deferring actual evaluation to the
+caller of the frontend. Its IR is an AST successively built up out of each of
+the grammar constructs. If you want to try it out, be sure and use the Go code
+in Appendix B to provide the HooksTable.
+
+    ```fishi
+    %%actions
+
+    # This actions section creates an abstract syntax tree and returns it as the
+    # IR.
+
+
+    # {FISHIMATH}.ir is called that for readability purposes; there's nothing
+    # special about the attribute name "ir". What makes this the final IR value
+    # returned from the frontend is that it is the first attribute in an SDD
+    # defined for the grammar start symbol {FISHIMATH}.
+
+    %symbol {FISHIMATH}
+    -> {STATEMENTS}:              {^}.ir = ast({&0}.stmt_nodes)
+
+    %symbol {STATEMENTS}
+    -> {STMT} {STATEMENTS}:       {^}.stmt_nodes = node_slice_prepend({1}.stmt_nodes, {0}.node)
+    -> {STMT}:                    {^}.stmt_nodes = node_slice_start({0}.node)
+
+    %symbol {STMT}
+    -> {EXPR} shark:              {^}.node = identity({EXPR}.node)
+
+    %symbol {EXPR}
+    -> id tentacle {EXPR}:        {^}.node = assignment_node( id.$text, {EXPR}.node)
+    -> {SUM}:                     {^}.node = identity({SUM}.node)
+
+    %symbol {SUM}
+    -> {PRODUCT} + {EXPR}:        {^}.node = binary_node_add({&0}.node, {&1}.node)
+    -> {PRODUCT} - {EXPR}:        {^}.node = binary_node_sub({&0}.node, {&1}.node)
+    -> {PRODUCT}:                 {^}.node = identity({PRODUCT}.node)
+
+    %symbol {PRODUCT}
+    -> {TERM} * {PRODUCT}:        {^}.node = binary_node_mult({&0}.node, {&1}.node)
+    -> {TERM} / {PRODUCT}:        {^}.node = binary_node_div({&0}.node, {&1}.node)
+    -> {TERM}:                    {^}.node = identity({TERM}.node)
+
+    %symbol {TERM}
+    -> fishtail {EXPR} fishhead:  {^}.node = group_node({EXPR}.node)
+    -> int:                       {^}.node = lit_node_int({0}.$text)
+    -> float:                     {^}.node = lit_node_float({0}.$text)
+    -> id:                        {^}.node = var_node( id.$text)
+    ```
+
+## Appendix A: FISHIMath Immediate Eval HooksMap
+
+This section contains a Go package that provides a HooksTable suitable for use
+with the Actions section given as an example in the "Immediate Evaluation
+Version" section of the FISHIMath example for Actions.
+
+To use it, place the below code into a Go package called "fmhooks". Then,
+prepare the FISHI spec using the examples in this document. Next, use ictcc to
+build the FISHIMath frontend, and give the arguments `--ir
+[]import/path/to/fmhooks.FMValue` and `--hooks filesystem/path/to/fmhooks`. This
+will allow you to do full validation testing and create a diagnostics binary
+with `-d` that has a fully-featured interpretation engine.
+
+
+```go
+package fmhooks
+
+import (
+    "fmt"
+    "strings"
+    "strconv"
+    "math"
+
+    "github.com/dekarrin/ictiobus/trans"
+)
+
+var (
+    HooksTable = trans.HookMap{
+        "identity":             hookIdentity,
+        "int":                  hookInt,
+        "float":                hookFloat,
+        "multiply":             hookMultiply,
+        "divide":               hookDivide,
+        "add":                  hookAdd,
+        "subtract":             hookSubtract,
+        "read_var":             hookReadVar,
+        "write_var":            hookWriteVar,
+        "num_slice_start":      hookNumSliceStart,
+        "num_slice_prepend":    hookNumSlicePrepend,
+    }
+)
+
+var (
+    symbolTable = map[string]FMValue{}
+)
+
+func hookIdentity(_ trans.SetterInfo, args []interface{}) (interface{}, error) { return args[0], nil }
+
+func hookFloat(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    literalText, ok := args[0].(string)
+    if !ok {
+        return nil, fmt.Errorf("arg 1 is not a string")
+    }
+
+    f64Val, err := strconv.ParseFloat(literalText, 32)
+    if err != nil {
+        return nil, err
+    }
+    fVal := float32(f64Val)
+
+    return FMFloat(fVal), nil
+}
+
+func hookInt(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    literalText, ok := args[0].(string)
+    if !ok {
+        return nil, fmt.Errorf("arg 1 is not a string")
+    }
+
+    iVal, err := strconv.Atoi(literalText)
+    if err != nil {
+        return nil, err
+    }
+
+    return FMInt(iVal), nil
+}
+
+func hookMultiply(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    v1, v2, err := getBinaryArgsCoerced(args)
+    if err != nil {
+        return nil, err
+    }
+
+    if v1.IsFloat {
+        return FMFloat(v1.Float() * v2.Float()), nil
+    }
+    return FMInt(v1.Int() * v2.Int()), nil
+}
+
+func hookDivide(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    v1, v2, err := getBinaryArgsCoerced(args)
+    if err != nil {
+        return nil, err
+    }
+
+    if v1.IsFloat {
+        return FMFloat(v1.Float() / v2.Float()), nil
+    }
+    return FMInt(v1.Int() / v2.Int()), nil
+}
+
+func hookAdd(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    v1, v2, err := getBinaryArgsCoerced(args)
+    if err != nil {
+        return nil, err
+    }
+
+    if v1.IsFloat {
+        return FMFloat(v1.Float() + v2.Float()), nil
+    }
+    return FMInt(v1.Int() + v2.Int()), nil
+}
+
+func hookSubtract(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    v1, v2, err := getBinaryArgsCoerced(args)
+    if err != nil {
+        return nil, err
+    }
+
+    if v1.IsFloat {
+        return FMFloat(v1.Float() - v2.Float()), nil
+    }
+    return FMInt(v1.Int() - v2.Int()), nil
+}
+
+func hookReadVar(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    varName, ok := args[0].(string)
+    if !ok {
+        return nil, fmt.Errorf("arg 1 is not a string")
+    }
+
+    varVal := symbolTable[varName]
+
+    return varVal, nil
+}
+
+func hookWriteVar(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    varName, ok := args[0].(string)
+    if !ok {
+        return nil, fmt.Errorf("arg 1 is not a string")
+    }
+
+    varVal, ok := args[1].(FMValue)
+    if !ok {
+        return nil, fmt.Errorf("arg 2 is not an FMValue")
+    }
+
+    symbolTable[varName] = varVal
+
+    return varVal, nil
+}
+
+func hookNumSliceStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    v, ok := args[0].(FMValue)
+    if !ok {
+        return nil, fmt.Errorf("arg 1 is not an FMValue")
+    }
+
+    return []FMValue{v}, nil
+}
+
+func hookNumSlicePrepend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    vSlice, ok := args[0].([]FMValue)
+    if !ok {
+        return nil, fmt.Errorf("arg 1 is not an []FMValue")
+    }
+
+    v, ok := args[2].(FMValue)
+    if !ok {
+        return nil, fmt.Errorf("arg 2 is not an FMValue")
+    }
+
+    vSlice = append([]FMValue{v}, vSlice...)
+
+    return vSlice, nil
+}
+
+func getBinaryArgsCoerced(args []interface{}) (left, right FMValue, err error) {
+    v1, ok := args[0].(FMValue)
+    if !ok {
+        return left, right, fmt.Errorf("arg 1 is not an FMValue")
+    }
+
+    v2, ok := args[1].(FMValue)
+    if !ok {
+        return left, right, fmt.Errorf("arg 2 is not an FMValue")
+    }
+
+    // if one is a float, they are now both floats
+    if v1.IsFloat && !v2.IsFloat {
+        v2 = FMFloat(v2.Float())
+    } else if v2.IsFloat && !v1.IsFloat {
+        v1 = FMFloat(v1.Float())
+    }
+
+    return v1, v2, nil
+}
+
+// FMValue is a calculated result from FISHIMath. It holds either a float32 or
+// int and is convertible to either. The type of value it holds is queryable
+// with IsFloat. Int() or Float() can be called on it to get the value as that
+// type.
+type FMValue struct {
+    IsFloat bool
+    i int
+    f float32
+}
+
+// FMFloat creates a new FMValue that holds a float32 value.
+func FMFloat(v float32) FMValue {
+    return FMValue{IsFloat: true, f: v}
+}
+
+// FMInt creates a new FMValue that holds an int value.
+func FMInt(v int) FMValue {
+    return FMValue{i: v}
+}
+
+// Int returns the value of v as an int, converting if necessary from a float.
+func (v FMValue) Int() int {
+    if v.IsFloat {
+        return int(math.Round(float64(v.f)))
+    }
+    return v.i
+}
+
+// Float returns the value of v as a float32, converting if necessary from an
+// int.
+func (v FMValue) Float() float32 {
+    if !v.IsFloat {
+        return float32(v.i)
+    }
+    return v.f
+}
+
+// String returns the string representation of an FMValue.
+func (v FMValue) String() string {
+    if v.IsFloat {
+        str := fmt.Sprintf("%.7f", v.f)
+        // remove extra 0's...
+        str = strings.TrimRight(str, "0")
+        // ...but there should be at least one 0 if nothing else
+        if strings.HasSuffix(str, ".") {
+            str = str + "0"
+        }
+        return str
+    }
+    return fmt.Sprintf("%d", v.i)
+}
+```
+
+## Appendix B: FISHIMath AST HooksMap
+
+This section contains a Go package that provides a HooksTable suitable for use
+with the Actions section given as an example in the "AST Creation Version"
+section of the FISHIMath example for Actions.
+
+To use it, place the below code into a Go package called "fmhooks". Then,
+prepare the FISHI spec using the examples in this document. Next, use ictcc to
+build the FISHIMath frontend, and give the arguments `--ir
+import/path/to/fmhooks.AST` and `--hooks filesystem/path/to/fmhooks`. This
+will allow you to do full validation testing and create a diagnostics binary
+with `-d` that will produce ASTs of input FISHIMath code.
+
+
+
+```go
+package fmhooks
+
+import (
+    "fmt"
+    "strings"
+    "strconv"
+    "math"
+
+    "github.com/dekarrin/ictiobus/trans"
+    "github.com/dekarrin/ictiobus/lex"
+)
+
+var (
+    HooksTable = trans.HookMap{
+        "identity":             hookIdentity,
+        "var_node":             hookVarNode,
+        "assignment_node":      hookAssignmentNode,
+        "lit_node_float":       hookLitNodeFloat,
+        "lit_node_int":         hookLitNodeInt,
+        "group_node":           hookGroupNode,
+        "binary_node_mult":     hookFnForBinaryNode(Multiply),
+        "binary_node_div":      hookFnForBinaryNode(Divide),
+        "binary_node_add":      hookFnForBinaryNode(Add),
+        "binary_node_sub":      hookFnForBinaryNode(Subtract),
+        "node_slice_start":     hookNodeSliceStart,
+        "node_slice_prepend":   hookNodeSlicePrepend,
+        "ast":                  hookAST,
+    }
+)
+
+func hookIdentity(_ trans.SetterInfo, args []interface{}) (interface{}, error) { return args[0], nil }
+
+func hookAST(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    nodeSlice, ok := args[0].([]Node)
+    if !ok {
+        return nil, fmt.Errorf("arg 1 is not a []Node")
+    }
+
+    return AST{Statements: nodeSlice}, nil
+}
+
+func hookVarNode(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    varName, ok := args[0].(string)
+    if !ok {
+        return nil, fmt.Errorf("arg 1 is not a string")
+    }
+
+    return VariableNode{Name: varName}, nil
+}
+
+func hookAssignmentNode(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    varName, ok := args[0].(string)
+    if !ok {
+        return nil, fmt.Errorf("arg 1 is not a string")
+    }
+
+    varVal, ok := args[1].(Node)
+    if !ok {
+        return nil, fmt.Errorf("arg 2 is not a Node")
+    }
+
+    return AssignmentNode{Name: varName, Expr: varVal}, nil
+}
+
+func hookLitNodeFloat(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    strVal, ok := args[0].(string)
+    if !ok {
+        return nil, fmt.Errorf("arg 1 is not a string")
+    }
+
+    f64Val, err := strconv.ParseFloat(strVal, 32)
+    if err != nil {
+        return nil, err
+    }
+
+    return LiteralNode{Value: FMValue{vType: Float, f: float32(f64Val)}}, nil
+}
+
+func hookLitNodeInt(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    strVal, ok := args[0].(string)
+    if !ok {
+        return nil, fmt.Errorf("arg 1 is not a string")
+    }
+
+    iVal, err := strconv.Atoi(strVal)
+    if err != nil {
+        return nil, err
+    }
+
+    return LiteralNode{Value: FMValue{vType: Int, i: iVal}}, nil
+}
+
+func hookGroupNode(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    exprNode, ok := args[0].(Node)
+    if !ok {
+        return nil, fmt.Errorf("arg 1 is not a Node")
+    }
+
+    return GroupNode{Expr: exprNode}
+}
+
+func hookFnForBinaryNode(op Operation) trans.Hook {
+    fn := func(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+        left, ok := args[0].(Node)
+        if !ok {
+            return nil, fmt.Errorf("arg 1 is not a Node")
+        }
+
+        right, ok := args[1].(Node)
+        if !ok {
+            return nil, fmt.Errorf("arg 2 is not a Node")
+        }
+
+        return BinaryOpNode{
+            Left: left,
+            Right: right,
+            Op: op,
+        }
+    }
+
+    return fn
+}
+
+func hookNodeSliceStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    node, ok := args[0].(Node)
+    if !ok {
+        return nil, fmt.Errorf("arg 1 is not a Node")
+    }
+
+    return []Node{node}, nil
+}
+
+func hookNodeSlicePrepend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+    nodeSlice, ok := args[0].([]Node)
+    if !ok {
+        return nil, fmt.Errorf("arg 1 is not a []Node")
+    }
+
+    node, ok := args[1].(Node)
+    if !ok {
+        return nil, fmt.Errorf("arg 2 is not a Node")
+    }
+
+    nodeSlice = append([]Node{node}, nodeSlice...)
+
+    return nodeSlice, nil
+}
+
+// AST is an abstract syntax tree containing a complete representation of input
+// written in FISHIMath.
+type AST struct {
+    Statements []Node
+}
+
+// String returns a pretty-print representation of the AST, with depth in the
+// tree indicated by indent.
+func (ast AST) String() string {
+    if len(ast.Statements) < 1 {
+        return "AST<>"
+    }
+
+    var sb strings.Builder
+    sb.WriteString("AST<\n")
+
+    labelFmt := " STMT #%0*d: "
+    largestDigitCount := len(fmt.Sprintf("%d", len(ast.Statements)))
+
+    for i := range ast.Statements {
+        label := fmt.Sprintf(labelFmt, largestDigitCount, i+1)
+        stmtStr := spaceIndentNewlines(ast.Statements[i].String(), len(label))
+        sb.WriteString(label)
+        sb.WriteString(stmtStr)
+        sb.WriteRune('\n')
+    }
+
+    sb.WriteRune('>')
+    return sb.String()
+}
+
+// FMString returns a string of FISHIMath code that if parsed, would result in
+// an equivalent AST. Each statement is put on its own line, but the last line
+// will not end in \n.
+func (ast AST) FMString() string {
+    if len(ast.Statements) < 1 {
+        return ""
+    }
+
+    var sb strings.Builder
+
+    for i, stmt := range ast.Statements {
+        sb.WriteString(stmt.FMString())
+        sb.WriteString(" <o^><")
+
+        if i + 1 < len(ast.Statements) {
+            sb.WriteRune('\n')
+        }
+    }
+
+    return sb.String()
+}
+
+// NodeType is the type of a node in the AST.
+type NodeType int
+
+const (
+    // Literal is a numerical value literal in FISHIMath, such as 3 or 7.284.
+    // FISHIMath only supports float32 and int literals, so it will represent
+    // one of those.
+    Literal NodeType = iota
+
+    // Variable is a variable used in a non-assignment context (i.e. one whose
+    // value is being *used*, not set).
+    Variable
+
+    // BinaryOp is an operation consisting of two operands and the operation
+    // performed on them.
+    BinaryOp
+
+    // Assignment is an assignment of a value to a variable in FISHIMath using
+    // the value tentacle.
+    Assignment
+
+    // Group is an expression grouped with the fishtail and fishhead symbols.
+    Group
+)
+
+// Operation is a type of operation being performed.
+type Operation int
+
+const (
+    NoOp Operation = iota
+    Add
+    Subtract
+    Multiply
+    Divide
+)
+
+// Symbol returns the FISHIMath syntax string that represents the operation. If
+// there isn't one for op, "" is returned.
+func (op Operation) Symbol() string {
+    if op == Add {
+        return "+"
+    } else if op == Subtract {
+        return "-"
+    } else if op == Multiply {
+        return "*"
+    } else if op == Divide {
+        return "/"
+    }
+
+    return ""
+}
+
+func (op Operation) String() string {
+    if op == Add {
+        return "addition"
+    } else if op == Subtract {
+        return "subtraction"
+    } else if op == Multiply {
+        return "multiplication"
+    } else if op == Divide {
+        return "division"
+    }
+
+    return fmt.Sprintf("operation(code=%d)", int(op))
+}
+
+// Node is a node of the AST. It can be converted to the actual type it is by
+// calling the appropriate function.
+type Node interface {
+    // Type returns the type of thing this node is. Whether or not the other
+    // functions return valid values depends on the type of AST Node returned
+    // here.
+    Type() NodeType
+
+    // AsLiteral returns this Node as a LiteralNode. Panics if Type() is not
+    // Literal.
+    AsLiteral() LiteralNode
+
+    // AsVariable returns this Node as a VariableNode. Panics if Type() is not
+    // Variable.
+    AsVariable() VariableNode
+
+    // AsBinaryOperation returns this Node as a BinaryOpNode. Panics if Type()
+    // is not BinaryOp.
+    AsBinaryOp() BinaryOpNode
+
+    // AsAssignment returns this Node as an AssignmentNode. Panics if Type() is
+    // not Assignment.
+    AsAssignment() AssignmentNode
+
+    // AsGroup returns this Node as a GroupNode. Panics if Type() is not Group.
+    AsGroup() GroupNode
+
+    // FMString converts this Node into FISHIMath code that would produce an
+    // equivalent Node.
+    FMString() string
+
+    // String returns a human-readable string representation of this Node, which
+    // will vary based on what Type() is.
+    String() string
+}
+
+// LiteralNode is an AST node representing a numerical constant used in
+// FISHIMath.
+type LiteralNode struct {
+    Value FMValue
+}
+
+func (n LiteralNode) Type() NodeType { return Literal }
+func (n LiteralNode) AsLiteral() LiteralNode { return n }
+func (n LiteralNode) AsVariable() VariableNode { panic("Type() is not Variable") }
+func (n LiteralNode) AsBinaryOp() BinaryOpNode { panic("Type() is not BinaryOp") }
+func (n LiteralNode) AsAssignment() AssignmentNode { panic("Type() is not Assignment") }
+func (n LiteralNode) AsGroup() GroupNode { panic("Type() is not Group") }
+
+func (n LiteralNode) FMString() string {
+    return n.Value.String()
+}
+
+func (n LiteralNode) String() string {
+    return fmt.Sprintf("[LITERAL value=%v]", n.Value)
+}
+
+// VariableNode is an AST node representing the use of a variable's value in
+// FISHIMath. It does *not* represent assignment to a variable, as that is done
+// with an AssignmentNode.
+type VariableNode struct {
+    Name string
+}
+
+func (n VariableNode) Type() NodeType { return Variable }
+func (n VariableNode) AsLiteral() LiteralNode { panic("Type() is not Literal") }
+func (n VariableNode) AsVariable() VariableNode { return n }
+func (n VariableNode) AsBinaryOp() BinaryOpNode { panic("Type() is not BinaryOp") }
+func (n VariableNode) AsAssignment() AssignmentNode { panic("Type() is not Assignment") }
+func (n VariableNode) AsGroup() GroupNode { panic("Type() is not Group") }
+
+func (n VariableNode) FMString() string {
+    return n.Name
+}
+
+func (n VariableNode) String() string {
+    return fmt.Sprintf("[VARIABLE name=%v]", n.Name)
+}
+
+// BinaryOpNode is an AST node representing a binary operation in FISHIMath. It
+// has a left operand, a right operand, and an operation to perform on them.
+type BinaryOpNode struct {
+    Left    Node
+    Right   Node
+    Op      Operation
+}
+
+func (n BinaryOpNode) Type() NodeType { return BinaryOp }
+func (n BinaryOpNode) AsLiteral() LiteralNode { panic("Type() is not Literal") }
+func (n BinaryOpNode) AsVariable() VariableNode { panic("Type() is not Variable") }
+func (n BinaryOpNode) AsBinaryOp() BinaryOpNode { return n }
+func (n BinaryOpNode) AsAssignment() AssignmentNode { panic("Type() is not Assignment") }
+func (n BinaryOpNode) AsGroup() GroupNode { panic("Type() is not Group") }
+
+func (n BinaryOpNode) FMString() string {
+    return fmt.Sprintf("%s %s %s", n.Left.FMString(), n.Op.Symbol(), n.Right.FMString())
+}
+
+func (n BinaryOpNode) String() string {
+    const (
+        leftStart =  " left:  "
+        rightStart = " right: "
+    )
+
+    leftStr := spaceIndentNewlines(n.Left.String(), len(leftStart))
+    rightStr := spaceIndentNewlines(n.Right.String(), len(rightStart))
+
+    return fmt.Sprintf("[BINARY_OPERATION type=%v\n%s%s\n%s%s\n]", n.Op.String(), leftStart, leftStr, rightStart, rightStr)
+}
+
+// AssignmentNode is an AST node representing the assignment of an expression to
+// a variable in FISHIMath. Name is the name of the variable, Expr is the
+// expression being assigned to it.
+type AssignmentNode struct {
+    Name string
+    Expr Node
+}
+
+func (n AssignmentNode) Type() NodeType { return Assignment }
+func (n AssignmentNode) AsLiteral() LiteralNode { panic("Type() is not Literal") }
+func (n AssignmentNode) AsVariable() VariableNode { panic("Type() is not Variable") }
+func (n AssignmentNode) AsBinaryOp() BinaryOpNode { panic("Type() is not BinaryOp") }
+func (n AssignmentNode) AsAssignment() AssignmentNode { return n }
+func (n AssignmentNode) AsGroup() GroupNode { panic("Type() is not Group") }
+
+func (n AssignmentNode) FMString() string {
+    return fmt.Sprintf("%s =o %s", n.Name, n.Expr.FMString())
+}
+
+func (n AssignmentNode) String() string {
+    const (
+        exprStart =  " expr:  "
+    )
+
+    exprStr := spaceIndentNewlines(n.Expr.String(), len(exprStart))
+
+    return fmt.Sprintf("[ASSIGNMENT name=%q\n%s%s\n]", n.Name, exprStart, exprStr)
+}
+
+// GroupNode is an AST node representing an expression grouped by the fishtail
+// and fishhead symbols in FISHIMath. Expr is the expression in the group.
+type GroupNode struct {
+    Expr Node
+}
+
+func (n GroupNode) Type() NodeType { return Assignment }
+func (n GroupNode) AsLiteral() LiteralNode { panic("Type() is not Literal") }
+func (n GroupNode) AsVariable() VariableNode { panic("Type() is not Variable") }
+func (n GroupNode) AsBinaryOp() BinaryOpNode { panic("Type() is not BinaryOp") }
+func (n GroupNode) AsAssignment() AssignmentNode { panic("Type() is not Assignment") }
+func (n GroupNode) AsGroup() GroupNode { return n }
+
+func (n GroupNode) FMString() string {
+    return fmt.Sprintf(">{ %s '}", n.Expr.FMString())
+}
+
+func (n GroupNode) String() string {
+    const (
+        exprStart =  " expr:  "
+    )
+
+    exprStr := spaceIndentNewlines(n.Expr.String(), len(exprStart))
+
+    return fmt.Sprintf("[GROUP\n%s%s\n]", n.Name, exprStart, exprStr)
+}
+
+func spaceIndentNewlines(str string, amount int) string {
+    if strings.Contains(str, "\n") {
+        // need to pad every newline
+        pad := " "
+        for len(pad) < amount {
+            pad += " "
+        }
+        str = strings.ReplaceAll(str, "\n", "\n" + pad)
+    }
+    return str
+}
+
+// ValueType is the type of a value in FISHIMath. Only Float and Int are
+// supported.
+type ValueType int
+
+const (
+    // Int is an integer of at least 32 bits.
+    Int ValueType = iota
+
+    // Float is a floating point number represented as an IEEE-754 single
+    // precision (32-bit) float.
+    Float
+)
+
+// FMValue is a typed value used in FISHIMath. The type of value it holds is
+// querable with Type(). Int() or Float() can be called on it to get the value
+// as that type, otherwise Interface() can be called to return the exact value
+// as whatever type it is.
+type FMValue struct {
+    vType ValueType
+    i int
+    f float32
+}
+
+// Int returns the value of v as an int, converting if Type() is not Int.
+func (v FMValue) Int() int {
+    if v.vType == Float {
+        return int(math.Round(float64(v.f)))
+    }
+    return v.i
+}
+
+// Float returns the value of v as a float32, converting if Type() is not Float.
+func (v FMValue) Float() float32 {
+    if !v.IsFloat {
+        return float32(v.i)
+    }
+    return v.f
+}
+
+// Interface returns the value held within this as its native Go type.
+func (v FMValue) Interface() interface{} {
+    if v.vType == Float {
+        return v.f
+    }
+    return v.i
+}
+
+// Type returns the type of this value.
+func (v FMValue) Type() ValueType {
+    return v.vType
+}
+
+// String returns the string representation of an FMValue.
+func (v FMValue) String() string {
+    if v.vType == Float {
+        str := fmt.Sprintf("%.7f", v.f)
+        // remove extra 0's...
+        str = strings.TrimRight(str, "0")
+        // ...but there should be at least one 0 if nothing else
+        if strings.HasSuffix(str, ".") {
+            str = str + "0"
+        }
+        return str
+    }
+    return fmt.Sprintf("%d", v.i)
+}
+```

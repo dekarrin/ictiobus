@@ -259,8 +259,8 @@ func (dg *directedGraph[V]) any(predicate func(*directedGraph[V]) bool, visited 
 }
 
 type depNode struct {
-	Parent    *AnnotatedParseTree
-	Tree      *AnnotatedParseTree
+	Parent    *AnnotatedTree
+	Tree      *AnnotatedTree
 	Synthetic bool
 	Dest      AttrRef
 	NoFlows   []string
@@ -290,7 +290,9 @@ func depGraphString(dg *directedGraph[depNode]) string {
 		}
 
 		if prd != "" {
-			prd = " [" + prd + "]"
+			prd = " -> [" + prd + "]"
+		} else if !dep.Tree.Terminal {
+			prd = " -> ε"
 		}
 
 		nodeID := dep.Tree.ID()
@@ -304,17 +306,18 @@ func depGraphString(dg *directedGraph[depNode]) string {
 		if len(nodes) > 1 {
 			nodeStart = "\n\t"
 		}
-		sb.WriteString(fmt.Sprintf("%s(%v: %q%s <%s>", nodeStart, nodeID, sym, prd, dep.Dest))
+
+		sb.WriteString(fmt.Sprintf("%s(%v: %s%s, %s", nodeStart, nodeID, sym, prd, dep.Dest))
 
 		if len(nextIDs) > 0 {
-			sb.WriteString(" -> {")
+			sb.WriteString(" => [")
 			for j := range nextIDs {
 				sb.WriteString(fmt.Sprintf("%v", nextIDs[j]))
 				if j+1 < len(nextIDs) {
 					sb.WriteString(", ")
 				}
 			}
-			sb.WriteRune('}')
+			sb.WriteRune(']')
 		}
 
 		sb.WriteRune(')')
@@ -336,10 +339,10 @@ func depGraphString(dg *directedGraph[depNode]) string {
 // Returns one node from each of the connected sub-graphs of the dependency
 // tree. If the entire dependency graph is connected, there will be only 1 item
 // in the returned slice.
-func depGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*directedGraph[depNode] {
+func depGraph(aptRoot AnnotatedTree, sdts *sdtsImpl) []*directedGraph[depNode] {
 	type treeAndParent struct {
-		Tree   *AnnotatedParseTree
-		Parent *AnnotatedParseTree
+		Tree   *AnnotatedTree
+		Parent *AnnotatedTree
 	}
 	// no parent set on first node; it's the root
 	treeStack := box.NewStack([]treeAndParent{{Tree: &aptRoot}})
@@ -366,9 +369,9 @@ func depGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*directedGraph[depNo
 				// we still need to add the binding as a target node so it can
 				// be found by other dep nodes
 
-				targetNode, ok := curTree.RelativeNode(binding.Dest.Relation)
+				targetNode, ok := curTree.RelativeNode(binding.Dest.Rel)
 				if !ok {
-					panic(fmt.Sprintf("relative address cannot be followed: %v", binding.Dest.Relation.String()))
+					panic(fmt.Sprintf("relative address cannot be followed: %v", binding.Dest.Rel.String()))
 				}
 				targetNodeID := targetNode.ID()
 				targetNodeDepNodes, ok := depNodes[targetNodeID]
@@ -390,7 +393,11 @@ func depGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*directedGraph[depNo
 				toDepNode, ok := targetNodeDepNodes[binding.Dest.Name]
 				if !ok {
 					toDepNode = &directedGraph[depNode]{Data: depNode{
-						Parent: targetParent, Tree: targetNode, Dest: binding.Dest, Synthetic: synthTarget, NoFlows: make([]string, len(binding.NoFlows)),
+						Parent:    targetParent,
+						Tree:      targetNode,
+						Dest:      binding.Dest,
+						Synthetic: synthTarget,
+						NoFlows:   make([]string, len(binding.NoFlows)),
 					}}
 					copy(toDepNode.Data.NoFlows, binding.NoFlows)
 				}
@@ -406,10 +413,48 @@ func depGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*directedGraph[depNo
 			for j := range binding.Requirements {
 				req := binding.Requirements[j]
 
-				// get the related node:
-				relNode, ok := curTree.RelativeNode(req.Relation)
+				// get the TARGET node (the one whose attr is being set)
+				targetNode, ok := curTree.RelativeNode(binding.Dest.Rel)
 				if !ok {
-					panic(fmt.Sprintf("relative address cannot be followed: %v", req.Relation.String()))
+					panic(fmt.Sprintf("relative address cannot be followed: %v", binding.Dest.Rel.String()))
+				}
+				targetNodeID := targetNode.ID()
+				targetNodeDepNodes, ok := depNodes[targetNodeID]
+				if !ok {
+					targetNodeDepNodes = map[string]*directedGraph[depNode]{}
+				}
+				targetParent := curParent
+				synthTarget := true
+				if targetNode.ID() != curTree.ID() {
+					// then targetNode MUST be a child of curTreeNode
+					targetParent = curTree
+
+					// additionally, it cannot be synthetic because it is not
+					// being set at the head of a production
+					synthTarget = false
+				}
+				// specifically, need to address the one for the desired attribute
+				toDepNode, ok := targetNodeDepNodes[binding.Dest.Name]
+				if !ok {
+					toDepNode = &directedGraph[depNode]{Data: depNode{
+						Parent:    targetParent,
+						Tree:      targetNode,
+						Dest:      binding.Dest,
+						Synthetic: synthTarget,
+						NoFlows:   make([]string, len(binding.NoFlows)),
+					}}
+					copy(toDepNode.Data.NoFlows, binding.NoFlows)
+				}
+				// but also, if it DOES already exist we might have created it
+				// without knowing whether it is a synthetic attr; either way,
+				// check it now
+				toDepNode.Data.Synthetic = synthTarget
+				toDepNode.Data.Dest = binding.Dest
+
+				// get the RELATED node (the one whose attr is used as an argument):
+				relNode, ok := curTree.RelativeNode(req.Rel)
+				if !ok {
+					panic(fmt.Sprintf("relative address cannot be followed: %v", req.Rel.String()))
 				}
 				relNodeID := relNode.ID()
 				relNodeDepNodes, ok := depNodes[relNodeID]
@@ -427,43 +472,20 @@ func depGraph(aptRoot AnnotatedParseTree, sdts *sdtsImpl) []*directedGraph[depNo
 					fromDepNode = &directedGraph[depNode]{Data: depNode{
 						// we simply have no idea whether this is a synthetic
 						// attribute or not at this time
-						Parent: relParent, Tree: relNode,
+						Parent: relParent,
+						Tree:   relNode,
 					}}
-				}
 
-				// get the TARGET node
-				targetNode, ok := curTree.RelativeNode(binding.Dest.Relation)
-				if !ok {
-					panic(fmt.Sprintf("relative address cannot be followed: %v", binding.Dest.Relation.String()))
+					// If the target node is requesting a built-in attribute,
+					// nothing will ever come by later to set syntheticness and
+					// dest, so set it now. Built-in attribute nodes are always
+					// considered synthetic, even when/if inherited attributes
+					// are enabled for reel.
+					if strings.HasPrefix(req.Name, "$") {
+						fromDepNode.Data.Synthetic = true
+						fromDepNode.Data.Dest = AttrRef{Rel: NRHead(), Name: req.Name}
+					}
 				}
-				targetNodeID := targetNode.ID()
-				targetNodeDepNodes, ok := depNodes[targetNodeID]
-				if !ok {
-					targetNodeDepNodes = map[string]*directedGraph[depNode]{}
-				}
-				targetParent := curParent
-				synthTarget := true
-				if targetNode.ID() != curTree.ID() {
-					// then targetNode MUST be a child of curTreeNode
-					targetParent = curTree
-
-					// additionally, it cannot be synthetic because it is not
-					// being set at the head of a production
-					synthTarget = false
-				}
-				// specifically, need to address the one for the desired attribute
-				toDepNode, ok := targetNodeDepNodes[binding.Dest.Name]
-				if !ok {
-					toDepNode = &directedGraph[depNode]{Data: depNode{
-						Parent: targetParent, Tree: targetNode, Dest: binding.Dest, Synthetic: synthTarget, NoFlows: make([]string, len(binding.NoFlows)),
-					}}
-					copy(toDepNode.Data.NoFlows, binding.NoFlows)
-				}
-				// but also, if it DOES already exist we might have created it
-				// without knowing whether it is a synthetic attr; either way,
-				// check it now
-				toDepNode.Data.Synthetic = synthTarget
-				toDepNode.Data.Dest = binding.Dest
 
 				// create the edge; this will modify BOTH dep nodes
 				fromDepNode.LinkTo(toDepNode)

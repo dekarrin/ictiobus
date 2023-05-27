@@ -217,8 +217,8 @@ who wish to obtain a Frontend, even if they are not provided when calling
 The `ictcc` command takes FISHI spec files and performs analysis on them to
 ultimately produce a complete frontend for the language in the spec. The files
 will be scanned for code fences with a language tag of `fishi`. FISHI is the
-Frontend Instruction Specification for Hosting in Ictiobus and is how languages
-to build compilers for is are specified.
+Frontend Instruction Specification for languages Hosted on Ictiobus and is how
+languages to build compilers for is are specified.
 
 These files are read in and then a compiler frontend is produced. With no other
 options, ictcc will read in the spec file(s), attempt to create the most

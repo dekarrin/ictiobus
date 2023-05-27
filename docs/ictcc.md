@@ -364,7 +364,7 @@ func main() {
 }
 ```
 
-## The Preproccessor
+## The Preprocessor
 
 When FISHI is read by ictcc, before it is interpreted by the FISHI frontend, a
 preprocessing step is run on input. Preprocessing performs a few different
@@ -742,9 +742,11 @@ For many of the generated binaries that need to refer to ictiobus code, ictcc
 will pull from the current published latest release version of ictiobus. This is
 correct for general use, but when developing ictcc one often needs it to pull
 code from the current cloned repo on disk. Use the --dev to mark the current
-working directory as the location to pull ictiobus code from for these purposes.
-This will have the effect of making ictcc cease to function if it is called from
-any directory besides one containing the ictiobus module.
+working directory as the location to pull ictiobus code from for these purposes;
+or, if ICTIOBUS_SOURCE is set, to specify ictiobus's source as being in that
+directory. This will have the effect of making ictcc cease to function if it is
+called from any directory besides one containing the ictiobus module when
+ICTIOBUS_SOURCE is not set.
 
 ## Command Reference
 
@@ -837,7 +839,9 @@ Flags:
     --dev
         Enable the use of and reference to ictiobus code located in the current
         working directory as it is currently written as opposed to using the
-        latest release version of ictiobus.
+        latest release version of ictiobus. If environment variable
+        ICTIOBUS_SOURCE is set, that will be used instead of the current working
+        directory.
 
     -D, --dfa
         Print a detailed representation of the DFA that is constructed for the

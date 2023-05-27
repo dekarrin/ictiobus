@@ -32,7 +32,7 @@ func makeTreeLevelPrefixLast(msg string) string {
 	return fmt.Sprintf(treeLevelPrefixLast, msg)
 }
 
-// AnnotatedParseTree is a parse tree annotated with attributes at every node.
+// AnnotatedTree is a parse tree annotated with attributes at every node.
 // These attributes are set by calling hook functions on other attributes, and
 // doing so succesively is what eventually implements a complete syntax-directed
 // translation.
@@ -43,9 +43,8 @@ func makeTreeLevelPrefixLast(msg string) string {
 // nodes produced by an epsilon production; $text, which is the lexed text and
 // is defined only for terminal symbol nodes.
 //
-// An AnnotatedParseTree can be created from a types.ParseTree by calling
-// [Annotate].
-type AnnotatedParseTree struct {
+// An AnnotatedTree can be created from a parse.Tree by calling [Annotate].
+type AnnotatedTree struct {
 	// Terminal is whether this node is for a terminal symbol.
 	Terminal bool
 
@@ -56,7 +55,7 @@ type AnnotatedParseTree struct {
 	Source lex.Token
 
 	// Children is all children of the parse tree.
-	Children []*AnnotatedParseTree
+	Children []*AnnotatedTree
 
 	// Attributes is the data for attributes at the given position in the parse
 	// tree.
@@ -64,13 +63,13 @@ type AnnotatedParseTree struct {
 }
 
 // Annotate adds attribute fields to the given parse tree to convert it to an
-// AnnotatedParseTree. Returns an AnnotatedParseTree with only auto fields set
-// ('$text' for terminals, '$id' for all nodes, and '$ft' for all nodes except
-// epsilon terminal nodes, representing the first Token of the expression).
-func Annotate(root parse.Tree) AnnotatedParseTree {
+// AnnotatedTree. Returns an AnnotatedTree with only auto fields set ('$text'
+// for terminals, '$id' for all nodes, and '$ft' for all nodes except epsilon
+// terminal nodes, representing the first Token of the expression).
+func Annotate(root parse.Tree) AnnotatedTree {
 	treeStack := box.NewStack([]*parse.Tree{&root})
-	annoRoot := AnnotatedParseTree{}
-	annotatedStack := box.NewStack([]*AnnotatedParseTree{&annoRoot})
+	annoRoot := AnnotatedTree{}
+	annotatedStack := box.NewStack([]*AnnotatedTree{&annoRoot})
 
 	idGen := newIDGenerator(0)
 
@@ -81,7 +80,7 @@ func Annotate(root parse.Tree) AnnotatedParseTree {
 		curAnnoNode.Terminal = curTreeNode.Terminal
 		curAnnoNode.Symbol = curTreeNode.Value
 		curAnnoNode.Source = curTreeNode.Source
-		curAnnoNode.Children = make([]*AnnotatedParseTree, len(curTreeNode.Children))
+		curAnnoNode.Children = make([]*AnnotatedTree, len(curTreeNode.Children))
 		curAnnoNode.Attributes = nodeAttrs{
 			string("$id"): idGen.Next(),
 		}
@@ -98,7 +97,7 @@ func Annotate(root parse.Tree) AnnotatedParseTree {
 
 		// put child nodes on stack in reverse order to get left-first
 		for i := len(curTreeNode.Children) - 1; i >= 0; i-- {
-			newAnnoNode := &AnnotatedParseTree{}
+			newAnnoNode := &AnnotatedTree{}
 			curAnnoNode.Children[i] = newAnnoNode
 			treeStack.Push(curTreeNode.Children[i])
 			annotatedStack.Push(newAnnoNode)
@@ -106,7 +105,7 @@ func Annotate(root parse.Tree) AnnotatedParseTree {
 	}
 
 	// now that we have the tree, traverse it again to set $ft
-	annotatedStack = box.NewStack([]*AnnotatedParseTree{&annoRoot})
+	annotatedStack = box.NewStack([]*AnnotatedTree{&annoRoot})
 	for annotatedStack.Len() > 0 {
 		curAnnoNode := annotatedStack.Pop()
 
@@ -122,19 +121,60 @@ func Annotate(root parse.Tree) AnnotatedParseTree {
 	return annoRoot
 }
 
+// ATLeaf is a convenience function for creating a new AnnotatedTree that
+// represents a terminal symbol. The Source token is set to t if one is
+// provided. Note that t's type being ...Token is simply to make it optional;
+// only the first such provided t is examined. The given id must be unique for
+// the entire tree.
+func ATLeaf(id uint64, term string, t ...lex.Token) *AnnotatedTree {
+	pt := &AnnotatedTree{Terminal: true, Symbol: term, Attributes: nodeAttrs{"$id": aptNodeID(id), "$text": ""}}
+	if len(t) > 0 {
+		pt.Source = t[0]
+		pt.Attributes["$text"] = t[0].Lexeme()
+		pt.Attributes["$ft"] = nil
+
+		// only set $ft to non-nil if it's not the epsilon terminal
+		if pt.Attributes["$text"] != "" {
+			pt.Attributes["$ft"] = t[0]
+		}
+	} else {
+		tok := lex.NewToken(lex.MakeDefaultClass("dummy"), "dummy2", 7, 1, "dummy1 dummy2 dummy3")
+		pt.Attributes["$text"] = "dummy2"
+		pt.Attributes["$ft"] = tok
+		pt.Source = tok
+	}
+	return pt
+}
+
+// ATNode is a convenience function for creating a new AnnotatedTree that
+// represents a non-terminal symbol with minimal properties. The given id must
+// be unique for the entire tree.
+func ATNode(id uint64, nt string, children ...*AnnotatedTree) *AnnotatedTree {
+	pt := &AnnotatedTree{
+		Terminal:   false,
+		Symbol:     nt,
+		Children:   children,
+		Attributes: nodeAttrs{"$id": aptNodeID(id)},
+	}
+	// and also calculate $ft
+	pt.First()
+
+	return pt
+}
+
 // String returns a string representation of the APT.
-func (apt AnnotatedParseTree) String() string {
+func (apt AnnotatedTree) String() string {
 	return apt.leveledStr("", "")
 }
 
-func (apt AnnotatedParseTree) leveledStr(firstPrefix, contPrefix string) string {
+func (apt AnnotatedTree) leveledStr(firstPrefix, contPrefix string) string {
 	var sb strings.Builder
 
 	sb.WriteString(firstPrefix)
 	if apt.Terminal {
 		sb.WriteString(fmt.Sprintf("(%s: %s = %q)", apt.ID().String(), apt.Symbol, apt.Source.Lexeme()))
 	} else {
-		sb.WriteString(fmt.Sprintf("(%s: %s )", apt.ID().String(), apt.Symbol))
+		sb.WriteString(fmt.Sprintf("(%s: %s)", apt.ID().String(), apt.Symbol))
 	}
 
 	for i := range apt.Children {
@@ -164,7 +204,7 @@ func (apt AnnotatedParseTree) leveledStr(firstPrefix, contPrefix string) string 
 // children also return nil.
 //
 // Call on pointer because it may update $first if not already set.
-func (apt *AnnotatedParseTree) First() lex.Token {
+func (apt *AnnotatedTree) First() lex.Token {
 	// epsilon is a not a token per-se
 	if apt.Symbol == "" && apt.Terminal {
 		apt.Attributes[string("$ft")] = nil
@@ -215,7 +255,7 @@ func (apt *AnnotatedParseTree) First() lex.Token {
 //
 // If for whatever reason the ID has not been set on this node, IDZero is
 // returned.
-func (apt AnnotatedParseTree) ID() aptNodeID {
+func (apt AnnotatedTree) ID() aptNodeID {
 	var id aptNodeID
 	untyped, ok := apt.Attributes["$id"]
 	if !ok {
@@ -233,7 +273,7 @@ func (apt AnnotatedParseTree) ID() aptNodeID {
 // Rule returns the head and production of the grammar rule associated with the
 // creation of this node in the parse tree. If apt is for a terminal, prod will
 // be empty.
-func (apt AnnotatedParseTree) Rule() (head string, prod []string) {
+func (apt AnnotatedTree) Rule() (head string, prod []string) {
 	if apt.Terminal {
 		return apt.Symbol, nil
 	}
@@ -250,7 +290,7 @@ func (apt AnnotatedParseTree) Rule() (head string, prod []string) {
 // SymbolOf returns the symbol of the node referred to by rel. Additionally, a
 // second 'ok' value is returned that specifies whether a node matches rel. Iff
 // the second value is false, the first value should not be relied on.
-func (apt AnnotatedParseTree) SymbolOf(rel NodeRelation) (symbol string, ok bool) {
+func (apt AnnotatedTree) SymbolOf(rel NodeRelation) (symbol string, ok bool) {
 	node, ok := apt.RelativeNode(rel)
 	if !ok {
 		return "", false
@@ -263,9 +303,9 @@ func (apt AnnotatedParseTree) SymbolOf(rel NodeRelation) (symbol string, ok bool
 // specifies whether ref refers to an existing attribute in the node whose
 // relation to apt matches that specified in ref; if the returned 'ok' value is
 // false, val should be considered a nil value and unsafe to use.
-func (apt AnnotatedParseTree) AttributeValueOf(ref AttrRef) (val interface{}, ok bool) {
+func (apt AnnotatedTree) AttributeValueOf(ref AttrRef) (val interface{}, ok bool) {
 	// first get the attributes
-	attributes, ok := apt.AttributesOf(ref.Relation)
+	attributes, ok := apt.AttributesOf(ref.Rel)
 	if !ok {
 		return nil, false
 	}
@@ -283,7 +323,7 @@ func (apt AnnotatedParseTree) AttributeValueOf(ref AttrRef) (val interface{}, ok
 // A second 'ok' value is returned. This value is true if rel is a relation that
 // exists in apt. If rel specifies a node that does not exist, the ok value will
 // be false and the returned related node should not be used.
-func (apt AnnotatedParseTree) RelativeNode(rel NodeRelation) (related *AnnotatedParseTree, ok bool) {
+func (apt AnnotatedTree) RelativeNode(rel NodeRelation) (related *AnnotatedTree, ok bool) {
 	if rel.Type == RelHead {
 		return &apt, true
 	} else if rel.Type == RelSymbol {
@@ -351,7 +391,7 @@ func (apt AnnotatedParseTree) RelativeNode(rel NodeRelation) (related *Annotated
 // value which will be true. If rel specifies a node that doesn't exist relative
 // to apt, then the second value will be false and the returned node attributes
 // will be nil.
-func (apt AnnotatedParseTree) AttributesOf(rel NodeRelation) (attributes nodeAttrs, ok bool) {
+func (apt AnnotatedTree) AttributesOf(rel NodeRelation) (attributes nodeAttrs, ok bool) {
 	node, ok := apt.RelativeNode(rel)
 	if !ok {
 		return nil, false

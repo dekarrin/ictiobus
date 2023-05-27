@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_ParseTree_PathToDiff(t *testing.T) {
+func Test_Tree_PathToDiff(t *testing.T) {
 	testCases := []struct {
 		name          string
 		tree          *Tree
