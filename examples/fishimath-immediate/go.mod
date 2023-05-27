@@ -1,4 +1,4 @@
-module github.com/dekarrin/fishimath
+module github.com/dekarrin/ictfishimath
 
 go 1.19
 
