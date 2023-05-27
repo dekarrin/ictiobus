@@ -1,7 +1,7 @@
 Using FISHI
 ===========
 
-The Frontend Instruction Specification for Hosted languages on Ictiobus (the
+The Frontend Instruction Specification for languages Hosted on Ictiobus (the
 "FISHI language" or "FISHI" for short), is the special language used to define
 specifications for languages that Ictiobus can then generate parsers for! Well,
 compiler frontends, really, which include the lexer, parser, and translation
