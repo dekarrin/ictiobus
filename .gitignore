@@ -14,7 +14,10 @@ testdiag-*.exe
 /diag
 /fishic
 /.testruns
+/.extestruns
 *.fishispec
+/examples/**/.sim
+/examples/**/.gen
 /tests/**/.sim
 /tests/**/.gen
 

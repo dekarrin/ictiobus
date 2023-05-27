@@ -30,7 +30,7 @@ do
   echo "--------------------------------"
   echo "STARTING EXAMPLE TEST $f..."
   echo "--------------------------------"
-  tests/$f/test-exec.sh 2>&1 | tee "$testdir/actual.txt" || test_failed=1
+  examples/$f/test-exec.sh 2>&1 | tee "$testdir/actual.txt" || test_failed=1
   
   if [ -z "$test_failed" ]
   then
