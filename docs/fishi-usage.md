@@ -1217,10 +1217,9 @@ The above example could be represented by the following FISHI:
     ```
 
 The syntax for SDDs in FISHI is significantly more complex than the theoretical
-one. This is partially due to decoupling Go from its own syntax so that
-executions of Go needed to produce a value can be handled by separate libraries.
-This part of FISHI is the newest and is the most likely to have its syntax
-updated.
+one. This is partially due to decoupling Go code from itself so that executions
+of Go needed to produce a value can be handled by separate libraries. This part
+of FISHI is the newest and is the most likely to have its syntax updated.
 
 Unlike other sections in FISHI, whitespace in `%%actions` sections has
 absolutely no semantic meaning anywhere and is completely ignored. The only
@@ -1324,8 +1323,8 @@ higher than the previous production, or 0 if it is the first action set.
                   -> : {^}.val = identity({0}.val)
 
 But do note that the implicit production selector is fragile to re-ordering of
-the grammar, so it might be best to hold off on using until the grammar is in a
-relatively stable state.
+the grammar, so it might be best to hold off on using it until the grammar is in
+a relatively stable state.
 
 ### SDDs
 
@@ -1357,7 +1356,7 @@ detail that the creator of the language must provide when retrieving the
 generated frontend. This is passed in as a special
 `github.com/dekarrin/ictiobus/trans.HookMap` type variable that maps the names
 of the hook function to functions that are executed for them. For instance, the
-above hook `make_type_sum` might be implmented by users of the frontend
+above hook `make_type_sum` might be implemented by users of the frontend
 providing the following hook table at runtime:
 
 ```go
@@ -1397,9 +1396,10 @@ node (see the AttrRef section below).
 
     %symbol {SUM} -> {SUM} + {TERM} :  {^}.value = add({0}.value, {2}.value)
 
-The values of the referenced attributes will be passed to the hook implemenation
-at runtime in its second parameter as a slice of `interface{}` objects. When
-there are no arguments, the hook implementation is passed an empty slice.
+The values of the referenced attributes will be passed to the hook
+implementation at runtime in its second parameter as a slice of `interface{}`
+objects. When there are no arguments, the hook implementation is passed an empty
+slice.
 
 The closing parenthesis at the end of a list of arguments to the hooks is pure
 syntactic sugar and is ignored by the parser, as are the commas between
@@ -1422,7 +1422,7 @@ being expected as opposed to whatever comes next.
 While it is a peculiarity of FISHI that `()` is treated separately from `(` and
 `)` (and in the future, this might not be the case!), this is done to
 distinguish the syntactic sugar of indicating `empty arguments` from the
-syntatic sugar of starting the arg list with a single `(`. It is the way it is
+syntactic sugar of starting the arg list with a single `(`. It is the way it is
 for historical reasons and future versions of Ictiobus may change this.
 
 ### AttrRefs
@@ -1471,7 +1471,7 @@ associated grammar rule:
 
 The node-reference can refer to the child node of the current one that
 corresponds to the Nth symbol in the associated production by putting its
-0-based index in between curly braces. This is by-far the shortest form of node
+0-based index in between curly braces. This is by far the shortest form of node
 reference for a production symbol (although it can be difficult to read if the
 production specifier does not explicitly give the production):
 
@@ -1563,9 +1563,10 @@ the terminal after the `.`/`&`, still within braces:
 ### Built-In Attributes
 
 Usually, if an attribute is being used as an argument to a hook, it must be
-defined by another SDD elsewhere on the grammar rule for that symbol. But some
-attributes are automatically added to a parse tree during initial creation of
-the annotated parse tree. All of these attributes will have a name that starts
+defined by another SDD elsewhere on the grammar rule for that symbol. This is
+true for user-defined attributes, but some attributes are *built-in*. They are
+automatically added to a parse tree during initial annotation of it and are
+immediately available for use. All built-in attributes have a name that starts
 with a dollar sign `$`.
 
 * `$text` - Defined for terminal symbol nodes only. This is the text that was
@@ -1577,30 +1578,31 @@ production. This is the "First Token" of the node; for terminal nodes, this is
 the token that was lexed for it, for non-terminal nodes, this is the first token
 that is part of the grammar construct. Note that the token info for the node a
 hook is producing a value for is always passed to the implementation as its
-first argument; `$ft` can be used to get the first-tokens of symbols from a
+first argument; `$ft` can be used to get the first tokens of symbols from the
 production.
 
 ### Synthesized vs Inherited Attributes
 
 Within Ictiobus (and sometimes in FISHI) you may come across the concept of
-*synthesized* attributes. A synthesized attribute is one that is set on the same
-node as its SDD is called on. Every attribute described in this document so far
-has been synthesized; in FISHI this is done by assigning to an attribute of the
-head symbol with `{^}.someAttributeName = ...`. For synthesized attributes,
-arguments to the hook can only be from nodes that are children of the node that
-the SDD is called on (i.e. symbols from the production). Again, this is the only
-example shown in this document.
+*synthesized* attributes. A synthesized attribute is set on the same node as its
+SDD is called on. Every attribute described in this document so far has been
+synthesized; in FISHI this is done by assigning to an attribute of the head
+symbol with `{^}.someAttributeName = ...`. For synthesized attributes, arguments
+to the hook can only be from nodes that are children of the node that the SDD is
+called on (i.e. symbols from the production). Again, this is the only example
+shown in this document.
 
-There is also the idea of *inherited* attributes. Inherited attributes would be
+There is also the idea of *inherited* attributes. Inherited attributes are
 created by setting the value of an attribute in a child node of the one the SDD
 is running on. They can use the values of attributes on sibling nodes and the
 head note as arguments to the hook.
 
 A translation scheme defined by a series of SDDs on grammar rules (known
-formally as an *attribute grammar*) that only define synthesized attributes is
-known as S-attributed. Despite having some code for handling inherited
-attributes, Ictiobus does not officially support this and it is poorly tested.
-They should in general not be used.
+formally as an *attribute grammar*) is referred to as *S-attributed* when all
+SDDs define attributes that are synthesized. Icitobus only officially supports
+S-attributed translation schemes. Despite having some code for handling
+inherited attributes, Ictiobus does not officially support this and it is poorly
+tested. They should in general not be used.
 
 ### The IR Attribute
 
@@ -1623,8 +1625,8 @@ once SDTS evaluation completes.
     -> {STMT-LIST} :  {^}.ast = make_list_node({0}.ast)
 
 In the above example, the attribute `ast` on the root `COMPLETE-PROGRAM` node of
-parse trees would be used to retrieve the IR, because it is the first one
-defined for the grammar start symbol (`COMPLETE-PROGRAM`).
+parse trees would be used to retrieve the IR because it is the first one defined
+for the grammar start symbol (`COMPLETE-PROGRAM`).
 
 
 ### Creation Of Abstract Syntax Trees
@@ -1633,7 +1635,7 @@ This IR value can be anything that you wish it to be. For simpler languages,
 such as FISHIMath, it can be immediately calculated by evaluating mathematical
 options to build up a final result. For others, a special representation of the
 input code called an *abstract syntax tree* (AST) might be built up. An abstract
-syntax tree difers from a parse tree by abstracting the grammatical details
+syntax tree differs from a parse tree by abstracting the grammatical details
 of how the constructs within the code were arranged into a more natural
 representation that reflects the logical structures of the language, such as
 control structures. It is suitable for further evaluation by the caller of the
@@ -1688,10 +1690,10 @@ following tree:
           |               \-- (rparen ")")
           \-- (block-close "}")
 
-That's ludicrously messy, and would be difficult to directly analyze. By
-defining a series of actions in the SDTS which convert each item to some sort of
-AST node, passing the values along as neede, a tree that representes the same
-syntax but in a more abstract fashion can be created:
+That's ludicrously messy and would be difficult to directly analyze. By defining
+a series of SDDs that gather related nodes together to produce abstract
+representations of their structure, a much smaller tree that represents the same
+syntax be created:
 
     [if-statement]
      |-- condition: [binary expression (op="&&")]
@@ -1718,7 +1720,7 @@ AST of the input and uses that as the IR.
 #### Immediate Evaluation Version
 
 This example performs immediate evaluation. Its IR is a slice of numbers, where
-the item with index N is the value of evaluating the Nth statment. If you want
+the item with index N is the value of evaluating the Nth statement. If you want
 to try it out, be sure and use the Go code in Appendix A to provide the
 HooksTable.
 
@@ -1768,10 +1770,10 @@ HooksTable.
 
 #### AST Creation Version
 
-This example performs creation of an abstract syntax tree, deferring actual
-evaluation to the caller of the frontend. Its IR is an AST successively built up
-out of each of the grammar constructs. If you want to try it out, be sure and
-use the Go code in Appendix B to provide the HooksTable.
+This example creates an abstract syntax tree, deferring actual evaluation to the
+caller of the frontend. Its IR is an AST successively built up out of each of
+the grammar constructs. If you want to try it out, be sure and use the Go code
+in Appendix B to provide the HooksTable.
 
     ```fishi
     %%actions
@@ -2015,8 +2017,9 @@ func getBinaryArgsCoerced(args []interface{}) (left, right FMValue, err error) {
 }
 
 // FMValue is a calculated result from FISHIMath. It holds either a float32 or
-// int and is convertible to either. The type of value it holds is querable with
-// IsFloat. Int() or Float() can be called on it to get the value as that type.
+// int and is convertible to either. The type of value it holds is queryable
+// with IsFloat. Int() or Float() can be called on it to get the value as that
+// type.
 type FMValue struct {
     IsFloat bool
     i int
@@ -2300,7 +2303,7 @@ const (
     // performed on them.
     BinaryOp
 
-    // Assignment is an assingment of a value to a variable in FISHIMath using
+    // Assignment is an assignment of a value to a variable in FISHIMath using
     // the value tentacle.
     Assignment
 
@@ -2373,7 +2376,7 @@ type Node interface {
     // not Assignment.
     AsAssignment() AssignmentNode
 
-    // AsGroup returns this Node as an GroupNode. Panics if Type() is not Group.
+    // AsGroup returns this Node as a GroupNode. Panics if Type() is not Group.
     AsGroup() GroupNode
 
     // FMString converts this Node into FISHIMath code that would produce an
@@ -2532,7 +2535,7 @@ func spaceIndentNewlines(str string, amount int) string {
 type ValueType int
 
 const (
-    // Int is an integer of at least 32-bits.
+    // Int is an integer of at least 32 bits.
     Int ValueType = iota
 
     // Float is a floating point number represented as an IEEE-754 single
