@@ -138,7 +138,8 @@ func executeTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 		}
 	}
 
-	return shellout.ExecFG(gci.Path, nil, "go", args...)
+	env := append(os.Environ(), "GOWORK=off")
+	return shellout.ExecFG(gci.Path, env, "go", args...)
 }
 
 // GenerateDiagnosticsBinary generates a binary that can read input written in
@@ -195,7 +196,7 @@ func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, params DiagBinParams)
 	}
 
 	env := os.Environ()
-	env = append(env, "CGO_ENABLED=0")
+	env = append(env, "CGO_ENABLED=0", "GOWORK=off")
 	if err := shellout.ExecFG(gci.Path, env, "go", "build", "-o", binName, gci.MainFile); err != nil {
 		return err
 	}
