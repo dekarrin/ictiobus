@@ -119,3 +119,6 @@ func (mp mockSDTS) BindI(head string, prod []string, attrName string, hook strin
 func (mp mockSDTS) Bind(head string, prod []string, attrName string, hook string, withArgs []trans.AttrRef) error {
 	return nil
 }
+func (mp mockSDTS) String() string {
+	return "mockSDTS<>"
+}

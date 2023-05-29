@@ -86,6 +86,9 @@ type SDTS interface {
 	// fashion makes it easy to determine the dependency graph for later
 	// execution.
 	Bind(head string, prod []string, attrName string, hook string, withArgs []AttrRef) error
+
+	// String returns a string representation of the SDTS.
+	String() string
 }
 
 // NewSDTS creates a new, empty Syntax-Directed Translation Scheme.
