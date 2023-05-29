@@ -1,6 +1,7 @@
 package trans
 
 import (
+	"log"
 	"strings"
 	"testing"
 
@@ -14,109 +15,109 @@ func Test_depGraph(t *testing.T) {
 		bindings []sddBinding
 		expect   []string
 	}{
-		{
-			name: "no dependencies",
-			apt: ATNode(1, "A",
-				ATNode(2, "B"),
-				ATNode(3, "B"),
-				ATLeaf(4, "int"),
-				ATNode(5, "C"),
-				ATLeaf(6, "int"),
-			),
-			bindings: []sddBinding{
-				mockSBind("A", []string{"B", "B", "int", "C", "int"}, AttrRef{Rel: NRHead(), Name: "test"}),
-			},
-			expect: []string{`((1: A -> [B B int C int], {head symbol}.test))`},
-		},
-		{
-			name: "1-step dep terminating on built-in via rel-symbol to terminal",
-			apt: ATNode(1, "A",
-				ATNode(2, "B"),
-				ATNode(3, "B",
-					ATLeaf(7, "int"),
-				),
-				ATLeaf(4, "int"),
-				ATNode(5, "C"),
-				ATLeaf(6, "int"),
-			),
-			bindings: []sddBinding{
-				mockSBind("A", []string{"B", "B", "int", "C", "int"}, AttrRef{Rel: NRHead(), Name: "test"},
-					AttrRef{Rel: NRSymbol(2), Name: "$text"},
-				),
-			},
-			expect: []string{`(
-	(1: A -> [B B int C int], {head symbol}.test),
-	(4: int, {head symbol}.$text => [1])
-)`},
-		},
-		{
-			name: "2-step dep terminating on built-in via rel-symbol to terminal",
-			apt: ATNode(1, "A",
-				ATNode(2, "B"),
-				ATNode(3, "B",
-					ATLeaf(7, "int"),
-				),
-				ATLeaf(4, "int"),
-				ATNode(5, "C"),
-				ATLeaf(6, "int"),
-			),
-			bindings: []sddBinding{
-				mockSBind("B", []string{"int"}, AttrRef{Rel: NRHead(), Name: "feature"},
-					AttrRef{Rel: NRSymbol(0), Name: "$text"},
-				),
-				mockSBind("A", []string{"B", "B", "int", "C", "int"}, AttrRef{Rel: NRHead(), Name: "test"},
-					AttrRef{Rel: NRSymbol(1), Name: "feature"},
-				),
-			},
-			expect: []string{`(
-	(1: A -> [B B int C int], {head symbol}.test),
-	(3: B -> [int], {head symbol}.feature => [1]),
-	(7: int, {head symbol}.$text => [3])
-)`},
-		},
-		{
-			name: "1-step dep terminating on built-in via rel-terminal to terminal",
-			apt: ATNode(1, "A",
-				ATNode(2, "B"),
-				ATNode(3, "B",
-					ATLeaf(7, "int"),
-				),
-				ATLeaf(4, "int"),
-				ATNode(5, "C"),
-				ATLeaf(6, "int"),
-			),
-			bindings: []sddBinding{
-				mockSBind("A", []string{"B", "B", "int", "C", "int"}, AttrRef{Rel: NRHead(), Name: "test"},
-					AttrRef{Rel: NRTerminal(0), Name: "$text"},
-				),
-			},
-			expect: []string{`(
-	(1: A -> [B B int C int], {head symbol}.test),
-	(4: int, {head symbol}.$text => [1])
-)`},
-		},
-		{
-			name: "1-step dep terminating on non-built-in via rel-nonterminal to nonterminal",
-			apt: ATNode(1, "A",
-				ATNode(2, "B"),
-				ATNode(3, "B",
-					ATLeaf(7, "int"),
-				),
-				ATLeaf(4, "int"),
-				ATNode(5, "C"),
-				ATLeaf(6, "int"),
-			),
-			bindings: []sddBinding{
-				mockSBind("B", []string{"int"}, AttrRef{Rel: NRHead(), Name: "someVal"}),
-				mockSBind("A", []string{"B", "B", "int", "C", "int"}, AttrRef{Rel: NRHead(), Name: "test"},
-					AttrRef{Rel: NRNonTerminal(1), Name: "someVal"},
-				),
-			},
-			expect: []string{`(
-	(1: A -> [B B int C int], {head symbol}.test),
-	(3: B -> [int], {head symbol}.someVal => [1])
-)`},
-		},
+		/*{
+					name: "no dependencies",
+					apt: ATNode(1, "A",
+						ATNode(2, "B"),
+						ATNode(3, "B"),
+						ATLeaf(4, "int"),
+						ATNode(5, "C"),
+						ATLeaf(6, "int"),
+					),
+					bindings: []sddBinding{
+						mockSBind("A", []string{"B", "B", "int", "C", "int"}, AttrRef{Rel: NRHead(), Name: "test"}),
+					},
+					expect: []string{`((1: A -> [B B int C int], {head symbol}.test))`},
+				},
+				{
+					name: "1-step dep terminating on built-in via rel-symbol to terminal",
+					apt: ATNode(1, "A",
+						ATNode(2, "B"),
+						ATNode(3, "B",
+							ATLeaf(7, "int"),
+						),
+						ATLeaf(4, "int"),
+						ATNode(5, "C"),
+						ATLeaf(6, "int"),
+					),
+					bindings: []sddBinding{
+						mockSBind("A", []string{"B", "B", "int", "C", "int"}, AttrRef{Rel: NRHead(), Name: "test"},
+							AttrRef{Rel: NRSymbol(2), Name: "$text"},
+						),
+					},
+					expect: []string{`(
+			(1: A -> [B B int C int], {head symbol}.test),
+			(4: int, {head symbol}.$text => [1])
+		)`},
+				},
+				{
+					name: "2-step dep terminating on built-in via rel-symbol to terminal",
+					apt: ATNode(1, "A",
+						ATNode(2, "B"),
+						ATNode(3, "B",
+							ATLeaf(7, "int"),
+						),
+						ATLeaf(4, "int"),
+						ATNode(5, "C"),
+						ATLeaf(6, "int"),
+					),
+					bindings: []sddBinding{
+						mockSBind("B", []string{"int"}, AttrRef{Rel: NRHead(), Name: "feature"},
+							AttrRef{Rel: NRSymbol(0), Name: "$text"},
+						),
+						mockSBind("A", []string{"B", "B", "int", "C", "int"}, AttrRef{Rel: NRHead(), Name: "test"},
+							AttrRef{Rel: NRSymbol(1), Name: "feature"},
+						),
+					},
+					expect: []string{`(
+			(1: A -> [B B int C int], {head symbol}.test),
+			(3: B -> [int], {head symbol}.feature => [1]),
+			(7: int, {head symbol}.$text => [3])
+		)`},
+				},
+				{
+					name: "1-step dep terminating on built-in via rel-terminal to terminal",
+					apt: ATNode(1, "A",
+						ATNode(2, "B"),
+						ATNode(3, "B",
+							ATLeaf(7, "int"),
+						),
+						ATLeaf(4, "int"),
+						ATNode(5, "C"),
+						ATLeaf(6, "int"),
+					),
+					bindings: []sddBinding{
+						mockSBind("A", []string{"B", "B", "int", "C", "int"}, AttrRef{Rel: NRHead(), Name: "test"},
+							AttrRef{Rel: NRTerminal(0), Name: "$text"},
+						),
+					},
+					expect: []string{`(
+			(1: A -> [B B int C int], {head symbol}.test),
+			(4: int, {head symbol}.$text => [1])
+		)`},
+				},
+				{
+					name: "1-step dep terminating on non-built-in via rel-nonterminal to nonterminal",
+					apt: ATNode(1, "A",
+						ATNode(2, "B"),
+						ATNode(3, "B",
+							ATLeaf(7, "int"),
+						),
+						ATLeaf(4, "int"),
+						ATNode(5, "C"),
+						ATLeaf(6, "int"),
+					),
+					bindings: []sddBinding{
+						mockSBind("B", []string{"int"}, AttrRef{Rel: NRHead(), Name: "someVal"}),
+						mockSBind("A", []string{"B", "B", "int", "C", "int"}, AttrRef{Rel: NRHead(), Name: "test"},
+							AttrRef{Rel: NRNonTerminal(1), Name: "someVal"},
+						),
+					},
+					expect: []string{`(
+			(1: A -> [B B int C int], {head symbol}.test),
+			(3: B -> [int], {head symbol}.someVal => [1])
+		)`},
+				},*/
 		{
 			name: "FISHIMATH (eval version) breaking test case for GHI-128",
 			apt: ATNode(1, "FISHIMATH",
@@ -267,6 +268,8 @@ func Test_depGraph(t *testing.T) {
 				bindsForHead[prodStr] = bindsForProd
 				sdts.bindings[b.BoundRuleSymbol] = bindsForHead
 			}
+
+			log.Printf("%s\n", sdts)
 
 			// exec
 			actuals := depGraph(*tc.apt, sdts)

@@ -2,6 +2,7 @@ package trans
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/dekarrin/ictiobus/internal/box"
@@ -28,8 +29,14 @@ func (sdts *sdtsImpl) String() string {
 		sb.WriteString("(nil bindings) ")
 	} else {
 		sb.WriteRune('\n')
-		for rName := range sdts.bindings {
-			for rProd := range sdts.bindings[rName] {
+
+		// need ordered listing for debug output
+		rNames := slices.Keys(sdts.bindings)
+		sort.Strings(rNames)
+		for _, rName := range rNames {
+			rProds := slices.Keys(sdts.bindings[rName])
+			sort.Strings(rProds)
+			for _, rProd := range rProds {
 				sddsForRule := sdts.bindings[rName][rProd]
 				for _, sdd := range sddsForRule {
 					sb.WriteRune('\t')
