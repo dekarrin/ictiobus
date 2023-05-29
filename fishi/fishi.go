@@ -6,7 +6,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -170,8 +169,6 @@ func Parse(r io.Reader, opts *Options) (Results, error) {
 		LexerTrace:  opts.LexerTrace,
 		ParserTrace: opts.ParserTrace,
 	})
-
-	log.Printf("%s", fishiFront.SDTS.String())
 
 	res := Results{}
 	// now, try to make a parse tree

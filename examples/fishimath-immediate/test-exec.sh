@@ -11,6 +11,7 @@ cd "$script_path"
 "$old_dir/ictcc" --clr \
 	--ir '[]github.com/dekarrin/fishimath/fmhooks.FMValue' \
 	-l FISHIMath -v 1.0 \
+	-d "$script_path/testdiag-eval" \
 	--hooks "fmhooks" \
 	-S all \
     --dev \
