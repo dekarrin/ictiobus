@@ -45,8 +45,14 @@ func (sdts *sdtsImpl) String() string {
 	if len(sdts.hooks) == 0 {
 		sb.WriteString(" (none)")
 	} else {
+		// uses this inste
+		hooks := slices.Keys(sdts.hooks)
+		alphaHooks := slices.SortBy(hooks, func(l, r string) bool {
+			return l < r
+		})
+
 		sb.WriteString("\n")
-		for hook := range sdts.hooks {
+		for _, hook := range alphaHooks {
 			sb.WriteRune('\t')
 			sb.WriteString(hook)
 			sb.WriteRune('\n')
