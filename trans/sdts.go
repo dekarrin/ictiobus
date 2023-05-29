@@ -16,6 +16,48 @@ type sdtsImpl struct {
 	bindings map[string]map[string][]sddBinding
 }
 
+// String returns the string representation of the sdtsImpl.
+func (sdts *sdtsImpl) String() string {
+	if sdts == nil {
+		return "<nil>"
+	}
+
+	var sb strings.Builder
+	sb.WriteString("sdtsImpl<")
+	if sdts.bindings == nil {
+		sb.WriteString("(nil bindings) ")
+	} else {
+		sb.WriteRune('\n')
+		for rName := range sdts.bindings {
+			for rProd := range sdts.bindings[rName] {
+				sddsForRule := sdts.bindings[rName][rProd]
+				for _, sdd := range sddsForRule {
+					sb.WriteRune('\t')
+					sb.WriteString(sdd.String())
+					sb.WriteRune('\n')
+				}
+			}
+		}
+		sb.WriteString("\t-- ")
+	}
+	sb.WriteString("hook implementations:")
+
+	if len(sdts.hooks) == 0 {
+		sb.WriteString(" (none)")
+	} else {
+		sb.WriteString("\n")
+		for hook := range sdts.hooks {
+			sb.WriteRune('\t')
+			sb.WriteString(hook)
+			sb.WriteRune('\n')
+		}
+	}
+
+	sb.WriteRune('>')
+
+	return sb.String()
+}
+
 // SetHooks sets the hook mapping containing implementations of the hooks in the
 // SDTS. It must be called before calling Evaluate.
 func (sdts *sdtsImpl) SetHooks(hooks HookMap) {

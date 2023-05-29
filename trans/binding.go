@@ -1,6 +1,11 @@
 package trans
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/dekarrin/ictiobus/internal/slices"
+)
 
 // sddBinding represents a single binding of a syntax-directed definition to a
 // rule in the grammar. It will be executed for all nodes created for that rule.
@@ -32,6 +37,42 @@ type sddBinding struct {
 	// NoFlows is the list of parents that this binding is allowed to not flow
 	// up to without causing error.
 	NoFlows []string
+}
+
+// String returns the string representation of the sddBinding.
+func (bind sddBinding) String() string {
+	attrType := "S"
+	if !bind.Synthesized {
+		attrType = "I"
+	}
+
+	prodStr := strings.Join(bind.BoundRuleProduction, " ")
+	if prodStr == "" {
+		prodStr = "ε"
+	}
+	rule := bind.BoundRuleSymbol + " -> [" + prodStr + "]"
+
+	dest := bind.Dest.String()
+
+	hook := bind.Setter
+
+	var args string
+	argsSlice := slices.Map(bind.Requirements, AttrRef.String)
+	if len(argsSlice) > 0 {
+		args = strings.Join(argsSlice, ", ")
+	}
+
+	fmtStr := `<%s-Attr on="%s" set="%s" hook=%q args=(%s)`
+	s := fmt.Sprintf(fmtStr, attrType, rule, dest, hook, args)
+
+	// now add the NoFlows
+
+	if len(bind.NoFlows) > 0 {
+		s += " no_flows=[" + strings.Join(bind.NoFlows, ", ") + "]"
+	}
+
+	s += ">"
+	return s
 }
 
 // Copy returns a deep copy of the SDDBinding.
