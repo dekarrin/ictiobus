@@ -1,6 +1,8 @@
 package fishi
 
 import (
+	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/dekarrin/ictiobus/parse"
@@ -223,6 +225,70 @@ type cgData struct {
 	Bindings          []cgBinding
 }
 
+func (cgd cgData) String() string {
+	var sb strings.Builder
+
+	sb.WriteString("codegenData{\n")
+	sb.WriteString(fmt.Sprintf("  FrontendPackage:   %q\n", cgd.FrontendPackage))
+	sb.WriteString(fmt.Sprintf("  Lang:              %q\n", cgd.Lang))
+	sb.WriteString(fmt.Sprintf("  Version:           %q\n", cgd.Version))
+	sb.WriteString(fmt.Sprintf("  IRAttribute:       %q\n", cgd.IRAttribute))
+	sb.WriteString(fmt.Sprintf("  IRType:            %q\n", cgd.IRType))
+	sb.WriteString(fmt.Sprintf("  IRPackage:         %q\n", cgd.IRPackage))
+	sb.WriteString(fmt.Sprintf("  TokenPkgName:      %q\n", cgd.TokenPkgName))
+	sb.WriteString(fmt.Sprintf("  FrontendPkgImport: %q\n", cgd.FrontendPkgImport))
+	sb.WriteString(fmt.Sprintf("  Command:           %q\n", cgd.Command))
+	sb.WriteString(fmt.Sprintf("  CommandArgs:       %q\n", cgd.CommandArgs))
+
+	// classes
+	sb.WriteString("  Classes:           [")
+	if len(cgd.Classes) < 1 {
+		sb.WriteString("]\n")
+	} else {
+		sb.WriteString("\n")
+		for i := range cgd.Classes {
+			sb.WriteString(fmt.Sprintf("    %s", cgd.Classes[i].String()))
+			if i+1 < len(cgd.Classes) {
+				sb.WriteRune(',')
+			}
+			sb.WriteRune('\n')
+		}
+		sb.WriteString("  ]")
+	}
+
+	// patterns
+	sb.WriteString("  Patterns:          {\n")
+	sb.WriteString("    (default state): {\n")
+	for i := range cgd.Patterns.DefaultState.Classes {
+		sb.WriteString(fmt.Sprintf("      %s\n", cgd.Patterns.DefaultState.Classes[i].String()))
+	}
+	for i := range cgd.Patterns.DefaultState.Entries {
+		sb.WriteString(fmt.Sprintf("      %s\n", cgd.Patterns.DefaultState.Entries[i].String()))
+	}
+	sb.WriteString("    }\n")
+	for i := range cgd.Patterns.NonDefaultStates {
+		st := cgd.Patterns.NonDefaultStates[i]
+		sb.WriteString(fmt.Sprintf("    %q: {\n", st.State))
+		for j := range st.Classes {
+			sb.WriteString(fmt.Sprintf("      %s\n", st.Classes[j].String()))
+		}
+		for j := range st.Entries {
+			sb.WriteString(fmt.Sprintf("      %s\n", st.Entries[j].String()))
+		}
+
+		sb.WriteString("    }\n")
+	}
+	sb.WriteString("  }")
+
+	// rules
+
+	// bindings
+
+	sb.WriteRune('}')
+
+	return sb.String()
+}
+
 type cgPatterns struct {
 	DefaultState     cgStatePatterns
 	NonDefaultStates []cgStatePatterns
@@ -240,9 +306,25 @@ type cgPatternEntry struct {
 	Priority int
 }
 
+func (cgpe cgPatternEntry) String() string {
+	return fmt.Sprintf("<P%d /%s/ %s>", cgpe.Priority, cgpe.Regex, cgpe.Action)
+}
+
 type cgBinding struct {
 	Head        string
 	Productions []cgSDTSProd
+}
+
+func (cgb cgBinding) String() string {
+	s := fmt.Sprintf("<%s [", cgb.Head)
+	for i := range cgb.Productions {
+		s += cgb.Productions[i].String()
+		if i+1 < len(cgb.Productions) {
+			s += ", "
+		}
+	}
+	s += "]>"
+	return s
 }
 
 type cgSDTSProd struct {
@@ -255,10 +337,39 @@ type cgSDTSProd struct {
 	ForRelIndex int
 }
 
+func (cgsp cgSDTSProd) String() string {
+	prodStr := strings.Join(cgsp.Symbols, ", ")
+	if prodStr == "" {
+		prodStr = "ε"
+	}
+
+	arStr := fmt.Sprintf("{%s$%d}.%s", cgsp.ForRelType, cgsp.ForRelIndex, cgsp.Attribute)
+
+	attrType := "S"
+	if !cgsp.Synthetic {
+		attrType = "I"
+	}
+
+	hookCall := cgsp.Hook + "("
+	for i := range cgsp.Args {
+		hookCall += cgsp.Args[i].String()
+		if i+1 < len(cgsp.Args) {
+			hookCall += ", "
+		}
+	}
+	hookCall += ")"
+
+	return fmt.Sprintf("<%s [%s]: %s = %s>", attrType, prodStr, arStr, hookCall)
+}
+
 type cgArg struct {
 	RelType   string
 	RelIndex  int
 	Attribute string
+}
+
+func (cga cgArg) String() string {
+	return fmt.Sprintf("{%s$%d}.%s", cga.RelType, cga.RelIndex, cga.Attribute)
 }
 
 type cgRule struct {
@@ -266,12 +377,45 @@ type cgRule struct {
 	Productions []cgGramProd
 }
 
+func (cgr cgRule) String() string {
+	var sb strings.Builder
+
+	sb.WriteString(cgr.Head)
+	sb.WriteString(" -> ")
+
+	if len(cgr.Productions) == 0 {
+		sb.WriteString(" (no productions defined)")
+		return sb.String()
+	}
+
+	for i := range cgr.Productions {
+		sb.WriteString(cgr.Productions[i].String())
+		if i+1 < len(cgr.Productions) {
+			sb.WriteString(" | ")
+		}
+	}
+
+	return sb.String()
+}
+
 type cgGramProd struct {
 	Symbols []string
+}
+
+func (cggp cgGramProd) String() string {
+	prodStr := strings.Join(cggp.Symbols, ", ")
+	if prodStr == "" {
+		prodStr = "ε"
+	}
+	return "[" + prodStr + "]"
 }
 
 type cgClass struct {
 	Name  string
 	ID    string
 	Human string
+}
+
+func (cgc cgClass) String() string {
+	return fmt.Sprintf("(%s %s %q)", cgc.Name, cgc.ID, cgc.Human)
 }
