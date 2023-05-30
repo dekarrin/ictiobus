@@ -10,6 +10,7 @@ import (
 	"github.com/dekarrin/ictiobus/grammar"
 	"github.com/dekarrin/ictiobus/internal/box"
 	"github.com/dekarrin/ictiobus/internal/rezi"
+	"github.com/dekarrin/ictiobus/internal/textfmt"
 	"github.com/dekarrin/ictiobus/lex"
 )
 
@@ -133,14 +134,25 @@ func (ll1 *ll1Parser) Parse(stream lex.TokenStream) (Tree, error) {
 				ptStack.Pop()
 				node = ptStack.Peek()
 			} else {
-				return pt, lex.NewSyntaxErrorFromToken(fmt.Sprintf("There should be a %s here, but it was %q!", t.Human(), next.Lexeme()), next)
+				expMessage := "expected " + textfmt.ArticleFor(t.Human(), false) + " " + t.Human()
+
+				if next.Class().ID() == lex.TokenError.ID() {
+					return pt, lex.NewSyntaxErrorFromToken(fmt.Sprintf("%s; %s", next.Lexeme(), expMessage), next)
+				}
+
+				return pt, lex.NewSyntaxErrorFromToken(fmt.Sprintf("unexpected %s; %s", next.Class().Human(), expMessage), next)
 			}
 
 			next = stream.Peek()
 		} else {
 			nextProd := ll1.table.Get(X, ll1.g.TermFor(next.Class()))
 			if nextProd.Equal(grammar.Error) {
-				return pt, lex.NewSyntaxErrorFromToken(fmt.Sprintf("It doesn't make any sense to put a %q here!", next.Class().Human()), next)
+
+				if next.Class().ID() == lex.TokenError.ID() {
+					return pt, lex.NewSyntaxErrorFromToken(fmt.Sprintf("%s", next.Lexeme()), next)
+				}
+
+				return pt, lex.NewSyntaxErrorFromToken(fmt.Sprintf("unexpected %s", next.Class().Human()), next)
 			}
 
 			symStack.Pop()

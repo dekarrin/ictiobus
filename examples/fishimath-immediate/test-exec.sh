@@ -23,5 +23,5 @@ echo "[PRE] Building diagnostic binary..."
 echo "(done)"
 
 echo "[1/1] No statement shark!"
-./testdiag-eval -C "2 (0-2) / 0     <o^><"
+./testdiag-eval -C "(0-2) / 0     <o^><"
 echo "(done)"

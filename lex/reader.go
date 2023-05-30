@@ -19,6 +19,9 @@ type regexReader struct {
 	cur   int
 	marks map[string]int
 	atEOF bool
+
+	// lastReadRuneErr only has value set when this is set to a ptr destination
+	lastReadRuneErr *error
 }
 
 func newRegexReader(r io.Reader) *regexReader {
@@ -94,15 +97,30 @@ func (rr *regexReader) NextRune(count int) (size int, err error) {
 func (rr *regexReader) SearchAndAdvance(re *regexp.Regexp) ([]string, error) {
 	// if we KNOW we are at the end, no reason to attempt a match. immediately
 	// return io.EOF.
+	if rr.atEOF {
+		return nil, io.EOF
+	}
+
+	// check the error later since FindReaderSubmatchIndex will not find it for
+	// us.
+	var readRuneErr error
+	rr.lastReadRuneErr = &readRuneErr
 
 	rr.Mark("SEARCH_AND_ADVANCE")
 	matchIndexes := re.FindReaderSubmatchIndex(rr)
+	rr.lastReadRuneErr = nil
+
 	matches := rr.GetMatches("SEARCH_AND_ADVANCE", matchIndexes)
 	rr.Restore("SEARCH_AND_ADVANCE")
 	if len(matches) > 0 {
 		rr.Seek(int64(matchIndexes[1]), io.SeekCurrent)
 	} else {
 		// is it because we got an error while reading the underlying reader?
+		if readRuneErr == nil {
+			// no read rune error? great. it's a plain no-match. immediately
+			// return no matches
+			return nil, nil
+		}
 		// if so, we need to stop reading
 
 		// go to end of buffer:
@@ -169,18 +187,24 @@ func (rr *regexReader) GetMatches(mark string, pairs []int) []string {
 }
 
 func (rr *regexReader) ReadRune() (r rune, size int, err error) {
+	defer func() {
+		if err != nil && rr.lastReadRuneErr != nil {
+			*rr.lastReadRuneErr = err
+		}
+	}()
+
 	// okay, so, read 1 single byte. assuming it is a utf-8 byte, we can
 	// instantly tell how many more bytes are needed by reading the first few
 	// bits of the byte.
 	charBytes := make([]byte, 1)
-	n, err := rr.Read(charBytes)
+	n, rErr := rr.Read(charBytes)
 	if n != 1 {
-		return r, size, err
+		return r, size, rErr
 	}
 
 	var setErr error
-	if err != nil {
-		setErr = err
+	if rErr != nil {
+		setErr = rErr
 	}
 
 	firstByte := charBytes[0]
@@ -206,14 +230,14 @@ func (rr *regexReader) ReadRune() (r rune, size int, err error) {
 			return r, n, setErr
 		}
 		additionalCharBytes := make([]byte, remBytes)
-		n, err := rr.Read(additionalCharBytes)
+		n, rErr := rr.Read(additionalCharBytes)
 		if n != remBytes {
-			if err == io.EOF {
+			if rErr == io.EOF {
 				return r, n, fmt.Errorf("couldn't read all bytes of utf-8 character")
 			}
-			return r, n, err
+			return r, n, rErr
 		}
-		setErr = err
+		setErr = rErr
 		charBytes = append(charBytes, additionalCharBytes...)
 	}
 
