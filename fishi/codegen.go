@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"go/format"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -480,6 +481,8 @@ func GenerateFrontendGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, pkgI
 
 	data := createTemplateFillData(spec, md, pkgName, opts.IRType, pkgImport)
 
+	log.Printf("%s\n", data)
+
 	err := os.MkdirAll(pkgDir, 0755)
 	if err != nil {
 		return fmt.Errorf("creating target dir: %w", err)
@@ -788,22 +791,28 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 func safeTCIdentifierName(str string) string {
 	nameRunes := []rune{}
 
+	getSymbolName := func(ch rune) string {
+		// can we get a symbol name?
+		chName := runenames.Name(ch)
+
+		// how many words is the rune? you get up to 3.
+		words := strings.Split(chName, " ")
+		if len(words) > 3 {
+			// we only want the first 3 words
+			words = words[:3]
+		}
+		chName = strings.Join(words, "_")
+
+		return chName
+	}
+
 	for _, ch := range str {
 		if ('A' <= ch && ch <= 'Z') || ('a' <= ch && ch <= 'z') || ('0' <= ch && ch <= '9') || ch == '_' {
 			nameRunes = append(nameRunes, ch)
 		} else if ch == '-' || unicode.IsSpace(ch) {
 			nameRunes = append(nameRunes, '_')
 		} else {
-			// can we get a symbol name?
-			chName := runenames.Name(ch)
-
-			// how many words is the rune? you get up to 3.
-			words := strings.Split(chName, " ")
-			if len(words) > 3 {
-				// we only want the first 3 words
-				words = words[:3]
-			}
-			chName = strings.Join(words, "_")
+			chName := getSymbolName(ch)
 			nameRunes = append(nameRunes, []rune(chName)...)
 		}
 	}
@@ -812,6 +821,20 @@ func safeTCIdentifierName(str string) string {
 	name := underscoreCollapser.ReplaceAllString(string(nameRunes), "_")
 	// trim leading and trailing underscores
 	name = strings.Trim(name, "_")
+
+	// did we just get an empty string? if so, go back and actually do symbol
+	// names. should only happen if it consists only of "-" and whitespace
+	// chars
+	if name == "" {
+		newNameRunes := []rune{}
+
+		for _, ch := range str {
+			chName := getSymbolName(ch)
+			newNameRunes = append(newNameRunes, []rune(chName)...)
+		}
+
+		name = string(newNameRunes)
+	}
 
 	fullName := "TC"
 	// split by underscores and do a title case on each word
