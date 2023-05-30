@@ -79,6 +79,7 @@ var (
 
 var (
 	underscoreCollapser = regexp.MustCompile(`_+`)
+	unsafeRunenameChars = regexp.MustCompile(`[^A-Za-z0-9_]`)
 	titleCaser          = cases.Title(language.AmericanEnglish)
 
 	// order in which components of the generated compiler (files) are created.
@@ -794,6 +795,8 @@ func safeTCIdentifierName(str string) string {
 	getSymbolName := func(ch rune) string {
 		// can we get a symbol name?
 		chName := runenames.Name(ch)
+
+		chName = unsafeRunenameChars.ReplaceAllString(chName, "_")
 
 		// how many words is the rune? you get up to 3.
 		words := strings.Split(chName, " ")
