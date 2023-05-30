@@ -8,6 +8,8 @@ export ICTIOBUS_SOURCE="$old_dir"
 
 cd "$script_path"
 
+echo "[PRE] Building diagnostic binary..."
+
 "$old_dir/ictcc" --clr \
 	--ir '[]github.com/dekarrin/fishimath/fmhooks.FMValue' \
 	-l FISHIMath -v 1.0 \
@@ -15,10 +17,11 @@ cd "$script_path"
 	--hooks "fmhooks" \
 	-S all \
     --dev \
-	-ns \
+	-nq \
 	"$script_path/fm-eval.md" || { echo "FAIL" >&2 ; exit 1 ; }
 
+echo "(done)"
 
-#echo "[5/5] Invalid FISHI should fail (no code blocks are present)"
-#./ictcc -nsqS all "$script_path/no-fishi-blocks.md" 2>&1 | sed 's%'"$script_path"'%(TEST_PATH)%g'
-#echo "(done)"
+echo "[1/1] No statement shark!"
+./testdiag-eval -C "2 (0-2) / 0     <o^><"
+echo "(done)"

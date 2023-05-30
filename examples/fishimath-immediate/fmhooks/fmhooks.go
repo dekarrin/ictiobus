@@ -78,9 +78,12 @@ func hookDivide(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	if v1.IsFloat {
+	// if one of them is a float (which will have them both coerced to float),
+	// OR if we're about to divide by zero, do IEEE-754 math.
+	if v1.IsFloat || v2.Int() == 0 {
 		return FMFloat(v1.Float() / v2.Float()), nil
 	}
+
 	return FMInt(v1.Int() / v2.Int()), nil
 }
 
