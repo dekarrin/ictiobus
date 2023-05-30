@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"go/format"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -738,6 +739,7 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 	// ... but also, preserve the order of the bindings
 	bindingOrder := []*cgBinding{}
 	for _, sdd := range spec.TranslationScheme {
+		log.Printf("NOW DOING %v\n", sdd)
 		bData, ok := bindingData[sdd.Rule.NonTerminal]
 		if !ok {
 			bData = &cgBinding{
