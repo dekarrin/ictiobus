@@ -253,7 +253,7 @@ func (cgd cgData) String() string {
 			}
 			sb.WriteRune('\n')
 		}
-		sb.WriteString("  ]")
+		sb.WriteString("  ]\n")
 	}
 
 	// patterns
@@ -275,14 +275,39 @@ func (cgd cgData) String() string {
 		for j := range st.Entries {
 			sb.WriteString(fmt.Sprintf("      %s\n", st.Entries[j].String()))
 		}
-
 		sb.WriteString("    }\n")
 	}
-	sb.WriteString("  }")
+	sb.WriteString("  }\n")
 
 	// rules
 
+	sb.WriteString("  Rules:             [")
+	if len(cgd.Rules) < 1 {
+		sb.WriteString("]\n")
+	} else {
+		sb.WriteString("\n")
+		for i := range cgd.Rules {
+			sb.WriteString(fmt.Sprintf("    %s", cgd.Rules[i].String()))
+			sb.WriteRune('\n')
+		}
+		sb.WriteString("  ]\n")
+	}
+
 	// bindings
+	sb.WriteString("  Bindings:          [")
+	if len(cgd.Bindings) < 1 {
+		sb.WriteString("]\n")
+	} else {
+		sb.WriteString("\n")
+		for i := range cgd.Bindings {
+			bind := cgd.Bindings[i]
+			for j := range bind.Productions {
+				sb.WriteString(fmt.Sprintf("    %s: %s", bind.Head, bind.Productions[j].String()))
+			}
+			sb.WriteRune('\n')
+		}
+		sb.WriteString("  ]\n")
+	}
 
 	sb.WriteRune('}')
 
