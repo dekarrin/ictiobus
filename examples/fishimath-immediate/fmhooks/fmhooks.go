@@ -150,7 +150,7 @@ func hookNumSlicePrepend(_ trans.SetterInfo, args []interface{}) (interface{}, e
 		return nil, fmt.Errorf("arg 1 is not an []FMValue")
 	}
 
-	v, ok := args[2].(FMValue)
+	v, ok := args[1].(FMValue)
 	if !ok {
 		return nil, fmt.Errorf("arg 2 is not an FMValue")
 	}

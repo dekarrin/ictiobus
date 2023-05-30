@@ -169,12 +169,12 @@ func (nr NodeRelation) ValidFor(head string, prod []string) bool {
 
 			if strings.ToLower(sym) != sym {
 				continue
-			} else {
-				curTermIdx++
-				if curTermIdx == searchTermIdx {
-					foundIdx = i
-					break
-				}
+			}
+
+			curTermIdx++
+			if curTermIdx == searchTermIdx {
+				foundIdx = i
+				break
 			}
 		}
 		return foundIdx != -1
@@ -187,14 +187,14 @@ func (nr NodeRelation) ValidFor(head string, prod []string) bool {
 		for i := range prod {
 			sym := prod[i]
 
-			if strings.ToLower(sym) != sym {
+			if strings.ToLower(sym) == sym {
 				continue
-			} else {
-				curNonTermIdx++
-				if curNonTermIdx == searchNonTermIdx {
-					foundIdx = i
-					break
-				}
+			}
+
+			curNonTermIdx++
+			if curNonTermIdx == searchNonTermIdx {
+				foundIdx = i
+				break
 			}
 		}
 		return foundIdx != -1

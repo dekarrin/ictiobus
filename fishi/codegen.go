@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"go/format"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -481,8 +480,6 @@ func GenerateFrontendGo(spec Spec, md SpecMetadata, pkgName, pkgDir string, pkgI
 	}
 
 	data := createTemplateFillData(spec, md, pkgName, opts.IRType, pkgImport)
-
-	log.Printf("%s\n", data)
 
 	err := os.MkdirAll(pkgDir, 0755)
 	if err != nil {

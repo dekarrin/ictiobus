@@ -150,7 +150,7 @@ func (bind sddBinding) Invoke(apt *AnnotatedTree, hooksTable HookMap) (val inter
 	// detect panic in deferred function
 	defer func() {
 		if r := recover(); r != nil {
-			invokeErr = hookError{name: bind.Setter, msg: fmt.Sprintf("panicked: %v", r)}
+			invokeErr = hookError{name: bind.Setter, msg: fmt.Sprintf("hook panicked: %v", r)}
 		}
 	}()
 

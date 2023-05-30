@@ -303,8 +303,8 @@ func (cgd cgData) String() string {
 			bind := cgd.Bindings[i]
 			for j := range bind.Productions {
 				sb.WriteString(fmt.Sprintf("    %s: %s", bind.Head, bind.Productions[j].String()))
+				sb.WriteRune('\n')
 			}
-			sb.WriteRune('\n')
 		}
 		sb.WriteString("  ]\n")
 	}

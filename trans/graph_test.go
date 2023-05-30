@@ -1,7 +1,6 @@
 package trans
 
 import (
-	"log"
 	"strings"
 	"testing"
 
@@ -268,8 +267,6 @@ func Test_depGraph(t *testing.T) {
 				bindsForHead[prodStr] = bindsForProd
 				sdts.bindings[b.BoundRuleSymbol] = bindsForHead
 			}
-
-			log.Printf("%s\n", sdts)
 
 			// exec
 			actuals := depGraph(*tc.apt, sdts)
