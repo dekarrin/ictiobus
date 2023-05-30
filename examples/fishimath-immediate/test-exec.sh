@@ -15,8 +15,8 @@ cd "$script_path"
 	--hooks "fmhooks" \
 	-S all \
     --dev \
-	-n \
-	"$script_path/fm-eval.md" --sim-off || { echo "FAIL" >&2 ; exit 1 ; }
+	-ns \
+	"$script_path/fm-eval.md" || { echo "FAIL" >&2 ; exit 1 ; }
 
 
 #echo "[5/5] Invalid FISHI should fail (no code blocks are present)"
