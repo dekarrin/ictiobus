@@ -149,7 +149,7 @@ func (ll1 *ll1Parser) Parse(stream lex.TokenStream) (Tree, error) {
 			if nextProd.Equal(grammar.Error) {
 
 				if next.Class().ID() == lex.TokenError.ID() {
-					return pt, lex.NewSyntaxErrorFromToken(fmt.Sprintf("%s", next.Lexeme()), next)
+					return pt, lex.NewSyntaxErrorFromToken(next.Lexeme(), next)
 				}
 
 				return pt, lex.NewSyntaxErrorFromToken(fmt.Sprintf("unexpected %s", next.Class().Human()), next)
