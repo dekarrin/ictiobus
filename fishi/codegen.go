@@ -846,6 +846,10 @@ func safeTCIdentifierName(str string) string {
 		fullName += string(titleCaser.String(word))
 	}
 
+	if fullName == "TC" {
+		panic("assertion failed: generated token name has no content besides 'TC'")
+	}
+
 	return fullName
 }
 
