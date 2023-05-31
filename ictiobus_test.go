@@ -122,3 +122,4 @@ func (mp mockSDTS) Bind(head string, prod []string, attrName string, hook string
 func (mp mockSDTS) String() string {
 	return "mockSDTS<>"
 }
+func (ms mockSDTS) RegisterListener(func(trans.Event)) {}

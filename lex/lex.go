@@ -66,8 +66,7 @@ type Lexer interface {
 	StartingState() string
 
 	// RegisterTraceListener provides a function to call whenever a new token is
-	// lexed or other important lexer events occur. It can be used for debug
-	// purposes.
+	// lexed. It can be used for debug purposes.
 	RegisterTraceListener(func(t Token))
 }
 
@@ -122,7 +121,7 @@ func (lx *lexerTemplate) StartingState() string {
 }
 
 // RegisterTraceListener provides a function to call whenever a new token is
-// lexed (or other lexer events occur). It can be used for debug purposes.
+// lexed. It can be used for debug purposes.
 func (lx *lexerTemplate) RegisterTraceListener(fn func(t Token)) {
 	lx.listener = fn
 }

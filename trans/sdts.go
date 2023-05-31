@@ -15,6 +15,7 @@ import (
 type sdtsImpl struct {
 	hooks    HookMap
 	bindings map[string]map[string][]sddBinding
+	listener func(Event)
 }
 
 // String returns the string representation of the sdtsImpl.
@@ -69,6 +70,14 @@ func (sdts *sdtsImpl) String() string {
 	sb.WriteRune('>')
 
 	return sb.String()
+}
+
+// RegisterListener registers a callback function to be called whenever an event
+// occurs during translation. This can be used for debugging. If nil is passed
+// as the listener, it will disable sending events to it.
+func (sdts *sdtsImpl) RegisterListener(listener func(Event)) {
+	sdts.listener = listener
+
 }
 
 // SetHooks sets the hook mapping containing implementations of the hooks in the
@@ -253,6 +262,13 @@ func (sdts *sdtsImpl) Evaluate(tree parse.Tree, attributes ...string) (vals []in
 		}
 	}
 
+	// we now have an annotated tree. tell listeners
+	sdts.emitEvent(Event{
+		Type:      EventAnnotation,
+		ParseTree: &tree,
+		Tree:      &root,
+	})
+
 	for i := range visitOrder {
 		depNode := visitOrder[i].Data
 
@@ -272,7 +288,7 @@ func (sdts *sdtsImpl) Evaluate(tree parse.Tree, attributes ...string) (vals []in
 		bindingsToExec := sdts.bindingsForAttr(nodeRuleHead, nodeRuleProd, depNode.Dest)
 		for j := range bindingsToExec {
 			binding := bindingsToExec[j]
-			value, err := binding.Invoke(invokeOn, sdts.hooks)
+			value, err := binding.Invoke(invokeOn, sdts.hooks, sdts.emitEvent, &root, &tree)
 
 			if err != nil {
 				attrTypeStr := "synthetic"
@@ -532,6 +548,12 @@ func (sdts *sdtsImpl) SetNoFlow(synth bool, head string, prod []string, attrName
 	sdts.bindings[head] = bindingsForHead
 
 	return nil
+}
+
+func (sdts *sdtsImpl) emitEvent(e Event) {
+	if sdts.listener != nil {
+		sdts.listener(e)
+	}
 }
 
 // bindingsForAttr returns all bindings defined to apply when at a node in a parse

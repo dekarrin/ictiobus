@@ -89,6 +89,12 @@ type SDTS interface {
 
 	// String returns a string representation of the SDTS.
 	String() string
+
+	// RegisterListener registers a callback to be executed whenever an event
+	// occurs in the translation scheme. This includes annotation of the parse
+	// tree and execution of a hook function and may in the future be extended
+	// to include other events. This can be useful for debugging.
+	RegisterListener(func(e Event))
 }
 
 // NewSDTS creates a new, empty Syntax-Directed Translation Scheme.

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/dekarrin/ictiobus/internal/slices"
+	"github.com/dekarrin/ictiobus/parse"
 )
 
 // sddBinding represents a single binding of a syntax-directed definition to a
@@ -95,7 +96,12 @@ func (bind sddBinding) Copy() sddBinding {
 }
 
 // Invoke calls the given binding while visiting an annotated parse tree node.
-func (bind sddBinding) Invoke(apt *AnnotatedTree, hooksTable HookMap) (val interface{}, invokeErr error) {
+//
+// listener is called with an event of Type EventHookCall when a hook completes
+// exection, regardless of whether it returned an error, as long as it doesn't
+// panic. root and pt are used solely as arguments to that event, and are not
+// used for any other purpose.
+func (bind sddBinding) Invoke(apt *AnnotatedTree, hooksTable HookMap, listener func(Event), root *AnnotatedTree, pt *parse.Tree) (val interface{}, invokeErr error) {
 	// sanity checks; can we even call this?
 	if bind.Setter == "" {
 		return nil, hookError{msg: "binding has no setter hook defined"}
@@ -156,6 +162,62 @@ func (bind sddBinding) Invoke(apt *AnnotatedTree, hooksTable HookMap) (val inter
 
 	// call func
 	val, err := hookFn(info, args)
+
+	// emit event
+	if listener != nil {
+		// first, gather the args and their references
+		var argsWithRefs []struct {
+			Ref   AttrRef
+			Value interface{}
+		}
+		for i := range args {
+			item := struct {
+				Ref   AttrRef
+				Value interface{}
+			}{}
+			item.Ref = bind.Requirements[i]
+			item.Value = args[i]
+			argsWithRefs = append(argsWithRefs, item)
+		}
+
+		// next, build the Result struct
+		var result struct {
+			Value interface{}
+			Error error
+		}
+		result.Value = val
+		result.Error = err
+
+		// build the hook struct
+		var hookInfo struct {
+			Name string
+			Args []struct {
+				Ref   AttrRef
+				Value interface{}
+			}
+			Node   *AnnotatedTree
+			Target AttrRef
+			Result struct {
+				Value interface{}
+				Error error
+			}
+		}
+		hookInfo.Name = bind.Setter
+		hookInfo.Args = argsWithRefs
+		hookInfo.Node = apt
+		hookInfo.Target = bind.Dest
+		hookInfo.Result = result
+
+		listener(Event{
+			Type:      EventHookCall,
+			ParseTree: pt,
+			Tree:      root,
+			Hook:      &hookInfo,
+		})
+	}
+
+	// after event emitted, now check the return value and error if the hook
+	// returned an error.
 	if err != nil {
 		return nil, hookError{name: bind.Setter, msg: err.Error()}
 	}
