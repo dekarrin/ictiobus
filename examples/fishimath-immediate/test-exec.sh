@@ -34,7 +34,7 @@ echo "[1/2] float arithmetic"
 echo "(done)"
 
 echo "[1/2] variable"
-./testdiag-eval -C "
+./testdiag-eval -s -C "
 vriska =o 4 <o^><
 vriska * 2       <o^><
 "

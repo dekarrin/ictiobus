@@ -89,27 +89,26 @@ func Frontend(hooks trans.HookMap, opts *FrontendOptions) ictiobus.Frontend[synt
 		fe.SDTS.RegisterListener(func(e trans.Event) {
 			switch e.Type {
 			case trans.EventAnnotation:
-				fmt.Fprintf(os.Stderr, "SDTS: Annotated parse tree: %s", e.Tree)
+				fmt.Fprintf(os.Stderr, "SDTS: Annotated parse tree:\n%s\n", e.Tree)
 			case trans.EventHookCall:
-				// MyNode.Attribute = Call("value", "value") = %v
-				attrSym, ok := e.Hook.Node.SymbolOf(e.Hook.Target.Rel)
+				relNode, ok := e.Hook.Node.RelativeNode(e.Hook.Target.Rel)
 				if !ok {
 					panic("bad relative node in SDTS hook call event")
 				}
 
 				var argSb strings.Builder
 				for i := range e.Hook.Args {
-					argSb.WriteString(fmt.Sprintf("%v", e.Hook.Args[i].Value))
+					argSb.WriteString(fmt.Sprintf("%#v", e.Hook.Args[i].Value))
 					if i+1 < len(e.Hook.Args) {
 						argSb.WriteString(", ")
 					}
 				}
 
-				message := fmt.Sprintf("SDTS: Set %s.%s = %s(%s) = ", attrSym, e.Hook.Target.Name, e.Hook.Name, argSb.String())
+				message := fmt.Sprintf("SDTS: Set (%d: %s).%s = %s(%s) = ", relNode.ID(), relNode.Symbol, e.Hook.Target.Name, e.Hook.Name, argSb.String())
 				if e.Hook.Result.Error != nil {
-					message += fmt.Sprintf("ERROR(%v) (with value %v)", e.Hook.Result.Error.Error(), e.Hook.Result.Value)
+					message += fmt.Sprintf("ERROR(%v) (with value %#v)", e.Hook.Result.Error.Error(), e.Hook.Result.Value)
 				} else {
-					message += fmt.Sprintf("%v", e.Hook.Result.Value)
+					message += fmt.Sprintf("%#v", e.Hook.Result.Value)
 				}
 
 				fmt.Fprintf(os.Stderr, "%s\n", message)
