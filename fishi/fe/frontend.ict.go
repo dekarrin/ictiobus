@@ -67,7 +67,7 @@ func Frontend(hooks trans.HookMap, opts *FrontendOptions) ictiobus.Frontend[synt
 	// Add traces if requested
 
 	if opts.LexerTrace {
-		fe.Lexer.RegisterTokenListener(func(t lex.Token) {
+		fe.Lexer.RegisterTraceListener(func(t lex.Token) {
 			fmt.Fprintf(os.Stderr, "Token: %s\n", t)
 		})
 	}

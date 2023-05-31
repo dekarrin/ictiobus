@@ -87,7 +87,7 @@ func (ml mockLexer) FakeLexemeProducer(combine bool, state string) map[string]fu
 	return nil
 }
 func (ml mockLexer) SetStartingState(s string)               {}
-func (ml mockLexer) RegisterTokenListener(func(t lex.Token)) {}
+func (ml mockLexer) RegisterTraceListener(func(t lex.Token)) {}
 func (ml mockLexer) StartingState() string                   { return "" }
 
 type mockParser struct {
