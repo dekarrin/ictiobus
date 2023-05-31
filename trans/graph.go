@@ -124,7 +124,10 @@ func (dg *directedGraph[V]) AllNodes() []*directedGraph[V] {
 // This is an implementation of the algorithm published by Arthur B. Kahn in
 // "Topological sorting of large networks" in Communications of the ACM, 5 (11),
 // in 1962, glub! 38O
-func kahnSort[V any](dg *directedGraph[V]) ([]*directedGraph[V], error) {
+//
+// If secondarySort function is provided, it is used to operate on elements in
+// the graph and sort them that way prior to use; it must returns
+func kahnSort[V any](dg *directedGraph[V], secondarySort func()) ([]*directedGraph[V], error) {
 	// detect cycles first or we may enter an infinite loop
 	if dg.HasCycles() {
 		return nil, fmt.Errorf("can't apply kahn's algorithm to a graph with cycles")
