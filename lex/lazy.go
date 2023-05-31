@@ -345,8 +345,11 @@ func (lx *lazyTokenStream) Peek() Token {
 	oldDone := lx.done
 	oldPanic := lx.panicMode
 
-	// run lexing as normal:
+	// disable the listener quick, and run lexing as normal
+	oldListner := lx.listener
+	lx.listener = nil
 	tok := lx.Next()
+	lx.listener = oldListner
 
 	// restore original data
 	lx.r.Restore("peek")

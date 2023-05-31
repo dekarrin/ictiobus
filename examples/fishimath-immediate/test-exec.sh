@@ -22,6 +22,32 @@ echo "[PRE] Building diagnostic binary..."
 
 echo "(done)"
 
-echo "[1/1] No statement shark!"
-./testdiag-eval -C "(0-2) / 0     <o^><"
+echo "[1/2] int arithmetic"
+./testdiag-eval -C "2 / 3 + 3384 * >{16 - 20'}             <o^><"
+echo "(done)"
+
+echo "[1/2] float arithmetic"
+./testdiag-eval -C "
+2 / 3 + 3384.2 * >{16 - 20.24'}  <o^><
+0.1 + 0.2                        <o^><
+"
+echo "(done)"
+
+echo "[1/2] variable"
+./testdiag-eval -C "
+vriska =o 4 <o^><
+vriska * 2       <o^><
+"
+echo "(done)"
+
+echo "[1/2] Divide negative by zero"
+./testdiag-eval -C ">{0-2'} / 0    <o^><"
+echo "(done)"
+
+echo "[1/2] Regular input"
+./testdiag-eval -C ">{0-2'} / 0    <o^><"
+echo "(done)"
+
+echo "[2/1] No statement shark gives error"
+./testdiag-eval -C ">{0-2'} / 0"
 echo "(done)"

@@ -27,7 +27,7 @@ type TokenClass interface {
 var (
 	TokenUndefined = MakeDefaultClass("<ictiobus_undefined_token>")
 	TokenError     = MakeDefaultClass("<ictioubus_error>")
-	TokenEndOfText = MakeDefaultClass("$")
+	TokenEndOfText = NewTokenClass("$", "end of input")
 )
 
 // MakeDefaultClass takes a string and returns a token that both uses the
