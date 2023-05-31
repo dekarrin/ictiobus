@@ -45,6 +45,7 @@ type Results struct {
 type Options struct {
 	LexerTrace  bool
 	ParserTrace bool
+	SDTSTrace   bool
 }
 
 // ValidateSimulatedInput generates a lightweight compiler with the spec'd
@@ -168,6 +169,7 @@ func Parse(r io.Reader, opts *Options) (Results, error) {
 	fishiFront := fe.Frontend(syntax.HooksTable, &fe.FrontendOptions{
 		LexerTrace:  opts.LexerTrace,
 		ParserTrace: opts.ParserTrace,
+		SDTSTrace:   opts.SDTSTrace,
 	})
 
 	res := Results{}

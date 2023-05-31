@@ -13,6 +13,7 @@ created by invoking ictiobus with the following command:
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/lex"
@@ -42,6 +43,12 @@ type FrontendOptions struct {
 	// includes operations such as token or symbol stack manipulation, and for
 	// LR parsers, shifts and reduces.
 	ParserTrace bool
+
+	// SDTSTrace is whether to add tracing functionality to the translation
+	// scheme. This will cause translation events to be printed to stderr as
+	// they occur. This includes operations such as parse tree annotation and
+	// hook execution.
+	SDTSTrace bool
 }
 
 // Frontend returns the complete compiled frontend for the FISHI langauge.
@@ -75,6 +82,41 @@ func Frontend(hooks trans.HookMap, opts *FrontendOptions) ictiobus.Frontend[synt
 	if opts.ParserTrace {
 		fe.Parser.RegisterTraceListener(func(s string) {
 			fmt.Fprintf(os.Stderr, "Parser: %s\n", s)
+		})
+	}
+
+	if opts.SDTSTrace {
+		fe.SDTS.RegisterListener(func(e trans.Event) {
+			switch e.Type {
+			case trans.EventAnnotation:
+				fmt.Fprintf(os.Stderr, "SDTS: Annotated parse tree: %s", e.Tree)
+			case trans.EventHookCall:
+				// MyNode.Attribute = Call("value", "value") = %v
+				attrSym, ok := e.Hook.Node.SymbolOf(e.Hook.Target.Rel)
+				if !ok {
+					panic("bad relative node in SDTS hook call event")
+				}
+
+				var argSb strings.Builder
+				for i := range e.Hook.Args {
+					argSb.WriteString(fmt.Sprintf("%v", e.Hook.Args[i].Value))
+					if i+1 < len(e.Hook.Args) {
+						argSb.WriteString(", ")
+					}
+				}
+
+				message := fmt.Sprintf("SDTS: Set %s.%s = %s(%s) = ", attrSym, e.Hook.Target.Name, e.Hook.Name, argSb.String())
+				if e.Hook.Result.Error != nil {
+					message += fmt.Sprintf("ERROR(%v) (with value %v)", e.Hook.Result.Error.Error(), e.Hook.Result.Value)
+				} else {
+					message += fmt.Sprintf("%v", e.Hook.Result.Value)
+				}
+
+				fmt.Fprintf(os.Stderr, "%s\n", message)
+
+			default:
+				fmt.Fprintf(os.Stderr, "SDTS: %v\n", e)
+			}
 		})
 	}
 

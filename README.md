@@ -361,8 +361,9 @@ $ ./nil -C '(8 + 2) * 6'   # test parentheses grouping
 
 The diagnostics binary is a powerful tool for testing. For more information on
 the diagnostics binary, including how to make it perform preprocessing on input
-before executing it or how to manually run SDTS validation, see the appropriate
-section in the [ictcc manual](docs/ictcc.md).
+before executing it or how to manually run SDTS validation and output debug
+traces for each phase of the frontend, see the appropriate section in the
+[ictcc manual](docs/ictcc.md).
 
 ### Using the Generated Frontend
 

@@ -659,7 +659,8 @@ printed to stdout before they are sent to the SDTS phase for translation. A
 detailed log of the tokens found by the lexer can be printed by enabling lexer
 debug mode with the -l/--debug-lexer flag. The parser supports a similar output
 mode, although it tends to be a bit more verbose than the lexer's; this is
-enabled with the -p/--debug-parser flag.
+enabled with the -p/--debug-parser flag. The SDTS output mode is enabled with
+the -s/--debug-sdts flag.
 
 By default, a diagnostics binary expects to receive UTF-8 encoded text that is
 accepted by the grammar. If certain preprocessing steps generally are done to
@@ -705,10 +706,12 @@ ictcc itself and the FISHI language, which is self-hosted. In the first place,
 as a general rule, always enable simulation. If any build of the FISHI frontend
 is not simulated, it could mask major issues.
 
-The ictcc command supports the same --debug-lexer and --debug-parser flags as
-diagnostics binaries; while these aren't particularly useful for end-user usage
-of ictcc, they can be helpful in debugging changes to FISHI. The ictcc command
-also supports the -t/--tree flag to output the parse trees of the input files.
+The ictcc command supports the same --debug-lexer, --debug-parser, and
+--debug-sdts flags as diagnostics binaries (but not the short versions of those
+flags as -l, -p, and -s are either used for other flags or reserved for future
+use); while these aren't particularly useful for end-user usage of ictcc, they
+can be helpful in debugging changes to FISHI. The ictcc command also supports
+the -t/--tree flag to output the parse trees of the input files.
 
 The AST of FISHI files read can be output by using the -a/--ast flags. This is
 the intermediate value used for the FISHI self-hosted frontend, and it may be
@@ -827,6 +830,10 @@ Flags:
 
     --debug-parser
         Print each step the parser takes as it parsers FISHI input.
+
+    --debug-sdts
+        Print each step the translation scheme takes as it translates a FISHI
+        parse tree.
 
     --debug-templates
         Dump templates after they are filled for codegen but before they are
