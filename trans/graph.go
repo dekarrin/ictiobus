@@ -125,9 +125,11 @@ func (dg *directedGraph[V]) AllNodes() []*directedGraph[V] {
 // "Topological sorting of large networks" in Communications of the ACM, 5 (11),
 // in 1962, glub! 38O
 //
-// If secondarySort function is provided, it is used to operate on elements in
-// the graph and sort them that way prior to use; it must returns
-func kahnSort[V any](dg *directedGraph[V], secondarySort func()) ([]*directedGraph[V], error) {
+// If secondarySort function is provided, it is used as the secondary sorting
+// criterion for graph nodes based on their value. The function must return
+// whether the arg on the left is less than (should sort before) the arg on the
+// right.
+func kahnSort[V any](dg *directedGraph[V], secondarySort func(l, r V) bool) ([]*directedGraph[V], error) {
 	// detect cycles first or we may enter an infinite loop
 	if dg.HasCycles() {
 		return nil, fmt.Errorf("can't apply kahn's algorithm to a graph with cycles")
