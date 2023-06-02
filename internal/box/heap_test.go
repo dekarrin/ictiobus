@@ -102,6 +102,39 @@ func Test_Heap_Add(t *testing.T) {
 	}
 }
 
+func Test_Heap_PopMany(t *testing.T) {
+	// just make sure it doesn't panic on us
+	assert := assert.New(t)
+
+	// idk why but lower adds are fine. upper are not. may refine this testcase
+	// later.
+	const numAdds = 7
+
+	h := NewMaxHeap[int]()
+
+	for i := 0; i < numAdds; i++ {
+		h.Add(i)
+	}
+
+	assert.Equal(numAdds, h.count)
+	assert.Equal(numAdds, h.Len())
+
+	// pop them all on
+
+	h.Pop()
+	h.Pop()
+	h.Pop()
+	h.Pop()
+	h.Pop()
+	h.Pop()
+	h.Pop()
+	for i := 0; i < numAdds; i-- {
+		h.Pop()
+	}
+
+	assert.Equal(0, h.Len())
+}
+
 func Test_Heap_Pop(t *testing.T) {
 	testCases := []struct {
 		name        string

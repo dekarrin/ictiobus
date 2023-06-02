@@ -28,9 +28,7 @@ type heapNode[E any] struct {
 // must be set to a function or it will by default perform string conversion of
 // values with %v in Printf and compare the results.
 //
-// The zero-value for a Heap is ready for immediate use, but it is recommended
-// that a pointer be obtained if it is going to be passed to other functions
-// outside the one it is used in.
+// The zero-value for a Heap is ready for immediate use.
 type Heap[E any] struct {
 	// CompareFunc is used to determine ordering of elements.
 	CompareFunc func(l, r E) bool
@@ -179,6 +177,7 @@ func (h *Heap[E]) Pop() E {
 		h.buildingLevel = nil
 		h.lastElem = nil
 		h.openBuildingNode = nil
+		return oldRootValue
 	}
 
 	// replace the root element with the rightmost bottom level element.
@@ -196,8 +195,14 @@ func (h *Heap[E]) Pop() E {
 		if lastElem == h.buildingLevel[len(h.buildingLevel)-1] {
 			var newLevel []*heapNode[E]
 			for _, bn := range h.buildingLevel {
-				bn.buildingIdx = len(newLevel)
-				newLevel = append(newLevel, bn)
+				// take the left's parent only so we don't add the parents twice
+				if bn == bn.parent.right {
+					continue
+				}
+
+				newBuildingNode := bn.parent
+				newBuildingNode.buildingIdx = len(newLevel)
+				newLevel = append(newLevel, newBuildingNode)
 			}
 			h.buildingLevel = newLevel
 
@@ -210,8 +215,10 @@ func (h *Heap[E]) Pop() E {
 			h.openBuildingNode = lastElem.parent
 		}
 
-		// finally, make sibling to the left be the new lastElem
+		// finally, make sibling to the left be the new lastElem and break the
+		// link to the parent
 		h.lastElem = lastElem.parent.left
+		lastElem.parent = nil
 	} else {
 		// lastElem is on the *left*, which means it can never be the end of a
 		// buildingLevel. Glubbin' nice! 38D
@@ -228,6 +235,7 @@ func (h *Heap[E]) Pop() E {
 			lastElemParentSib := h.buildingLevel[lastElem.parent.buildingIdx-1]
 			h.lastElem = lastElemParentSib.right
 		}
+		lastElem.parent = nil
 	}
 
 	// node has been removed from bottom and all metadata has been properly

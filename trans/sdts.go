@@ -254,7 +254,12 @@ func (sdts *sdtsImpl) Evaluate(tree parse.Tree, attributes ...string) (vals []in
 		}
 	}
 
-	visitOrder, err := kahnSort(depGraphs[0])
+	visitOrder, err := kahnSort(depGraphs[0], func(l, r depNode) bool {
+		// use secondary sort based on the node ID; since they are assigned in
+		// left-first order, should result in evaluating left branches before
+		// right, if given the choice.
+		return l.Tree.ID() < r.Tree.ID()
+	})
 	if err != nil {
 		return nil, warns, evalError{
 			msg:       fmt.Sprintf("sorting SDTS dependency graph: %s", err.Error()),

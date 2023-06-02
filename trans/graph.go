@@ -140,32 +140,55 @@ func kahnSort[V any](dg *directedGraph[V], secondarySort func(l, r V) bool) ([]*
 	dg = dg.Copy()
 
 	sortedL := []*directedGraph[V]{}
-	noIncomingS := box.NewKeySet[*directedGraph[V]]()
+
+	// the one used depends on whether secondary sort is provided.
+	var noIncomingS box.KeySet[*directedGraph[V]]
+	var noIncomingSHeap box.Heap[*directedGraph[V]]
+
+	if secondarySort == nil {
+		noIncomingS = box.NewKeySet[*directedGraph[V]]()
+	} else {
+		noIncomingSHeap = box.Heap[*directedGraph[V]]{
+			CompareFunc: func(l, r *directedGraph[V]) bool {
+				return secondarySort(l.Data, r.Data)
+			},
+		}
+	}
 
 	// find all start nodes
 	allNodes := dg.AllNodes()
 	for i := range allNodes {
 		n := allNodes[i]
 		if len(n.InEdges) == 0 {
-			noIncomingS.Add(n)
+			if secondarySort == nil {
+				noIncomingS.Add(n)
+			} else {
+				noIncomingSHeap.Add(n)
+			}
 		}
 	}
 
-	for !noIncomingS.Empty() {
+	for (secondarySort == nil && !noIncomingS.Empty()) || (secondarySort != nil && noIncomingSHeap.Len() > 0) {
 		var n *directedGraph[V]
-		// just need to get literally any value from the set
-		for nodeInSet := range noIncomingS {
-			n = nodeInSet
-			break
+		// just need to get literally any value from the set, but if comp func
+		// is provided, use that to decide via the heap
+		if secondarySort == nil {
+			for nodeInSet := range noIncomingS {
+				n = nodeInSet
+				break
+			}
+
+			noIncomingS.Remove(n)
+		} else {
+			n = noIncomingSHeap.Pop()
 		}
 
-		noIncomingS.Remove(n)
 		sortedL = append(sortedL, n)
 
 		for i := range n.Edges {
 			m := n.Edges[i]
 			// remove all edges from n to m (instead of just 'the one' bc we
-			// have no way of associated a *particular* edge with the in edge
+			// have no way of associating a *particular* edge with the in edge
 			// on m side and there COULD be dupes)
 			newNEdges := []*directedGraph[V]{}
 			newMInEdges := []*directedGraph[V]{}
@@ -183,7 +206,11 @@ func kahnSort[V any](dg *directedGraph[V], secondarySort func(l, r V) bool) ([]*
 			m.InEdges = newMInEdges
 
 			if len(m.InEdges) == 0 {
-				noIncomingS.Add(m)
+				if secondarySort == nil {
+					noIncomingS.Add(m)
+				} else {
+					noIncomingSHeap.Add(m)
+				}
 			}
 		}
 	}
