@@ -7,7 +7,11 @@
 // that.
 package box
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/dekarrin/ictiobus/internal/textfmt"
+)
 
 type heapNode[E any] struct {
 	parent      *heapNode[E]
@@ -47,6 +51,69 @@ type Heap[E any] struct {
 
 	// tracks number of elements.
 	count int
+}
+
+// NewMaxHeap returns a Heap with a CompareFunc that places the maximum value at
+// the top of the heap. Initial contents can be provided, if desired. Comparison
+// function can only be auto-deduced for basic types that support < and ==; to
+// create a heap for another type, simply create a &Heap{} and set CompareFunc
+// to an appropriate function.
+func NewMaxHeap[E Orderable](of ...E) *Heap[E] {
+	h := &Heap[E]{
+		CompareFunc: func(l, r E) bool {
+			return l >= r
+		},
+	}
+
+	for i := range of {
+		h.Add(of[i])
+	}
+
+	return h
+}
+
+// NewMinHeap returns a Heap with a CompareFunc that places the minimum value at
+// the top of the heap. Initial contents can be provided, if desired. Comparison
+// function can only be auto-deduced for basic types that support < and ==; to
+// create a heap for another type, simply create a &Heap{} and set CompareFunc
+// to an appropriate function.
+func NewMinHeap[E Orderable](of ...E) *Heap[E] {
+	h := &Heap[E]{
+		CompareFunc: func(l, r E) bool {
+			return l <= r
+		},
+	}
+
+	for i := range of {
+		h.Add(of[i])
+	}
+
+	return h
+}
+
+// String returns a string representation of the heap.
+func (h *Heap[E]) String() string {
+	if h == nil {
+		return "<nil>"
+	}
+	if h.root == nil {
+		return "(empty heap)"
+	}
+
+	str := textfmt.LeveledGraphString(h.root, func(n *heapNode[E]) string {
+		return fmt.Sprintf("(%v)", n.v)
+	}, func(n *heapNode[E]) []*heapNode[E] {
+		var nodes []*heapNode[E]
+		if n.left != nil {
+			nodes = append(nodes, n.left)
+		}
+		if n.right != nil {
+			nodes = append(nodes, n.right)
+		}
+		return nodes
+	})
+
+	return str
 }
 
 // Elements returns all elements in the heap. They will be returned in the order
@@ -96,7 +163,7 @@ func (h *Heap[E]) Peek() E {
 }
 
 // Pop removes the element at the top of the heap and returns it. This is the
-// "leftmost" of values according to CompareFunc.
+// "leftmost" of values according to CompareFunc. This is an O(log n) operation.
 func (h *Heap[E]) Pop() E {
 	if h == nil || h.root == nil {
 		panic("pop empty heap")
