@@ -14,7 +14,11 @@ const (
 	treeLevelPrefixNamePadAmount = 3
 )
 
-func LeveledGraphString[N any](root N, getName func(N) string, getChildren func(N) []N) string {
+// LeveledTreeString returns a recursive, pretty-print representation of the
+// tree rooted at root. The function getChildren is recursively called on nodes
+// of the tree to get all nodes to include in output, and getName is called on
+// each node to get a string representation of it.
+func LeveledTreeString[N any](root N, getName func(N) string, getChildren func(N) []N) string {
 	return leveledStr(getName, getChildren, "", "", root)
 }
 

@@ -9,6 +9,7 @@ package box
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 )
@@ -19,6 +20,43 @@ type heapNode[E any] struct {
 	right       *heapNode[E]
 	v           E
 	buildingIdx int // index within parent heap's buildingLevel slice. no meaning if node is not in it.
+}
+
+// children gives a func that can be directly passed to LeveledGraphString.
+func (hn *heapNode[E]) children() []*heapNode[E] {
+	var c []*heapNode[E]
+	if hn.left != nil {
+		c = append(c, hn.left)
+	}
+	if hn.right != nil {
+		c = append(c, hn.right)
+	}
+	return c
+}
+
+func (hn *heapNode[E]) String() string {
+	if hn == nil {
+		return "(nil)"
+	}
+
+	s := fmt.Sprintf("(%v BI:%d", hn.v, hn.buildingIdx)
+	if hn.parent == nil {
+		s += " P:<nil>"
+	} else {
+		s += fmt.Sprintf(" P:(%v)", hn.parent.v)
+	}
+	if hn.left == nil {
+		s += " L:<nil>"
+	} else {
+		s += fmt.Sprintf(" L:(%v)", hn.left.v)
+	}
+	if hn.right == nil {
+		s += " R:<nil>"
+	} else {
+		s += fmt.Sprintf(" R:(%v)", hn.right.v)
+	}
+	s += ")"
+	return s
 }
 
 // Heap is a data structure that is optimized for retrieval of the element with
@@ -89,6 +127,71 @@ func NewMinHeap[E Orderable](of ...E) *Heap[E] {
 	return h
 }
 
+// debugString is used for debugging a heap by internal testing libraries.
+func (h *Heap[E]) debugString() string {
+	var typeParamZero E
+
+	s := fmt.Sprintf("Heap[%T]<", typeParamZero)
+
+	if h == nil {
+		s += "nil>"
+		return s
+	}
+
+	compFuncStr := "(set)"
+	if h.CompareFunc == nil {
+		compFuncStr = "(not set)"
+	}
+	s += fmt.Sprintf("CF:%s count:%d", compFuncStr, h.count)
+
+	if h.root == nil {
+		s += " root:<nil>"
+	} else {
+		s += fmt.Sprintf(" root:(%v)", h.root.v)
+	}
+
+	if h.lastElem == nil {
+		s += " last:<nil>"
+	} else {
+		s += fmt.Sprintf(" last:(%v)", h.lastElem.v)
+	}
+
+	if h.openBuildingNode == nil {
+		s += " open:<nil>"
+	} else {
+		s += fmt.Sprintf(" open:(%v)", h.openBuildingNode.v)
+	}
+
+	if h.buildingLevel == nil {
+		s += " building:<nil>"
+	} else {
+		s += " building:["
+		for i, bn := range h.buildingLevel {
+			if bn == nil {
+				s += "<nil>"
+			} else {
+				s += fmt.Sprintf("(%v)", bn.v)
+			}
+			if i+1 < len(h.buildingLevel) {
+				s += ", "
+			}
+		}
+		s += "]"
+	}
+
+	s += " tree:"
+	if h.root == nil {
+		s += "(empty)>"
+		return s
+	}
+
+	s += "\n"
+
+	s += textfmt.LeveledTreeString(h.root, (*heapNode[E]).String, (*heapNode[E]).children)
+	s += "\n>"
+	return s
+}
+
 // String returns a string representation of the heap.
 func (h *Heap[E]) String() string {
 	if h == nil {
@@ -98,18 +201,10 @@ func (h *Heap[E]) String() string {
 		return "(empty heap)"
 	}
 
-	str := textfmt.LeveledGraphString(h.root, func(n *heapNode[E]) string {
+	str := textfmt.LeveledTreeString(h.root, func(n *heapNode[E]) string {
 		return fmt.Sprintf("(%v)", n.v)
-	}, func(n *heapNode[E]) []*heapNode[E] {
-		var nodes []*heapNode[E]
-		if n.left != nil {
-			nodes = append(nodes, n.left)
-		}
-		if n.right != nil {
-			nodes = append(nodes, n.right)
-		}
-		return nodes
-	})
+	}, (*heapNode[E]).children,
+	)
 
 	return str
 }
@@ -166,6 +261,8 @@ func (h *Heap[E]) Pop() E {
 	if h == nil || h.root == nil {
 		panic("pop empty heap")
 	}
+
+	log.Printf("CURHEAP:\n%s", h.debugString())
 
 	oldRootValue := h.root.v
 
