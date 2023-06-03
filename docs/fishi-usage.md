@@ -1587,6 +1587,97 @@ hook is producing a value for is always passed to the implementation as its
 first argument; `$ft` can be used to get the first tokens of symbols from the
 production.
 
+### Evaluation Order
+
+Translation scheme evaluation on a parse tree is applied in a predictable order.
+An attribute that uses the values of other attributes in its hook is always
+calculated after the values of all those attributes are known. This is fairly
+intuitive; it's similar to how you can't get an exact value for `X` in the
+formula `X = A + B` unless you know what the values of `A` and `B` are.
+
+But there are some cases where that isn't quite enough to give a complete
+ordering. For instance, say you have the math equations `X = A + B`,
+`A = 6 + 2`, and `B = 8 + 1`, and you wanted to find the value of `X`. You know
+you need to have both `A` and `B` to calculate `X`, but should you find the
+value of `A` first? Or `B`?
+
+It may seem like it doesn't matter, and in the above case, it doesn't. Whether
+you find `B` or `A` before the other doesn't change the end value of `X`. But if
+for instance calculation of an attribute involved evaluating statements where
+earlier statements set a variable to a value and later statements end up using
+the variable's value, then an evaluation order that depended only on attribute
+dependency might result in attempting to use a variable's value before it's set.
+
+For instance, the below text is code written in some language that supports
+multiple statements. It also allows for assignment to variables, which can be
+used in later statements.
+
+```
+myVar = 12;
+myVar + 8;
+```
+
+The above input might then be parsed into the following tree:
+
+```
+(PROGRAM)
+ \-- (STATEMENTS)
+      |-- (STATEMENTS)
+      |    \-- (STMT)
+      |         |-- (VAR-ASSIGNMENT)
+      |         |    |-- [id "myVar"]
+      |         |    |-- [eq-sign "="]
+      |         |    \-- [int "12"]
+      |         \-- [semi ";"]
+      \-- (STMT)
+           |-- (SUM)
+           |    |-- (VAR)
+           |    |    \-- [id "myVar"]
+           |    |-- [plus-sign "+"]
+           |    \-- [int "8"]
+           \-- [semi ";"]
+```
+
+The below SDTS could be used to evaluate the result of the last statement in
+the input:
+
+    ```fishi
+    %%actions
+
+    %symbol {PROGRAM}
+    -> {STATEMENTS}:          {^}.value = last_result({0}.results)
+
+    %symbol {STATEMENTS}
+    -> {STATEMENTS} {STMT}:   {^}.results = append_to({0}.results, {1}.result)
+    -> {STMT}:                {^}.results = create_list({0}.result)
+
+    %symbol {STMT}
+    -> {VAR-ASSIGNMENT} semi: {^}.result = identity({0}.value)
+    -> {SUM} semi:            {^}.result = identity({0}.value)
+
+    %symbol {VAR-ASSIGNMENT}
+    -> id eq-sign int:        {^}.value = write_var({0}.$text, {2}.$text)
+
+    %symbol {SUM}
+    -> {VAR} plus-sign int:   {^}.value = add({0}.value, {2}.value)
+
+    %symbol {VAR}
+    -> id:                    {^}.value = read_var({0}.$text)
+    ```
+
+If only attribute dependency were considered, it's completely valid to calculate
+the result of the second statement *before* evaluating the first. This isn't
+good; what would the value of `myVar` be if it's read from before it's written
+to? It could be undefined, be some default value, or even cause an error! Either
+way, it almost certainly wouldn't be the intended result.
+
+To prevent this, translation schemes in Ictiobus use a secondary ordering. If
+two attributes have equal precedence for calculation according to dependency
+rules, Ictiobus will calculate the one in the node of the parse tree that would
+be visited first in a leftmost depth-first traversal of the tree. In the above
+case, this means the first statement is evaluated first, as it is further left
+in the parse tree than the second one.
+
 ### Synthesized vs Inherited Attributes
 
 Within Ictiobus (and sometimes in FISHI) you may come across the concept of
