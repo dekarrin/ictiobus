@@ -1,6 +1,7 @@
 package box
 
 import (
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -102,37 +103,29 @@ func Test_Heap_Add(t *testing.T) {
 	}
 }
 
-func Test_Heap_PopMany(t *testing.T) {
+func Test_Heap_PushManyThenPopAll(t *testing.T) {
 	// just make sure it doesn't panic on us
 	assert := assert.New(t)
 
-	// idk why but lower adds are fine. upper are not. may refine this testcase
-	// later.
-	const numAdds = 7
+	for numAdds := 0; numAdds < 100; numAdds++ {
+		const spacingFactor = 3
 
-	h := NewMaxHeap[int]()
+		h := NewMaxHeap[int]()
 
-	for i := 0; i < numAdds; i++ {
-		h.Add(i)
+		for i := 0; i < numAdds; i++ {
+			addMe := i*spacingFactor + rand.Intn(spacingFactor*2)
+			h.Add(addMe)
+		}
+
+		assert.Equal(numAdds, h.count)
+		assert.Equal(numAdds, h.Len())
+
+		for i := 0; i < numAdds; i++ {
+			h.Pop()
+		}
+
+		assert.Equal(0, h.Len())
 	}
-
-	assert.Equal(numAdds, h.count)
-	assert.Equal(numAdds, h.Len())
-
-	// pop them all on
-
-	h.Pop()
-	h.Pop()
-	h.Pop()
-	h.Pop()
-	h.Pop()
-	h.Pop()
-	h.Pop()
-	for i := 0; i < numAdds; i-- {
-		h.Pop()
-	}
-
-	assert.Equal(0, h.Len())
 }
 
 func Test_Heap_Pop(t *testing.T) {

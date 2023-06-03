@@ -9,7 +9,6 @@ package box
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/dekarrin/ictiobus/internal/textfmt"
 )
@@ -127,8 +126,10 @@ func NewMinHeap[E Orderable](of ...E) *Heap[E] {
 	return h
 }
 
-// debugString is used for debugging a heap by internal testing libraries.
-func (h *Heap[E]) debugString() string {
+// DetailedString returns a string containing a detailed description of the
+// Heap and its properties. It can be useful for debugging but is probably more
+// detail than most applications need; generally, String() is sufficient.
+func (h *Heap[E]) DetailedString() string {
 	var typeParamZero E
 
 	s := fmt.Sprintf("Heap[%T]<", typeParamZero)
@@ -262,8 +263,6 @@ func (h *Heap[E]) Pop() E {
 		panic("pop empty heap")
 	}
 
-	log.Printf("CURHEAP:\n%s", h.debugString())
-
 	oldRootValue := h.root.v
 
 	h.count--
@@ -284,8 +283,6 @@ func (h *Heap[E]) Pop() E {
 	// as this is a replacement, we need to remove the last element's prior node
 	// and update relevant pointers
 	if lastElem.parent.right == lastElem {
-		lastElem.parent.right = nil
-
 		// if lastElem was the end of the current building level, then we just
 		// destroyed the building level and need the *parent* level to become
 		// the new one.
@@ -315,11 +312,11 @@ func (h *Heap[E]) Pop() E {
 		// finally, make sibling to the left be the new lastElem and break the
 		// link to the parent
 		h.lastElem = lastElem.parent.left
+		lastElem.parent.right = nil
 		lastElem.parent = nil
 	} else {
 		// lastElem is on the *left*, which means it can never be the end of a
 		// buildingLevel. Glubbin' nice! 38D
-		lastElem.parent.left = nil
 
 		// eliminating the left means both openBuildingNode and buildingLevel
 		// are both still valid, no need to update. but we do need to update
@@ -332,6 +329,8 @@ func (h *Heap[E]) Pop() E {
 			lastElemParentSib := h.buildingLevel[lastElem.parent.buildingIdx-1]
 			h.lastElem = lastElemParentSib.right
 		}
+
+		lastElem.parent.left = nil
 		lastElem.parent = nil
 	}
 
