@@ -47,7 +47,7 @@ then
 
   echo "" >&2
 
-  "$repo_root/ictcc" \
+  "$repo_root/ictcc" --slr \
     --ir 'github.com/dekarrin/ictfishimath_ast/fmhooks.AST' \
     -l FISHIMath -v 1.0 \
     -d "$script_path/diag-fm" \
@@ -85,7 +85,7 @@ else
 
   echo "" >&2
 
-  "$bin_path" \
+  "$bin_path" --slr \
     --ir 'github.com/dekarrin/ictfishimath_ast/fmhooks.AST' \
     -l FISHIMath -v 1.0 \
     -d "$script_path/diag-fm" \
