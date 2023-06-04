@@ -1,4 +1,4 @@
-module github.com/dekarrin/ictfishimath_eval
+module github.com/dekarrin/ictfishimath_ast
 
 go 1.19
 

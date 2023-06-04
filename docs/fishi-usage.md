@@ -1928,7 +1928,6 @@ build the FISHIMath frontend, and give the arguments `--ir
 will allow you to do full validation testing and create a diagnostics binary
 with `-d` that has a fully-featured interpretation engine.
 
-
 ```go
 package fmhooks
 
@@ -2178,8 +2177,6 @@ build the FISHIMath frontend, and give the arguments `--ir
 import/path/to/fmhooks.AST` and `--hooks filesystem/path/to/fmhooks`. This
 will allow you to do full validation testing and create a diagnostics binary
 with `-d` that will produce ASTs of input FISHIMath code.
-
-
 
 ```go
 package fmhooks

@@ -1,0 +1,97 @@
+[PRE] Building diagnostic binary...
+(done)
+[1/7] int arithmetic
+AST<
+  STMT #1: [BINARY_OPERATION type=addition
+    left:  [BINARY_OPERATION type=division
+      left:  [LITERAL value=2]
+      right: [LITERAL value=3]
+    ]
+    right: [BINARY_OPERATION type=multiplication
+      left:  [LITERAL value=3384]
+      right: [GROUP
+        expr:  [BINARY_OPERATION type=subtraction
+          left:  [LITERAL value=16]
+          right: [LITERAL value=20]
+        ]
+      ]
+    ]
+  ]
+>
+(done)
+[2/7] float arithmetic
+AST<
+  STMT #1: [BINARY_OPERATION type=addition
+    left:  [BINARY_OPERATION type=division
+      left:  [LITERAL value=2]
+      right: [LITERAL value=3]
+    ]
+    right: [BINARY_OPERATION type=multiplication
+      left:  [LITERAL value=3384.1999512]
+      right: [GROUP
+        expr:  [BINARY_OPERATION type=subtraction
+          left:  [LITERAL value=16]
+          right: [LITERAL value=20.2399998]
+        ]
+      ]
+    ]
+  ]
+  STMT #2: [BINARY_OPERATION type=addition
+    left:  [LITERAL value=0.1]
+    right: [LITERAL value=0.2]
+  ]
+>
+(done)
+[3/7] variable
+AST<
+  STMT #1: [ASSIGNMENT name="vriska"
+    expr:  [BINARY_OPERATION type=multiplication
+      left:  [LITERAL value=4]
+      right: [LITERAL value=2]
+    ]
+  ]
+  STMT #2: [BINARY_OPERATION type=multiplication
+    left:  [VARIABLE name=vriska]
+    right: [LITERAL value=2]
+  ]
+>
+(done)
+[4/7] Divide positive by zero
+AST<
+  STMT #1: [BINARY_OPERATION type=division
+    left:  [LITERAL value=2]
+    right: [LITERAL value=0]
+  ]
+>
+(done)
+[5/7] Divide negative by zero
+AST<
+  STMT #1: [BINARY_OPERATION type=division
+    left:  [GROUP
+      expr:  [BINARY_OPERATION type=subtraction
+        left:  [LITERAL value=0]
+        right: [LITERAL value=2]
+      ]
+    ]
+    right: [LITERAL value=0]
+  ]
+>
+(done)
+[6/7] Regular input
+AST<
+  STMT #1: [BINARY_OPERATION type=division
+    left:  [GROUP
+      expr:  [BINARY_OPERATION type=subtraction
+        left:  [LITERAL value=0]
+        right: [LITERAL value=2]
+      ]
+    ]
+    right: [LITERAL value=0]
+  ]
+>
+(done)
+[7/7] Missing statement shark gives error
+<COMMAND>:1:12: unexpected end of input; expected a multiplication sign "*", plus sign "+", minus sign "-", division sign "/", or statement shark "<o^><"
+>{0-2'} / 0
+           ^
+(done)

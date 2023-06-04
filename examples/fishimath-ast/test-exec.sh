@@ -11,14 +11,14 @@ cd "$script_path"
 echo "[PRE] Building diagnostic binary..."
 
 "$old_dir/ictcc" --clr \
-	--ir '[]github.com/dekarrin/ictfishimath_eval/fmhooks.FMValue' \
+	--ir 'github.com/dekarrin/ictfishimath_ast/fmhooks.AST' \
 	-l FISHIMath -v 1.0 \
 	-d "$script_path/testdiag" \
 	--hooks "fmhooks" \
 	-S all \
     --dev \
 	-nq \
-	"$script_path/fm-eval.md" || { echo "FAIL" >&2 ; exit 1 ; }
+	"$script_path/fm-ast.md" || { echo "FAIL" >&2 ; exit 1 ; }
 
 echo "(done)"
 
