@@ -110,7 +110,14 @@ do
   rm -rf "$distfolder" "$dist_latest_name.tar.gz" "$dist_versioned_name.tar.gz"
   mkdir "$distfolder"
   mkdir "$distfolder/docs"
+  mkdir "$distfolder/examples"
   cp docs/*.md "$distfolder/docs"
+
+  mkdir "$distfolder/examples/fishimath-immediate"
+  cp -R "$distfolder/examples/fishimath-immediate/{fmhooks,fm-eval.md,go.mod,go.sum}" "$distfolder/examples/fishimath-immediate"
+  mkdir "$distfolder/examples/fishimath-ast"
+  cp -R "$distfolder/examples/fishimath-ast{fmhooks,fm,cmd,fm-ast.md,build-fmi.sh,go.mod,go.sum}" "$distfolder/examples/fishimath-ast"
+
   cp README.md source.tar.gz "$distfolder"
   
   if [ "$current_os" != "windows" ]
