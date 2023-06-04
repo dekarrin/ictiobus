@@ -79,6 +79,13 @@ then
     echo "Integration tests failed; fix the tests and then try again" >&2
     exit 1
   fi
+  echo "Running example tests..."
+  if examples/run-all-tests.sh
+  then
+    echo "Example tests passed"
+  else
+    echo "Example tests failed; fix the tests and then try again" >&2
+  fi
 else
   echo "Skipping tests due to --skip-tests flag; make sure they are executed elsewhere"
 fi
@@ -113,10 +120,10 @@ do
   mkdir "$distfolder/examples"
   cp docs/*.md "$distfolder/docs"
 
-  mkdir "$distfolder/examples/fishimath-immediate"
-  cp -R "$distfolder/examples/fishimath-immediate/{fmhooks,fm-eval.md,go.mod,go.sum}" "$distfolder/examples/fishimath-immediate"
-  mkdir "$distfolder/examples/fishimath-ast"
-  cp -R "$distfolder/examples/fishimath-ast{fmhooks,fm,cmd,fm-ast.md,build-fmi.sh,go.mod,go.sum}" "$distfolder/examples/fishimath-ast"
+  mkdir "$distfolder"/examples/fishimath-immediate
+  cp -R examples/fishimath-immediate/{fmhooks,fm-eval.md,go.mod,go.sum} "$distfolder/examples/fishimath-immediate"
+  mkdir "$distfolder"/examples/fishimath-ast
+  cp -R examples/fishimath-ast/{fmhooks,fm,cmd,fm-ast.md,build-fmi.sh,go.mod,go.sum} "$distfolder/examples/fishimath-ast"
 
   cp README.md source.tar.gz "$distfolder"
   
