@@ -168,16 +168,16 @@ func handleError(err error) {
 }
 
 func readEvalPrintLoop(fmi fm.Interpreter) error {
-	running := true
-	stdin := bufio.NewReader(os.Stdin)
-
 	fmt.Printf("FISHIMath REPL\n")
 	fmt.Printf("(end lines with <o^>< to evaluate; type \\q to quit)\n")
 	fmt.Printf("---------------------------------------------------\n")
 
+	running := true
+	stdin := bufio.NewReader(os.Stdin)
 	var linesToSend string
+	var prompt = "==> "
 	for running {
-		fmt.Printf("> ")
+		fmt.Print(prompt)
 		input, err := stdin.ReadString('\n')
 		if err != nil {
 			return err
@@ -190,11 +190,12 @@ func readEvalPrintLoop(fmi fm.Interpreter) error {
 			continue
 		}
 
-		// adding full input, not inputTrimmed to linesToSend.
+		// adding full input, not inputTrimmed to linesToSend
 		linesToSend += input
 
 		// if we didn't end with a statement shark <o^>< nothing else to do.
 		if !strings.HasSuffix(inputTrimmed, "<o^><") {
+			prompt = "shark?> "
 			continue
 		}
 
@@ -207,6 +208,8 @@ func readEvalPrintLoop(fmi fm.Interpreter) error {
 		} else {
 			fmt.Printf("%s\n", fmi.LastResult)
 		}
+		linesToSend = ""
+		prompt = "==> "
 	}
 
 	return nil
