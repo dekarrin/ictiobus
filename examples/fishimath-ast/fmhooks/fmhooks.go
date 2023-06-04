@@ -67,12 +67,12 @@ func hookLitNodeFloat(_ trans.SetterInfo, args []interface{}) (interface{}, erro
 		return nil, fmt.Errorf("arg 1 is not a string")
 	}
 
-	f64Val, err := strconv.ParseFloat(strVal, 32)
+	fVal, err := strconv.ParseFloat(strVal, 32)
 	if err != nil {
 		return nil, err
 	}
 
-	return LiteralNode{Value: FMValue{vType: Float, f: float32(f64Val)}}, nil
+	return LiteralNode{Value: FMFrom(fVal)}, nil
 }
 
 func hookLitNodeInt(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
@@ -86,7 +86,7 @@ func hookLitNodeInt(_ trans.SetterInfo, args []interface{}) (interface{}, error)
 		return nil, err
 	}
 
-	return LiteralNode{Value: FMValue{vType: Int, i: iVal}}, nil
+	return LiteralNode{Value: FMFrom(iVal)}, nil
 }
 
 func hookGroupNode(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
@@ -467,6 +467,22 @@ type FMValue struct {
 	f     float32
 }
 
+// FMFrom creates an FMValue of the appropriate type based on the arguments. The
+// argument must be an int or a float32. The float64 type is also accepted but
+// will be immediately cast to float32.
+func FMFrom(v any) FMValue {
+	switch typedV := v.(type) {
+	case int:
+		return FMValue{vType: Int, i: typedV}
+	case float32:
+		return FMValue{vType: Float, f: typedV}
+	case float64:
+		return FMValue{vType: Float, f: float32(typedV)}
+	default:
+		panic("should never happen")
+	}
+}
+
 // Int returns the value of v as an int, converting if Type() is not Int.
 func (v FMValue) Int() int {
 	if v.vType == Float {
@@ -494,6 +510,44 @@ func (v FMValue) Interface() interface{} {
 // Type returns the type of this value.
 func (v FMValue) Type() ValueType {
 	return v.vType
+}
+
+// Add returns the result of adding v2 to v. If either is Float type, the result
+// will also be Float type.
+func (v FMValue) Add(v2 FMValue) FMValue {
+	if v.Type() == Float || v2.Type() == Float {
+		return FMFrom(v.Float() + v2.Float())
+	}
+	return FMFrom(v.Int() + v2.Int())
+}
+
+// Subtract returns the result of subtracting v2 from v. If either is Float
+// type, the result will also be Float type.
+func (v FMValue) Subtract(v2 FMValue) FMValue {
+	if v.Type() == Float || v2.Type() == Float {
+		return FMFrom(v.Float() - v2.Float())
+	}
+	return FMFrom(v.Int() - v2.Int())
+}
+
+// Multiply returns the result of multiplying v by v2. If either is Float type,
+// the result will also be Float type.
+func (v FMValue) Multiply(v2 FMValue) FMValue {
+	if v.Type() == Float || v2.Type() == Float {
+		return FMFrom(v.Float() * v2.Float())
+	}
+	return FMFrom(v.Int() * v2.Int())
+}
+
+// Divide returns the result of dividing v by v2. If either is Float type, the
+// result will also be Float type. Dividing by zero in any form will make result
+// type go to Float as this will cause the value to be one of the IEEE-754
+// defined results of division by zero.
+func (v FMValue) Divide(v2 FMValue) FMValue {
+	if v.Type() == Float || v2.Type() == Float || v2.Int() == 0 {
+		return FMFrom(v.Float() / v2.Float())
+	}
+	return FMFrom(v.Int() / v2.Int())
 }
 
 // String returns the string representation of an FMValue.
