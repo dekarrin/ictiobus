@@ -65,9 +65,9 @@ type Lexer interface {
 	// will be the default state, "".
 	StartingState() string
 
-	// RegisterTokenListener provides a function to call whenever a new token is
+	// RegisterTraceListener provides a function to call whenever a new token is
 	// lexed. It can be used for debug purposes.
-	RegisterTokenListener(func(t Token))
+	RegisterTraceListener(func(t Token))
 }
 
 type patAct struct {
@@ -120,9 +120,9 @@ func (lx *lexerTemplate) StartingState() string {
 	return lx.startState
 }
 
-// RegisterTokenListener provides a function to call whenever a new token is
+// RegisterTraceListener provides a function to call whenever a new token is
 // lexed. It can be used for debug purposes.
-func (lx *lexerTemplate) RegisterTokenListener(fn func(t Token)) {
+func (lx *lexerTemplate) RegisterTraceListener(fn func(t Token)) {
 	lx.listener = fn
 }
 

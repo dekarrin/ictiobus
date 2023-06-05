@@ -67,4 +67,17 @@ jobs:
         with:
           go-version: 1.19
       - name: Execute testing script
-        run: scripts/run-int-tests.sh
+        run: scripts/int-tests.sh
+
+  example-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+      - name: Execute example tests
+        run: scripts/example-tests.sh

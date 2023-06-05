@@ -1587,6 +1587,97 @@ hook is producing a value for is always passed to the implementation as its
 first argument; `$ft` can be used to get the first tokens of symbols from the
 production.
 
+### Evaluation Order
+
+Translation scheme evaluation on a parse tree is applied in a predictable order.
+An attribute that uses the values of other attributes in its hook is always
+calculated after the values of all those attributes are known. This is fairly
+intuitive; it's similar to how you can't get an exact value for `X` in the
+formula `X = A + B` unless you know what the values of `A` and `B` are.
+
+But there are some cases where that isn't quite enough to give a complete
+ordering. For instance, say you have the math equations `X = A + B`,
+`A = 6 + 2`, and `B = 8 + 1`, and you wanted to find the value of `X`. You know
+you need to have both `A` and `B` to calculate `X`, but should you find the
+value of `A` first? Or `B`?
+
+It may seem like it doesn't matter, and in the above case, it doesn't. Whether
+you find `B` or `A` before the other doesn't change the end value of `X`. But if
+for instance calculation of an attribute involved evaluating statements where
+earlier statements set a variable to a value and later statements end up using
+the variable's value, then an evaluation order that depended only on attribute
+dependency might result in attempting to use a variable's value before it's set.
+
+For instance, the below text is code written in some language that supports
+multiple statements. It also allows for assignment to variables, which can be
+used in later statements.
+
+```
+myVar = 12;
+myVar + 8;
+```
+
+The above input might then be parsed into the following tree:
+
+```
+(PROGRAM)
+ \-- (STATEMENTS)
+      |-- (STATEMENTS)
+      |    \-- (STMT)
+      |         |-- (VAR-ASSIGNMENT)
+      |         |    |-- [id "myVar"]
+      |         |    |-- [eq-sign "="]
+      |         |    \-- [int "12"]
+      |         \-- [semi ";"]
+      \-- (STMT)
+           |-- (SUM)
+           |    |-- (VAR)
+           |    |    \-- [id "myVar"]
+           |    |-- [plus-sign "+"]
+           |    \-- [int "8"]
+           \-- [semi ";"]
+```
+
+The below SDTS could be used to evaluate the result of the last statement in
+the input:
+
+    ```fishi
+    %%actions
+
+    %symbol {PROGRAM}
+    -> {STATEMENTS}:          {^}.value = last_result({0}.results)
+
+    %symbol {STATEMENTS}
+    -> {STATEMENTS} {STMT}:   {^}.results = append_to({0}.results, {1}.result)
+    -> {STMT}:                {^}.results = create_list({0}.result)
+
+    %symbol {STMT}
+    -> {VAR-ASSIGNMENT} semi: {^}.result = identity({0}.value)
+    -> {SUM} semi:            {^}.result = identity({0}.value)
+
+    %symbol {VAR-ASSIGNMENT}
+    -> id eq-sign int:        {^}.value = write_var({0}.$text, {2}.$text)
+
+    %symbol {SUM}
+    -> {VAR} plus-sign int:   {^}.value = add({0}.value, {2}.value)
+
+    %symbol {VAR}
+    -> id:                    {^}.value = read_var({0}.$text)
+    ```
+
+If only attribute dependency were considered, it's completely valid to calculate
+the result of the second statement *before* evaluating the first. This isn't
+good; what would the value of `myVar` be if it's read from before it's written
+to? It could be undefined, be some default value, or even cause an error! Either
+way, it almost certainly wouldn't be the intended result.
+
+To prevent this, translation schemes in Ictiobus use a secondary ordering. If
+two attributes have equal precedence for calculation according to dependency
+rules, Ictiobus will calculate the one in the node of the parse tree that would
+be visited first in a leftmost depth-first traversal of the tree. In the above
+case, this means the first statement is evaluated first, as it is further left
+in the parse tree than the second one.
+
 ### Synthesized vs Inherited Attributes
 
 Within Ictiobus (and sometimes in FISHI) you may come across the concept of
@@ -1837,241 +1928,242 @@ build the FISHIMath frontend, and give the arguments `--ir
 will allow you to do full validation testing and create a diagnostics binary
 with `-d` that has a fully-featured interpretation engine.
 
-
 ```go
 package fmhooks
 
 import (
-    "fmt"
-    "strings"
-    "strconv"
-    "math"
+	"fmt"
+	"math"
+	"strconv"
+	"strings"
 
-    "github.com/dekarrin/ictiobus/trans"
+	"github.com/dekarrin/ictiobus/trans"
 )
 
 var (
-    HooksTable = trans.HookMap{
-        "identity":             hookIdentity,
-        "int":                  hookInt,
-        "float":                hookFloat,
-        "multiply":             hookMultiply,
-        "divide":               hookDivide,
-        "add":                  hookAdd,
-        "subtract":             hookSubtract,
-        "read_var":             hookReadVar,
-        "write_var":            hookWriteVar,
-        "num_slice_start":      hookNumSliceStart,
-        "num_slice_prepend":    hookNumSlicePrepend,
-    }
+	HooksTable = trans.HookMap{
+		"identity":          hookIdentity,
+		"int":               hookInt,
+		"float":             hookFloat,
+		"multiply":          hookMultiply,
+		"divide":            hookDivide,
+		"add":               hookAdd,
+		"subtract":          hookSubtract,
+		"read_var":          hookReadVar,
+		"write_var":         hookWriteVar,
+		"num_slice_start":   hookNumSliceStart,
+		"num_slice_prepend": hookNumSlicePrepend,
+	}
 )
 
 var (
-    symbolTable = map[string]FMValue{}
+	symbolTable = map[string]FMValue{}
 )
 
 func hookIdentity(_ trans.SetterInfo, args []interface{}) (interface{}, error) { return args[0], nil }
 
 func hookFloat(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    literalText, ok := args[0].(string)
-    if !ok {
-        return nil, fmt.Errorf("arg 1 is not a string")
-    }
+	literalText, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("arg 1 is not a string")
+	}
 
-    f64Val, err := strconv.ParseFloat(literalText, 32)
-    if err != nil {
-        return nil, err
-    }
-    fVal := float32(f64Val)
+	f64Val, err := strconv.ParseFloat(literalText, 32)
+	if err != nil {
+		return nil, err
+	}
+	fVal := float32(f64Val)
 
-    return FMFloat(fVal), nil
+	return FMFloat(fVal), nil
 }
 
 func hookInt(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    literalText, ok := args[0].(string)
-    if !ok {
-        return nil, fmt.Errorf("arg 1 is not a string")
-    }
+	literalText, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("arg 1 is not a string")
+	}
 
-    iVal, err := strconv.Atoi(literalText)
-    if err != nil {
-        return nil, err
-    }
+	iVal, err := strconv.Atoi(literalText)
+	if err != nil {
+		return nil, err
+	}
 
-    return FMInt(iVal), nil
+	return FMInt(iVal), nil
 }
 
 func hookMultiply(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    v1, v2, err := getBinaryArgsCoerced(args)
-    if err != nil {
-        return nil, err
-    }
+	v1, v2, err := getBinaryArgsCoerced(args)
+	if err != nil {
+		return nil, err
+	}
 
-    if v1.IsFloat {
-        return FMFloat(v1.Float() * v2.Float()), nil
-    }
-    return FMInt(v1.Int() * v2.Int()), nil
+	if v1.IsFloat {
+		return FMFloat(v1.Float() * v2.Float()), nil
+	}
+	return FMInt(v1.Int() * v2.Int()), nil
 }
 
 func hookDivide(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    v1, v2, err := getBinaryArgsCoerced(args)
-    if err != nil {
-        return nil, err
-    }
+	v1, v2, err := getBinaryArgsCoerced(args)
+	if err != nil {
+		return nil, err
+	}
 
-    if v1.IsFloat {
-        return FMFloat(v1.Float() / v2.Float()), nil
-    }
-    return FMInt(v1.Int() / v2.Int()), nil
+	// if one of them is a float (which will have them both coerced to float),
+	// OR if we're about to divide by zero, do IEEE-754 math.
+	if v1.IsFloat || v2.Int() == 0 {
+		return FMFloat(v1.Float() / v2.Float()), nil
+	}
+
+	return FMInt(v1.Int() / v2.Int()), nil
 }
 
 func hookAdd(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    v1, v2, err := getBinaryArgsCoerced(args)
-    if err != nil {
-        return nil, err
-    }
+	v1, v2, err := getBinaryArgsCoerced(args)
+	if err != nil {
+		return nil, err
+	}
 
-    if v1.IsFloat {
-        return FMFloat(v1.Float() + v2.Float()), nil
-    }
-    return FMInt(v1.Int() + v2.Int()), nil
+	if v1.IsFloat {
+		return FMFloat(v1.Float() + v2.Float()), nil
+	}
+	return FMInt(v1.Int() + v2.Int()), nil
 }
 
 func hookSubtract(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    v1, v2, err := getBinaryArgsCoerced(args)
-    if err != nil {
-        return nil, err
-    }
+	v1, v2, err := getBinaryArgsCoerced(args)
+	if err != nil {
+		return nil, err
+	}
 
-    if v1.IsFloat {
-        return FMFloat(v1.Float() - v2.Float()), nil
-    }
-    return FMInt(v1.Int() - v2.Int()), nil
+	if v1.IsFloat {
+		return FMFloat(v1.Float() - v2.Float()), nil
+	}
+	return FMInt(v1.Int() - v2.Int()), nil
 }
 
 func hookReadVar(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    varName, ok := args[0].(string)
-    if !ok {
-        return nil, fmt.Errorf("arg 1 is not a string")
-    }
+	varName, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("arg 1 is not a string")
+	}
 
-    varVal := symbolTable[varName]
+	varVal := symbolTable[varName]
 
-    return varVal, nil
+	return varVal, nil
 }
 
 func hookWriteVar(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    varName, ok := args[0].(string)
-    if !ok {
-        return nil, fmt.Errorf("arg 1 is not a string")
-    }
+	varName, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("arg 1 is not a string")
+	}
 
-    varVal, ok := args[1].(FMValue)
-    if !ok {
-        return nil, fmt.Errorf("arg 2 is not an FMValue")
-    }
+	varVal, ok := args[1].(FMValue)
+	if !ok {
+		return nil, fmt.Errorf("arg 2 is not an FMValue")
+	}
 
-    symbolTable[varName] = varVal
+	symbolTable[varName] = varVal
 
-    return varVal, nil
+	return varVal, nil
 }
 
 func hookNumSliceStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    v, ok := args[0].(FMValue)
-    if !ok {
-        return nil, fmt.Errorf("arg 1 is not an FMValue")
-    }
+	v, ok := args[0].(FMValue)
+	if !ok {
+		return nil, fmt.Errorf("arg 1 is not an FMValue")
+	}
 
-    return []FMValue{v}, nil
+	return []FMValue{v}, nil
 }
 
 func hookNumSlicePrepend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    vSlice, ok := args[0].([]FMValue)
-    if !ok {
-        return nil, fmt.Errorf("arg 1 is not an []FMValue")
-    }
+	vSlice, ok := args[0].([]FMValue)
+	if !ok {
+		return nil, fmt.Errorf("arg 1 is not an []FMValue")
+	}
 
-    v, ok := args[2].(FMValue)
-    if !ok {
-        return nil, fmt.Errorf("arg 2 is not an FMValue")
-    }
+	v, ok := args[1].(FMValue)
+	if !ok {
+		return nil, fmt.Errorf("arg 2 is not an FMValue")
+	}
 
-    vSlice = append([]FMValue{v}, vSlice...)
+	vSlice = append([]FMValue{v}, vSlice...)
 
-    return vSlice, nil
+	return vSlice, nil
 }
 
 func getBinaryArgsCoerced(args []interface{}) (left, right FMValue, err error) {
-    v1, ok := args[0].(FMValue)
-    if !ok {
-        return left, right, fmt.Errorf("arg 1 is not an FMValue")
-    }
+	v1, ok := args[0].(FMValue)
+	if !ok {
+		return left, right, fmt.Errorf("arg 1 is not an FMValue")
+	}
 
-    v2, ok := args[1].(FMValue)
-    if !ok {
-        return left, right, fmt.Errorf("arg 2 is not an FMValue")
-    }
+	v2, ok := args[1].(FMValue)
+	if !ok {
+		return left, right, fmt.Errorf("arg 2 is not an FMValue")
+	}
 
-    // if one is a float, they are now both floats
-    if v1.IsFloat && !v2.IsFloat {
-        v2 = FMFloat(v2.Float())
-    } else if v2.IsFloat && !v1.IsFloat {
-        v1 = FMFloat(v1.Float())
-    }
+	// if one is a float, they are now both floats
+	if v1.IsFloat && !v2.IsFloat {
+		v2 = FMFloat(v2.Float())
+	} else if v2.IsFloat && !v1.IsFloat {
+		v1 = FMFloat(v1.Float())
+	}
 
-    return v1, v2, nil
+	return v1, v2, nil
 }
 
 // FMValue is a calculated result from FISHIMath. It holds either a float32 or
-// int and is convertible to either. The type of value it holds is queryable
-// with IsFloat. Int() or Float() can be called on it to get the value as that
-// type.
+// int and is convertible to either. The type of value it holds is querable with
+// IsFloat. Int() or Float() can be called on it to get the value as that type.
 type FMValue struct {
-    IsFloat bool
-    i int
-    f float32
+	IsFloat bool
+	i       int
+	f       float32
 }
 
 // FMFloat creates a new FMValue that holds a float32 value.
 func FMFloat(v float32) FMValue {
-    return FMValue{IsFloat: true, f: v}
+	return FMValue{IsFloat: true, f: v}
 }
 
 // FMInt creates a new FMValue that holds an int value.
 func FMInt(v int) FMValue {
-    return FMValue{i: v}
+	return FMValue{i: v}
 }
 
 // Int returns the value of v as an int, converting if necessary from a float.
 func (v FMValue) Int() int {
-    if v.IsFloat {
-        return int(math.Round(float64(v.f)))
-    }
-    return v.i
+	if v.IsFloat {
+		return int(math.Round(float64(v.f)))
+	}
+	return v.i
 }
 
 // Float returns the value of v as a float32, converting if necessary from an
 // int.
 func (v FMValue) Float() float32 {
-    if !v.IsFloat {
-        return float32(v.i)
-    }
-    return v.f
+	if !v.IsFloat {
+		return float32(v.i)
+	}
+	return v.f
 }
 
 // String returns the string representation of an FMValue.
 func (v FMValue) String() string {
-    if v.IsFloat {
-        str := fmt.Sprintf("%.7f", v.f)
-        // remove extra 0's...
-        str = strings.TrimRight(str, "0")
-        // ...but there should be at least one 0 if nothing else
-        if strings.HasSuffix(str, ".") {
-            str = str + "0"
-        }
-        return str
-    }
-    return fmt.Sprintf("%d", v.i)
+	if v.IsFloat {
+		str := fmt.Sprintf("%.7f", v.f)
+		// remove extra 0's...
+		str = strings.TrimRight(str, "0")
+		// ...but there should be at least one 0 if nothing else
+		if strings.HasSuffix(str, ".") {
+			str = str + "0"
+		}
+		return str
+	}
+	return fmt.Sprintf("%d", v.i)
 }
 ```
 
@@ -2088,452 +2180,451 @@ import/path/to/fmhooks.AST` and `--hooks filesystem/path/to/fmhooks`. This
 will allow you to do full validation testing and create a diagnostics binary
 with `-d` that will produce ASTs of input FISHIMath code.
 
-
-
 ```go
 package fmhooks
 
 import (
-    "fmt"
-    "strings"
-    "strconv"
-    "math"
+	"fmt"
+	"math"
+	"strconv"
+	"strings"
 
-    "github.com/dekarrin/ictiobus/trans"
-    "github.com/dekarrin/ictiobus/lex"
+	"github.com/dekarrin/ictiobus/trans"
 )
 
 var (
-    HooksTable = trans.HookMap{
-        "identity":             hookIdentity,
-        "var_node":             hookVarNode,
-        "assignment_node":      hookAssignmentNode,
-        "lit_node_float":       hookLitNodeFloat,
-        "lit_node_int":         hookLitNodeInt,
-        "group_node":           hookGroupNode,
-        "binary_node_mult":     hookFnForBinaryNode(Multiply),
-        "binary_node_div":      hookFnForBinaryNode(Divide),
-        "binary_node_add":      hookFnForBinaryNode(Add),
-        "binary_node_sub":      hookFnForBinaryNode(Subtract),
-        "node_slice_start":     hookNodeSliceStart,
-        "node_slice_prepend":   hookNodeSlicePrepend,
-        "ast":                  hookAST,
-    }
+	HooksTable = trans.HookMap{
+		"identity":           hookIdentity,
+		"var_node":           hookVarNode,
+		"assignment_node":    hookAssignmentNode,
+		"lit_node_float":     hookLitNodeFloat,
+		"lit_node_int":       hookLitNodeInt,
+		"group_node":         hookGroupNode,
+		"binary_node_mult":   hookFnForBinaryNode(Multiply),
+		"binary_node_div":    hookFnForBinaryNode(Divide),
+		"binary_node_add":    hookFnForBinaryNode(Add),
+		"binary_node_sub":    hookFnForBinaryNode(Subtract),
+		"node_slice_start":   hookNodeSliceStart,
+		"node_slice_prepend": hookNodeSlicePrepend,
+		"ast":                hookAST,
+	}
 )
 
 func hookIdentity(_ trans.SetterInfo, args []interface{}) (interface{}, error) { return args[0], nil }
 
 func hookAST(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    nodeSlice, ok := args[0].([]Node)
-    if !ok {
-        return nil, fmt.Errorf("arg 1 is not a []Node")
-    }
+	nodeSlice, ok := args[0].([]Node)
+	if !ok {
+		return nil, fmt.Errorf("arg 1 is not a []Node")
+	}
 
-    return AST{Statements: nodeSlice}, nil
+	return AST{Statements: nodeSlice}, nil
 }
 
 func hookVarNode(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    varName, ok := args[0].(string)
-    if !ok {
-        return nil, fmt.Errorf("arg 1 is not a string")
-    }
+	varName, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("arg 1 is not a string")
+	}
 
-    return VariableNode{Name: varName}, nil
+	return VariableNode{Name: varName}, nil
 }
 
 func hookAssignmentNode(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    varName, ok := args[0].(string)
-    if !ok {
-        return nil, fmt.Errorf("arg 1 is not a string")
-    }
+	varName, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("arg 1 is not a string")
+	}
 
-    varVal, ok := args[1].(Node)
-    if !ok {
-        return nil, fmt.Errorf("arg 2 is not a Node")
-    }
+	varVal, ok := args[1].(Node)
+	if !ok {
+		return nil, fmt.Errorf("arg 2 is not a Node")
+	}
 
-    return AssignmentNode{Name: varName, Expr: varVal}, nil
+	return AssignmentNode{Name: varName, Expr: varVal}, nil
 }
 
 func hookLitNodeFloat(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    strVal, ok := args[0].(string)
-    if !ok {
-        return nil, fmt.Errorf("arg 1 is not a string")
-    }
+	strVal, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("arg 1 is not a string")
+	}
 
-    f64Val, err := strconv.ParseFloat(strVal, 32)
-    if err != nil {
-        return nil, err
-    }
+	fVal, err := strconv.ParseFloat(strVal, 32)
+	if err != nil {
+		return nil, err
+	}
 
-    return LiteralNode{Value: FMValue{vType: Float, f: float32(f64Val)}}, nil
+	return LiteralNode{Value: FMFrom(fVal)}, nil
 }
 
 func hookLitNodeInt(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    strVal, ok := args[0].(string)
-    if !ok {
-        return nil, fmt.Errorf("arg 1 is not a string")
-    }
+	strVal, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("arg 1 is not a string")
+	}
 
-    iVal, err := strconv.Atoi(strVal)
-    if err != nil {
-        return nil, err
-    }
+	iVal, err := strconv.Atoi(strVal)
+	if err != nil {
+		return nil, err
+	}
 
-    return LiteralNode{Value: FMValue{vType: Int, i: iVal}}, nil
+	return LiteralNode{Value: FMFrom(iVal)}, nil
 }
 
 func hookGroupNode(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    exprNode, ok := args[0].(Node)
-    if !ok {
-        return nil, fmt.Errorf("arg 1 is not a Node")
-    }
+	exprNode, ok := args[0].(Node)
+	if !ok {
+		return nil, fmt.Errorf("arg 1 is not a Node")
+	}
 
-    return GroupNode{Expr: exprNode}
+	return GroupNode{Expr: exprNode}, nil
 }
 
 func hookFnForBinaryNode(op Operation) trans.Hook {
-    fn := func(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-        left, ok := args[0].(Node)
-        if !ok {
-            return nil, fmt.Errorf("arg 1 is not a Node")
-        }
+	fn := func(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
+		left, ok := args[0].(Node)
+		if !ok {
+			return nil, fmt.Errorf("arg 1 is not a Node")
+		}
 
-        right, ok := args[1].(Node)
-        if !ok {
-            return nil, fmt.Errorf("arg 2 is not a Node")
-        }
+		right, ok := args[1].(Node)
+		if !ok {
+			return nil, fmt.Errorf("arg 2 is not a Node")
+		}
 
-        return BinaryOpNode{
-            Left: left,
-            Right: right,
-            Op: op,
-        }
-    }
+		return BinaryOpNode{
+			Left:  left,
+			Right: right,
+			Op:    op,
+		}, nil
+	}
 
-    return fn
+	return fn
 }
 
 func hookNodeSliceStart(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    node, ok := args[0].(Node)
-    if !ok {
-        return nil, fmt.Errorf("arg 1 is not a Node")
-    }
+	node, ok := args[0].(Node)
+	if !ok {
+		return nil, fmt.Errorf("arg 1 is not a Node")
+	}
 
-    return []Node{node}, nil
+	return []Node{node}, nil
 }
 
 func hookNodeSlicePrepend(_ trans.SetterInfo, args []interface{}) (interface{}, error) {
-    nodeSlice, ok := args[0].([]Node)
-    if !ok {
-        return nil, fmt.Errorf("arg 1 is not a []Node")
-    }
+	nodeSlice, ok := args[0].([]Node)
+	if !ok {
+		return nil, fmt.Errorf("arg 1 is not a []Node")
+	}
 
-    node, ok := args[1].(Node)
-    if !ok {
-        return nil, fmt.Errorf("arg 2 is not a Node")
-    }
+	node, ok := args[1].(Node)
+	if !ok {
+		return nil, fmt.Errorf("arg 2 is not a Node")
+	}
 
-    nodeSlice = append([]Node{node}, nodeSlice...)
+	nodeSlice = append([]Node{node}, nodeSlice...)
 
-    return nodeSlice, nil
+	return nodeSlice, nil
 }
+
+const astTabAmount = 2
 
 // AST is an abstract syntax tree containing a complete representation of input
 // written in FISHIMath.
 type AST struct {
-    Statements []Node
+	Statements []Node
 }
 
 // String returns a pretty-print representation of the AST, with depth in the
 // tree indicated by indent.
 func (ast AST) String() string {
-    if len(ast.Statements) < 1 {
-        return "AST<>"
-    }
+	if len(ast.Statements) < 1 {
+		return "AST<>"
+	}
 
-    var sb strings.Builder
-    sb.WriteString("AST<\n")
+	var sb strings.Builder
+	sb.WriteString("AST<\n")
 
-    labelFmt := " STMT #%0*d: "
-    largestDigitCount := len(fmt.Sprintf("%d", len(ast.Statements)))
+	labelFmt := "  STMT #%0*d: "
+	largestDigitCount := len(fmt.Sprintf("%d", len(ast.Statements)))
 
-    for i := range ast.Statements {
-        label := fmt.Sprintf(labelFmt, largestDigitCount, i+1)
-        stmtStr := spaceIndentNewlines(ast.Statements[i].String(), len(label))
-        sb.WriteString(label)
-        sb.WriteString(stmtStr)
-        sb.WriteRune('\n')
-    }
+	for i := range ast.Statements {
+		label := fmt.Sprintf(labelFmt, largestDigitCount, i+1)
+		stmtStr := spaceIndentNewlines(ast.Statements[i].String(), astTabAmount)
+		sb.WriteString(label)
+		sb.WriteString(stmtStr)
+		sb.WriteRune('\n')
+	}
 
-    sb.WriteRune('>')
-    return sb.String()
+	sb.WriteRune('>')
+	return sb.String()
 }
 
 // FMString returns a string of FISHIMath code that if parsed, would result in
 // an equivalent AST. Each statement is put on its own line, but the last line
 // will not end in \n.
 func (ast AST) FMString() string {
-    if len(ast.Statements) < 1 {
-        return ""
-    }
+	if len(ast.Statements) < 1 {
+		return ""
+	}
 
-    var sb strings.Builder
+	var sb strings.Builder
 
-    for i, stmt := range ast.Statements {
-        sb.WriteString(stmt.FMString())
-        sb.WriteString(" <o^><")
+	for i, stmt := range ast.Statements {
+		sb.WriteString(stmt.FMString())
+		sb.WriteString(" <o^><")
 
-        if i + 1 < len(ast.Statements) {
-            sb.WriteRune('\n')
-        }
-    }
+		if i+1 < len(ast.Statements) {
+			sb.WriteRune('\n')
+		}
+	}
 
-    return sb.String()
+	return sb.String()
 }
 
 // NodeType is the type of a node in the AST.
 type NodeType int
 
 const (
-    // Literal is a numerical value literal in FISHIMath, such as 3 or 7.284.
-    // FISHIMath only supports float32 and int literals, so it will represent
-    // one of those.
-    Literal NodeType = iota
+	// Literal is a numerical value literal in FISHIMath, such as 3 or 7.284.
+	// FISHIMath only supports float32 and int literals, so it will represent
+	// one of those.
+	Literal NodeType = iota
 
-    // Variable is a variable used in a non-assignment context (i.e. one whose
-    // value is being *used*, not set).
-    Variable
+	// Variable is a variable used in a non-assignment context (i.e. one whose
+	// value is being *used*, not set).
+	Variable
 
-    // BinaryOp is an operation consisting of two operands and the operation
-    // performed on them.
-    BinaryOp
+	// BinaryOp is an operation consisting of two operands and the operation
+	// performed on them.
+	BinaryOp
 
-    // Assignment is an assignment of a value to a variable in FISHIMath using
-    // the value tentacle.
-    Assignment
+	// Assignment is an assignment of a value to a variable in FISHIMath using
+	// the value tentacle.
+	Assignment
 
-    // Group is an expression grouped with the fishtail and fishhead symbols.
-    Group
+	// Group is an expression grouped with the fishtail and fishhead symbols.
+	Group
 )
 
 // Operation is a type of operation being performed.
 type Operation int
 
 const (
-    NoOp Operation = iota
-    Add
-    Subtract
-    Multiply
-    Divide
+	NoOp Operation = iota
+	Add
+	Subtract
+	Multiply
+	Divide
 )
 
 // Symbol returns the FISHIMath syntax string that represents the operation. If
 // there isn't one for op, "" is returned.
 func (op Operation) Symbol() string {
-    if op == Add {
-        return "+"
-    } else if op == Subtract {
-        return "-"
-    } else if op == Multiply {
-        return "*"
-    } else if op == Divide {
-        return "/"
-    }
+	if op == Add {
+		return "+"
+	} else if op == Subtract {
+		return "-"
+	} else if op == Multiply {
+		return "*"
+	} else if op == Divide {
+		return "/"
+	}
 
-    return ""
+	return ""
 }
 
 func (op Operation) String() string {
-    if op == Add {
-        return "addition"
-    } else if op == Subtract {
-        return "subtraction"
-    } else if op == Multiply {
-        return "multiplication"
-    } else if op == Divide {
-        return "division"
-    }
+	if op == Add {
+		return "addition"
+	} else if op == Subtract {
+		return "subtraction"
+	} else if op == Multiply {
+		return "multiplication"
+	} else if op == Divide {
+		return "division"
+	}
 
-    return fmt.Sprintf("operation(code=%d)", int(op))
+	return fmt.Sprintf("operation(code=%d)", int(op))
 }
 
 // Node is a node of the AST. It can be converted to the actual type it is by
 // calling the appropriate function.
 type Node interface {
-    // Type returns the type of thing this node is. Whether or not the other
-    // functions return valid values depends on the type of AST Node returned
-    // here.
-    Type() NodeType
+	// Type returns the type of thing this node is. Whether or not the other
+	// functions return valid values depends on the type of AST Node returned
+	// here.
+	Type() NodeType
 
-    // AsLiteral returns this Node as a LiteralNode. Panics if Type() is not
-    // Literal.
-    AsLiteral() LiteralNode
+	// AsLiteral returns this Node as a LiteralNode. Panics if Type() is not
+	// Literal.
+	AsLiteral() LiteralNode
 
-    // AsVariable returns this Node as a VariableNode. Panics if Type() is not
-    // Variable.
-    AsVariable() VariableNode
+	// AsVariable returns this Node as a VariableNode. Panics if Type() is not
+	// Variable.
+	AsVariable() VariableNode
 
-    // AsBinaryOperation returns this Node as a BinaryOpNode. Panics if Type()
-    // is not BinaryOp.
-    AsBinaryOp() BinaryOpNode
+	// AsBinaryOperation returns this Node as a BinaryOpNode. Panics if Type()
+	// is not BinaryOp.
+	AsBinaryOp() BinaryOpNode
 
-    // AsAssignment returns this Node as an AssignmentNode. Panics if Type() is
-    // not Assignment.
-    AsAssignment() AssignmentNode
+	// AsAssignment returns this Node as an AssignmentNode. Panics if Type() is
+	// not Assignment.
+	AsAssignment() AssignmentNode
 
-    // AsGroup returns this Node as a GroupNode. Panics if Type() is not Group.
-    AsGroup() GroupNode
+	// AsGroup returns this Node as a GroupNode. Panics if Type() is not Group.
+	AsGroup() GroupNode
 
-    // FMString converts this Node into FISHIMath code that would produce an
-    // equivalent Node.
-    FMString() string
+	// FMString converts this Node into FISHIMath code that would produce an
+	// equivalent Node.
+	FMString() string
 
-    // String returns a human-readable string representation of this Node, which
-    // will vary based on what Type() is.
-    String() string
+	// String returns a human-readable string representation of this Node, which
+	// will vary based on what Type() is.
+	String() string
 }
 
 // LiteralNode is an AST node representing a numerical constant used in
 // FISHIMath.
 type LiteralNode struct {
-    Value FMValue
+	Value FMValue
 }
 
-func (n LiteralNode) Type() NodeType { return Literal }
-func (n LiteralNode) AsLiteral() LiteralNode { return n }
-func (n LiteralNode) AsVariable() VariableNode { panic("Type() is not Variable") }
-func (n LiteralNode) AsBinaryOp() BinaryOpNode { panic("Type() is not BinaryOp") }
+func (n LiteralNode) Type() NodeType               { return Literal }
+func (n LiteralNode) AsLiteral() LiteralNode       { return n }
+func (n LiteralNode) AsVariable() VariableNode     { panic("Type() is not Variable") }
+func (n LiteralNode) AsBinaryOp() BinaryOpNode     { panic("Type() is not BinaryOp") }
 func (n LiteralNode) AsAssignment() AssignmentNode { panic("Type() is not Assignment") }
-func (n LiteralNode) AsGroup() GroupNode { panic("Type() is not Group") }
+func (n LiteralNode) AsGroup() GroupNode           { panic("Type() is not Group") }
 
 func (n LiteralNode) FMString() string {
-    return n.Value.String()
+	return n.Value.String()
 }
 
 func (n LiteralNode) String() string {
-    return fmt.Sprintf("[LITERAL value=%v]", n.Value)
+	return fmt.Sprintf("[LITERAL value=%v]", n.Value)
 }
 
 // VariableNode is an AST node representing the use of a variable's value in
 // FISHIMath. It does *not* represent assignment to a variable, as that is done
 // with an AssignmentNode.
 type VariableNode struct {
-    Name string
+	Name string
 }
 
-func (n VariableNode) Type() NodeType { return Variable }
-func (n VariableNode) AsLiteral() LiteralNode { panic("Type() is not Literal") }
-func (n VariableNode) AsVariable() VariableNode { return n }
-func (n VariableNode) AsBinaryOp() BinaryOpNode { panic("Type() is not BinaryOp") }
+func (n VariableNode) Type() NodeType               { return Variable }
+func (n VariableNode) AsLiteral() LiteralNode       { panic("Type() is not Literal") }
+func (n VariableNode) AsVariable() VariableNode     { return n }
+func (n VariableNode) AsBinaryOp() BinaryOpNode     { panic("Type() is not BinaryOp") }
 func (n VariableNode) AsAssignment() AssignmentNode { panic("Type() is not Assignment") }
-func (n VariableNode) AsGroup() GroupNode { panic("Type() is not Group") }
+func (n VariableNode) AsGroup() GroupNode           { panic("Type() is not Group") }
 
 func (n VariableNode) FMString() string {
-    return n.Name
+	return n.Name
 }
 
 func (n VariableNode) String() string {
-    return fmt.Sprintf("[VARIABLE name=%v]", n.Name)
+	return fmt.Sprintf("[VARIABLE name=%v]", n.Name)
 }
 
 // BinaryOpNode is an AST node representing a binary operation in FISHIMath. It
 // has a left operand, a right operand, and an operation to perform on them.
 type BinaryOpNode struct {
-    Left    Node
-    Right   Node
-    Op      Operation
+	Left  Node
+	Right Node
+	Op    Operation
 }
 
-func (n BinaryOpNode) Type() NodeType { return BinaryOp }
-func (n BinaryOpNode) AsLiteral() LiteralNode { panic("Type() is not Literal") }
-func (n BinaryOpNode) AsVariable() VariableNode { panic("Type() is not Variable") }
-func (n BinaryOpNode) AsBinaryOp() BinaryOpNode { return n }
+func (n BinaryOpNode) Type() NodeType               { return BinaryOp }
+func (n BinaryOpNode) AsLiteral() LiteralNode       { panic("Type() is not Literal") }
+func (n BinaryOpNode) AsVariable() VariableNode     { panic("Type() is not Variable") }
+func (n BinaryOpNode) AsBinaryOp() BinaryOpNode     { return n }
 func (n BinaryOpNode) AsAssignment() AssignmentNode { panic("Type() is not Assignment") }
-func (n BinaryOpNode) AsGroup() GroupNode { panic("Type() is not Group") }
+func (n BinaryOpNode) AsGroup() GroupNode           { panic("Type() is not Group") }
 
 func (n BinaryOpNode) FMString() string {
-    return fmt.Sprintf("%s %s %s", n.Left.FMString(), n.Op.Symbol(), n.Right.FMString())
+	return fmt.Sprintf("%s %s %s", n.Left.FMString(), n.Op.Symbol(), n.Right.FMString())
 }
 
 func (n BinaryOpNode) String() string {
-    const (
-        leftStart =  " left:  "
-        rightStart = " right: "
-    )
+	const (
+		leftStart  = "  left:  "
+		rightStart = "  right: "
+	)
 
-    leftStr := spaceIndentNewlines(n.Left.String(), len(leftStart))
-    rightStr := spaceIndentNewlines(n.Right.String(), len(rightStart))
+	leftStr := spaceIndentNewlines(n.Left.String(), astTabAmount)
+	rightStr := spaceIndentNewlines(n.Right.String(), astTabAmount)
 
-    return fmt.Sprintf("[BINARY_OPERATION type=%v\n%s%s\n%s%s\n]", n.Op.String(), leftStart, leftStr, rightStart, rightStr)
+	return fmt.Sprintf("[BINARY_OPERATION type=%v\n%s%s\n%s%s\n]", n.Op.String(), leftStart, leftStr, rightStart, rightStr)
 }
 
 // AssignmentNode is an AST node representing the assignment of an expression to
 // a variable in FISHIMath. Name is the name of the variable, Expr is the
 // expression being assigned to it.
 type AssignmentNode struct {
-    Name string
-    Expr Node
+	Name string
+	Expr Node
 }
 
-func (n AssignmentNode) Type() NodeType { return Assignment }
-func (n AssignmentNode) AsLiteral() LiteralNode { panic("Type() is not Literal") }
-func (n AssignmentNode) AsVariable() VariableNode { panic("Type() is not Variable") }
-func (n AssignmentNode) AsBinaryOp() BinaryOpNode { panic("Type() is not BinaryOp") }
+func (n AssignmentNode) Type() NodeType               { return Assignment }
+func (n AssignmentNode) AsLiteral() LiteralNode       { panic("Type() is not Literal") }
+func (n AssignmentNode) AsVariable() VariableNode     { panic("Type() is not Variable") }
+func (n AssignmentNode) AsBinaryOp() BinaryOpNode     { panic("Type() is not BinaryOp") }
 func (n AssignmentNode) AsAssignment() AssignmentNode { return n }
-func (n AssignmentNode) AsGroup() GroupNode { panic("Type() is not Group") }
+func (n AssignmentNode) AsGroup() GroupNode           { panic("Type() is not Group") }
 
 func (n AssignmentNode) FMString() string {
-    return fmt.Sprintf("%s =o %s", n.Name, n.Expr.FMString())
+	return fmt.Sprintf("%s =o %s", n.Name, n.Expr.FMString())
 }
 
 func (n AssignmentNode) String() string {
-    const (
-        exprStart =  " expr:  "
-    )
+	const (
+		exprStart = "  expr:  "
+	)
 
-    exprStr := spaceIndentNewlines(n.Expr.String(), len(exprStart))
+	exprStr := spaceIndentNewlines(n.Expr.String(), astTabAmount)
 
-    return fmt.Sprintf("[ASSIGNMENT name=%q\n%s%s\n]", n.Name, exprStart, exprStr)
+	return fmt.Sprintf("[ASSIGNMENT name=%q\n%s%s\n]", n.Name, exprStart, exprStr)
 }
 
 // GroupNode is an AST node representing an expression grouped by the fishtail
 // and fishhead symbols in FISHIMath. Expr is the expression in the group.
 type GroupNode struct {
-    Expr Node
+	Expr Node
 }
 
-func (n GroupNode) Type() NodeType { return Assignment }
-func (n GroupNode) AsLiteral() LiteralNode { panic("Type() is not Literal") }
-func (n GroupNode) AsVariable() VariableNode { panic("Type() is not Variable") }
-func (n GroupNode) AsBinaryOp() BinaryOpNode { panic("Type() is not BinaryOp") }
+func (n GroupNode) Type() NodeType               { return Group }
+func (n GroupNode) AsLiteral() LiteralNode       { panic("Type() is not Literal") }
+func (n GroupNode) AsVariable() VariableNode     { panic("Type() is not Variable") }
+func (n GroupNode) AsBinaryOp() BinaryOpNode     { panic("Type() is not BinaryOp") }
 func (n GroupNode) AsAssignment() AssignmentNode { panic("Type() is not Assignment") }
-func (n GroupNode) AsGroup() GroupNode { return n }
+func (n GroupNode) AsGroup() GroupNode           { return n }
 
 func (n GroupNode) FMString() string {
-    return fmt.Sprintf(">{ %s '}", n.Expr.FMString())
+	return fmt.Sprintf(">{ %s '}", n.Expr.FMString())
 }
 
 func (n GroupNode) String() string {
-    const (
-        exprStart =  " expr:  "
-    )
+	const (
+		exprStart = "  expr:  "
+	)
 
-    exprStr := spaceIndentNewlines(n.Expr.String(), len(exprStart))
+	exprStr := spaceIndentNewlines(n.Expr.String(), astTabAmount)
 
-    return fmt.Sprintf("[GROUP\n%s%s\n]", n.Name, exprStart, exprStr)
+	return fmt.Sprintf("[GROUP\n%s%s\n]", exprStart, exprStr)
 }
 
 func spaceIndentNewlines(str string, amount int) string {
-    if strings.Contains(str, "\n") {
-        // need to pad every newline
-        pad := " "
-        for len(pad) < amount {
-            pad += " "
-        }
-        str = strings.ReplaceAll(str, "\n", "\n" + pad)
-    }
-    return str
+	if strings.Contains(str, "\n") {
+		// need to pad every newline
+		pad := " "
+		for len(pad) < amount {
+			pad += " "
+		}
+		str = strings.ReplaceAll(str, "\n", "\n"+pad)
+	}
+	return str
 }
 
 // ValueType is the type of a value in FISHIMath. Only Float and Int are
@@ -2541,12 +2632,12 @@ func spaceIndentNewlines(str string, amount int) string {
 type ValueType int
 
 const (
-    // Int is an integer of at least 32 bits.
-    Int ValueType = iota
+	// Int is an integer of at least 32 bits.
+	Int ValueType = iota
 
-    // Float is a floating point number represented as an IEEE-754 single
-    // precision (32-bit) float.
-    Float
+	// Float is a floating point number represented as an IEEE-754 single
+	// precision (32-bit) float.
+	Float
 )
 
 // FMValue is a typed value used in FISHIMath. The type of value it holds is
@@ -2554,52 +2645,106 @@ const (
 // as that type, otherwise Interface() can be called to return the exact value
 // as whatever type it is.
 type FMValue struct {
-    vType ValueType
-    i int
-    f float32
+	vType ValueType
+	i     int
+	f     float32
+}
+
+// FMFrom creates an FMValue of the appropriate type based on the arguments. The
+// argument must be an int or a float32. The float64 type is also accepted but
+// will be immediately cast to float32.
+func FMFrom(v any) FMValue {
+	switch typedV := v.(type) {
+	case int:
+		return FMValue{vType: Int, i: typedV}
+	case float32:
+		return FMValue{vType: Float, f: typedV}
+	case float64:
+		return FMValue{vType: Float, f: float32(typedV)}
+	default:
+		panic("should never happen")
+	}
 }
 
 // Int returns the value of v as an int, converting if Type() is not Int.
 func (v FMValue) Int() int {
-    if v.vType == Float {
-        return int(math.Round(float64(v.f)))
-    }
-    return v.i
+	if v.vType == Float {
+		return int(math.Round(float64(v.f)))
+	}
+	return v.i
 }
 
 // Float returns the value of v as a float32, converting if Type() is not Float.
 func (v FMValue) Float() float32 {
-    if !v.IsFloat {
-        return float32(v.i)
-    }
-    return v.f
+	if v.vType == Int {
+		return float32(v.i)
+	}
+	return v.f
 }
 
 // Interface returns the value held within this as its native Go type.
 func (v FMValue) Interface() interface{} {
-    if v.vType == Float {
-        return v.f
-    }
-    return v.i
+	if v.vType == Float {
+		return v.f
+	}
+	return v.i
 }
 
 // Type returns the type of this value.
 func (v FMValue) Type() ValueType {
-    return v.vType
+	return v.vType
+}
+
+// Add returns the result of adding v2 to v. If either is Float type, the result
+// will also be Float type.
+func (v FMValue) Add(v2 FMValue) FMValue {
+	if v.Type() == Float || v2.Type() == Float {
+		return FMFrom(v.Float() + v2.Float())
+	}
+	return FMFrom(v.Int() + v2.Int())
+}
+
+// Subtract returns the result of subtracting v2 from v. If either is Float
+// type, the result will also be Float type.
+func (v FMValue) Subtract(v2 FMValue) FMValue {
+	if v.Type() == Float || v2.Type() == Float {
+		return FMFrom(v.Float() - v2.Float())
+	}
+	return FMFrom(v.Int() - v2.Int())
+}
+
+// Multiply returns the result of multiplying v by v2. If either is Float type,
+// the result will also be Float type.
+func (v FMValue) Multiply(v2 FMValue) FMValue {
+	if v.Type() == Float || v2.Type() == Float {
+		return FMFrom(v.Float() * v2.Float())
+	}
+	return FMFrom(v.Int() * v2.Int())
+}
+
+// Divide returns the result of dividing v by v2. If either is Float type, the
+// result will also be Float type. Dividing by zero in any form will make result
+// type go to Float as this will cause the value to be one of the IEEE-754
+// defined results of division by zero.
+func (v FMValue) Divide(v2 FMValue) FMValue {
+	if v.Type() == Float || v2.Type() == Float || v2.Int() == 0 {
+		return FMFrom(v.Float() / v2.Float())
+	}
+	return FMFrom(v.Int() / v2.Int())
 }
 
 // String returns the string representation of an FMValue.
 func (v FMValue) String() string {
-    if v.vType == Float {
-        str := fmt.Sprintf("%.7f", v.f)
-        // remove extra 0's...
-        str = strings.TrimRight(str, "0")
-        // ...but there should be at least one 0 if nothing else
-        if strings.HasSuffix(str, ".") {
-            str = str + "0"
-        }
-        return str
-    }
-    return fmt.Sprintf("%d", v.i)
+	if v.vType == Float {
+		str := fmt.Sprintf("%.7f", v.f)
+		// remove extra 0's...
+		str = strings.TrimRight(str, "0")
+		// ...but there should be at least one 0 if nothing else
+		if strings.HasSuffix(str, ".") {
+			str = str + "0"
+		}
+		return str
+	}
+	return fmt.Sprintf("%d", v.i)
 }
 ```

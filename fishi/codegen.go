@@ -78,6 +78,7 @@ var (
 
 var (
 	underscoreCollapser = regexp.MustCompile(`_+`)
+	unsafeRunenameChars = regexp.MustCompile(`[^A-Za-z0-9_]`)
 	titleCaser          = cases.Title(language.AmericanEnglish)
 
 	// order in which components of the generated compiler (files) are created.
@@ -138,7 +139,8 @@ func executeTestCompiler(gci GeneratedCodeInfo, valOptions *trans.ValidationOpti
 		}
 	}
 
-	return shellout.ExecFG(gci.Path, nil, "go", args...)
+	env := append(os.Environ(), "GOWORK=off")
+	return shellout.ExecFG(gci.Path, env, "go", args...)
 }
 
 // GenerateDiagnosticsBinary generates a binary that can read input written in
@@ -195,7 +197,7 @@ func GenerateDiagnosticsBinary(spec Spec, md SpecMetadata, params DiagBinParams)
 	}
 
 	env := os.Environ()
-	env = append(env, "CGO_ENABLED=0")
+	env = append(env, "CGO_ENABLED=0", "GOWORK=off")
 	if err := shellout.ExecFG(gci.Path, env, "go", "build", "-o", binName, gci.MainFile); err != nil {
 		return err
 	}
@@ -787,22 +789,30 @@ func createTemplateFillData(spec Spec, md SpecMetadata, pkgName string, fqIRType
 func safeTCIdentifierName(str string) string {
 	nameRunes := []rune{}
 
+	getSymbolName := func(ch rune) string {
+		// can we get a symbol name?
+		chName := runenames.Name(ch)
+
+		chName = unsafeRunenameChars.ReplaceAllString(chName, "_")
+
+		// how many words is the rune? you get up to 3.
+		words := strings.Split(chName, " ")
+		if len(words) > 3 {
+			// we only want the first 3 words
+			words = words[:3]
+		}
+		chName = strings.Join(words, "_")
+
+		return chName
+	}
+
 	for _, ch := range str {
 		if ('A' <= ch && ch <= 'Z') || ('a' <= ch && ch <= 'z') || ('0' <= ch && ch <= '9') || ch == '_' {
 			nameRunes = append(nameRunes, ch)
 		} else if ch == '-' || unicode.IsSpace(ch) {
 			nameRunes = append(nameRunes, '_')
 		} else {
-			// can we get a symbol name?
-			chName := runenames.Name(ch)
-
-			// how many words is the rune? you get up to 3.
-			words := strings.Split(chName, " ")
-			if len(words) > 3 {
-				// we only want the first 3 words
-				words = words[:3]
-			}
-			chName = strings.Join(words, "_")
+			chName := getSymbolName(ch)
 			nameRunes = append(nameRunes, []rune(chName)...)
 		}
 	}
@@ -812,11 +822,29 @@ func safeTCIdentifierName(str string) string {
 	// trim leading and trailing underscores
 	name = strings.Trim(name, "_")
 
+	// did we just get an empty string? if so, go back and actually do symbol
+	// names. should only happen if it consists only of "-" and whitespace
+	// chars
+	if name == "" {
+		newNameRunes := []rune{}
+
+		for _, ch := range str {
+			chName := getSymbolName(ch)
+			newNameRunes = append(newNameRunes, []rune(chName)...)
+		}
+
+		name = string(newNameRunes)
+	}
+
 	fullName := "TC"
 	// split by underscores and do a title case on each word
 	words := strings.Split(name, "_")
 	for _, word := range words {
 		fullName += string(titleCaser.String(word))
+	}
+
+	if fullName == "TC" {
+		panic("assertion failed: generated token name has no content besides 'TC'")
 	}
 
 	return fullName

@@ -13,6 +13,7 @@ created by invoking ictiobus with the following command:
 import (
 	"fmt"
     "os"
+    "strings"
 
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/trans"
@@ -43,6 +44,12 @@ type FrontendOptions struct {
     // includes operations such as token or symbol stack manipulation, and for
     // LR parsers, shifts and reduces.
 	ParserTrace bool
+
+    // SDTSTrace is whether to add tracing functionality to the translation
+    // scheme. This will cause translation events to be printed to stderr as
+    // they occur. This includes operations such as parse tree annotation and
+    // hook execution.
+    SDTSTrace bool
 }
 
 // Frontend returns the complete compiled frontend for the {{ .Lang }} langauge.
@@ -75,7 +82,7 @@ func Frontend[IRType any](hooks trans.HookMap, opts *FrontendOptions) ictiobus.F
     // Add traces if requested
 
     if opts.LexerTrace {
-        fe.Lexer.RegisterTokenListener(func(t lex.Token) {
+        fe.Lexer.RegisterTraceListener(func(t lex.Token) {
 			fmt.Fprintf(os.Stderr, "Token: %s\n", t)
 		})
     }
@@ -83,6 +90,40 @@ func Frontend[IRType any](hooks trans.HookMap, opts *FrontendOptions) ictiobus.F
 	if opts.ParserTrace {
 		fe.Parser.RegisterTraceListener(func(s string) {
 			fmt.Fprintf(os.Stderr, "Parser: %s\n", s)
+		})
+	}
+
+	if opts.SDTSTrace {
+		fe.SDTS.RegisterListener(func(e trans.Event) {
+			switch e.Type {
+			case trans.EventAnnotation:
+				fmt.Fprintf(os.Stderr, "SDTS: Annotated parse tree:\n%s\n", e.Tree)
+			case trans.EventHookCall:
+				relNode, ok := e.Hook.Node.RelativeNode(e.Hook.Target.Rel)
+				if !ok {
+					panic("bad relative node in SDTS hook call event")
+				}
+
+				var argSb strings.Builder
+				for i := range e.Hook.Args {
+					argSb.WriteString(fmt.Sprintf("%#v", e.Hook.Args[i].Value))
+					if i+1 < len(e.Hook.Args) {
+						argSb.WriteString(", ")
+					}
+				}
+
+				message := fmt.Sprintf("SDTS: Set (%d: %s).%s = %s(%s) = ", relNode.ID(), relNode.Symbol, e.Hook.Target.Name, e.Hook.Name, argSb.String())
+				if e.Hook.Result.Error != nil {
+					message += fmt.Sprintf("ERROR(%v) (with value %#v)", e.Hook.Result.Error.Error(), e.Hook.Result.Value)
+				} else {
+					message += fmt.Sprintf("%#v", e.Hook.Result.Value)
+				}
+
+				fmt.Fprintf(os.Stderr, "%s\n", message)
+
+			default:
+				fmt.Fprintf(os.Stderr, "SDTS: %v\n", e)
+			}
 		})
 	}
 

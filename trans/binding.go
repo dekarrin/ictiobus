@@ -1,6 +1,12 @@
 package trans
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/dekarrin/ictiobus/internal/slices"
+	"github.com/dekarrin/ictiobus/parse"
+)
 
 // sddBinding represents a single binding of a syntax-directed definition to a
 // rule in the grammar. It will be executed for all nodes created for that rule.
@@ -34,6 +40,42 @@ type sddBinding struct {
 	NoFlows []string
 }
 
+// String returns the string representation of the sddBinding.
+func (bind sddBinding) String() string {
+	attrType := "S"
+	if !bind.Synthesized {
+		attrType = "I"
+	}
+
+	prodStr := strings.Join(bind.BoundRuleProduction, " ")
+	if prodStr == "" {
+		prodStr = "ε"
+	}
+	rule := bind.BoundRuleSymbol + " -> [" + prodStr + "]"
+
+	dest := bind.Dest.String()
+
+	hook := bind.Setter
+
+	var args string
+	argsSlice := slices.Map(bind.Requirements, AttrRef.String)
+	if len(argsSlice) > 0 {
+		args = strings.Join(argsSlice, ", ")
+	}
+
+	fmtStr := `<%s-Attr on="%s" set="%s" hook=%q args=(%s)`
+	s := fmt.Sprintf(fmtStr, attrType, rule, dest, hook, args)
+
+	// now add the NoFlows
+
+	if len(bind.NoFlows) > 0 {
+		s += " no_flows=[" + strings.Join(bind.NoFlows, ", ") + "]"
+	}
+
+	s += ">"
+	return s
+}
+
 // Copy returns a deep copy of the SDDBinding.
 func (bind sddBinding) Copy() sddBinding {
 	newBind := sddBinding{
@@ -54,7 +96,12 @@ func (bind sddBinding) Copy() sddBinding {
 }
 
 // Invoke calls the given binding while visiting an annotated parse tree node.
-func (bind sddBinding) Invoke(apt *AnnotatedTree, hooksTable HookMap) (val interface{}, invokeErr error) {
+//
+// listener is called with an event of Type EventHookCall when a hook completes
+// exection, regardless of whether it returned an error, as long as it doesn't
+// panic. root and pt are used solely as arguments to that event, and are not
+// used for any other purpose.
+func (bind sddBinding) Invoke(apt *AnnotatedTree, hooksTable HookMap, listener func(Event), root *AnnotatedTree, pt *parse.Tree) (val interface{}, invokeErr error) {
 	// sanity checks; can we even call this?
 	if bind.Setter == "" {
 		return nil, hookError{msg: "binding has no setter hook defined"}
@@ -109,12 +156,68 @@ func (bind sddBinding) Invoke(apt *AnnotatedTree, hooksTable HookMap) (val inter
 	// detect panic in deferred function
 	defer func() {
 		if r := recover(); r != nil {
-			invokeErr = hookError{name: bind.Setter, msg: fmt.Sprintf("panicked: %v", r)}
+			invokeErr = hookError{name: bind.Setter, msg: fmt.Sprintf("hook panicked: %v", r)}
 		}
 	}()
 
 	// call func
 	val, err := hookFn(info, args)
+
+	// emit event
+	if listener != nil {
+		// first, gather the args and their references
+		var argsWithRefs []struct {
+			Ref   AttrRef
+			Value interface{}
+		}
+		for i := range args {
+			item := struct {
+				Ref   AttrRef
+				Value interface{}
+			}{}
+			item.Ref = bind.Requirements[i]
+			item.Value = args[i]
+			argsWithRefs = append(argsWithRefs, item)
+		}
+
+		// next, build the Result struct
+		var result struct {
+			Value interface{}
+			Error error
+		}
+		result.Value = val
+		result.Error = err
+
+		// build the hook struct
+		var hookInfo struct {
+			Name string
+			Args []struct {
+				Ref   AttrRef
+				Value interface{}
+			}
+			Node   *AnnotatedTree
+			Target AttrRef
+			Result struct {
+				Value interface{}
+				Error error
+			}
+		}
+		hookInfo.Name = bind.Setter
+		hookInfo.Args = argsWithRefs
+		hookInfo.Node = apt
+		hookInfo.Target = bind.Dest
+		hookInfo.Result = result
+
+		listener(Event{
+			Type:      EventHookCall,
+			ParseTree: pt,
+			Tree:      root,
+			Hook:      &hookInfo,
+		})
+	}
+
+	// after event emitted, now check the return value and error if the hook
+	// returned an error.
 	if err != nil {
 		return nil, hookError{name: bind.Setter, msg: err.Error()}
 	}

@@ -10,6 +10,9 @@ created by invoking ictiobus with the following command:
 import (
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/trans"
+    
+    "strings"
+    "fmt"
 )
 
 // SDTS returns the generated ictiobus syntax-directed translation scheme for
@@ -25,12 +28,13 @@ func SDTS() trans.SDTS {
 
 {{ range .Bindings }}
 func sdtsBind{{ .Head | upperCamel }}(sdts trans.SDTS) {
+    var err error
 {{- $head := .Head -}}
 {{ range .Productions }}
 {{- if .Synthetic }}
-    sdts.Bind(
+    err = sdts.Bind(
 {{- else }}
-    sdts.BindI(
+    err = sdts.BindI(
 {{- end }}
         "{{ $head }}", []string{ {{- range .Symbols }}"{{ . }}", {{- end -}} },
         "{{ .Attribute }}",
@@ -48,6 +52,10 @@ func sdtsBind{{ .Head | upperCamel }}(sdts trans.SDTS) {
         trans.NodeRelation{Type: trans.{{ .ForRelType }}, Index: {{ .ForRelIndex }} },
 {{ end }}
     )
+    if err != nil {
+        prodStr := strings.Join([]string{ {{- range .Symbols }}"{{ . }}", {{- end -}} }, " ")
+        panic(fmt.Sprintf("binding %s -> [%s]: %s", {{ $head | quote }}, prodStr, err.Error()))
+    }
 {{ end -}}
 }
 {{ end }}

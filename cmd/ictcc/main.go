@@ -76,6 +76,10 @@ Flags:
 	--debug-parser
 		Print each step the parser takes as it parsers FISHI input.
 
+	--debug-sdts
+		Print each step the translation scheme takes as it translates a FISHI
+		parse tree.
+
 	--debug-templates
 		Dump templates after they are filled for codegen but before they are
 		formatted by gofmt, along with line numbers for easy reference.
@@ -337,8 +341,9 @@ var (
 	flagParserLALR    = pflag.Bool("lalr", false, "Generate a canonical LR(1) parser")
 	flagParserNoAmbig = pflag.Bool("no-ambig", false, "Disallow ambiguity in grammar even if creating a parser that can auto-resolve it")
 
-	flagLexerTrace  = pflag.Bool("debug-lexer", false, "Print the lexer trace to stdout")
-	flagParserTrace = pflag.Bool("debug-parser", false, "Print the parser trace to stdout")
+	flagLexerTrace  = pflag.Bool("debug-lexer", false, "Print the lexer trace to stderr")
+	flagParserTrace = pflag.Bool("debug-parser", false, "Print the parser trace to stderr")
+	flagSDTSTrace   = pflag.Bool("debug-sdts", false, "Print the SDTS trace to stderr")
 
 	flagHooksPath      = pflag.String("hooks", "", "The path to the hooks directory to use for the generated parser. Required for SDTS validation")
 	flagHooksTableName = pflag.String("hooks-table", "HooksTable", "Function call or name of exported var in 'hooks' that has the hooks table")
@@ -443,6 +448,7 @@ func main() {
 	fo := &fishi.Options{
 		LexerTrace:  *flagLexerTrace,
 		ParserTrace: *flagParserTrace,
+		SDTSTrace:   *flagSDTSTrace,
 	}
 
 	cgOpts := fishi.CodegenOptions{

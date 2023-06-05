@@ -1,0 +1,25 @@
+[PRE] Building diagnostic binary...
+(done)
+[1/7] int arithmetic
+[-13536]
+(done)
+[2/7] float arithmetic
+[-14349.0068359 0.3]
+(done)
+[3/7] variable
+[8 16]
+(done)
+[4/7] Divide positive by zero
+[+Inf]
+(done)
+[5/7] Divide negative by zero
+[-Inf]
+(done)
+[6/7] Regular input
+[-Inf]
+(done)
+[7/7] Missing statement shark gives error
+<COMMAND>:1:12: unexpected end of input; expected a multiplication sign "*", plus sign "+", minus sign "-", division sign "/", or statement shark "<o^><"
+>{0-2'} / 0
+           ^
+(done)

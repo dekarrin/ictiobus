@@ -1,0 +1,8 @@
+fav_number =o fav_number_offset + 8                              <o^><
+spider =o fav_number                                             <o^><
+spider =o >{spider + >{fav_number / 10.0'} '} * 10               <o^><
+spider =o spider + >{spider * 100'}                              <o^><
+spider =o spider + >{spider * 10000'}                            <o^><
+
+
+spider                                 <o^><

@@ -1,8 +1,8 @@
 # FISHIMath - Immediate Evaluation
 
-This specifies the language "FISHIMath" using a translation scheme that
-evaluates end values as they are created. Use with the hooks package in
-.immediate.
+This specifies the language "FISHIMath" using a translation scheme that builds
+an AST and returns that. Use with the hooks package located in the same
+directory as this file.
 
 ## Spec
 
@@ -57,10 +57,8 @@ evaluates end values as they are created. Use with the hooks package in
 ```fishi
 %%actions
 
-# This actions section creates an IR that is the result of evaluating the
-# expressions. It will return a slice of FMValue, one FMValue for each
-# statement in the input.
-
+# This actions section creates an abstract syntax tree and returns it as the
+# IR. No evaluation of the statements is performed.
 
 # {FISHIMATH}.ir is called that for readability purposes; there's nothing
 # special about the attribute name "ir". What makes this the final IR value
@@ -68,32 +66,32 @@ evaluates end values as they are created. Use with the hooks package in
 # defined for the grammar start symbol {FISHIMATH}.
 
 %symbol {FISHIMATH}
--> {STATEMENTS}:              {^}.ir = identity({&0}.result)
+-> {STATEMENTS}:              {^}.ir = ast({&0}.stmt_nodes)
 
 %symbol {STATEMENTS}
--> {STMT} {STATEMENTS}:       {^}.result = num_slice_prepend({1}.result, {0}.value)
--> {STMT}:                    {^}.result = num_slice_start({0}.value)
+-> {STMT} {STATEMENTS}:       {^}.stmt_nodes = node_slice_prepend({1}.stmt_nodes, {0}.node)
+-> {STMT}:                    {^}.stmt_nodes = node_slice_start({0}.node)
 
 %symbol {STMT}
--> {EXPR} shark:              {^}.value = identity({EXPR}.value)
+-> {EXPR} shark:              {^}.node = identity({EXPR}.node)
 
 %symbol {EXPR}
--> id tentacle {EXPR}:        {^}.value = write_var( id.$text, {EXPR}.value)
--> {SUM}:                     {^}.value = identity({SUM}.value)
+-> id tentacle {EXPR}:        {^}.node = assignment_node( id.$text, {EXPR}.node)
+-> {SUM}:                     {^}.node = identity({SUM}.node)
 
 %symbol {SUM}
--> {PRODUCT} + {EXPR}:        {^}.value = add({&0}.value, {&1}.value)
--> {PRODUCT} - {EXPR}:        {^}.value = subtract({&0}.value, {&1}.value)
--> {PRODUCT}:                 {^}.value = identity({PRODUCT}.value)
+-> {PRODUCT} + {EXPR}:        {^}.node = binary_node_add({&0}.node, {&1}.node)
+-> {PRODUCT} - {EXPR}:        {^}.node = binary_node_sub({&0}.node, {&1}.node)
+-> {PRODUCT}:                 {^}.node = identity({PRODUCT}.node)
 
 %symbol {PRODUCT}
--> {TERM} * {PRODUCT}:        {^}.value = multiply({&0}.value, {&1}.value)
--> {TERM} / {PRODUCT}:        {^}.value = divide({&0}.value, {&1}.value)
--> {TERM}:                    {^}.value = identity({TERM}.value)
+-> {TERM} * {PRODUCT}:        {^}.node = binary_node_mult({&0}.node, {&1}.node)
+-> {TERM} / {PRODUCT}:        {^}.node = binary_node_div({&0}.node, {&1}.node)
+-> {TERM}:                    {^}.node = identity({TERM}.node)
 
 %symbol {TERM}
--> fishtail {EXPR} fishhead:  {^}.value = identity({EXPR}.value)
--> int:                       {^}.value = int({0}.$text)
--> float:                     {^}.value = float({0}.$text)
--> id:                        {^}.value = read_var( id.$text)
+-> fishtail {EXPR} fishhead:  {^}.node = group_node({EXPR}.node)
+-> int:                       {^}.node = lit_node_int({0}.$text)
+-> float:                     {^}.node = lit_node_float({0}.$text)
+-> id:                        {^}.node = var_node( id.$text)
 ```

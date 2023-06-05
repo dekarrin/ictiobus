@@ -26,6 +26,15 @@ type Container[E any] interface {
 	Len() int
 }
 
+// Orderable is an interface for use as a type parameter constraint. It gives
+// all basic types that support <, >, and ==.
+type Orderable interface {
+	~string |
+		~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
+		~float32 | ~float64
+}
+
 type namedSortable[V any] struct {
 	val  V
 	name string

@@ -293,8 +293,16 @@ func (lr *lrParser) Parse(stream lex.TokenStream) (Tree, error) {
 			pt := subTreeRoots.Pop()
 			return *pt, nil
 		case lrError:
-			// call error-recovery routine
+
+			// call error-recovery routine here when/if we add it in future
+			// - So never, huh? -V
+			// - nonononono glub, it's a feature req for later -D
 			expMessage := lr.getExpectedString(s)
+
+			// if it's an error token, then display that as a message
+			if a.Class().ID() == lex.TokenError.ID() {
+				return Tree{}, lex.NewSyntaxErrorFromToken(fmt.Sprintf("%s; %s", a.Lexeme(), expMessage), a)
+			}
 			return Tree{}, lex.NewSyntaxErrorFromToken(fmt.Sprintf("unexpected %s; %s", a.Class().Human(), expMessage), a)
 		}
 		lr.notifyTrace("-----------------")

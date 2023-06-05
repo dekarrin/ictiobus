@@ -69,8 +69,9 @@ var (
 
 	flagCommand         = pflag.StringP("command", "C", "", "Code to execute before any source code files are read")
 	flagQuietMode		= pflag.BoolP("quiet", "q", false, "Quiet mode; disables output of the IR")
-	flagLexerTrace		= pflag.BoolP("debug-lexer", "l", false, "Print the lexer trace to stdout")
-	flagParserTrace		= pflag.BoolP("debug-parser", "p", false, "Print the parser trace to stdout") 
+	flagLexerTrace		= pflag.BoolP("debug-lexer", "l", false, "Print the lexer trace to stderr")
+	flagParserTrace		= pflag.BoolP("debug-parser", "p", false, "Print the parser trace to stderr")
+	flagSDTSTrace		= pflag.BoolP("debug-sdts", "s", false, "Print the SDTS trace to stderr")
 	flagPrintTrees		= pflag.BoolP("tree", "t", false, "Print the parse trees of each file read to stdout")
 	flagVersion			= pflag.Bool("version", false, "Print the version of {{ .BinName }} and exit")
 	flagSim				= pflag.Bool("sim", false, "Run analysis on a series of simulated parse trees intended to cover all rules and then exit")
@@ -113,6 +114,7 @@ func main() {
 	opts := {{ .FrontendPkg }}.FrontendOptions{
 		LexerTrace: *flagLexerTrace,
 		ParserTrace: *flagParserTrace,
+		SDTSTrace: *flagSDTSTrace,
 	}
 
 	hooksMapping := {{ .HooksPkg }}.{{ .HooksTableExpr }}

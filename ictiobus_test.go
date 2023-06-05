@@ -87,7 +87,7 @@ func (ml mockLexer) FakeLexemeProducer(combine bool, state string) map[string]fu
 	return nil
 }
 func (ml mockLexer) SetStartingState(s string)               {}
-func (ml mockLexer) RegisterTokenListener(func(t lex.Token)) {}
+func (ml mockLexer) RegisterTraceListener(func(t lex.Token)) {}
 func (ml mockLexer) StartingState() string                   { return "" }
 
 type mockParser struct {
@@ -119,3 +119,7 @@ func (mp mockSDTS) BindI(head string, prod []string, attrName string, hook strin
 func (mp mockSDTS) Bind(head string, prod []string, attrName string, hook string, withArgs []trans.AttrRef) error {
 	return nil
 }
+func (mp mockSDTS) String() string {
+	return "mockSDTS<>"
+}
+func (ms mockSDTS) RegisterListener(func(trans.Event)) {}

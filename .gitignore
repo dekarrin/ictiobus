@@ -6,6 +6,8 @@ testdiag.exe
 
 testdiag-*
 testdiag-*.exe
+diag-*
+diag-*.exe
 
 /.testout
 /ictcc
@@ -14,7 +16,12 @@ testdiag-*.exe
 /diag
 /fishic
 /.testruns
+/.extestruns
 *.fishispec
+/examples/**/.sim
+/examples/**/.gen
+/examples/fishimath-ast/fmi
+/examples/fishimath-ast/fmi.exe
 /tests/**/.sim
 /tests/**/.gen
 

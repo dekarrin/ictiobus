@@ -117,7 +117,7 @@ func Test_depGraph(t *testing.T) {
 	(3: B -> [int], {head symbol}.someVal => [1])
 )`},
 		},
-		/*{
+		{
 			name: "FISHIMATH (eval version) breaking test case for GHI-128",
 			apt: ATNode(1, "FISHIMATH",
 				ATNode(2, "STATEMENTS",
@@ -131,7 +131,7 @@ func Test_depGraph(t *testing.T) {
 										ATNode(10, "TERM",
 											ATLeaf(11, "fishtail"),
 											ATNode(12, "EXPR",
-												ATNode(13, "TERM",
+												ATNode(13, "SUM",
 													ATNode(14, "PRODUCT",
 														ATNode(15, "TERM",
 															ATLeaf(16, "id"),
@@ -237,7 +237,36 @@ func Test_depGraph(t *testing.T) {
 					AttrRef{Rel: NRSymbol(0), Name: "$text"},
 				),
 			},
-		},*/
+			expect: []string{`(
+	(1: FISHIMATH -> [STATEMENTS], {head symbol}.ir),
+	(2: STATEMENTS -> [STMT STATEMENTS], {head symbol}.result => [1]),
+	(3: STMT -> [EXPR shark], {head symbol}.value => [2]),
+	(4: EXPR -> [id tentacle EXPR], {head symbol}.value => [3]),
+	(5: id, {head symbol}.$text => [4]),
+	(7: EXPR -> [SUM], {head symbol}.value => [4]),
+	(8: SUM -> [PRODUCT], {head symbol}.value => [7]),
+	(9: PRODUCT -> [TERM * PRODUCT], {head symbol}.value => [8]),
+	(10: TERM -> [fishtail EXPR fishhead], {head symbol}.value => [9]),
+	(12: EXPR -> [SUM], {head symbol}.value => [10]),
+	(13: SUM -> [PRODUCT], {head symbol}.value => [12]),
+	(14: PRODUCT -> [TERM], {head symbol}.value => [13]),
+	(15: TERM -> [id], {head symbol}.value => [14]),
+	(16: id, {head symbol}.$text => [15]),
+	(19: PRODUCT -> [TERM / PRODUCT], {head symbol}.value => [9]),
+	(20: TERM -> [int], {head symbol}.value => [19]),
+	(21: int, {head symbol}.$text => [20]),
+	(23: PRODUCT -> [TERM], {head symbol}.value => [19]),
+	(24: TERM -> [float], {head symbol}.value => [23]),
+	(25: float, {head symbol}.$text => [24]),
+	(27: STATEMENTS -> [STMT], {head symbol}.result => [2]),
+	(28: STMT -> [EXPR shark], {head symbol}.value => [27]),
+	(29: EXPR -> [SUM], {head symbol}.value => [28]),
+	(30: SUM -> [PRODUCT], {head symbol}.value => [29]),
+	(31: PRODUCT -> [TERM], {head symbol}.value => [30]),
+	(32: TERM -> [id], {head symbol}.value => [31]),
+	(33: id, {head symbol}.$text => [32])
+)`},
+		},
 	}
 
 	for _, tc := range testCases {

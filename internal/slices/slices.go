@@ -116,6 +116,50 @@ func SortBy[E any](items []E, lt func(left E, right E) bool) []E {
 	return s.src
 }
 
+// Values returns all values in the given map. If the map is nil, a nil slice is
+// returned. If the map is non-nil but contains no entries, an empty slice is
+// returned.
+//
+// The order of the values in the returned slice is not guaranteed to be
+// consistent.
+func Values[K comparable, V any](m map[K]V) []V {
+	if m == nil {
+		return nil
+	}
+
+	values := make([]V, len(m))
+	var i int
+
+	for k := range m {
+		values[i] = m[k]
+		i++
+	}
+
+	return values
+}
+
+// Keys returns all keys in the given map. If the map is nil, a nil slice is
+// returned. If the map is non-nil but contains no entries, an empty slice is
+// returned.
+//
+// The order of the values in the returned slice is not guaranteed to be
+// consistent.
+func Keys[K comparable, V any](m map[K]V) []K {
+	if m == nil {
+		return nil
+	}
+
+	keys := make([]K, len(m))
+	var i int
+
+	for k := range m {
+		keys[i] = k
+		i++
+	}
+
+	return keys
+}
+
 // Distinct returns only distinct entries in the slice. The original items are
 // not modified. This is an O(n^2) algorithm.
 func Distinct[E any](sl []E, eq func(left, right E) bool) []E {
