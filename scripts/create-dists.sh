@@ -130,6 +130,7 @@ do
   cp -R examples/fishimath-immediate/eights.fm "$distfolder/examples/fishimath-immediate"
   mkdir "$distfolder"/examples/fishimath-ast
   cp -R examples/fishimath-ast/fmhooks "$distfolder/examples/fishimath-ast"
+  cp -R examples/fishimath-ast/fmfront "$distfolder/examples/fishimath-ast"
   cp -R examples/fishimath-ast/fm "$distfolder/examples/fishimath-ast"
   cp -R examples/fishimath-ast/cmd "$distfolder/examples/fishimath-ast"
   cp -R examples/fishimath-ast/fm-ast.md "$distfolder/examples/fishimath-ast"
@@ -139,6 +140,24 @@ do
   cp -R examples/fishimath-ast/README.md "$distfolder/examples/fishimath-ast"
   cp -R examples/fishimath-ast/eights.fm "$distfolder/examples/fishimath-ast"
   cp README.md source.tar.gz "$distfolder"
+
+  # do some magic in our example directories to get a go.mod that points to the
+  # actual current version, if we are building one
+  re='^v[0-9]+(\.[0-9]+)*$'
+  if [[ $version =~ $re ]]; then
+    echo "Distribution is for a release version; updating example go.mod files"
+
+    exec_dir="$(pwd)"
+    for example_dir in $(cd "$distfolder/examples" ; echo */)
+    do
+      echo "Update example $example_dir..."
+      cd "$distfolder/examples/$example_dir"
+      rm go.sum
+      env GOWORK=off go mod edit -require=github.com/dekarrin/ictiobus@$version
+      env GOWORK=off go mod tidy
+      cd "$exec_dir"
+    done
+  fi
   
   if [ "$current_os" != "windows" ]
   then
