@@ -411,7 +411,7 @@ type GroupNode struct {
 	Expr Node
 }
 
-func (n GroupNode) Type() NodeType               { return Assignment }
+func (n GroupNode) Type() NodeType               { return Group }
 func (n GroupNode) AsLiteral() LiteralNode       { panic("Type() is not Literal") }
 func (n GroupNode) AsVariable() VariableNode     { panic("Type() is not Variable") }
 func (n GroupNode) AsBinaryOp() BinaryOpNode     { panic("Type() is not BinaryOp") }

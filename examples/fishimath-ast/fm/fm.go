@@ -28,14 +28,25 @@ type Interpreter struct {
 	// is used in error reporting and is optional to set.
 	File string
 
+	// InitialVars is what Variables is set to whenenver Reset is called. It
+	// will not be modified by use of this Interpreter.
+	InitialVars map[string]fmhooks.FMValue
+
 	fe ictiobus.Frontend[fmhooks.AST]
 }
 
-// Clear resets the interpreter environment. All defined symbols and variables
-// are removed, and LastResult is reset. interp.File is not modified.
-func (interp *Interpreter) Clear() {
+// InitEnvironment initializes the interpreter environment. All defined symbols
+// and variables are removed and reset to those defined in InitialVars, and
+// LastResult is reset. interp.File is not modified.
+func (interp *Interpreter) InitEnvironment() {
 	interp.Variables = map[string]fmhooks.FMValue{}
 	interp.LastResult = fmhooks.FMValue{}
+
+	if interp.InitialVars != nil {
+		for k := range interp.InitialVars {
+			interp.Variables[k] = interp.InitialVars[k]
+		}
+	}
 }
 
 // Eval parses the given string as FISHIMath code and applies it immediately.

@@ -22,6 +22,8 @@ echo "Ictiobus diagnostic binary for FM will be placed in ./diag-fm" >&2
 
 echo "Building FM frontend sources and diagnostic binary..." >&2
 
+echo "" >&2
+
 if [ -n "$local_repo" -a "$1" != "--non-local" ]
 then
   # if we're in a local repo then we expect current ictcc to live two levels up
@@ -61,9 +63,9 @@ else
 
   # first, in a distribution, the binary should still be available two levels
   # up.
-  ictcc_path="../../ictcc"
+  ictcc_path="$(cd "$script_path/../.." >/dev/null ; pwd -P)/ictcc"
 
-  if [ ! -x "$bin_path" ]
+  if [ ! -x "$ictcc_path" ]
   then
     # looks like it's not there. that's okay, as long as it's installed
     # somewhere on the system.
@@ -78,14 +80,14 @@ else
 
     echo "Using ictcc executable available in \$PATH" >&2
 
-    bin_path="$(command -v ictcc)"
+    ictcc_path="$(command -v ictcc)"
   else
     echo "Using ictcc executable included with distribution" >&2
   fi
 
   echo "" >&2
 
-  "$bin_path" --slr \
+  "$ictcc_path" --slr \
     --ir 'github.com/dekarrin/ictfishimath_ast/fmhooks.AST' \
     -l FISHIMath -v 1.0 \
     -d "$script_path/diag-fm" \

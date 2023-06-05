@@ -59,6 +59,15 @@ Flags:
 		Execute the FISHIMath statements in FM_EXPR. Can be given multiple times
 		and if so only the result of the last statement across all -c args is
 		shown. Code in all -c flags will execute before any files specified.
+
+	-s, --set NAME=VALUE
+		Set the variable named NAME to VALUE at the start of script execution.
+		The variable will be set to that value before the first -c code is
+		executed, before each file specified as an argument is executed, and/or
+		before a REPL session starts. NAME must follow all rules for FM
+		identifiers and VALUE must be either a float or int constant. Multiple
+		-s/--set flags may be specified. If multiple specify different values
+		for the same variable, only the last one is used.
 */
 package main
 
@@ -66,14 +75,18 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/dekarrin/ictfishimath_ast/fm"
+	"github.com/dekarrin/ictfishimath_ast/fmhooks"
 	"github.com/spf13/pflag"
 )
 
 var (
 	flagCode = pflag.StringArrayP("code", "c", nil, "Execute the given FM statements.")
+	flagSet  = pflag.StringArrayP("set", "s", nil, "Set var to NAME to initial VALUE for each script.")
 )
 
 const (
@@ -100,15 +113,27 @@ func main() {
 	for i, codeArg := range *flagCode {
 		if strings.TrimSpace(codeArg) == "" {
 			handleError(fmt.Errorf("-c/--code argument #%d is blank", i+1))
+			return
 		}
+	}
+
+	varSets, err := parseVarSetFlags()
+	if err != nil {
+		handleError(err)
+		return
 	}
 
 	inputFiles := pflag.Args()
 
 	replMode := len(inputFiles) < 1 && len(*flagCode) < 1
 
+	// args and options collected, now perform main execution
+
 	// get the FISHIMath interpreter
-	fmi := fm.Interpreter{}
+	fmi := fm.Interpreter{
+		InitialVars: varSets,
+	}
+	fmi.InitEnvironment()
 
 	// if entering repl mode, do that
 	if replMode {
@@ -136,7 +161,7 @@ func main() {
 
 	// next, if there are any files, read those in as well
 	for i := range inputFiles {
-		fmi.Clear()
+		fmi.InitEnvironment()
 
 		fName := inputFiles[i]
 		file, err := os.Open(fName)
@@ -213,4 +238,52 @@ func readEvalPrintLoop(fmi fm.Interpreter) error {
 	}
 
 	return nil
+}
+
+func parseVarSetFlags() (map[string]fmhooks.FMValue, error) {
+	if len(*flagSet) < 1 {
+		return nil, nil
+	}
+
+	idRegex := regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
+	varSets := map[string]fmhooks.FMValue{}
+
+	for i, setArg := range *flagSet {
+		if strings.TrimSpace(setArg) == "" {
+			return nil, fmt.Errorf("-s/--set argument #%d is blank", i+1)
+		}
+
+		parts := strings.SplitN(setArg, "=", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("-s/--set #%d: not in NAME=VALUE format: %q", i+1, setArg)
+		}
+
+		name, valStr := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
+
+		// check name
+		if !idRegex.MatchString(name) {
+			return nil, fmt.Errorf("-s/--set #%d: %q is not a valid FM identifier", i+1, name)
+		}
+
+		var value fmhooks.FMValue
+		// if value has a dot, parse it as a float
+		if strings.Contains(valStr, ".") {
+			fVal, err := strconv.ParseFloat(valStr, 32)
+			if err != nil {
+				return nil, fmt.Errorf("-s/--set #%d: %q is not a valid int or float", i+1, valStr)
+			}
+			value = fmhooks.FMFrom(fVal)
+		} else {
+			iVal, err := strconv.Atoi(valStr)
+			if err != nil {
+				return nil, fmt.Errorf("-s/--set #%d: %q is not a valid int or float", i+1, valStr)
+			}
+			value = fmhooks.FMFrom(iVal)
+		}
+
+		varSets[name] = value
+	}
+
+	return varSets, nil
 }

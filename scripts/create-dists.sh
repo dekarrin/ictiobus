@@ -121,10 +121,23 @@ do
   cp docs/*.md "$distfolder/docs"
 
   mkdir "$distfolder"/examples/fishimath-immediate
-  cp -R examples/fishimath-immediate/{fmhooks,fm-eval.md,go.mod,go.sum} "$distfolder/examples/fishimath-immediate"
+  cp examples/fishimath-immediate/fmhooks "$distfolder/examples/fishimath-immediate"
+  cp examples/fishimath-immediate/fm-eval.md "$distfolder/examples/fishimath-immediate"
+  cp examples/fishimath-immediate/go.mod "$distfolder/examples/fishimath-immediate"
+  cp examples/fishimath-immediate/go.sum "$distfolder/examples/fishimath-immediate"
+  cp examples/fishimath-immediate/build-diag-fm.sh "$distfolder/examples/fishimath-immediate"
+  cp examples/fishimath-immediate/README.md "$distfolder/examples/fishimath-immediate"
+  cp examples/fishimath-immediate/eights.fm "$distfolder/examples/fishimath-immediate"
   mkdir "$distfolder"/examples/fishimath-ast
-  cp -R examples/fishimath-ast/{fmhooks,fm,cmd,fm-ast.md,build-fmi.sh,go.mod,go.sum} "$distfolder/examples/fishimath-ast"
-
+  cp examples/fishimath-ast/fmhooks "$distfolder/examples/fishimath-ast"
+  cp examples/fishimath-ast/fm "$distfolder/examples/fishimath-ast"
+  cp examples/fishimath-ast/cmd "$distfolder/examples/fishimath-ast"
+  cp examples/fishimath-ast/fm-ast.md "$distfolder/examples/fishimath-ast"
+  cp examples/fishimath-ast/build-fmi.sh "$distfolder/examples/fishimath-ast"
+  cp examples/fishimath-ast/go.mod "$distfolder/examples/fishimath-ast"
+  cp examples/fishimath-ast/go.sum "$distfolder/examples/fishimath-ast"
+  cp examples/fishimath-ast/README.md "$distfolder/examples/fishimath-ast"
+  cp examples/fishimath-ast/eights.fm "$distfolder/examples/fishimath-ast"
   cp README.md source.tar.gz "$distfolder"
   
   if [ "$current_os" != "windows" ]
