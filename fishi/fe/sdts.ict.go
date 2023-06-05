@@ -10,6 +10,9 @@ created by invoking ictiobus with the following command:
 import (
 	"github.com/dekarrin/ictiobus"
 	"github.com/dekarrin/ictiobus/trans"
+
+	"fmt"
+	"strings"
 )
 
 // SDTS returns the generated ictiobus syntax-directed translation scheme for
@@ -71,7 +74,8 @@ func SDTS() trans.SDTS {
 }
 
 func sdtsBindTCFishispec(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"FISHISPEC", []string{"BLOCKS"},
 		"ast",
 		"make_fishispec",
@@ -79,10 +83,15 @@ func sdtsBindTCFishispec(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"BLOCKS"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "FISHISPEC", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCBlocks(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"BLOCKS", []string{"BLOCKS", "BLOCK"},
 		"value",
 		"block_list_append",
@@ -91,8 +100,12 @@ func sdtsBindTCBlocks(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "ast"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"BLOCKS", "BLOCK"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "BLOCKS", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"BLOCKS", []string{"BLOCK"},
 		"value",
 		"block_list_start",
@@ -100,10 +113,15 @@ func sdtsBindTCBlocks(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "ast"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"BLOCK"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "BLOCKS", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCBlock(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"BLOCK", []string{"GBLOCK"},
 		"ast",
 		"ident",
@@ -111,8 +129,12 @@ func sdtsBindTCBlock(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "ast"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"GBLOCK"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "BLOCK", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"BLOCK", []string{"TBLOCK"},
 		"ast",
 		"ident",
@@ -120,8 +142,12 @@ func sdtsBindTCBlock(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "ast"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"TBLOCK"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "BLOCK", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"BLOCK", []string{"ABLOCK"},
 		"ast",
 		"ident",
@@ -129,10 +155,15 @@ func sdtsBindTCBlock(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "ast"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"ABLOCK"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "BLOCK", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCAblock(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"ABLOCK", []string{"hdr-actions", "ACONTENT"},
 		"ast",
 		"make_ablock",
@@ -140,10 +171,15 @@ func sdtsBindTCAblock(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "ast"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"hdr-actions", "ACONTENT"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ABLOCK", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCTblock(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"TBLOCK", []string{"hdr-tokens", "TCONTENT"},
 		"ast",
 		"make_tblock",
@@ -151,10 +187,15 @@ func sdtsBindTCTblock(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "ast"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"hdr-tokens", "TCONTENT"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TBLOCK", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCGblock(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"GBLOCK", []string{"hdr-grammar", "GCONTENT"},
 		"ast",
 		"make_gblock",
@@ -162,10 +203,15 @@ func sdtsBindTCGblock(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "ast"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"hdr-grammar", "GCONTENT"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GBLOCK", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCTcontent(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"TCONTENT", []string{"TENTRY-LIST", "TSTATE-SET-LIST"},
 		"ast",
 		"tokens_content_blocks_prepend",
@@ -174,8 +220,12 @@ func sdtsBindTCTcontent(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"TENTRY-LIST", "TSTATE-SET-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TCONTENT", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"TCONTENT", []string{"TENTRY-LIST"},
 		"ast",
 		"tokens_content_blocks_start_entry_list",
@@ -183,8 +233,12 @@ func sdtsBindTCTcontent(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"TENTRY-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TCONTENT", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"TCONTENT", []string{"TSTATE-SET-LIST"},
 		"ast",
 		"ident",
@@ -192,10 +246,15 @@ func sdtsBindTCTcontent(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"TSTATE-SET-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TCONTENT", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCAcontent(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"ACONTENT", []string{"SYM-ACTIONS-LIST", "ASTATE-SET-LIST"},
 		"ast",
 		"actions_content_blocks_prepend",
@@ -204,8 +263,12 @@ func sdtsBindTCAcontent(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"SYM-ACTIONS-LIST", "ASTATE-SET-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ACONTENT", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"ACONTENT", []string{"SYM-ACTIONS-LIST"},
 		"ast",
 		"actions_content_blocks_start_sym_actions",
@@ -213,8 +276,12 @@ func sdtsBindTCAcontent(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"SYM-ACTIONS-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ACONTENT", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"ACONTENT", []string{"ASTATE-SET-LIST"},
 		"ast",
 		"ident",
@@ -222,10 +289,15 @@ func sdtsBindTCAcontent(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"ASTATE-SET-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ACONTENT", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCGcontent(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"GCONTENT", []string{"GRULE-LIST", "GSTATE-SET-LIST"},
 		"ast",
 		"grammar_content_blocks_prepend",
@@ -234,8 +306,12 @@ func sdtsBindTCGcontent(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"GRULE-LIST", "GSTATE-SET-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GCONTENT", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"GCONTENT", []string{"GRULE-LIST"},
 		"ast",
 		"grammar_content_blocks_start_rule_list",
@@ -243,8 +319,12 @@ func sdtsBindTCGcontent(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"GRULE-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GCONTENT", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"GCONTENT", []string{"GSTATE-SET-LIST"},
 		"ast",
 		"ident",
@@ -252,10 +332,15 @@ func sdtsBindTCGcontent(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"GSTATE-SET-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GCONTENT", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCGstateSet(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"GSTATE-SET", []string{"STATE-INS", "GRULE-LIST"},
 		"value",
 		"make_grammar_content_node",
@@ -264,10 +349,15 @@ func sdtsBindTCGstateSet(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"STATE-INS", "GRULE-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GSTATE-SET", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCAstateSet(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"ASTATE-SET", []string{"STATE-INS", "SYM-ACTIONS-LIST"},
 		"value",
 		"make_actions_content_node",
@@ -276,10 +366,15 @@ func sdtsBindTCAstateSet(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"STATE-INS", "SYM-ACTIONS-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ASTATE-SET", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCTstateSet(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"TSTATE-SET", []string{"STATE-INS", "TENTRY-LIST"},
 		"value",
 		"make_tokens_content_node",
@@ -288,10 +383,15 @@ func sdtsBindTCTstateSet(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"STATE-INS", "TENTRY-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TSTATE-SET", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCProdActionList(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"PROD-ACTION-LIST", []string{"PROD-ACTION-LIST", "PROD-ACTION"},
 		"value",
 		"prod_action_list_append",
@@ -300,8 +400,12 @@ func sdtsBindTCProdActionList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"PROD-ACTION-LIST", "PROD-ACTION"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "PROD-ACTION-LIST", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"PROD-ACTION-LIST", []string{"PROD-ACTION"},
 		"value",
 		"prod_action_list_start",
@@ -309,10 +413,15 @@ func sdtsBindTCProdActionList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"PROD-ACTION"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "PROD-ACTION-LIST", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCAttrRefList(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"ATTR-REF-LIST", []string{"ATTR-REF-LIST", "attr-ref"},
 		"value",
 		"attr_ref_list_append",
@@ -322,8 +431,12 @@ func sdtsBindTCAttrRefList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$ft"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"ATTR-REF-LIST", "attr-ref"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ATTR-REF-LIST", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"ATTR-REF-LIST", []string{"attr-ref"},
 		"value",
 		"attr_ref_list_start",
@@ -332,10 +445,15 @@ func sdtsBindTCAttrRefList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$ft"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"attr-ref"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ATTR-REF-LIST", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCWith(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"WITH", []string{"dir-with", "ATTR-REF-LIST"},
 		"value",
 		"ident",
@@ -343,10 +461,15 @@ func sdtsBindTCWith(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"dir-with", "ATTR-REF-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "WITH", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCSemAction(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"SEM-ACTION", []string{"dir-set", "attr-ref", "dir-hook", "id"},
 		"value",
 		"make_semantic_action",
@@ -357,8 +480,12 @@ func sdtsBindTCSemAction(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 3}, Name: "$ft"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"dir-set", "attr-ref", "dir-hook", "id"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "SEM-ACTION", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"SEM-ACTION", []string{"dir-set", "attr-ref", "dir-hook", "id", "WITH"},
 		"value",
 		"make_semantic_action",
@@ -370,10 +497,15 @@ func sdtsBindTCSemAction(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 4}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"dir-set", "attr-ref", "dir-hook", "id", "WITH"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "SEM-ACTION", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCSemActionList(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"SEM-ACTION-LIST", []string{"SEM-ACTION-LIST", "SEM-ACTION"},
 		"value",
 		"semantic_action_list_append",
@@ -382,8 +514,12 @@ func sdtsBindTCSemActionList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"SEM-ACTION-LIST", "SEM-ACTION"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "SEM-ACTION-LIST", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"SEM-ACTION-LIST", []string{"SEM-ACTION"},
 		"value",
 		"semantic_action_list_start",
@@ -391,10 +527,15 @@ func sdtsBindTCSemActionList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"SEM-ACTION"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "SEM-ACTION-LIST", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCAsym(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"ASYM", []string{"nonterm"},
 		"value",
 		"get_nonterminal",
@@ -402,8 +543,12 @@ func sdtsBindTCAsym(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"nonterm"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ASYM", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"ASYM", []string{"term"},
 		"value",
 		"get_terminal",
@@ -411,8 +556,12 @@ func sdtsBindTCAsym(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"term"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ASYM", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"ASYM", []string{"int"},
 		"value",
 		"get_int",
@@ -420,8 +569,12 @@ func sdtsBindTCAsym(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"int"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ASYM", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"ASYM", []string{"id"},
 		"value",
 		"ident",
@@ -429,10 +582,15 @@ func sdtsBindTCAsym(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"id"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ASYM", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCAsymList(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"ASYM-LIST", []string{"ASYM-LIST", "ASYM"},
 		"value",
 		"string_list_append",
@@ -441,8 +599,12 @@ func sdtsBindTCAsymList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"ASYM-LIST", "ASYM"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ASYM-LIST", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"ASYM-LIST", []string{"ASYM"},
 		"value",
 		"string_list_start",
@@ -450,10 +612,15 @@ func sdtsBindTCAsymList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"ASYM"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ASYM-LIST", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCAproduction(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"APRODUCTION", []string{"ASYM-LIST"},
 		"value",
 		"ident",
@@ -461,17 +628,26 @@ func sdtsBindTCAproduction(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"ASYM-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "APRODUCTION", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"APRODUCTION", []string{"epsilon"},
 		"value",
 		"epsilon_string_list",
 		nil,
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"epsilon"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "APRODUCTION", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCProdAddr(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"PROD-ADDR", []string{"dir-index", "int"},
 		"value",
 		"make_prod_specifier_index",
@@ -479,8 +655,12 @@ func sdtsBindTCProdAddr(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$text"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"dir-index", "int"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "PROD-ADDR", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"PROD-ADDR", []string{"APRODUCTION"},
 		"value",
 		"make_prod_specifier_literal",
@@ -488,10 +668,15 @@ func sdtsBindTCProdAddr(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"APRODUCTION"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "PROD-ADDR", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCProdSpec(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"PROD-SPEC", []string{"dir-prod", "PROD-ADDR"},
 		"value",
 		"ident",
@@ -499,17 +684,26 @@ func sdtsBindTCProdSpec(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"dir-prod", "PROD-ADDR"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "PROD-SPEC", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"PROD-SPEC", []string{"dir-prod"},
 		"value",
 		"make_prod_specifier_next",
 		nil,
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"dir-prod"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "PROD-SPEC", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCProdAction(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"PROD-ACTION", []string{"PROD-SPEC", "SEM-ACTION-LIST"},
 		"value",
 		"make_prod_action",
@@ -518,10 +712,15 @@ func sdtsBindTCProdAction(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"PROD-SPEC", "SEM-ACTION-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "PROD-ACTION", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCSymActions(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"SYM-ACTIONS", []string{"dir-symbol", "nonterm", "PROD-ACTION-LIST"},
 		"value",
 		"make_symbol_actions",
@@ -531,10 +730,15 @@ func sdtsBindTCSymActions(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 2}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"dir-symbol", "nonterm", "PROD-ACTION-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "SYM-ACTIONS", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCSymActionsList(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"SYM-ACTIONS-LIST", []string{"SYM-ACTIONS-LIST", "SYM-ACTIONS"},
 		"value",
 		"symbol_actions_list_append",
@@ -543,8 +747,12 @@ func sdtsBindTCSymActionsList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"SYM-ACTIONS-LIST", "SYM-ACTIONS"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "SYM-ACTIONS-LIST", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"SYM-ACTIONS-LIST", []string{"SYM-ACTIONS"},
 		"value",
 		"symbol_actions_list_start",
@@ -552,10 +760,15 @@ func sdtsBindTCSymActionsList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"SYM-ACTIONS"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "SYM-ACTIONS-LIST", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCAstateSetList(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"ASTATE-SET-LIST", []string{"ASTATE-SET-LIST", "ASTATE-SET"},
 		"value",
 		"actions_state_block_list_append",
@@ -564,8 +777,12 @@ func sdtsBindTCAstateSetList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"ASTATE-SET-LIST", "ASTATE-SET"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ASTATE-SET-LIST", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"ASTATE-SET-LIST", []string{"ASTATE-SET"},
 		"value",
 		"actions_state_block_list_start",
@@ -573,10 +790,15 @@ func sdtsBindTCAstateSetList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"ASTATE-SET"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ASTATE-SET-LIST", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCTstateSetList(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"TSTATE-SET-LIST", []string{"TSTATE-SET-LIST", "TSTATE-SET"},
 		"value",
 		"tokens_state_block_list_append",
@@ -585,8 +807,12 @@ func sdtsBindTCTstateSetList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"TSTATE-SET-LIST", "TSTATE-SET"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TSTATE-SET-LIST", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"TSTATE-SET-LIST", []string{"TSTATE-SET"},
 		"value",
 		"tokens_state_block_list_start",
@@ -594,10 +820,15 @@ func sdtsBindTCTstateSetList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"TSTATE-SET"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TSTATE-SET-LIST", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCGstateSetList(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"GSTATE-SET-LIST", []string{"GSTATE-SET-LIST", "GSTATE-SET"},
 		"value",
 		"grammar_state_block_list_append",
@@ -606,8 +837,12 @@ func sdtsBindTCGstateSetList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"GSTATE-SET-LIST", "GSTATE-SET"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GSTATE-SET-LIST", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"GSTATE-SET-LIST", []string{"GSTATE-SET"},
 		"value",
 		"grammar_state_block_list_start",
@@ -615,10 +850,15 @@ func sdtsBindTCGstateSetList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"GSTATE-SET"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GSTATE-SET-LIST", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCGruleList(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"GRULE-LIST", []string{"GRULE-LIST", "GRULE"},
 		"value",
 		"rule_list_append",
@@ -627,8 +867,12 @@ func sdtsBindTCGruleList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"GRULE-LIST", "GRULE"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GRULE-LIST", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"GRULE-LIST", []string{"GRULE"},
 		"value",
 		"rule_list_start",
@@ -636,10 +880,15 @@ func sdtsBindTCGruleList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"GRULE"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GRULE-LIST", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCTentryList(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"TENTRY-LIST", []string{"TENTRY-LIST", "TENTRY"},
 		"value",
 		"entry_list_append",
@@ -648,8 +897,12 @@ func sdtsBindTCTentryList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"TENTRY-LIST", "TENTRY"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TENTRY-LIST", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"TENTRY-LIST", []string{"TENTRY"},
 		"value",
 		"entry_list_start",
@@ -657,10 +910,15 @@ func sdtsBindTCTentryList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"TENTRY"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TENTRY-LIST", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCTentry(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"TENTRY", []string{"PATTERN", "TOPTION-LIST"},
 		"value",
 		"make_token_entry",
@@ -669,10 +927,15 @@ func sdtsBindTCTentry(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"PATTERN", "TOPTION-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TENTRY", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCGrule(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"GRULE", []string{"nl-nonterm", "eq", "ALTERNATIONS"},
 		"value",
 		"make_rule",
@@ -681,10 +944,15 @@ func sdtsBindTCGrule(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 2}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"nl-nonterm", "eq", "ALTERNATIONS"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GRULE", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCAlternations(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"ALTERNATIONS", []string{"GPRODUCTION"},
 		"value",
 		"string_list_list_start",
@@ -692,8 +960,12 @@ func sdtsBindTCAlternations(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"GPRODUCTION"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ALTERNATIONS", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"ALTERNATIONS", []string{"ALTERNATIONS", "alt", "GPRODUCTION"},
 		"value",
 		"string_list_list_append",
@@ -702,10 +974,15 @@ func sdtsBindTCAlternations(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 2}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"ALTERNATIONS", "alt", "GPRODUCTION"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ALTERNATIONS", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCGproduction(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"GPRODUCTION", []string{"GSYM-LIST"},
 		"value",
 		"ident",
@@ -713,17 +990,26 @@ func sdtsBindTCGproduction(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"GSYM-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GPRODUCTION", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"GPRODUCTION", []string{"epsilon"},
 		"value",
 		"epsilon_string_list",
 		nil,
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"epsilon"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GPRODUCTION", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCGsymList(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"GSYM-LIST", []string{"GSYM-LIST", "GSYM"},
 		"value",
 		"string_list_append",
@@ -732,8 +1018,12 @@ func sdtsBindTCGsymList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"GSYM-LIST", "GSYM"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GSYM-LIST", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"GSYM-LIST", []string{"GSYM"},
 		"value",
 		"string_list_start",
@@ -741,10 +1031,15 @@ func sdtsBindTCGsymList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"GSYM"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GSYM-LIST", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCPriority(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"PRIORITY", []string{"dir-priority", "TEXT"},
 		"value",
 		"trim_string",
@@ -752,10 +1047,15 @@ func sdtsBindTCPriority(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"dir-priority", "TEXT"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "PRIORITY", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCHuman(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"HUMAN", []string{"dir-human", "TEXT"},
 		"value",
 		"trim_string",
@@ -763,10 +1063,15 @@ func sdtsBindTCHuman(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"dir-human", "TEXT"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "HUMAN", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCToken(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"TOKEN", []string{"dir-token", "TEXT"},
 		"value",
 		"trim_string",
@@ -774,10 +1079,15 @@ func sdtsBindTCToken(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"dir-token", "TEXT"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TOKEN", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCStateshift(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"STATESHIFT", []string{"dir-shift", "TEXT"},
 		"value",
 		"trim_string",
@@ -785,17 +1095,26 @@ func sdtsBindTCStateshift(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"dir-shift", "TEXT"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "STATESHIFT", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCToption(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"TOPTION", []string{"DISCARD"},
 		"value",
 		"make_discard_option",
 		nil,
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"DISCARD"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TOPTION", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"TOPTION", []string{"STATESHIFT"},
 		"value",
 		"make_stateshift_option",
@@ -803,8 +1122,12 @@ func sdtsBindTCToption(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"STATESHIFT"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TOPTION", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"TOPTION", []string{"TOKEN"},
 		"value",
 		"make_token_option",
@@ -812,8 +1135,12 @@ func sdtsBindTCToption(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"TOKEN"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TOPTION", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"TOPTION", []string{"HUMAN"},
 		"value",
 		"make_human_option",
@@ -821,8 +1148,12 @@ func sdtsBindTCToption(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"HUMAN"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TOPTION", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"TOPTION", []string{"PRIORITY"},
 		"value",
 		"make_priority_option",
@@ -830,10 +1161,15 @@ func sdtsBindTCToption(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"PRIORITY"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TOPTION", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCToptionList(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"TOPTION-LIST", []string{"TOPTION-LIST", "TOPTION"},
 		"value",
 		"token_opt_list_append",
@@ -842,8 +1178,12 @@ func sdtsBindTCToptionList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"TOPTION-LIST", "TOPTION"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TOPTION-LIST", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"TOPTION-LIST", []string{"TOPTION"},
 		"value",
 		"token_opt_list_start",
@@ -851,10 +1191,15 @@ func sdtsBindTCToptionList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"TOPTION"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TOPTION-LIST", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCPattern(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"PATTERN", []string{"TEXT"},
 		"value",
 		"trim_string",
@@ -862,10 +1207,15 @@ func sdtsBindTCPattern(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"TEXT"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "PATTERN", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCGsym(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"GSYM", []string{"nonterm"},
 		"value",
 		"get_nonterminal",
@@ -873,8 +1223,12 @@ func sdtsBindTCGsym(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"nonterm"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GSYM", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"GSYM", []string{"term"},
 		"value",
 		"get_terminal",
@@ -882,10 +1236,15 @@ func sdtsBindTCGsym(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"term"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "GSYM", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCStateIns(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"STATE-INS", []string{"dir-state", "ID-EXPR"},
 		"state",
 		"make_state_ins",
@@ -894,10 +1253,15 @@ func sdtsBindTCStateIns(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "$ft"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"dir-state", "ID-EXPR"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "STATE-INS", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCIdExpr(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"ID-EXPR", []string{"id"},
 		"value",
 		"ident",
@@ -905,8 +1269,12 @@ func sdtsBindTCIdExpr(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"id"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ID-EXPR", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"ID-EXPR", []string{"term"},
 		"value",
 		"ident",
@@ -914,10 +1282,15 @@ func sdtsBindTCIdExpr(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"term"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "ID-EXPR", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCText(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"TEXT", []string{"NL-TEXT-ELEM", "TEXT-ELEM-LIST"},
 		"value",
 		"append_strings_trimmed",
@@ -926,8 +1299,12 @@ func sdtsBindTCText(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"NL-TEXT-ELEM", "TEXT-ELEM-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TEXT", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"TEXT", []string{"TEXT-ELEM-LIST"},
 		"value",
 		"ident",
@@ -935,8 +1312,12 @@ func sdtsBindTCText(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"TEXT-ELEM-LIST"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TEXT", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"TEXT", []string{"NL-TEXT-ELEM"},
 		"value",
 		"ident",
@@ -944,10 +1325,15 @@ func sdtsBindTCText(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"NL-TEXT-ELEM"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TEXT", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCTextElemList(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"TEXT-ELEM-LIST", []string{"TEXT-ELEM-LIST", "TEXT-ELEM"},
 		"value",
 		"append_strings",
@@ -956,8 +1342,12 @@ func sdtsBindTCTextElemList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 1}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"TEXT-ELEM-LIST", "TEXT-ELEM"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TEXT-ELEM-LIST", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"TEXT-ELEM-LIST", []string{"TEXT-ELEM"},
 		"value",
 		"ident",
@@ -965,10 +1355,15 @@ func sdtsBindTCTextElemList(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "value"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"TEXT-ELEM"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TEXT-ELEM-LIST", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCNlTextElem(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"NL-TEXT-ELEM", []string{"nl-escseq"},
 		"value",
 		"interpret_escape",
@@ -976,8 +1371,12 @@ func sdtsBindTCNlTextElem(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"nl-escseq"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "NL-TEXT-ELEM", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"NL-TEXT-ELEM", []string{"nl-freeform-text"},
 		"value",
 		"ident",
@@ -985,10 +1384,15 @@ func sdtsBindTCNlTextElem(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"nl-freeform-text"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "NL-TEXT-ELEM", prodStr, err.Error()))
+	}
 }
 
 func sdtsBindTCTextElem(sdts trans.SDTS) {
-	sdts.Bind(
+	var err error
+	err = sdts.Bind(
 		"TEXT-ELEM", []string{"escseq"},
 		"value",
 		"interpret_escape",
@@ -996,8 +1400,12 @@ func sdtsBindTCTextElem(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"escseq"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TEXT-ELEM", prodStr, err.Error()))
+	}
 
-	sdts.Bind(
+	err = sdts.Bind(
 		"TEXT-ELEM", []string{"freeform-text"},
 		"value",
 		"ident",
@@ -1005,4 +1413,8 @@ func sdtsBindTCTextElem(sdts trans.SDTS) {
 			{Rel: trans.NodeRelation{Type: trans.RelSymbol, Index: 0}, Name: "$text"},
 		},
 	)
+	if err != nil {
+		prodStr := strings.Join([]string{"freeform-text"}, " ")
+		panic(fmt.Sprintf("binding %s -> [%s]: %s", "TEXT-ELEM", prodStr, err.Error()))
+	}
 }
