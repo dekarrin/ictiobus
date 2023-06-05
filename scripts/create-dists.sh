@@ -139,7 +139,7 @@ do
   cp -R examples/fishimath-ast/go.sum "$distfolder/examples/fishimath-ast"
   cp -R examples/fishimath-ast/README.md "$distfolder/examples/fishimath-ast"
   cp -R examples/fishimath-ast/eights.fm "$distfolder/examples/fishimath-ast"
-  cp README.md source.tar.gz "$distfolder"
+  cp README.md RELEASES.md LICENSE source.tar.gz "$distfolder"
 
   # do some magic in our example directories to get a go.mod that points to the
   # actual current version, if we are building one
